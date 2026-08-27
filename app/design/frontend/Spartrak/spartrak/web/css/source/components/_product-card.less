@@ -1,142 +1,467 @@
-// Spartrak component — Product Card (Phase 6).
+// ===========================================================================
+// Spartrak — Card - Product. Figma 569:13667 (plain) / 569:13704 (discounted)
+// ===========================================================================
+// The single card used by the PLP grid, the search-results grid and every
+// dashboard-driven homepage product section. One definition, never forked per
+// page (04-COMPONENT-INVENTORY.md's "Card - Product" rule).
 //
-// The single card used by the PLP/category grid, search results grid,
-// and the Homepage Featured Products rail (see spartrak-card.phtml's own
-// header comment) - one definition here, never duplicated per page.
-// Semantic tokens + logical properties only, same discipline as every
-// other Phase 4/5 component - no [dir] override needed.
+// ---------------------------------------------------------------------------
+// MOVED OUT OF THE TEMPLATE, 2026-08-27
+// ---------------------------------------------------------------------------
+// These rules previously lived in an inline <style> block inside
+// Spartrak_Catalog::product/card.phtml. That was always marked temporary — it
+// existed so a Figma pass could be reviewed without a static-content deploy —
+// and it cost real bytes on every page view:
 //
-// ASSUMPTION — REQUIRES FIGMA VERIFICATION: exact spacing/sizing below is
-// a documented default (04-COMPONENT-INVENTORY.md's "Card - Product" is
-// CONFIRMED to exist but its own detailed spec was never pixel-audited).
+//   * the block shipped ~14 KB of CSS INCLUDING ~6 KB of explanatory comments
+//     to every visitor, on every page, uncacheable, because inline <style> is
+//     part of the HTML document and cannot be cached separately from it;
+//   * three icons were embedded as base64-ish data: URIs, re-sent in full on
+//     every page rather than fetched once and cached for the whole session;
+//   * it was re-parsed by the browser on every navigation.
+//
+// Here it is compiled into spartrak-components.css: fetched once, cached, and
+// LESS strips every `//` comment from the output, so the shipped bytes are the
+// rules alone. The icons are now three normal, cacheable asset requests
+// pointing at the same files the data: URIs were built from — heart.svg,
+// star.svg and plus.svg were byte-compared against the inlined path data
+// before the switch, so nothing about the rendering changes.
+//
+// ---------------------------------------------------------------------------
+// SPECIFICITY — WHY A FEW SELECTORS CARRY AN EXTRA `.spartrak-card`
+// ---------------------------------------------------------------------------
+// Moving CSS out of an inline <style> costs it the source-order tiebreak: this
+// bundle is linked BEFORE styles-l.min.css, so on desktop a Porto rule of
+// EQUAL specificity now wins where the inline block used to (see
+// Magento_Theme/web/css/source/_extend.less for the full finding).
+//
+// That only matters where a selector can tie. Porto and Magento/blank define
+// ZERO `.spartrak-card*` rules — verified by grep across both themes — so
+// every selector built purely from this component's own BEM classes is
+// untouchable and is left at its natural specificity.
+//
+// The exceptions are the selectors that also name MAGENTO's classes
+// (.action.towishlist, .old-price, .special-price, .price, .price-label),
+// because Porto styles those too and can tie. Those — and only those — are
+// scoped through an extra `.spartrak-card` to put them one class ahead. This
+// is the same targeted technique the OTP field and the account menu already
+// use in this theme, not a blanket specificity war.
 
+// ---------------------------------------------------------------------------
+// Card shell
+// ---------------------------------------------------------------------------
+// Figma: 1px border/subtle, NO corner radius, 12px gap between the image and
+// the content block. height:100% plus the auto margin on the price row keeps
+// every card in a grid row the same height with the price/CTA line pinned to
+// the bottom — which is what the Figma row does too (card 569:13749 has its
+// Name-and-Rating block stretched by exactly the 29px needed to match its
+// taller siblings).
 .spartrak-card {
     display: flex;
     flex-direction: column;
-    border: 1px solid var(--color-border-default);
-    border-radius: var(--radius-6);
-    background: var(--color-bg-surface);
-    overflow: hidden;
+    gap: 12px;
     height: 100%;
-
-    &:hover {
-        border-color: var(--color-action-primary);
-    }
+    padding: 0;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 0;
+    background: var(--color-bg-surface);
+    overflow: visible;
+    transition: border-color .15s ease;
 }
 
+// Hover is NOT in Figma (Card - Product has no hover variant). This keeps the
+// affordance the theme already established rather than inventing a new one.
+.spartrak-card:hover {
+    border-color: var(--color-action-primary);
+}
+
+// ---------------------------------------------------------------------------
+// Media (Figma 569:13705): square, bg/field, clipped
+// ---------------------------------------------------------------------------
 .spartrak-card__media {
     position: relative;
-    background: var(--color-bg-surface-subtle);
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: var(--color-bg-field);
+    overflow: hidden;
 }
 
 .spartrak-card__image-link {
     display: block;
+    position: absolute;
+    inset: 0;
 }
 
+// Figma drops a 260x260 image into the 245x245 clipped frame (node 569:13706
+// sits at -7,-7 with size 260) — the photo deliberately bleeds ~6% past the
+// frame and is cropped by it, which is visible on the design's own render.
+// 260/245 = 106.122%. Centring is symmetric, so physical left/top + transform
+// is correct here and needs no RTL variant.
 .spartrak-card__image {
-    display: block;
-    width: 100%;
-    height: auto;
-    aspect-ratio: 1 / 1;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 106.122%;
+    height: 106.122%;
+    max-width: none;
     object-fit: contain;
 }
 
-// 17-FIGMA-CODE-AUDIT.md §2 fix (2026-08-24): wishlist heart button (node
-// 734:26587) — restyles Magento's own native "action towishlist" link
-// (Magento_Wishlist::catalog/product/list/addto/wishlist.phtml) into the
-// white-circle icon-button Figma specifies, text hidden but kept for
-// screen readers, same convention as the header wishlist/cart buttons.
-.spartrak-card__wishlist {
+// ---------------------------------------------------------------------------
+// Overlay row (Figma 569:13707)
+// ---------------------------------------------------------------------------
+// absolute, full width, 12px inset, space-between. DOM order is
+// [wishlist, promo] so that under dir=rtl the heart lands in the inline-start
+// (right) corner and the badge in the inline-end (left) one, exactly as the
+// design renders — and mirrors correctly for an LTR store. pointer-events are
+// handed back only to the two controls so the rest of the overlay does not
+// steal clicks from the image link underneath.
+.spartrak-card__actions {
     position: absolute;
-    inset-inline-start: 8px;
-    inset-block-start: 8px;
-
-    .action.towishlist {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
-        border-radius: var(--radius-pill);
-        background: var(--color-bg-surface);
-        box-shadow: 0 2px 6px var(--color-scrim);
-        // Icon system CONFIRMED still open (16-ARCHITECTURE-DECISIONS.md risk #8).
-
-        span {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
-        }
-    }
+    inset-block-start: 0;
+    inset-inline: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px;
+    pointer-events: none;
 }
 
+.spartrak-card__actions > * {
+    pointer-events: auto;
+}
+
+// ---------------------------------------------------------------------------
+// Wishlist heart (Figma 718:25231 / 718:25608)
+// ---------------------------------------------------------------------------
+// 40px white circle, shadow 0 1px 2px rgba(0,0,0,.1), 20px heart. Restyles
+// Magento's own native `.action.towishlist` anchor, so the ajax behaviour comes
+// free from Magento_Wishlist's JS and this component adds none.
+//
+// The heart is a background-image, not a `.spartrak-icon()` mask: the asset
+// already carries the exact stroke colour the design calls for
+// (#1A144F = --color-icon-ink) and is never re-tinted here, so a mask would
+// buy nothing and cost the extra background-color declaration.
+.spartrak-card__wishlist {
+    position: static;
+    inset: auto;
+    flex: none;
+}
+
+// EXTRA `.spartrak-card` — see the specificity note in this file's header.
+// `.action.towishlist` is Magento's own class and Porto styles it.
+.spartrak-card .spartrak-card__wishlist .action.towishlist {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-pill);
+    background: var(--color-bg-surface) url('../images/icons/heart.svg') no-repeat center / 20px 20px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .1);
+}
+
+.spartrak-card .spartrak-card__wishlist .action.towishlist > span,
+.spartrak-card__add-to-cart > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.spartrak-card .spartrak-card__wishlist .action.towishlist:focus-visible,
+.spartrak-card__add-to-cart:focus-visible,
+.spartrak-card__name:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+}
+
+// ---------------------------------------------------------------------------
+// Promo badge (Figma 569:13708 / 569:13712)
+// ---------------------------------------------------------------------------
+// feedback/danger pill, h28, px12, Label/Large 14/1.3 on text/inverse. The
+// decorative "Glow" child is deliberately omitted — see card.phtml's header,
+// deviation 2.
+.spartrak-card__promo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    padding-inline: 12px;
+    border-radius: var(--radius-pill);
+    background: var(--color-feedback-danger);
+    color: var(--color-text-inverse);
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+// ---------------------------------------------------------------------------
+// Content (Figma 569:13714 / 569:13716)
+// ---------------------------------------------------------------------------
 .spartrak-card__body {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 12px;
     flex: 1 1 auto;
+    gap: 12px;
+    padding: 0 4px 12px;
 }
 
-.spartrak-card__brand {
-    font-size: var(--text-12);
-    color: var(--color-text-secondary);
+.spartrak-card__content {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    gap: 8px;
 }
 
+// Figma 569:13717 is `items-end` in its LTR canvas, i.e. the rating row is
+// pulled to the inline-start edge of an RTL layout. flex-start resolves to
+// that automatically and mirrors for LTR.
+.spartrak-card__heading {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.spartrak-card__name-wrap {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding-inline: 2px;
+}
+
+// Figma 569:13719 — Heading/H4: arabic medium, 18px, line-height 1.3,
+// text/primary, clamped to 2 lines (the design's own Name Container is 46px on
+// two-line names and 23px on one-line ones, so it hugs rather than reserving a
+// fixed two-line box).
 .spartrak-card__name {
-    font-size: var(--text-14);
+    flex: 1 1 0;
+    min-width: 0;
+    margin: 0;
     color: var(--color-text-primary);
+    font-family: var(--font-arabic);
+    font-size: var(--text-18);
+    font-weight: 500;
+    line-height: 1.3;
+    text-align: start;
     text-decoration: none;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+}
 
-    &:hover {
-        color: var(--color-action-primary);
-    }
+.spartrak-card__name:hover {
+    color: var(--color-action-primary);
+}
+
+// Porto's global `a:visited` repaints links a different navy at (0,1,1),
+// which outranks a bare class. Pinned with the component's own token — the
+// same finding as the mega-nav and homepage passes.
+.spartrak-card__name:visited {
+    color: var(--color-text-primary);
+}
+
+// ---------------------------------------------------------------------------
+// Rating (Figma 569:13720)
+// ---------------------------------------------------------------------------
+// [5x20 stars][value][count], 4px gaps. `direction: ltr` scopes ONLY this row:
+// a star meter is a numeric construct that fills left-to-right in both locales
+// (Figma's own partial star is the 5th/rightmost one), so it must not mirror —
+// while the row as a whole is still aligned to the layout's inline-start by the
+// parent's align-items above.
+.spartrak-card__rating {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    direction: ltr;
+}
+
+// The star row is ONE element: the real Figma star path is used as a repeating
+// mask, the fill level as a hard-stop gradient behind it. One request, no
+// per-star DOM, no JS, and both colours are real tokens. To ship Figma's
+// literal all-empty render instead, delete the background-image declaration.
+.spartrak-card__stars {
+    flex: none;
+    width: 100px;
+    height: 20px;
+    background-color: var(--color-rating-empty);
+    background-image: linear-gradient(
+        to right,
+        var(--color-action-accent) var(--spartrak-rating-fill, 0%),
+        transparent var(--spartrak-rating-fill, 0%)
+    );
+    // Longhand rather than the `mask:` shorthand — LESS parses the `/` in
+    // `center / contain` as division and mangles it (same note as _icons.less).
+    -webkit-mask-image: url('../images/icons/star.svg');
+    mask-image: url('../images/icons/star.svg');
+    -webkit-mask-repeat: repeat-x;
+    mask-repeat: repeat-x;
+    -webkit-mask-position: left center;
+    mask-position: left center;
+    -webkit-mask-size: 20px 20px;
+    mask-size: 20px 20px;
+}
+
+// Figma "Latin/Label": font/family/latin, medium, 14px, line-height 1.3.
+.spartrak-card__rating-value {
+    color: var(--color-text-primary);
+    font-family: var(--font-latin);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+// Figma "Body/Small": arabic, regular, 14px, line-height 1.5.
+.spartrak-card__rating-count {
+    color: var(--color-text-secondary);
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 400;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+
+// ---------------------------------------------------------------------------
+// Price + CTA row (Figma 569:13742)
+// ---------------------------------------------------------------------------
+// space-between with DOM order [price, add-to-cart], so under dir=rtl the price
+// sits at the inline-start (right) edge and the round + button at the
+// inline-end (left) one, as designed. margin-block-start:auto pins the row to
+// the bottom of the card, equalising a grid row.
+.spartrak-card__price-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-block-start: auto;
+    padding-inline: 2px;
 }
 
 .spartrak-card__price {
-    margin-block-start: auto;
-    padding-block-start: 4px;
-    font-size: var(--text-16);
-    color: var(--color-text-primary);
-    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    font-weight: 400;
 }
 
-// DATA REQUIRED fallback (real price not yet available) - deliberately
-// styled as muted/secondary, never presented as if it were a real price
-// figure, per this project's no-fabricated-pricing rule.
+// Every rule below names a MAGENTO price class that Porto also styles, so each
+// carries the extra `.spartrak-card` — see this file's header.
+//
+// Magento's final_price.phtml emits [.old-price, .special-price]. Figma renders
+// the CURRENT price at the inline-start edge and the struck-through original
+// beside it, so the two are reordered here rather than by forking the price
+// template.
+.spartrak-card .spartrak-card__price .special-price {
+    order: 1;
+}
+
+.spartrak-card .spartrak-card__price .old-price {
+    order: 2;
+    margin: 0;
+}
+
+// Figma "Price/Medium" (569:13748 / 569:13703): arabic bold, size/xl 20px,
+// line-height 1.3, text/primary. Applies to both the discounted final price
+// and a plain single price.
+.spartrak-card .spartrak-card__price .price-container .price,
+.spartrak-card .spartrak-card__price .special-price .price {
+    color: var(--color-text-primary);
+    font-family: var(--font-arabic);
+    font-size: var(--text-20);
+    font-weight: 700;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+// Figma "Body/Base Medium" (569:13746) on `text/price-sale` (#d54033 — the same
+// primitive this theme already exposes as feedback/danger), with the 0.5px
+// strike Figma draws as a vector.
+.spartrak-card .spartrak-card__price .old-price .price {
+    color: var(--color-feedback-danger);
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    text-decoration: line-through;
+    text-decoration-thickness: .5px;
+    white-space: nowrap;
+}
+
+// Screen-reader-only price labels ("Regular Price", "Special Price").
+.spartrak-card .spartrak-card__price .price-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+// DATA REQUIRED fallback (real price not yet available) — deliberately muted,
+// never dressed up as a real price figure.
 .spartrak-price-unavailable__label {
+    color: var(--color-text-muted);
+    font-family: var(--font-arabic);
     font-size: var(--text-14);
     font-weight: 400;
-    color: var(--color-text-muted);
     font-style: italic;
 }
 
+// ---------------------------------------------------------------------------
+// Round add-to-cart (Figma 718:25242 / 718:25614)
+// ---------------------------------------------------------------------------
+// 36px action/primary circle, 1px border/default, white plus drawn at
+// 12.9167px — the exact size Figma's own export carries (the 20px Plus frame's
+// glyph is inset 20.83% and expanded 5.36% for its 1.25px stroke). The <form>
+// is the flex item; it must not add spacing of its own.
 .spartrak-card__form {
-    margin-block-start: 8px;
+    display: flex;
+    flex: none;
+    margin: 0;
+    padding: 0;
 }
 
-.spartrak-card__add-to-cart {
-    width: 100%;
-    padding: 8px 12px;
-    background: var(--color-action-primary);
-    color: var(--color-action-primary-text);
-    border: 0;
-    border-radius: var(--radius-6);
-    font-size: var(--text-14);
+// Magento/blank ships `button:not(.primary)` at (0,1,1), which already outranks
+// a single class — that was true for the inline block too, so this is not a
+// regression of the move. The extra `.spartrak-card` puts it at (0,2,0) and
+// settles it either way.
+.spartrak-card .spartrak-card__add-to-cart {
+    position: relative;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-pill);
+    background: var(--color-action-primary) url('../images/icons/plus.svg') no-repeat center / 12.9167px 12.9167px;
     cursor: pointer;
+    transition: background-color .15s ease;
+}
 
-    &:hover {
-        background: var(--color-action-primary-hover);
+.spartrak-card .spartrak-card__add-to-cart:hover {
+    background-color: var(--color-action-primary-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spartrak-card,
+    .spartrak-card__add-to-cart {
+        transition: none;
     }
 }
 

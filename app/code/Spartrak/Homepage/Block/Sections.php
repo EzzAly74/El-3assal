@@ -10,6 +10,10 @@ namespace Spartrak\Homepage\Block;
 use Magento\Framework\DataObject\IdentityInterface;
 use Magento\Framework\View\Element\Template;
 use Magento\Framework\View\Element\Template\Context;
+use Spartrak\Homepage\Block\Section\AbstractSection;
+use Spartrak\Homepage\Block\Section\Banner as BannerSection;
+use Spartrak\Homepage\Block\Section\CategoryTiles as CategoryTilesSection;
+use Spartrak\Homepage\Block\Section\ProductCarousel as ProductCarouselSection;
 use Spartrak\Homepage\Model\Section;
 use Spartrak\Homepage\Model\SectionList;
 use Spartrak\Homepage\Model\SectionType;
@@ -51,22 +55,43 @@ class Sections extends Template implements IdentityInterface
 {
     /**
      * type => [block class, template]. The single place the mapping lives.
+     *
+     * ===========================================================================
+     * WHY THESE ARE ALIASED IMPORTS AND NOT `Section\Banner::class`
+     * ===========================================================================
+     * This blanked the entire homepage once — every section rendered as an empty
+     * string with no visible error — so it is worth the paragraph.
+     *
+     * This file imports `Spartrak\Homepage\Model\Section` for the type hint on
+     * renderSection(). That import creates the ALIAS `Section`, and PHP resolves
+     * a relative qualified name through an alias whenever its first segment
+     * matches one. So `Section\Banner::class` did NOT mean
+     * `Spartrak\Homepage\Block\Section\Banner` (this file's own sub-namespace) —
+     * it silently meant `Spartrak\Homepage\Model\Section\Banner`, which does not
+     * exist.
+     *
+     * `::class` is resolved at compile time and never checks that the class is
+     * real, so nothing failed until createBlock() ran, and the catch below then
+     * turned the exception into ''. Result: a blank page and a log line.
+     *
+     * Fully-qualified aliased imports remove the ambiguity entirely — there is
+     * no relative name left for the `Section` alias to capture.
      */
     private const RENDERERS = [
         SectionType::BANNER => [
-            Section\Banner::class,
+            BannerSection::class,
             'Spartrak_Homepage::section/banner.phtml',
         ],
         SectionType::CATEGORY_TILES => [
-            Section\CategoryTiles::class,
+            CategoryTilesSection::class,
             'Spartrak_Homepage::section/category-tiles.phtml',
         ],
         SectionType::PRODUCT_CAROUSEL => [
-            Section\ProductCarousel::class,
+            ProductCarouselSection::class,
             'Spartrak_Homepage::section/product-carousel.phtml',
         ],
         SectionType::PRODUCT_VIDEO_CAROUSEL => [
-            Section\ProductCarousel::class,
+            ProductCarouselSection::class,
             'Spartrak_Homepage::section/product-video-carousel.phtml',
         ],
     ];
@@ -113,7 +138,7 @@ class Sections extends Template implements IdentityInterface
         [$blockClass, $template] = self::RENDERERS[$type];
 
         try {
-            /** @var Section\AbstractSection $child */
+            /** @var AbstractSection $child */
             $child = $this->getLayout()->createBlock($blockClass);
             $child->setTemplate($template);
             $child->setSection($section);
