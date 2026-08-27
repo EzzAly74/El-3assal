@@ -1,0 +1,910 @@
+// Spartrak component — Header (Main Navbar)
+//
+// FIGMA SSOT: desktop nodes 595:14474 (Navbar) / 595:14475 (Container) /
+// 595:14501 (Main Navbar); mobile nodes 724:25823 / 724:25824 / 724:25825
+// (row 1) / 724:25846 (search row).
+//
+// Every number below was either read off a Figma node or MEASURED off the
+// 1440 and 440 PNG exports. The measurements are recorded next to the rules
+// they justify, because several of them contradict a naive reading of the
+// Figma-generated code (see BACKGROUNDS and SEARCH BUTTON below).
+//
+// DOM ORDER: see the long note at the top of _support-strip.less. Short
+// version: these frames are RTL-composed but Figma's auto-layout serialises
+// children in LTR x-order, so the template emits the REVERSE of the Figma
+// code's order. That single decision makes `direction: rtl` reproduce Figma
+// exactly on the Arabic store and give a correct mirror on the English one,
+// with no [dir] overrides anywhere in this file.
+//
+// ============================================================================
+// BACKGROUNDS — measured, not transcribed
+// ============================================================================
+// Figma declares the Container fill as bg/on-media-subtle (#ffffff14) on BOTH
+// breakpoints, but the two RENDER differently:
+//   desktop (595:14475)  #f9f9f9   measured at (600,145), (80,235), (1380,235)
+//   mobile  (724:25824)  #ffffff   measured at (140,8), (320,8), (160,70)
+// and the search field inside them differs to match:
+//   desktop  bg/field          #f3f3f4   measured (700,148)
+//   mobile   bg/surface-subtle #f9f9f9
+// So mobile is a white bar with a grey search field, desktop is a grey bar
+// with a slightly greyer search field. Transcribing the alpha token literally
+// would have produced a white bar on both and lost the desktop contrast
+// entirely. See foundations/_tokens.less.
+// ============================================================================
+
+.spartrak-header {
+    // Figma node 595:14474: column, align-items center. The nav-row card
+    // below the bar is narrower than the viewport and centred, which is what
+    // align-items does here — the bar itself is stretched back to full width.
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+// Figma node 595:14475 "Container" — the surface the utility strip and the
+// main navbar share. _support-strip.less paints the identical value so the
+// two DOM blocks read as one continuous bar.
+.spartrak-header__bar {
+    width: 100%;
+    background: var(--color-bg-surface-subtle);
+    border-block-end: 1px solid var(--color-border-default);
+}
+
+// Figma node 595:14501 "Main Navbar" — padding 16px 40px, align-items center,
+// justify-content space-between. Height 107.42 = 16 + 75.42 (the logo, the
+// tallest child) + 16.
+.spartrak-header__row {
+    display: flex;
+    flex-wrap: wrap; // mobile drops the search onto a second line
+    align-items: center;
+    justify-content: space-between;
+    // 25px is the gap space-between produces at 1440, rounded to the nearest
+    // pixel: content width 1360 - actions 224 - search 1017 - logo 68.24
+    // = 50.76, i.e. 25.38 per gap. Declared as a real column-gap (rather than
+    // left to space-between) so the search can flex instead of being pinned
+    // to 1017px, and so the three clusters cannot collide at intermediate
+    // widths. At 1440 the search computes to 1017.76px — 0.76px from Figma.
+    column-gap: 25px;
+    padding: 16px 40px;
+    max-width: @breakpoint-desktop;
+    margin-inline: auto;
+}
+
+.spartrak-header__logo {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+
+    // Figma node 693:45441 — 68.238 x 75.421. Set here as well as via the
+    // block's logo_img_width/height arguments (which put real width/height
+    // attributes on the <img>, reserving the box before the raster arrives —
+    // that is the CLS guard) so the rendered size cannot drift from the
+    // design if those arguments are ever changed for another placement.
+    .logo {
+        display: block;
+        line-height: 0;
+    }
+
+    // `max-height: none` clears Porto's un-scoped `.logo img { max-height:
+    // 50px }`, which it lifts again only at `min-width: 992px`. Below that the
+    // cap was truncating Figma's 82x55 mobile lockup (node 724:25837) to 82x50
+    // — measured live at 375px before this fix. Same root cause as the footer
+    // logo; see _footer.less for the full note.
+    img {
+        display: block;
+        width: 68px;
+        height: auto;
+        max-height: none;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Search — Figma nodes 595:14520 (desktop) / 724:25849 (mobile)
+// ---------------------------------------------------------------------------
+// Wraps Magento's own search block. The markup is this theme's override of
+// Magento_Search::form.mini.phtml, which keeps core's `quickSearch` widget,
+// its data-mage-init payload and #search_autocomplete untouched.
+//
+// QA FIX (2026-08-25): these rules used to target core's class names
+// (.block-search / .form.minisearch / .action.search). They TIED on
+// specificity with theme-frontend-blank's desktop search rules, which live
+// inside `.media-width('min', @screen__m)` and therefore land in
+// styles-l.min.css — linked AFTER this bundle. Equal specificity + later
+// source order meant blank won `float: right`, `width: 250px`,
+// `position: absolute`, an icon-font glyph and a hidden label on desktop
+// only. The template now emits Spartrak class names instead, so blank's
+// selectors no longer match anything and there is nothing to out-rank. See
+// that template's header for the full finding.
+.spartrak-header__search {
+    flex: 1 1 auto;
+    min-width: 0;
+    position: relative; // anchors the autocomplete panel
+}
+
+.spartrak-search,
+.spartrak-search__field {
+    min-width: 0;
+}
+
+.spartrak-search {
+    width: 100%;
+}
+
+.spartrak-search__form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-sizing: border-box;
+    height: 62px;
+    // Figma `pl-[4px] pr-[16px]`, i.e. 4px on the submit-button side and 16px
+    // on the loupe side. The loupe is at the inline start (the right, in RTL),
+    // so those map to start:16 / end:4.
+    padding-inline-start: 16px;
+    padding-inline-end: 4px;
+    background: var(--color-bg-field);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+    margin: 0;
+}
+
+// Node 693:45436 — the decorative loupe. Figma binds its stroke to
+// action/primary (#063196), NOT to icon ink; verified in the export
+// (stroke="#063196"). It is the one navy icon in the header outside the
+// buttons.
+.spartrak-search__icon {
+    flex: 0 0 auto;
+    .spartrak-icon('search.svg'; 20px; var(--color-action-primary));
+}
+
+.spartrak-search__field {
+    flex: 1 1 auto;
+    margin: 0;
+}
+
+// ELEMENT-QUALIFIED ON PURPOSE (`input.` / `button.` below), not as a
+// specificity hack but to MATCH core rules that style bare elements and which
+// a single class cannot out-rank:
+//
+//   input:not([disabled]):focus  -> (0,2,1)  box-shadow: 0 0 3px 1px #063196
+//
+// `:not(x)` contributes x's own specificity, so that is one step ABOVE a plain
+// class — which is why `.spartrak-search__input:focus` was silently losing the
+// focus glow. Renaming the class cannot help: the element really is an <input>.
+// Qualifying by element brings us to the same specificity, and this bundle
+// loads later, so the tie resolves our way — no !important, no ID, no inflated
+// selector chain.
+//
+// The submit button's `button.` qualification is now belt-and-braces rather
+// than strictly required: Porto's `button:not(.primary)` (0,1,1), which used to
+// steal this button's border, colour, line-height, padding and height, has been
+// removed at source in source/_buttons.less. Core's remaining `button` baseline
+// is element-only (0,0,1), which a plain class already beats. The qualification
+// is kept so a future Porto or core rule at that specificity cannot silently
+// take these properties back.
+input.spartrak-search__input {
+    box-sizing: border-box;
+    width: 100%;
+    height: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    // Body/Large — thmanyah sans Regular 400 / 18px / lh 1.5
+    font-family: var(--font-arabic);
+    font-size: var(--text-18);
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: var(--letter-spacing-normal);
+    color: var(--color-text-primary);
+    // Figma sets `text-right` on the placeholder, i.e. the inline start in
+    // RTL. `start` keeps that in RTL and mirrors correctly in LTR.
+    text-align: start;
+    box-shadow: none;
+
+    &::placeholder {
+        color: var(--color-text-muted);
+        opacity: 1; // Firefox dims placeholders by default
+    }
+
+    // Kills Magento's blue focus glow (`input:not([disabled]):focus` sets
+    // box-shadow: 0 0 3px 1px #063196). The pill itself is the focus surface
+    // here — a glow on a borderless input inside a bordered pill reads as a
+    // rendering artefact. Focus remains visible via the pill, and the submit
+    // button keeps its own :focus-visible state.
+    &:focus {
+        outline: none;
+        box-shadow: none;
+        border: 0;
+    }
+}
+
+// The submit button. Figma node 595:14521: width 97, full height, bg
+// action/primary, 1px border/default, radius 100px, padding-inline 14, gap 2,
+// children [label, loupe] in RTL order.
+//
+// Element-qualified to match `button:not(.primary)` — see the note above
+// input.spartrak-search__input for why.
+button.spartrak-search__submit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    // Figma gives the button the same 62px as its parent and relies on
+    // `overflow: clip`, so the parent's 1px stroke is covered by the fill.
+    // With border-box sizing the honest equivalent is "fill the content box"
+    // — measured on the export the navy runs y=2..60 of a 63px render, i.e.
+    // Figma itself leaves ~1px of grey there.
+    align-self: stretch;
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    width: 97px;
+    // `height: auto` is load-bearing: `button:not(.primary)` sets a hard
+    // `height: 40px`, which would pin this to 40px and defeat align-self:
+    // stretch. Every other property here is likewise a restatement of one core
+    // sets — drop any of them and core's value comes back.
+    height: auto;
+    padding: 0 14px;
+    background: var(--color-action-primary);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-pill);
+    // Body/Base Medium — thmanyah sans Medium 500 / 16px / lh 1.5
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-action-primary-text);
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        background: var(--color-action-primary-hover);
+    }
+
+    // Node 693:45431 — the loupe INSIDE the navy button. Figma's export is
+    // stroke="white"; masked, so it takes the button's text colour. It is the
+    // LAST child (Figma x: loupe 0, label 22 in LTR order -> loupe trails in
+    // RTL), hence ::after rather than ::before.
+    &:after {
+        content: '';
+        .spartrak-icon('search.svg'; 20px; currentColor);
+    }
+}
+
+// quickSearch's suggestion list. Not drawn on any Figma header frame, so this
+// is deliberately minimal: a surface, the design system's border and radius,
+// and nothing invented. It exists so the native autocomplete is legible
+// rather than unstyled.
+.spartrak-search__autocomplete {
+    position: absolute;
+    inset-inline: 0;
+    top: calc(100% + 4px);
+    z-index: 30;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-6);
+    box-shadow: 0 8px 16px var(--color-scrim);
+    overflow: hidden;
+
+    &:empty {
+        display: none;
+    }
+
+    ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    li {
+        padding: 8px 16px;
+        font-size: var(--text-14);
+        color: var(--color-text-primary);
+        cursor: pointer;
+
+        &:hover,
+        &.selected {
+            background: var(--color-bg-surface-subtle);
+        }
+
+        .amount {
+            color: var(--color-text-muted);
+            float: inline-end;
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Actions cluster — Figma node 595:14502, gap 12, align-items center
+// ---------------------------------------------------------------------------
+.spartrak-header__actions {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+// The shared chrome of the favourite / cart / drawer buttons. Figma nodes
+// 595:14503, 595:14508, 724:25844 — all identical: 40x40, radius 100px,
+// bg/surface, 1px border/default. Verified by measurement on both exports
+// (desktop x 40..79 and 92..131; mobile x 16..55 and 384..423).
+.spartrak-header__icon-button {
+    position: relative;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-pill);
+    background: var(--color-bg-surface);
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        border-color: var(--color-border-strong);
+    }
+}
+
+// Node 693:45417 — Figma binds the heart to action/favorite-inactive, which
+// resolves to the same #1a144f as icon ink.
+.spartrak-header__icon--heart {
+    .spartrak-icon('heart.svg'; 20px; var(--color-icon-default));
+}
+
+// Node 693:45421 "bag-shopping-2".
+.spartrak-header__icon--cart {
+    .spartrak-icon('cart.svg'; 20px; var(--color-icon-default));
+}
+
+// Node 724:26316 "menu-burger-Right-Align" — the three rules are deliberately
+// unequal in Figma (full / short / medium), so this must be the real asset and
+// not three CSS bars. The previous pass drew three equal <span>s.
+.spartrak-header__icon--burger {
+    .spartrak-icon('menu-burger.svg'; 20px; var(--color-icon-default));
+}
+
+// Node 724:45067: while the mobile menu is open, this same 40px pill shows the
+// CLOSE glyph instead of the burger — that is the design's only close
+// affordance (Figma's menu view has no in-panel close button and no scrim).
+//
+// Driven entirely off the attribute spartrakMobileDrawer already sets on the
+// trigger, so the swap costs no extra markup and no extra JS.
+.spartrak-header__drawer-trigger[aria-expanded='true'] .spartrak-header__icon--burger {
+    .spartrak-icon('close.svg'; 20px; var(--color-icon-default));
+}
+
+// Count badge — Figma nodes 595:14506 / 595:14511 (desktop),
+// 724:25830 / 724:25835 (mobile).
+//
+// POSITION IS PHYSICAL, ON PURPOSE. Figma anchors the badge with `right:-4px;
+// top:-4px` relative to the 20px ICON box, which sits centred in the 40px
+// button — so the badge lands 6px in from the button's top-right corner and
+// stays INSIDE the ring rather than hanging off it (measured: badge x 62..74
+// against a circle spanning 40..80). Expressed against the button here, that
+// is `top: 6px; right: 6px`, which removes the need for an extra 20px wrapper
+// element around every icon.
+//
+// `right`, not `inset-inline-end`: a count badge belongs at the top-right in
+// BOTH directions — that is the universal convention and it is also exactly
+// what the RTL Figma frame draws. The previous pass used inset-inline-end,
+// which silently moved the badge to the top-LEFT on the Arabic store.
+.spartrak-header__badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 12px;
+    border-radius: var(--radius-pill);
+    background: var(--color-action-primary);
+    border: 1px solid var(--color-text-inverse);
+    color: var(--color-text-inverse);
+    // Label/Small — thmanyah sans Medium 500 / 10px / lh 1.3 / ls 0.5px
+    font-family: var(--font-arabic);
+    font-size: var(--text-10);
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: var(--letter-spacing-wide);
+    // A count is a Latin numeral inside an RTL block — isolate it so bidi
+    // cannot reorder a two-digit value.
+    unicode-bidi: isolate;
+    pointer-events: none;
+}
+
+// ---------------------------------------------------------------------------
+// Account chip — Figma node 595:14513
+// ---------------------------------------------------------------------------
+// height 40, radius 100px, bg/surface, 1px border/default,
+// padding-inline start 14 / end 6, content gap 8, children in RTL order
+// [avatar, name, chevron].
+//
+// MEASURED CONFIRMATION (y=148 on the 1440 export): chip 144..264, chevron box
+// 150..166, name 175..213, avatar plate 222..250 (#f4f7fc = blue/0). That
+// gives 14px before the avatar, 8px gaps, and 6px after the chevron — which is
+// why the padding below is asymmetric rather than a single value.
+.spartrak-header__account-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-sizing: border-box;
+    height: 40px;
+    padding-inline-start: 14px;
+    padding-inline-end: 6px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-pill);
+    background: var(--color-bg-surface);
+    // Label/Large — thmanyah sans Medium 500 / 14px / lh 1.3
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        border-color: var(--color-border-strong);
+    }
+}
+
+// The two chip states. Both are in the DOM; account-chip.phtml sets the
+// server-side first-paint guess and spartrak-utility-header.js reconciles them
+// against the customerData `customer` section — see that template's header note
+// for why the state cannot be decided in PHP alone.
+//
+// QA FIX (2026-08-25), STILL LOAD-BEARING — THE GUEST AND SIGNED-IN CHIPS BOTH
+// SHOWING AT ONCE.
+//
+// Live testing showed "تسجيل الدخول" and the signed-in chip rendering side by
+// side, with the signed-in one blank. The JS was correct: it sets the `hidden`
+// ATTRIBUTE on whichever state does not apply. The bug was here.
+//
+// `hidden` only hides an element because the UA stylesheet says
+// `[hidden] { display: none }`. Author styles beat the UA stylesheet
+// regardless of specificity, so ANY author `display` on the hidden element
+// silently defeats the attribute — the exact trap this codebase already
+// documents on .spartrak-auth__step[hidden] and
+// .spartrak-mobile-drawer__account-*[hidden]. Because these wrappers carry a
+// `display` of their own, the explicit author-level override is mandatory.
+//
+// (2026-08-27: `hidden` moved from the chip to these wrappers, so that the
+// signed-in state's dropdown menu is hidden along with its trigger rather than
+// being left behind in the DOM as a stray positioned panel.)
+.spartrak-header__account-guest,
+.spartrak-header__account-customer {
+    display: flex;
+    align-items: center;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+// Node 693:45429 — 28x28, radius 70px, plate blue/0.
+//
+// NO PHOTOGRAPH IS SHIPPED. Figma fills this circle with a stock head-and-
+// shoulders photo (the same "WhatsApp Image" raster the logo is cropped from).
+// Magento has no customer-avatar feature, so that photo would render as EVERY
+// signed-in shopper's face — a stock person presented as the user. It is a
+// design placeholder, not an asset. The plate colour, size and radius are
+// reproduced exactly and filled with the customer's own initial, which is
+// real dynamic data. Flagged for the designer rather than decided silently.
+.spartrak-header__avatar {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-pill);
+    background: var(--color-bg-avatar);
+    color: var(--color-action-primary);
+    font-family: var(--font-arabic);
+    font-size: var(--text-12);
+    font-weight: 700;
+    line-height: 1;
+    text-transform: uppercase;
+    overflow: hidden;
+}
+
+.spartrak-header__account-name {
+    white-space: nowrap;
+}
+
+// Node 693:45427 — the 16px chevron variant (distinct export from the 14px one
+// used in the utility strip: 1.5 vs 1.25 stroke).
+.spartrak-header__account-chevron {
+    .spartrak-icon('chevron-down-16.svg'; 16px; var(--color-icon-default));
+    transition: transform 120ms ease;
+}
+
+.spartrak-header__account[data-account-open] .spartrak-header__account-chevron {
+    transform: rotate(180deg);
+}
+
+.spartrak-header__account {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+// The signed-in menu. Not drawn on any Figma header frame (the account screens
+// are a separate, out-of-scope flow), so this is the same deliberately-minimal
+// treatment as the language dropdown: it renders Magento's own `header.links`
+// list with design-system tokens and invents no new UI.
+//
+// QA FIX (2026-08-25) — TWO OVERLAPPING LINK PANELS. Live testing showed the
+// account links rendering as two stacked, absolutely-positioned dropdowns
+// (My Account / My Wish List / Sign Out over Compare / Sign Out / Contact Us),
+// plus a stray "Default welcome msg!". Cause: the block's `css_class` layout
+// argument was literally `header links`, so Porto's own `.header.links`
+// dropdown CSS — position, float and all — applied to a list that is already
+// inside this positioned menu. Fixed at the source in
+// Smartwave_Porto/layout/default.xml by changing that argument to a Spartrak
+// class, so Porto's selectors no longer match. Same principle as the search:
+// own the class name rather than out-rank the rule.
+// REBUILT FROM FIGMA 2026-08-27 — node 562:11000 "Sidebar" / 562:11002
+// "Menu Container", the My Account page's navigation. This dropdown is now an
+// instance of that documented pattern instead of the ad-hoc list it was, which
+// is what "needs a design refactor" meant: the panel had no design behind it,
+// so it had invented padding (8/16), an invented radius (6) and an invented
+// hover (surface-subtle + action-primary) that appear nowhere in the file.
+//
+// FROM THE NODE: container bg/surface, 240px wide, 8px between rows, and it
+// clips its children. Rows are 48px tall, padding 12 inline / 8 block, gap 12
+// between label and icon; label is Body/Small Medium (14px / 500 / lh 1.5) in
+// text/secondary, icon 20px at the inline end. The active row takes bg/field
+// with its label in text/primary — reused here for hover/focus, since a
+// dropdown has no "current page" but does need a pointer state and Figma
+// supplies exactly one row treatment to use for it. Sign-out is its own group
+// below the list, in text/price-sale.
+//
+// The container itself keeps the popover chrome (absolute placement, 1px
+// border, elevation) that the sidebar has no need for — a sidebar sits in the
+// page, a dropdown floats over it — and takes those from design tokens rather
+// than the invented values it had.
+.spartrak-header__account-menu {
+    position: absolute;
+    inset-inline-end: 0;
+    top: calc(100% + 6px);
+    z-index: 30;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    // Node 562:11002 puts 8px between every row; the sign-out group is one
+    // more row in that rhythm, so the same gap carries it.
+    gap: 8px;
+    width: 240px;
+    padding: 12px;
+    overflow: hidden;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-12);
+    box-shadow: var(--shadow-container);
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+// SCOPED UNDER THE MENU, deliberately (2026-08-27).
+//
+// The rules below were bare single classes at (0,1,0) and LOST on the live
+// storefront to this component's own previous descendant rule
+// `.spartrak-header__account-menu a` at (0,1,1) — measured: rows rendered with
+// 8px/16px padding in text/primary instead of Figma's 8px/12px in
+// text/secondary, and the sign-out row was not red at all.
+//
+// That old rule is replaced by this block, but the lesson generalises: a link
+// inside a positioned dropdown is exactly the shape Porto and blank both style
+// with element-qualified selectors, and a bare class can never out-rank one.
+// Nesting under the menu is a truthful containment selector — these elements
+// only ever exist inside it — and lands them at (0,2,0), clear of any
+// element+class rule, with no `!important` and no invented specificity
+// (CLAUDE.md §9). Same reasoning as `.spartrak-otp .spartrak-otp__box`.
+.spartrak-header__account-menu {
+    .spartrak-header__account-links {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    // Node 562:11004 et al.
+    .spartrak-header__account-link {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-sizing: border-box;
+        height: 48px;
+        padding: 8px 12px;
+        // Body/Small Medium
+        font-family: var(--font-arabic);
+        font-size: var(--text-14);
+        font-weight: 500;
+        line-height: 1.5;
+        letter-spacing: var(--letter-spacing-normal);
+        color: var(--color-text-secondary);
+        text-decoration: none;
+
+        // `:visited` is listed explicitly for the same reason it is on the mega
+        // nav — see _mega-nav.less for the rule this defends against.
+        &:visited {
+            color: var(--color-text-secondary);
+        }
+
+        &:hover,
+        &:focus-visible {
+            // Figma's own selected-row treatment (node 562:11004).
+            background: var(--color-bg-field);
+            color: var(--color-text-primary);
+        }
+    }
+
+    // flex-1 + min-width 0, so a long Arabic label takes the space and the icon
+    // stays pinned at the inline end instead of being pushed out of the row.
+    .spartrak-header__account-link-label {
+        flex: 1 1 auto;
+        min-width: 0;
+        text-align: start;
+    }
+
+    // The 20px row icons. `currentColor` is the default, so each icon follows its
+    // row's own colour — including the sign-out row's red and the hover state —
+    // without a second rule per icon.
+    .spartrak-header__account-link-icon {
+        .spartrak-icon('account-user.svg'; 20px);
+    }
+
+    // Figma frames every one of these icons in a 20px box but draws the glyph
+    // INSET inside it, so the exported SVG is smaller than the box and differs per
+    // icon. The mixin's `mask-size: contain` would scale each one up to fill 20px
+    // — visibly larger than the design, and by a different amount per icon. These
+    // two are the ones whose export is not already 20x20, so their mask is pinned
+    // to the exact size Figma draws (14.896x15.729 and 18.073x15.729, the
+    // exported viewBox including stroke bleed) and centred in the 20px box.
+    .spartrak-header__account-link-icon--user {
+        -webkit-mask-size: 14.896px 15.729px;
+        mask-size: 14.896px 15.729px;
+    }
+
+    .spartrak-header__account-link-icon--orders {
+        -webkit-mask-image: url('../images/icons/account-orders.svg');
+        mask-image: url('../images/icons/account-orders.svg');
+        -webkit-mask-size: 18.073px 15.729px;
+        mask-size: 18.073px 15.729px;
+    }
+
+    .spartrak-header__account-link-icon--addresses {
+        -webkit-mask-image: url('../images/icons/account-addresses.svg');
+        mask-image: url('../images/icons/account-addresses.svg');
+    }
+
+    // Byte-identical geometry to the header's own wishlist glyph — only the stroke
+    // colour baked into the Figma export differs, and a mask reads alpha only, so
+    // the existing asset is reused rather than committing a second copy.
+    .spartrak-header__account-link-icon--wishlist {
+        -webkit-mask-image: url('../images/icons/heart.svg');
+        mask-image: url('../images/icons/heart.svg');
+    }
+
+    .spartrak-header__account-link-icon--support {
+        -webkit-mask-image: url('../images/icons/account-support.svg');
+        mask-image: url('../images/icons/account-support.svg');
+    }
+
+    .spartrak-header__account-link-icon--signout {
+        -webkit-mask-image: url('../images/icons/account-logout.svg');
+        mask-image: url('../images/icons/account-logout.svg');
+    }
+
+    // Node 562:11021 — the only row that is not text/secondary. Figma names this
+    // colour `text/price-sale`; get_variable_defs resolves that and `feedback/danger`
+    // to the SAME #d54033, and this theme already carries it as
+    // --color-feedback-danger, so no second token is minted for one consumer.
+    .spartrak-header__account-link--signout {
+        color: var(--color-feedback-danger);
+
+        &:visited {
+            color: var(--color-feedback-danger);
+        }
+
+        &:hover,
+        &:focus-visible {
+            background: var(--color-bg-field);
+            color: var(--color-feedback-danger);
+        }
+    }
+}
+
+// The drawer trigger is desktop-hidden; Figma shows no hamburger at 1440.
+//
+// The :extend MUST sit here, at the top level, and not inside the mobile
+// media query below: LESS scopes `:extend` written inside an @media block to
+// selectors declared within that same block, so an extend of
+// .spartrak-header__icon-button from inside @media would silently match
+// nothing and the button would render unstyled. Only `display` is toggled at
+// the breakpoint.
+.spartrak-header__drawer-trigger {
+    &:extend(.spartrak-header__icon-button all);
+    display: none;
+}
+
+// Screen-reader-only labels for the icon-only buttons. Figma draws them as
+// icons alone, so the accessible name has to live somewhere.
+.spartrak-header__sr-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+// ---------------------------------------------------------------------------
+// Native minicart — claimed, not replaced
+// ---------------------------------------------------------------------------
+// The minicart stays Magento's own component (Magento_Checkout::cart/
+// minicart.phtml + its JS). Only its trigger's chrome is restyled, onto the
+// same rules as the wishlist button, by reusing the classes above via
+// :extend() rather than duplicating them.
+.spartrak-header__cart {
+    display: flex;
+    align-items: center;
+
+    .minicart-wrapper {
+        margin: 0;
+    }
+
+    .action.showcart {
+        &:extend(.spartrak-header__icon-button all);
+
+        // QA FIX (2026-08-25): the icon is now a real <span> emitted by this
+        // theme's own Magento_Checkout::cart/minicart.phtml override (masked
+        // via .spartrak-header__icon--cart), so the ::before font-glyph hack
+        // that used to live here is gone. What remains is suppressing the
+        // caret Magento's own .lib-dropdown() mixin generates on this exact
+        // selector — theme-frontend-blank's Magento_Checkout _minicart.less
+        // passes `@_toggle-selector: '.action.showcart'`, which emits an
+        // `:after` triangle. Figma draws no caret on this button.
+        //
+        // Also gone from the markup entirely, rather than hidden here:
+        // Porto's <i class="minicart-icon porto-icon-cart-thick-1"> (a second
+        // cart glyph) and its `.action-subtotal` anchor carrying "Shopping
+        // Cart / Cart / Your Cart" + a subtotal. That anchor was hidden only
+        // by Bootstrap's `.d-none`, and this theme correctly does not load
+        // Bootstrap — which is exactly why those labels became visible. See
+        // the template override for the full reasoning.
+        &:after {
+            content: none;
+            display: none;
+        }
+
+        // Core emits the qty counter as a sibling of the icon, not nested in
+        // an icon box, so it is anchored against the 40px button — the same
+        // computed position the badge rule above documents.
+        .counter.qty {
+            &:extend(.spartrak-header__badge all);
+            // Core hides the counter until customer-data resolves; keep that
+            // behaviour, and keep the flex centring when it is shown.
+            &.empty {
+                display: none;
+            }
+        }
+    }
+
+    // DELIBERATE REVERSAL of the previous pass, which had
+    // `.spartrak-header__cart .loading-mask { display: none }` to stop the
+    // native overlay showing inside the icon button. That selector also
+    // matched the loader Magento_Ui/js/block-loader injects into
+    // [data-block='minicart'] whenever the cart section refreshes — so the
+    // minicart had NO busy state at all. The brief explicitly requires the
+    // minicart's loading state to keep working, and the Spartrak spinner
+    // (components/_loader.less) is what it now shows.
+}
+
+// ---------------------------------------------------------------------------
+// Mobile — Figma nodes 724:25825 (row 1) and 724:25846 (search row)
+// ---------------------------------------------------------------------------
+// Breakpoint is @breakpoint-header-collapse (767px), inherited from Magento
+// core / Porto's own @screen__m rather than invented — see
+// foundations/_breakpoints.less for why the old `max-width: 440px` switch left
+// every viewport from 441 to 1439 rendering a 1017px-wide search bar.
+@media (max-width: @breakpoint-header-collapse) {
+    // Mobile Container renders #ffffff, not the desktop #f9f9f9 (measured).
+    .spartrak-header__bar {
+        background: var(--color-bg-surface);
+    }
+
+    .spartrak-header__row {
+        // Row 1 padding 16 all round; the search row adds pt 4 on top of that
+        // 16, hence a 20px row-gap. Total block padding stays 16 either side.
+        padding: 16px;
+        column-gap: 12px;
+        row-gap: 20px;
+    }
+
+    // Row 1: [burger, logo, actions] — space-between, exactly as Figma. The
+    // logo is NOT centred in the frame: with clusters of 40 / 82 / 92 in a
+    // 408px content box, space-between puts it at x=205, and the export
+    // measures the logo ink starting at x=206.
+    // (The button chrome is extended at the top level — see the note there.)
+    .spartrak-header__drawer-trigger {
+        display: inline-flex;
+    }
+
+    // Mobile uses the COMPACT lockup, which is a genuinely different
+    // composition rather than the desktop one scaled down: Figma builds it
+    // from two independently-scaled clipped crops of the same source, giving
+    // a small mark over a wide wordmark (mark 38x41, wordmark 80x13,
+    // 82x55 overall — measured off the 440 export) where the desktop lockup
+    // is mark-dominant (67x75, mark 60 tall over a 67-wide wordmark).
+    //
+    // Scaling the desktop asset to fit would have got one of the two axes
+    // wrong by ~35px, so the compact lockup is committed as its own asset —
+    // Figma's OWN 2x export of node 724:25837, not a crop authored here. It is
+    // served through <picture media> (see logo.phtml) so each breakpoint
+    // downloads exactly one raster and never both.
+    .spartrak-header__logo img {
+        width: 82px;
+    }
+
+    // The search moves to its own full-width line. `order: 1` puts it after
+    // every default-order sibling; flex-basis 100% forces the wrap.
+    .spartrak-header__search {
+        order: 1;
+        flex: 0 0 100%;
+    }
+
+    // Node 724:25849 — height 52, bg/surface-subtle (not bg/field as on
+    // desktop), same 1px border and pill radius.
+    .spartrak-search__form {
+        height: 52px;
+        background: var(--color-bg-surface-subtle);
+    }
+
+    // Node 724:25850 — width 57, height 46, radius 50px, padding-inline 4,
+    // and NO loupe inside the button (desktop has one).
+    // Element-qualified for the same reason as the desktop rule: an unqualified
+    // class here would lose `height` and `padding` back to
+    // `button:not(.primary)`.
+    button.spartrak-search__submit {
+        align-self: center;
+        width: 57px;
+        height: 46px;
+        padding: 0 4px;
+
+        &:after {
+            content: none;
+        }
+    }
+
+    // Node 724:25830 — Label/Micro: thmanyah sans Bold 700 / 7px / lh 1.3 /
+    // letter-spacing normal. The desktop badge is Medium 500 / 10px / 0.5px.
+    .spartrak-header__badge,
+    .spartrak-header__cart .action.showcart .counter.qty {
+        font-size: var(--text-7);
+        font-weight: 700;
+        letter-spacing: var(--letter-spacing-normal);
+    }
+
+    // No account chip on mobile — Figma replaces it with the burger, and
+    // account lives inside the drawer.
+    .spartrak-header__account {
+        display: none;
+    }
+}

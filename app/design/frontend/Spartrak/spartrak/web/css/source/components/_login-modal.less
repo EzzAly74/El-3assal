@@ -1,0 +1,911 @@
+// Spartrak component — Login/Register Modal
+//
+// FIGMA-MEASURED REBUILD, 2026-08-26. Every number below is read off Figma Dev
+// Mode, not estimated. This supersedes the whole previous version of this
+// file, which was explicitly labelled "token-bound defaults, not measured
+// values / BLOCKED / REQUIRES FIGMA ACCESS" — the Figma MCP connector is now
+// authorized, so the blocker is gone and the guesses are replaced.
+//
+// SOURCE NODES
+//   desktop  561:9925  login (phone + password)          panel 480x603
+//            569:10235 register - phone                  panel 480x456
+//            561:10625 OTP - login flow                  panel 480x504
+//            569:11350 OTP - register flow, CTA disabled  panel 480x504
+//            569:11693 OTP - all digits entered           panel 480x504
+//            569:12394 register - personal details        panel 480x636
+//            572:15113 account-creation loading           panel 400x288
+//   mobile   688:22943 / 688:23390 / 688:23851 / 688:24292 /
+//            688:24753 / 688:25218 / 688:25653           panel 408 (440 frame)
+//
+// WHAT THE MEASUREMENTS CHANGED, versus the pre-Figma implementation
+//   - border-radius is ZERO on the panel, every input, and every button.
+//     The previous build rounded all three (--radius-10 / --radius-6). The
+//     ONLY rounded elements in the entire design are the OTP step's phone
+//     chip (12px) and, in the footer, the social buttons.
+//   - panel padding 40/24/24 (was a uniform 24) and an internal 32px rhythm
+//     between the heading block and the form (there was none - the title
+//     carried a 16px margin instead).
+//   - every step has a TITLE **and** a description. The previous build had a
+//     title only, at 20px; Figma is 28px/700 with a 16px muted lede under it.
+//   - controls are 48px tall with a 1px #e4e3e5 border on WHITE (the previous
+//     build filled them with --color-bg-field, which is the *button* fill in
+//     this design, not the field fill), 16px text, 6px label gap, 24px field
+//     rhythm.
+//   - the "or continue with" row has NO rules either side of it. The previous
+//     build drew two ::before/::after hairlines that exist nowhere in Figma.
+//   - the OTP cell is 72x80 with a 32px digit and a 24px underline, not a
+//     44x44 box with a 20px digit.
+//
+// MOBILE IS A REFLOW, NOT A DIFFERENT COMPONENT. Verified on all seven mobile
+// nodes: the panel stays a CENTRED DIALOG at 440 (never a bottom sheet, never
+// full-bleed), keeps radius 0, keeps 40/24/24 padding, keeps the 32px rhythm,
+// and only its width changes - 480 -> 408, which is exactly the 440 frame
+// minus the overlay's 16px inline padding. So there is no width-specific rule
+// for the panel at all below: `width: 480px; max-width: 100%` inside a
+// 16px-padded flex-centred overlay produces 480 on desktop and 408 at 440 on
+// its own. The one genuine mobile rule left is the OTP row, which cannot fit
+// four 72px cells below ~408 and has to shrink.
+//
+// UNRESOLVED IN THE SOURCE, decided here and disclosed:
+//   - The country chip sits on the LEFT of the phone field on desktop and on
+//     the RIGHT on mobile, in the same RTL layout. Implemented at the logical
+//     inline-START, which reproduces the mobile node exactly in RTL and the
+//     desktop node exactly in LTR, and needs no direction-specific override
+//     (CLAUDE.md §16). See .spartrak-auth__phone.
+//   - Figma draws no close button in any of the fourteen states. One is kept
+//     regardless: a modal dialog must expose a visible, focusable dismiss
+//     control (CLAUDE.md §15). Esc and a scrim click are both undiscoverable
+//     and neither is announced to assistive tech.
+//   - The OTP digit is `Display/Medium` (thmanyah sans Bold) in three cells
+//     and `Numeric/Display` (Inter Tight SemiBold) in the fourth, in the same
+//     row of the same frame - an authoring slip. Unified on the thmanyah
+//     value via --font-numeral, which is also the only one of the two that is
+//     actually self-hosted; pulling Inter Tight onto the critical path for
+//     four digits is not a trade CLAUDE.md §4 permits.
+
+// ---------------------------------------------------------------------------
+// Overlay
+// ---------------------------------------------------------------------------
+// `backdrop-filter: blur(2px)` is Figma's, read off the mobile Overlay node
+// (688:25343) which declares it alongside the scrim fill. It degrades to a
+// plain scrim where unsupported, which is the correct fallback rather than
+// something to feature-query around.
+//
+// Centering is the overlay's job on BOTH axes at every width - a margin-based
+// offset can only ever centre one axis at a fixed distance from an edge, which
+// is what previously broke on mobile once the on-screen keyboard shrank the
+// visual viewport. `overflow-y: auto` sits here rather than only on the panel
+// so the tallest step (register details, 636px) scrolls the whole overlay on a
+// short viewport instead of clipping its own last field.
+.spartrak-auth {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: none;
+    overflow-y: auto;
+
+    &[data-open] {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        // 16px inline is Figma's overlay padding and is what yields the 408
+        // mobile panel width; 24px block is breathing room so a tall panel
+        // never butts against the viewport edge before the scroll kicks in.
+        padding: 24px 16px;
+    }
+}
+
+.spartrak-auth__scrim {
+    position: fixed;
+    inset: 0;
+    background: var(--color-scrim);
+    backdrop-filter: blur(2px);
+}
+
+// Specificity (0,0,2) to beat Porto's global `section { display: block }`,
+// which ties with the UA sheet's `[hidden] { display: none }` at (0,0,1) and
+// previously left every step visible at once on the live site.
+.spartrak-auth__step[hidden] {
+    display: none;
+}
+
+// ---------------------------------------------------------------------------
+// Panel
+// ---------------------------------------------------------------------------
+.spartrak-auth__panel {
+    position: relative;
+    width: 480px;
+    max-width: 100%;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    background: var(--color-bg-surface);
+    border-radius: 0;
+    box-shadow: var(--shadow-container);
+    padding: 40px 24px 24px;
+}
+
+// The loading step's panel is narrower (400, not 480) and symmetrically
+// padded (40 block, both ends) — the only state that differs.
+//
+// Driven off the step's own visibility with :has() rather than a class the JS
+// has to add and remove. That keeps the step machine in spartrak-auth.js
+// ignorant of presentation (it toggles `hidden` and nothing else, exactly as
+// it does for the other seven steps) and removes a second source of truth
+// that could desync from the DOM. Where :has() is unsupported the panel simply
+// stays 480 wide, which is a graceful degradation rather than a broken state.
+.spartrak-auth__panel:has(.spartrak-auth__step[data-auth-step='success']:not([hidden])) {
+    width: 400px;
+    padding-block: 40px;
+}
+
+// Figma draws no close control; see the header note on why one is kept.
+// Positioned at the inline-end of the 40px top padding so it occupies space
+// the design already leaves empty, and never overlaps the centred title.
+.spartrak-auth__close {
+    position: absolute;
+    inset-inline-end: 8px;
+    top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    font-size: var(--text-24);
+    line-height: 1;
+    color: var(--color-icon-ink);
+    cursor: pointer;
+
+    // Pinned to resting values so no inherited `button:hover` from Porto or
+    // core can tint it - the same defect already fixed on __link below.
+    &:hover,
+    &:focus {
+        background: none;
+        color: var(--color-icon-ink);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Step layout — Figma's panel-level auto-layout
+// ---------------------------------------------------------------------------
+// The 32px gap and centre alignment belong to the STEP, not the panel: the
+// panel holds all eight steps as siblings and only one is displayed, so
+// putting the flex context on the visible step keeps the rhythm correct
+// without the hidden ones contributing.
+.spartrak-auth__step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+    width: 100%;
+}
+
+.spartrak-auth__head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    text-align: center;
+}
+
+.spartrak-auth__title {
+    margin: 0;
+    font-size: var(--text-28);
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: var(--letter-spacing-normal);
+    color: var(--color-text-primary);
+}
+
+.spartrak-auth__lede {
+    margin: 0;
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+}
+
+// Login and both OTP steps constrain the lede to 264px so it breaks into the
+// balanced two/three lines the design shows; the register steps deliberately
+// let it run the full content width. Both are Figma's, per state.
+.spartrak-auth__lede--measure {
+    max-width: 264px;
+}
+
+// The loading step's lede is 272px, not 264 - its own value in Figma.
+.spartrak-auth__lede--loading {
+    max-width: 272px;
+}
+
+// ---------------------------------------------------------------------------
+// Form
+// ---------------------------------------------------------------------------
+.spartrak-auth__form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+}
+
+.spartrak-auth__form .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    label {
+        margin: 0;
+        font-size: var(--text-14);
+        font-weight: 500;
+        line-height: 1.5;
+        color: var(--color-text-primary);
+        // `start`, not `right`: the design is right-aligned because it is RTL,
+        // and the same rule has to left-align in the en_US store view.
+        text-align: start;
+    }
+}
+
+// One control surface, shared by every text input, the phone wrapper and the
+// password wrapper, so the three can never drift apart.
+.spartrak-auth__control() {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 48px;
+    padding: 8px 12px;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border-default);
+    border-radius: 0;
+    box-shadow: var(--shadow-input);
+}
+
+.spartrak-auth__form .field > input,
+.spartrak-auth__phone,
+.spartrak-auth__password {
+    .spartrak-auth__control();
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+}
+
+.spartrak-auth__form input::placeholder {
+    color: var(--color-text-muted);
+    opacity: 1; // Firefox dims placeholders by default; Figma's is full-strength
+}
+
+// Focus indication is the border, not an outline. Core's own
+// `input:not([disabled]):focus` fires a navy box-shadow on the same element,
+// so an outline here produced a visible double ring on the live site; the
+// shadow is neutralised on the same selector rather than globally, keeping the
+// change inside this component. A visible focus state is still required
+// (CLAUDE.md §15), hence border-color rather than nothing.
+.spartrak-auth__form .field > input:focus,
+.spartrak-auth__phone:focus-within,
+.spartrak-auth__password:focus-within {
+    border-color: var(--color-border-focus);
+    box-shadow: var(--shadow-input);
+    outline: none;
+}
+
+// Marked by spartrak-auth.js via aria-invalid — one attribute read by both
+// assistive tech and this selector.
+.spartrak-auth__form .field input[aria-invalid='true'] {
+    border-color: var(--color-feedback-danger);
+}
+
+.spartrak-auth__phone:has(input[aria-invalid='true']),
+.spartrak-auth__password:has(input[aria-invalid='true']) {
+    border-color: var(--color-feedback-danger);
+}
+
+// --- phone field -----------------------------------------------------------
+// FIGMA SSOT: node 817:19277 ("Text Input"), re-read 2026-08-27.
+//
+// The wrapper owns the border/height; the segments sit inside it. The country
+// chip is emitted LAST (login-modal.phtml), which puts it at the left-hand end
+// of this RTL field — where Figma's own Arabic render draws it — with the
+// hairline divider on the edge facing the number entry.
+//
+// EVERY logical property below resolves against the CHIP'S OWN `direction:
+// ltr` (set further down for the bidi reason), not the document's. So
+// `padding-inline: 12px 14px` is physically left-12 / right-14 and
+// `border-inline-end` is physically the right edge — exactly Figma's `pl-12
+// pr-14` and `border-r` — in both store views, with no RTL-specific override.
+//
+// The prefix is display context ONLY: it is aria-hidden and is never
+// concatenated with the value before posting. The server-side Normalizer
+// applies the default country code itself and accepts a local "01…" number,
+// so prepending "+20" here would produce "+2001…" and fail every submission.
+.spartrak-auth__phone {
+    padding: 0;
+    overflow: hidden;
+}
+
+.spartrak-auth__phone-code {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    align-self: stretch;
+    flex: 0 0 auto;
+    padding-block: 8px;
+    padding-inline: 12px 14px;
+    border-inline-end: 1px solid var(--color-border-default);
+    font-size: var(--text-16);
+    font-weight: 500;
+    color: var(--color-text-primary);
+    // Latin digits regardless of locale, per the design system's numeral rule.
+    font-family: var(--font-numeral);
+    white-space: nowrap;
+    // Caught rendering as "20+" in the RTL harness pass. "+20" is a
+    // dialling-code literal, not Arabic text: the bidi algorithm treats the
+    // leading "+" as neutral, so in an RTL paragraph it resolves to the
+    // paragraph direction and lands on the wrong end of the digits. Isolating
+    // the run as LTR is the same fix already applied to __phone-echo, and for
+    // the same reason - a correct number that looks wrong is a correctness
+    // bug, not a styling preference.
+    direction: ltr;
+    unicode-bidi: isolate;
+}
+
+// The 20x20 flag glyph Figma places beside "+NN" (node 734:23721 inside the
+// Text Input component). Shipped 2026-08-27 as
+// images/icons/phone-country-flag.svg, on explicit instruction, after the
+// design was re-read and the glyph confirmed against a 10x render of Figma's
+// own export of node 817:19277.
+//
+// PROVENANCE. The Flag layer is ~30 separate gradient vector fragments inside
+// a component variant, so download_assets returns it shredded (20+ shards, and
+// truncated at that) and cannot reassemble it. The committed file is Figma's
+// single-file dev-mode export of the same node — its gradient/clip ids
+// (paint*_linear_903_1875, clip0_903_1875) are Figma's own, so this is the
+// design's asset, not a redraw.
+//
+// STANDING CONCERN, recorded rather than silently "corrected": the glyph is
+// three overlapping red/white/black flags whose white band carries TWO GREEN
+// STARS, and Figma's variant for this instance is labelled `Property = syria`.
+// Egypt's flag carries a single gold eagle. On an Egypt-only storefront (+20,
+// Egypt-only server-side validation, 01xxxxxxxxx examples throughout) that
+// reads as the wrong country. It is shipped because it is what the design
+// specifies and what was asked for; swapping it is a one-file change (replace
+// phone-country-flag.svg — no markup or CSS moves) if the design is corrected.
+//
+// A real <img>, not the .spartrak-icon() mask mixin: that mixin recolours a
+// monochrome silhouette from a single token, which would flatten a
+// multi-gradient illustration to one flat colour.
+.spartrak-auth__phone-flag {
+    flex: 0 0 auto;
+    display: block;
+    width: 20px;
+    height: 20px;
+}
+
+.spartrak-auth__phone > input {
+    flex: 1 1 auto;
+    min-width: 0;
+    align-self: stretch;
+    height: auto;
+    padding: 8px 12px;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    font: inherit;
+    color: inherit;
+
+    &:focus {
+        border: 0;
+        box-shadow: none;
+        outline: none;
+    }
+}
+
+// --- password field --------------------------------------------------------
+// The wrapper is the bordered box; the reveal button is a real flex sibling of
+// the input, not an absolutely-positioned overlay. Figma's `gap: 12px`.
+//
+// DOM order is [input, button] so the reveal lands at the inline-END, which
+// reproduces Figma (the eye sits on the left of the RTL field) and also gives
+// the natural tab order: into the field, then onto its own control.
+.spartrak-auth__password {
+    gap: 12px;
+}
+
+.spartrak-auth__password > input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: auto;
+    padding: 0;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    font: inherit;
+    color: inherit;
+
+    &:focus {
+        border: 0;
+        box-shadow: none;
+        outline: none;
+    }
+}
+
+.spartrak-auth__reveal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    cursor: pointer;
+
+    img {
+        width: 20px;
+        height: 20px;
+    }
+
+    // Only one eye glyph exists in the design, for both states; aria-pressed
+    // carries the state to assistive tech and this gives sighted users a
+    // matching cue without inventing a second "hidden" variant.
+    &[aria-pressed='false'] img {
+        opacity: 0.6;
+    }
+
+    &:hover,
+    &:focus {
+        background: none;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Buttons
+// ---------------------------------------------------------------------------
+.spartrak-auth__button() {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    height: 48px;
+    padding-inline: 24px;
+    border: 0;
+    border-radius: 0;
+    font-size: var(--text-16);
+    line-height: 1.5;
+    text-align: center;
+    cursor: pointer;
+}
+
+.spartrak-auth__submit {
+    .spartrak-auth__button();
+    background: var(--color-action-primary);
+    color: var(--color-action-primary-text);
+    font-weight: 500;
+
+    &:hover {
+        background: var(--color-action-primary-hover);
+    }
+
+    // Figma's own disabled treatment (action/primary-disabled), not an
+    // opacity fade — see _semantic.less on why the label is ink, not white.
+    &[disabled] {
+        background: var(--color-action-primary-disabled);
+        color: var(--color-action-primary-disabled-text);
+        cursor: not-allowed;
+    }
+}
+
+// In-flight state. Opacity only, and the label is kept: a spinner glyph inside
+// the button would change its width and shift the layout under the shopper.
+.spartrak-auth__submit--loading {
+    opacity: 0.7;
+}
+
+// The full-width grey button: "resend code" on both OTP steps, and the base
+// for the Google control below.
+.spartrak-auth__secondary {
+    .spartrak-auth__button();
+    background: var(--color-bg-field);
+    color: var(--color-action-secondary-text, var(--color-text-primary));
+    font-weight: 500;
+
+    &[disabled] {
+        color: var(--color-text-disabled);
+        cursor: not-allowed;
+    }
+}
+
+// Google. Same chassis as __secondary, but Figma sets the label to REGULAR
+// weight here (the resend button is medium) and adds the 20x20 mark.
+//
+// Rendered per Figma but INERT — no backend, no handler, `disabled`. Social
+// login is not part of the current authentication build (phone + OTP only);
+// the control exists so the layout matches the design without silently
+// dropping a Figma element and without building unrequested OAuth.
+//
+// Icon BEFORE the label in DOM, which puts it at the inline-start: that is
+// Figma's arrangement in both directions (mark on the trailing side of the
+// centred pair in RTL, leading side in LTR) and needs no override.
+.spartrak-auth__social {
+    .spartrak-auth__button();
+    background: var(--color-bg-field);
+    color: var(--color-action-secondary-text, var(--color-text-primary));
+    font-weight: 400;
+
+    img {
+        flex: 0 0 auto;
+        width: 20px;
+        height: 20px;
+    }
+
+    // The mark keeps its real brand colours even when the control is
+    // disabled — desaturating it would itself be an unrequested alteration of
+    // the asset. Only the label dims.
+    &[disabled] {
+        color: var(--color-text-disabled);
+        cursor: not-allowed;
+    }
+}
+
+// "او المتابعة بواسطة" — plain centred text. NO rules either side; the
+// previous ::before/::after hairlines existed nowhere in Figma.
+.spartrak-auth__or {
+    margin: 0;
+    font-size: var(--text-14);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+    text-align: center;
+}
+
+// The step-switch row: a muted question plus a medium ink action. The action is
+// NOT the primary blue — Figma binds text/primary here, and the previous build
+// rendered it as a link colour.
+.spartrak-auth__prompt {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 12px;
+    font-size: var(--text-16);
+    line-height: 1.5;
+    text-align: center;
+}
+
+.spartrak-auth__prompt-question {
+    color: var(--color-text-muted);
+    font-weight: 400;
+}
+
+// Also used standalone for "forgot your password?" and "use a different
+// number", which have no Figma state of their own (see the forgot-password
+// note in the template) and therefore reuse this, the design's own text-action
+// treatment, rather than a new one.
+//
+// Every state is pinned explicitly so this wins over ANY hover rule that could
+// reach a bare <button> — Porto and core both ship one, and the resulting tint
+// was reported against the live site. (0,1,1) beats an unqualified
+// `button:hover`.
+.spartrak-auth__link {
+    padding: 0;
+    background: none;
+    border: 0;
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    text-align: center;
+    cursor: pointer;
+
+    &:hover,
+    &:focus {
+        background: none;
+        color: var(--color-text-primary);
+        text-decoration: none;
+    }
+}
+
+// "Forgot your password?" sits alone under the password field, at the
+// inline-end, at the design's small-text size.
+.spartrak-auth__link--inline {
+    align-self: flex-end;
+    font-size: var(--text-14);
+    font-weight: 400;
+    color: var(--color-text-muted);
+
+    &:hover,
+    &:focus {
+        color: var(--color-text-muted);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// OTP step
+// ---------------------------------------------------------------------------
+// Figma's inner column is 336 wide with a 40px rhythm between the phone chip,
+// the code row and the button stack — a wider gap than anywhere else in the
+// component, and the reason this step needs its own container.
+.spartrak-auth__otp-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+    width: 100%;
+    max-width: 336px;
+}
+
+.spartrak-auth__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+// The number being verified, echoed back in a 12px-radius chip. This is the
+// ONLY rounded element in the modal.
+.spartrak-auth__phone-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-sizing: border-box;
+    min-height: 40px;
+    padding: 8px 16px;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-12);
+    box-shadow: var(--shadow-input);
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+
+    img {
+        flex: 0 0 auto;
+        width: 24px;
+        height: 24px;
+    }
+}
+
+// unicode-bidi + LTR: an E.164 number inside an Arabic context otherwise has
+// its "+" pushed to the wrong end by the bidi algorithm, which makes a correct
+// number look wrong.
+.spartrak-auth__phone-echo {
+    font-family: var(--font-numeral);
+    direction: ltr;
+    unicode-bidi: isolate;
+}
+
+.spartrak-otp {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+    // Codes are Latin digits, left-to-right, in both store views.
+    direction: ltr;
+}
+
+// 72x80 cell, 32px digit sitting on a 24px underline 16px off the bottom.
+// FIGMA SSOT: node 721:33193 ("Input - Codde") inside 569:11359, re-read
+// 2026-08-27.
+//
+// The underline is drawn as a background gradient rather than an extra element
+// so the cell can stay a bare <input> (which is what the JS drives, and what
+// autocomplete="one-time-code" needs). Its geometry is exact: 24px wide, 1px
+// tall, centred, offset 16px from the bottom — matching Figma's inner
+// container (48 tall, bottom-aligned inside 16px padding, 8px above the rule).
+//
+// padding-block 16/24 rather than a flat 16 is what puts the digit's optical
+// centre at Figma's y=36 instead of y=28.
+//
+// ---------------------------------------------------------------------------
+// QA FIX (2026-08-27) — DESCENDANT-SCOPED, because a bare class LOST.
+// ---------------------------------------------------------------------------
+// These declarations used to sit on `.spartrak-otp__box` alone — specificity
+// (0,1,0). Porto ships an un-scoped grouped selector
+//
+//     input[type="text"], input[type="password"], … { height: 38px;
+//         padding: 10px; font-size: 1em; line-height: 1.4; border-radius: 6px;
+//         width: 100%; background-image: initial; }
+//
+// at (0,1,1), which outranks a single class NO MATTER what order the bundles
+// load in. Measured on the live storefront before this fix, the OTP cells
+// computed to 38px tall, 10px type, 6px radius and NO underline — i.e. Porto's
+// generic text input, not this component at all. That is the whole of "otp
+// inputs design is different than figma".
+//
+// The cell only ever exists inside `.spartrak-otp` (see login-modal.phtml's
+// $otpGroup), so scoping to the component root is a truthful containment
+// selector, not a specificity hack: it states where the box lives. At (0,2,0)
+// it wins outright, so no `!important` and no `[type=…]` coupling is needed —
+// both of which CLAUDE.md §9 rules out. The sibling auth inputs never had this
+// problem because they are already reached as
+// `.spartrak-auth__form .field > input` (0,2,1).
+.spartrak-otp .spartrak-otp__box {
+    box-sizing: border-box;
+    flex: 1 1 0;
+    min-width: 0;
+    width: 72px;
+    max-width: 72px;
+    height: 80px;
+    padding: 16px 8px 24px;
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border-default);
+    border-radius: 0;
+    box-shadow: var(--shadow-input);
+    font-family: var(--font-numeral);
+    font-size: var(--text-32);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: var(--letter-spacing-tight);
+    color: var(--color-text-primary);
+    text-align: center;
+
+    // Figma draws the rule at y=64 in an 80-tall cell, i.e. its lower edge sits
+    // 16px above the cell's OUTER bottom edge. `background-origin: border-box`
+    // makes `calc(100% - 16px)` measure from that same outer edge; the default
+    // padding-box origin measured from inside the 1px border and landed the
+    // rule 1px high.
+    background-image: linear-gradient(var(--color-icon-default) 0 0);
+    background-repeat: no-repeat;
+    background-origin: border-box;
+    background-size: 24px 1px;
+    background-position: center calc(100% - 16px);
+
+    // Figma's active cell (node 721:33211): border AND rule both switch to
+    // action/primary #063196 — which is what --color-border-focus resolves to.
+    // The previous pass had the rule in border/strong #ceced2 when filled and
+    // border/default #e4e3e5 when empty; neither colour appears in the frame.
+    // The real exports are #1A144F (icon/default, filled — set above) and
+    // #063196 (focused, here).
+    &:focus,
+    &:focus-visible {
+        border-color: var(--color-border-focus);
+        background-image: linear-gradient(var(--color-border-focus) 0 0);
+        box-shadow: var(--shadow-input);
+        outline: none;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Loading / terminal step
+// ---------------------------------------------------------------------------
+// This is a TRANSITIONAL state, not a confirmation: Figma's copy is
+// "لحظه من فضلك / جارٍ انشاء حسابك، يرجى عدم إغلاق هذه الصفحة." while the
+// request finishes. Nothing here is tinted with the success colour.
+.spartrak-auth__success {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+    width: 100%;
+}
+
+// 80x80, per Figma (721:34350 / 688:25653). The 8-dot ring is the real
+// supplied asset (web/images/icons/spinner.svg), whose three colours are
+// exactly icon/default #1a144f, blue/50 #c3d3f6 and blue/0 #f4f7fd — so it is
+// rendered as a genuine <img> and only spun here.
+//
+// .spartrak-spin-animation() is rotation ONLY. It is deliberately NOT
+// .spartrak-spinner(): that mixin is the project-wide CSS loader consumed by
+// loading-mask, the minicart, PLP and checkout, and this component must not
+// reach into it. See foundations/_spinner.less.
+.spartrak-auth__success-icon {
+    width: 80px;
+    height: 80px;
+    .spartrak-spin-animation();
+}
+
+// ---------------------------------------------------------------------------
+// Messaging
+// ---------------------------------------------------------------------------
+// Failure and notice share one region per step, so a message always appears in
+// the same place regardless of which kind it is. Squared off and token-bound
+// to match the rest of the component.
+.spartrak-auth__error {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 8px 12px;
+    width: 100%;
+    border: 1px solid var(--color-feedback-danger);
+    border-radius: 0;
+    background: var(--color-bg-surface-subtle);
+    font-size: var(--text-14);
+    line-height: 1.5;
+    color: var(--color-feedback-danger);
+    text-align: start;
+}
+
+.spartrak-auth__error--notice {
+    border-color: var(--color-border-default);
+    color: var(--color-text-secondary);
+}
+
+// (0,0,2), same tie-break as .spartrak-auth__step[hidden] above.
+.spartrak-auth__error[hidden] {
+    display: none;
+}
+
+// Per-field error, rendered under its input by spartrak-auth.js from a
+// response's `field` key, alongside — not instead of — the shared region
+// above, which stays the source screen readers depend on.
+.spartrak-auth__field-error {
+    display: block;
+    font-size: var(--text-14);
+    line-height: 1.5;
+    color: var(--color-feedback-danger);
+    text-align: start;
+}
+
+.spartrak-auth__field-error[hidden] {
+    display: none;
+}
+
+// Small print: the OTP expiry line and the reset step's other-devices notice.
+// Neither has a Figma state (see the template) so both reuse the design's own
+// small muted text rather than a new treatment.
+.spartrak-auth__hint {
+    margin: 0;
+    font-size: var(--text-14);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+    text-align: center;
+}
+
+.spartrak-auth__resend-timer {
+    font-family: var(--font-numeral);
+}
+
+.spartrak-auth__resend-timer[hidden] {
+    display: none;
+}
+
+// ---------------------------------------------------------------------------
+// Page-level state
+// ---------------------------------------------------------------------------
+// Scroll lock. Without it the page behind the scrim scrolls under the
+// shopper's finger on mobile, which reads as the modal having lost their place.
+body.spartrak-auth-open {
+    overflow: hidden;
+}
+
+// Set by spartrak-auth.js while a request is in flight, so the whole panel
+// stops accepting pointer input instead of only the submit button — a second
+// click on a step-switch link mid-request would otherwise navigate away from
+// the response. Keyboard focus is intentionally NOT trapped out; the panel
+// keeps its focus ring and the submit button carries the busy state.
+.spartrak-auth--busy .spartrak-auth__panel {
+    pointer-events: none;
+}
+
+.spartrak-auth--busy .spartrak-auth__submit,
+.spartrak-auth--busy .spartrak-auth__close {
+    pointer-events: auto;
+}
+
+// ---------------------------------------------------------------------------
+// Responsive
+// ---------------------------------------------------------------------------
+// The panel itself needs NO width rule here — see the header note. The OTP row
+// is the only genuine reflow: four 72px cells plus three 16px gaps is 336,
+// which stops fitting once the panel drops below ~408 (a 440 viewport). Below
+// that the cells shrink from their 72px cap and the gap tightens, keeping the
+// row on one line instead of wrapping a four-digit code onto two.
+@media (max-width: @breakpoint-mobile) {
+    .spartrak-otp {
+        gap: 8px;
+    }
+
+    .spartrak-otp__box {
+        padding-inline: 4px;
+    }
+}

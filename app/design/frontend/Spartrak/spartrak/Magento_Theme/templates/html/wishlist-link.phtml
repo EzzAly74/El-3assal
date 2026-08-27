@@ -1,0 +1,50 @@
+<?php
+/**
+ * Spartrak Header Wishlist Link.
+ *
+ * 17-FIGMA-CODE-AUDIT.md §2: the header's wishlist icon+badge (node
+ * 595:14503) was entirely missing. Wired as its own Magento\Wishlist\
+ * Block\Link instance (Smartwave_Porto/layout/default.xml, child of
+ * porto_header) — the same "independent block" pattern already used for
+ * spartrak.primary_nav, so Porto's own header markup stays untouched.
+ *
+ * The live count badge reuses the exact scope/binding Magento's own
+ * Magento_Wishlist::link.phtml uses (customer-data "wishlist" section,
+ * `wishlist().counter`) rather than inventing a new counter mechanism —
+ * $block->getLabel()/getHref() are the same Link API that native template
+ * already calls.
+ *
+ * FIGMA SSOT: node 595:14503 ("Fovourite") — 40x40, radius 100px, bg/surface,
+ * 1px border/default, with the heart glyph (node 693:45417) at 20px bound to
+ * action/favorite-inactive, and the count badge (node 595:14506) at 12x12 on
+ * action/primary with a 1px inverse ring.
+ *
+ * Uses the header's SHARED button classes rather than wishlist-specific ones:
+ * Figma draws this, the minicart trigger and the mobile hamburger as the same
+ * component, so they share .spartrak-header__icon-button and one badge rule
+ * instead of three near-identical copies (see _utility-header.less, which also
+ * :extend()s them onto the native minicart trigger).
+ *
+ * @var \Magento\Wishlist\Block\Link $block
+ */
+?>
+<a class="spartrak-header__icon-button" href="<?= $block->escapeUrl($block->getHref()) ?>" data-bind="scope: 'wishlist'" title="<?= $block->escapeHtmlAttr($block->getLabel()) ?>">
+    <span class="spartrak-header__icon--heart" aria-hidden="true"></span>
+    <span class="spartrak-header__sr-label"><?= $block->escapeHtml($block->getLabel()) ?></span>
+    <!-- ko if: wishlist().counter -->
+    <span class="spartrak-header__badge" data-bind="text: wishlist().counter"></span>
+    <!-- /ko -->
+</a>
+<script type="text/x-magento-init">
+    {
+        "*": {
+            "Magento_Ui/js/core/app": {
+                "components": {
+                    "wishlist": {
+                        "component": "Magento_Wishlist/js/view/wishlist"
+                    }
+                }
+            }
+        }
+    }
+</script>

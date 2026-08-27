@@ -1,0 +1,126 @@
+<?php
+/**
+ * Spartrak — final price render (Phase 6).
+ *
+ * WHY THIS FILE LIVES IN THE Smartwave_Dailydeals NAMESPACE
+ * --------------------------------------------------------
+ * Magento's price pipeline nominally renders
+ * `Magento_Catalog::product/price/final_price.phtml`, and this theme also ships
+ * an override at that path. But `Smartwave\Dailydeals\Plugin\FinalPricePlugin`
+ * (registered in app/code/Smartwave/Dailydeals/etc/di.xml against
+ * \Magento\Catalog\Pricing\Render\FinalPriceBox) intercepts `setTemplate()` and
+ * silently REWRITES the template id:
+ *
+ *     'Magento_Catalog::product/price/final_price.phtml'
+ *  -> 'Smartwave_Dailydeals::product/price/final_price.phtml'
+ *
+ * whenever Dailydeals is enabled (`chkEnableDailydeals()` — currently '1').
+ * Consequence, proven live with a uniquely-marked build: the Magento_Catalog
+ * path is NEVER executed — not this theme's override of it, and not Porto's own
+ * override of it either. Both are dead code while Dailydeals is on.
+ *
+ * So the ONLY template that actually renders prices on this storefront is the
+ * Smartwave_Dailydeals one, and this file is this theme's override of it —
+ * resolved by normal theme fallback, no plugin fighting, no core/vendor edit.
+ * This theme's Magento_Catalog/.../final_price.phtml is deliberately kept as the
+ * correct fallback for if Dailydeals is ever disabled; the two must stay in sync.
+ *
+ * WHAT THIS CHANGES vs. Dailydeals' original
+ * ------------------------------------------
+ * Exactly one thing: a zero-or-negative final price short-circuits to an honest
+ * "price on request" state instead of rendering a real-looking `٠٫٠٠ ج.م.`.
+ * Every imported product currently has price = 0.00 because real pricing data
+ * does not exist yet (16-ARCHITECTURE-DECISIONS.md) — displaying that as a price
+ * would be a fabricated business claim, which this project forbids. The
+ * deal/special-price branches are skipped too: a product with no real price
+ * cannot have a real discounted price.
+ *
+ * Everything else below is Dailydeals' own logic, preserved verbatim so real
+ * deals/special prices still render correctly once real prices land.
+ *
+ * ASSUMPTION — REQUIRES FIGMA VERIFICATION: the fallback copy and styling. No
+ * Figma frame documents a missing-price state (01-FIGMA-AUDIT.md) and no such UI
+ * existed in this codebase to reuse. "Price on request" is a standard,
+ * non-fabricating convention (asserts no number, invents no discount) chosen as
+ * the documented default until design/business replaces it.
+ *
+ * @var \Magento\Catalog\Pricing\Render\FinalPriceBox $block
+ */
+
+// phpcs:disable
+
+$helper = $this->helper('Smartwave\Dailydeals\Helper\Data');
+$productId = $block->getSaleableItem()->getId();
+
+/** @var \Magento\Framework\Pricing\Price\PriceInterface $priceModel */
+$priceModel = $block->getPriceType('regular_price');
+/** @var \Magento\Framework\Pricing\Price\PriceInterface $finalPriceModel */
+$finalPriceModel = $block->getPriceType('final_price');
+$idSuffix = $block->getIdSuffix() ? $block->getIdSuffix() : '';
+$schema = ($block->getZone() == 'item_view') ? true : false;
+
+$finalPriceValue = $finalPriceModel->getAmount()->getValue();
+?>
+<?php if ($finalPriceValue === null || $finalPriceValue <= 0) : ?>
+    <?php /* DATA REQUIRED: no real price exists for this product yet (price=0.00 in the imported catalog). */ ?>
+    <span class="price-container spartrak-price-unavailable">
+        <span class="spartrak-price-unavailable__label"><?= $block->escapeHtml(__('Price on request')) ?></span>
+    </span>
+<?php elseif ($helper->isDealProduct($productId)) : ?>
+    <?php $deal_final_price_amount = number_format($helper->getDealproductbyId($productId), 2); ?>
+    <span class="old-price">
+        <?php /* @escapeNotVerified */ echo $block->renderAmount($finalPriceModel->getAmount(), [
+            'display_label'     => __('Regular Price'),
+            'price_id'          => $block->getPriceId('old-price-' . $idSuffix),
+            'price_type'        => 'oldPrice',
+            'include_container' => true,
+            'skip_adjustments'  => true
+        ]); ?>
+    </span>
+    <span class="special-price">
+        <span class="price-container price-final_price tax weee">
+            <span class="price-label"><?= $block->escapeHtml(__('Special Price')) ?></span>
+            <span id="product-price-<?php echo $idSuffix; ?>" data-price-amount="<?php echo $deal_final_price_amount; ?>" data-price-type="finalPrice" class="price-wrapper ">
+                <span class="price"><?php echo $helper->getcurrencySymbol().''.$deal_final_price_amount; ?></span>
+            </span>
+        </span>
+    </span>
+<?php elseif ($block->hasSpecialPrice()) : ?>
+    <span class="old-price">
+        <?php /* @escapeNotVerified */ echo $block->renderAmount($priceModel->getAmount(), [
+            'display_label'     => $block->escapeHtml(__('Regular Price')),
+            'price_id'          => $block->getPriceId('old-price-' . $idSuffix),
+            'price_type'        => 'oldPrice',
+            'include_container' => true,
+            'skip_adjustments'  => true
+        ]); ?>
+    </span>
+    <span class="special-price">
+        <?php /* @escapeNotVerified */ echo $block->renderAmount($finalPriceModel->getAmount(), [
+            'display_label'     => $block->escapeHtml(__('Special Price')),
+            'price_id'          => $block->getPriceId('product-price-' . $idSuffix),
+            'price_type'        => 'finalPrice',
+            'include_container' => true,
+            'schema' => $schema
+        ]); ?>
+    </span>
+<?php else : ?>
+    <?php /* @escapeNotVerified */ echo $block->renderAmount($finalPriceModel->getAmount(), [
+        'price_id'          => $block->getPriceId('product-price-' . $idSuffix),
+        'price_type'        => 'finalPrice',
+        'include_container' => true,
+        'schema' => $schema
+    ]); ?>
+<?php endif; ?>
+
+<?php if ($finalPriceValue > 0 && $block->showMinimalPrice()) : ?>
+    <?php if ($block->getUseLinkForAsLowAs()) : ?>
+        <a href="<?php echo $block->escapeUrl($block->getSaleableItem()->getProductUrl()); ?>" class="minimal-price-link">
+            <?php echo $block->escapeHtml($block->renderAmountMinimal()); ?>
+        </a>
+    <?php else : ?>
+        <span class="minimal-price-link">
+            <?php echo $block->escapeHtml($block->renderAmountMinimal()); ?>
+        </span>
+    <?php endif; ?>
+<?php endif; ?>

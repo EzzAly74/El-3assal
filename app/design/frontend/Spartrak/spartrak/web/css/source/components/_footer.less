@@ -1,0 +1,441 @@
+// Spartrak component — Footer
+//
+// FIGMA-MEASURED REBUILD, 2026-08-26. Source node 561:9856, cross-checked
+// against 595:14998 and 704:24884 and found byte-identical in structure,
+// padding, tokens, gaps, column geometry and every Arabic string — so this is
+// one footer, not a per-page variant.
+//
+// This replaces the whole previous version, which was styling class names the
+// template never emitted (`__social-link`, `__contact`, `__contact-item`,
+// `__support`, `__newsletter`) while the template emitted a different set
+// (`__social-links-item` and no contact markup at all). Every one of those
+// rules was dead. Class names here and in footer.phtml were rewritten together.
+//
+// MEASURED VALUES
+//   links area   padding 48 all sides, border-bottom 1px border/default
+//   bottom bar   padding 24 block / 48 inline, bg surface-subtle
+//   root         padding-bottom 16
+//   content row  1344 wide inside the 1440 frame, space-between, centred
+//   link column  144 fixed, text start-aligned (Figma draws it right, and
+//                right IS the inline start in RTL); title -> list gap 16
+//   column title 20px / 500 / text-primary / lh 1.3
+//   menu item    16px / 400 / text-secondary / lh 1.5, 8px gap (32px pitch)
+//   brand block  flex column, gap 12, start-aligned; logo 113.095 x 125
+//   about text   14px / 400 / text-primary / lh 1.5, width 294
+//   social pill  36 x 36 target, 10px gap (46px pitch), icon 16, NO resting
+//                fill - see the rule for why
+//   bottom text  16px / 400 / text-primary / lh 1.5
+//   contact      groups 24 apart, icon 20 then text, 8px apart
+//   radii        ZERO everywhere except the social targets (pill radius,
+//                only visible on hover)
+//
+// TWO TOKENS FIGMA DECLARES THAT ARE NOT TRANSCRIBED LITERALLY, both for the
+// same reason the header pass already documented at length in _tokens.less
+// (see its `bg/on-media-subtle` note): this footer was evidently composed over
+// a dark surface at some point and then flipped to white, leaving two
+// on-media alpha values behind that no longer render as anything.
+//
+//   1. The social pill's fill is `bg/on-media-subtle` = #ffffff14. The header
+//      pass had measured that same token rendering as #f9f9f9 elsewhere, but
+//      this node's own 1440 PNG export shows no pill at all — so it is
+//      transparent here. Full reasoning at .spartrak-footer__social-link.
+//   2. The bottom bar's `border-top` is `border/on-media` = #ffffff1a over
+//      #f9f9f9 — likewise invisible. The hairline the design actually SHOWS
+//      between the two areas is the links area's own #e4e3e5 bottom border,
+//      which is what is implemented. The invisible white one is not.
+//
+// MOBILE: BLOCKED / REQUIRES FIGMA SOURCE, and deliberately not faked.
+// All three mobile frames (647:57253, 645:38346, 647:52093 — all 440 wide)
+// were read in full and NONE of them contains a footer at any depth: no link
+// columns, no brand block, no bottom bar, no accordion variant. Mobile instead
+// ends in a fixed `Toolbar - Bottom - iPhone` instance (440x114) that has no
+// desktop counterpart. So there is no mobile footer to be pixel-perfect
+// against, and column count, stacking order, mobile padding, mobile type
+// sizes, logo size and social alignment are all unspecified.
+//
+// The reflow below is therefore an explicit DEVELOPER DECISION, not a
+// measurement, and it is kept as conservative as possible: the same
+// components, the same tokens, the same type scale, only the grid collapses
+// (4 columns -> 2 -> 1) and the bottom bar stacks. Nothing is invented — no
+// accordions, no new controls, no size changes. If a mobile footer frame is
+// supplied this section is the only part that should change.
+
+.spartrak-footer {
+    background: var(--color-bg-surface);
+    color: var(--color-text-primary);
+    // Figma's root frame carries a 16px bottom pad below the bottom bar.
+    padding-block-end: 16px;
+}
+
+// --- links area ------------------------------------------------------------
+.spartrak-footer__links-area {
+    padding: 48px;
+    border-block-end: 1px solid var(--color-border-default);
+}
+
+// 1344 content width inside the 1440 frame is exactly 1440 - 2*48, i.e. the
+// padding above already produces it at the design width. `max-width` caps it
+// on wider viewports so the row never stretches past the design's measure,
+// and `margin-inline: auto` centres it there.
+.spartrak-footer__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 32px;
+    max-width: (@breakpoint-desktop - 96);
+    margin-inline: auto;
+}
+
+// QA FIX (2026-08-27) — a SECOND, independent source of page-level horizontal
+// scroll, found while verifying the mega-nav fix and unrelated to it.
+//
+// MEASURED at a 1024px window (1009px viewport): documentElement.scrollWidth
+// was 1046 — 37px of overflow — and hiding the mega nav did NOT change it.
+// Bisecting the DOM landed on `.spartrak-footer__brand`. The desktop row is
+// 294 (brand) + 4 x 144 (columns) + 4 x 32 (gaps) = 998px of UNSHRINKABLE
+// minimum against 913px of content box, because every child was `flex: 0 0
+// auto` at a fixed width.
+//
+// The `@breakpoint-header-collapse` media query at the bottom of this file
+// already converts the row to a grid — but only at 767px, and its own comment
+// notes these blocks "cannot sit on one row below ~900px". The real figure is
+// ~1050px, so every viewport from 768 to ~1050 fell through to a desktop row
+// that could not fit. That is the band this fixes.
+//
+// Allowing the flex BASIS to shrink (`0 1 <width>` + `min-width: 0`) rather
+// than adding another breakpoint: the row then reflows continuously and is
+// inert at and above the width where the design's own measurements fit, so the
+// 1440 render is byte-identical to before. Measured at 1009px the row stays a
+// single 5-across line (252px tall) with columns at 130px instead of 144.
+//
+// Chosen over `flex-wrap: wrap`, which also removed the overflow but threw a
+// stray fifth column onto its own line and grew the row from 252px to 478px.
+.spartrak-footer__col {
+    flex: 0 1 144px;
+    min-width: 0;
+    width: 144px;
+    // `start`, not `right`, and START rather than END. Figma right-aligns these
+    // columns, and in an RTL layout the right edge IS the inline start - so the
+    // logical equivalent of Figma's `text-align: right` here is `start`, which
+    // then correctly left-aligns in the en_US store view.
+    //
+    // This was `end` on the first pass and rendered the columns flush LEFT in
+    // Arabic, the opposite of the design. Figma's auto-layout values are
+    // expressed in its own LTR coordinate space, so every `right` / `flex-end`
+    // in the source maps to `start` / `flex-start` here - the same reversal the
+    // template already applies to child order.
+    text-align: start;
+}
+
+.spartrak-footer__col-title {
+    margin: 0 0 16px;
+    font-size: var(--text-20);
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: var(--letter-spacing-normal);
+    color: var(--color-text-primary);
+}
+
+.spartrak-footer__list {
+    display: flex;
+    flex-direction: column;
+    // 8px gap on a 24px line box is Figma's 32px item pitch.
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.spartrak-footer__item {
+    margin: 0;
+}
+
+.spartrak-footer__link {
+    display: inline-block;
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+    text-decoration: none;
+
+    // Figma draws no hover state for footer links. A pointer affordance is
+    // still required for a link (CLAUDE.md §15), and the least invented one is
+    // the design system's own primary action colour — the same treatment the
+    // previous build used, kept.
+    &:hover,
+    &:focus {
+        color: var(--color-action-primary);
+        text-decoration: none;
+    }
+}
+
+// The one mixed-type item in the footer: muted label + bold ink number.
+.spartrak-footer__hotline {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.spartrak-footer__hotline-label {
+    color: var(--color-text-secondary);
+    font-weight: 400;
+}
+
+.spartrak-footer__hotline-number {
+    color: var(--color-text-primary);
+    font-weight: 700;
+    // Latin digits inside an Arabic run reorder under the bidi algorithm
+    // unless the run is isolated — the same fix the support strip applies to
+    // this same number, and the auth modal applies to "+20".
+    font-family: var(--font-numeral);
+    direction: ltr;
+    unicode-bidi: isolate;
+}
+
+// --- brand block -----------------------------------------------------------
+.spartrak-footer__brand {
+    display: flex;
+    flex-direction: column;
+    // flex-START, per the reversal rule noted on __col above: Figma's
+    // `align-items: flex-end` is its LTR way of saying "right", which in RTL
+    // is the inline start.
+    align-items: flex-start;
+    justify-content: center;
+    gap: 12px;
+    // Shrinkable basis, same fix and same reason as __col above — this block is
+    // the widest fixed item in the row and was the one the DOM bisect actually
+    // named as the overflow source.
+    flex: 0 1 294px;
+    min-width: 0;
+    width: 294px;
+    max-width: 100%;
+}
+
+// 113.095 x 125 in Figma (node 693:45786 / 721:33186). The width/height are on
+// the <img> itself, set from layout XML (Smartwave_Porto/layout/default.xml
+// passes logo_img_width/height), so this only reserves the box against CLS and
+// stops Porto's own logo rules stretching it.
+//
+// ---------------------------------------------------------------------------
+// QA FIX (2026-08-27) — `max-height: none` is the whole fix for "footer logo
+// in mobile view is so small".
+// ---------------------------------------------------------------------------
+// Porto ships, un-scoped and with no media query:
+//
+//     .logo img { display: block; max-height: 50px; max-width: 100%;
+//                 height: auto; }
+//
+// and then lifts the cap for desktop only:
+//
+//     @media (min-width: 992px) { .logo img { max-height: inherit; } }
+//
+// Both this block and Porto's are (0,1,1)-equivalent on `height`, and the
+// Spartrak bundle loads later, so `height: 125px` already won. But `max-height`
+// was never DECLARED here at all, so Porto's 50px cap survived unopposed and
+// clamped the resolved 125px down. MEASURED on the live storefront at a 375px
+// viewport before this fix: the footer logo rendered 44.4 x 50 instead of
+// 113 x 125 — and, because the cap is lifted at 992px, it was correct on
+// desktop, which is exactly why the report was mobile-only.
+//
+// The same cap was silently shortening the mobile HEADER lockup too (82x55 in
+// Figma, measured 82x50 live); _utility-header.less clears it there.
+//
+// Neutralised by declaring the property this component owns, at the same
+// specificity, from the bundle that already loads last — not with `!important`
+// and not by out-nesting Porto, both of which CLAUDE.md §9 forbids.
+.spartrak-footer__logo {
+    img {
+        display: block;
+        width: auto;
+        height: 125px;
+        max-width: 100%;
+        max-height: none;
+    }
+}
+
+.spartrak-footer__about {
+    margin: 0;
+    // 14px, and text/primary rather than the secondary grey the link items
+    // use — Figma binds a different colour here, which is easy to miss.
+    font-size: var(--text-14);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    text-align: start;
+}
+
+.spartrak-footer__social {
+    display: flex;
+    align-items: center;
+    // 10px gap on a 36px pill is Figma's 46px pitch.
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.spartrak-footer__social-item {
+    margin: 0;
+}
+
+// One selector for both the <a> and the inert <span> the template emits when
+// no URL is configured, so the pill is identical either way — see footer.phtml
+// on why an unconfigured channel is not rendered as a dead href.
+//
+// RESTING BACKGROUND IS TRANSPARENT, corrected against Figma's own 1440 PNG
+// export of this node. Figma DECLARES `bg/on-media-subtle` (#ffffff14) here,
+// and the header pass had previously measured that same token rendering as
+// #f9f9f9 on the navbar — so #f9f9f9 was the first thing tried. The export
+// shows otherwise: over this footer's white surface the alpha resolves to
+// nothing and the four channels render as BARE 16px icons with no pill behind
+// them. Measured beats declared, and it also beats the analogous measurement
+// from a different node. The 36px box and the radius are retained: the box is
+// the pointer/touch target the design reserves (46px pitch = 36 + 10 gap), and
+// the radius only becomes visible on hover.
+.spartrak-footer__social-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    text-decoration: none;
+
+    img {
+        display: block;
+        width: 16px;
+        height: 16px;
+    }
+}
+
+// Only the real link gets an interaction state; the inert span must not look
+// clickable.
+a.spartrak-footer__social-link {
+    &:hover,
+    &:focus {
+        background: var(--color-bg-field);
+    }
+}
+
+// --- bottom bar ------------------------------------------------------------
+.spartrak-footer__bottom {
+    padding: 24px 48px;
+    background: var(--color-bg-surface-subtle);
+}
+
+.spartrak-footer__bottom-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    max-width: (@breakpoint-desktop - 96);
+    margin-inline: auto;
+}
+
+.spartrak-footer__copyright {
+    margin: 0;
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+}
+
+.spartrak-footer__contact {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.spartrak-footer__contact-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    text-decoration: none;
+
+    &:hover,
+    &:focus {
+        color: var(--color-action-primary);
+        text-decoration: none;
+    }
+}
+
+.spartrak-footer__contact-icon {
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+}
+
+// A phone number and an email address are Latin-script runs inside an Arabic
+// page; both reorder without isolation.
+.spartrak-footer__contact-value {
+    font-family: var(--font-numeral);
+    direction: ltr;
+    unicode-bidi: isolate;
+}
+
+// ---------------------------------------------------------------------------
+// Responsive — DEVELOPER DECISION, not measured. See the header note.
+// ---------------------------------------------------------------------------
+// Switching at @breakpoint-header-collapse (767px), the theme's real
+// layout-change point, NOT @breakpoint-mobile (440px) — the latter is the
+// mobile frame's DESIGN WIDTH, and using it as a query would leave 441-767px
+// viewports falling through to the desktop rule. _breakpoints.less documents
+// that exact trap, and both the header and the auth modal already hit it.
+@media (max-width: @breakpoint-header-collapse) {
+    .spartrak-footer__links-area {
+        padding: 32px 16px;
+    }
+
+    // The 144px fixed columns and the 294px brand block cannot sit on one row
+    // below ~900px, so the row becomes a wrapping grid: brand full-width
+    // first (it carries the logo, which is the block's anchor), then the four
+    // link columns two-up. Column width goes auto so each fills its cell
+    // instead of leaving a 144px island.
+    .spartrak-footer__row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+        gap: 32px 24px;
+    }
+
+    .spartrak-footer__brand {
+        grid-column: 1 / -1;
+        width: auto;
+    }
+
+    // Auto rather than 144 so each column fills its grid cell instead of
+    // leaving a 144px island against the cell's inline edge.
+    .spartrak-footer__col {
+        width: auto;
+    }
+
+    .spartrak-footer__bottom {
+        padding: 24px 16px;
+    }
+
+    .spartrak-footer__bottom-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .spartrak-footer__contact {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}
+
+// Single column below the narrowest design width: two 144px-worth columns of
+// Arabic link text still overflow a 360px phone once padding is removed.
+@media (max-width: @breakpoint-mobile) {
+    .spartrak-footer__row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

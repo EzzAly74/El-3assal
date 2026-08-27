@@ -1,0 +1,224 @@
+<?xml version="1.0"?>
+<!--
+  Spartrak Phase 4 — restores Porto's full Smartwave_Porto/layout/default.xml
+  wiring (theme-layout overrides replace by identical path, not merge — a
+  child theme file at this same path fully replaces Porto's own file rather
+  than combining with it, the same rule that applies to .phtml templates).
+  Spartrak's additions from the prior version of this file are preserved
+  below, layered directly into Porto's original block declarations instead
+  of assuming they already exist elsewhere.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="head.additional">
+            <block class="Smartwave\Porto\Block\Template" name="porto_custom_head" template="html/head.phtml" before="-"/>
+        </referenceContainer>
+        <referenceContainer name="after.body.start">
+            <block class="Magento\Newsletter\Block\Subscribe" name="porto_newsletter_popup" template="subscribe_popup.phtml" before="-"/>
+            <block class="Smartwave\Porto\Block\Template" name="porto_sidebar_sticky" template="html/sidebar_sticky.phtml" after="-"/>
+        </referenceContainer>
+
+        <referenceContainer name="page.wrapper">
+          <block class="Smartwave\Porto\Block\Template" name="porto_header" template="html/header.phtml" before="main.content">
+              <!--
+                FIGMA HEADER PASS (2026-08-25) — Account Chip, node 595:14513.
+
+                Figma replaces the bare header link list with a pill carrying
+                the customer's avatar, first name and a disclosure chevron.
+
+                `header.links` was re-declared as this block's child until
+                2026-08-27, so Magento's own account links rendered inside the
+                chip's dropdown. That is gone — see the note where it used to
+                sit, just below. The chip's template now renders the account
+                navigation Figma actually specifies (node 562:11000).
+
+                Nested here rather than <move>d because this file replaces
+                Porto's own default.xml wholesale — theme layout files override
+                the ancestor theme's file of the same name rather than merging
+                with it — so the declaration is ours to place.
+
+                A plain Template block: no theme-side PHP. The signed-in vs
+                guest state is resolved from the customerData `customer`
+                section on the client, because this block is inside a
+                full-page-cached page and must not bake one shopper's name into
+                the cache. Same contract mobile-nav-drawer.phtml already uses.
+              -->
+              <block class="Magento\Framework\View\Element\Template" name="spartrak.account_chip" template="Magento_Theme::html/account-chip.phtml">
+                  <!--
+                    customer_state (2026-08-25): decides guest-vs-signed-in in
+                    PHP instead of client-side. It reads
+                    Magento\Framework\App\Http\Context, which is the same object
+                    full-page cache varies on (`customer_logged_in`), so FPC
+                    already holds separate variants and the value cannot leak
+                    between visitors. This replaced a customerData-only check
+                    that rendered "sign in" to signed-in shoppers whenever the
+                    `customer` section had never been fetched.
+                  -->
+                  <arguments>
+                      <argument name="customer_state" xsi:type="object">Spartrak\CustomerAuth\ViewModel\CustomerState</argument>
+                  </arguments>
+                  <!--
+                    `header.links` REMOVED 2026-08-27.
+
+                    This theme removes core's own `header.container` (see the
+                    referenceContainer remove further down), so core's
+                    `header.links` goes with it; this block was a deliberate
+                    RE-declaration, put here so Magento's account links would
+                    land inside the chip's dropdown.
+
+                    On the live storefront that dropdown then showed
+                    "Compare (0 items) / Sign In / تواصل معنا / Create an
+                    Account" to a signed-in shopper. AuthorizationLink and
+                    RegisterLink branch on HttpContext, which is the same
+                    server-side signal the chip itself had to stop trusting
+                    (an HTTP cache ahead of Magento can serve one visitor the
+                    HTML rendered for another) — and guest links are
+                    unreachable-by-design in a menu that only opens from the
+                    signed-in chip anyway.
+
+                    account-chip.phtml now renders the account navigation
+                    Figma actually specifies (node 562:11000), built entirely
+                    from state-independent routes, so there is nothing left for
+                    this block to feed. Dropping the declaration rather than
+                    leaving it rendered-but-unused keeps CLAUDE.md §18's
+                    no-dead-code rule; with no block of that name, core's own
+                    `<referenceBlock name="header.links">` additions are simply
+                    no-ops, which is the normal outcome for any theme that does
+                    not surface header links.
+                  -->
+              </block>
+              <block class="Smartwave\Porto\Block\Form\Login" name="header_customer_form_login" ifconfig="porto_settings/header/login_popup" template="Smartwave_Porto::html/login.phtml"/>
+              <block class="Magento\Store\Block\Switcher" name="store_language" as="store_language" template="switch/languages.phtml"/>
+              <block class="Magento\Framework\View\Element\Template" name="top.search" as="topSearch" template="Magento_Search::form.mini.phtml" />
+              <block class="Smartwave\Porto\Block\Template" name="custom_block" template="html/header_custom_block.phtml" ifconfig="porto_settings/header/static_block" after="-"/>
+              <block class="Smartwave\Porto\Block\Template" name="custom_block_top" template="html/top_custom_block.phtml" ifconfig="porto_settings/header/static_block_top" after="-"/>
+              <block class="Smartwave\Porto\Block\Template" name="custom_block_menu" template="html/header_custom_block_menu.phtml" after="-"/>
+              <block class="Smartwave\Porto\Block\Template" name="porto_custom_notice" template="html/custom_notice.phtml" after="-"/>
+
+              <!-- Spartrak additions: independent new blocks, Porto's own untouched -->
+              <!--
+                brand_navigation (2026-08-25): supplies the "أكتشف بالبراند"
+                (Discover by brand) pane of the mega panel, Figma node
+                704:26408.
+
+                A ViewModel, not template code: the brand list is real catalog
+                data (the `brand` product attribute's option list — the same
+                attribute Spartrak_Catalog's product/card.phtml already reads),
+                and CLAUDE.md §8 keeps business logic out of .phtml while §9
+                forbids hardcoding it. The template gets plain scalars.
+              -->
+              <block class="Magento\Theme\Block\Html\Topmenu" name="spartrak.primary_nav" template="Magento_Theme::html/topmenu.phtml" ttl="3600">
+                  <arguments>
+                      <argument name="brand_navigation" xsi:type="object">Spartrak\Catalog\ViewModel\BrandNavigation</argument>
+                  </arguments>
+              </block>
+              <block class="Magento\Wishlist\Block\Link" name="spartrak.header.wishlist" template="Magento_Theme::html/wishlist-link.phtml"/>
+          </block>
+        </referenceContainer>
+
+        <!--
+          FIGMA HEADER PASS (2026-08-25) — relocate the language switcher.
+
+          Figma puts the language control in the utility strip (node 595:14481:
+          globe + store name + chevron), not in the main navbar. This moves the
+          EXISTING, working Magento\Store\Block\Switcher instance declared just
+          above — it is deliberately a <move> and not a second block
+          declaration.
+
+          The 2026-08-24 pass tried to satisfy this same requirement by
+          declaring a second Magento\Store\Block\Switcher inside the support
+          strip. It fatal-errored on every page ("Call to a member function
+          getTargetStoreRedirectUrl() on null") even after an explicit
+          "Magento_Store::switch/languages.phtml" prefix, because the new
+          instance kept resolving to Magento_Store's CORE template — which
+          calls $block->getViewModel(), never wired here — instead of Porto's
+          working override. That change had to be reverted live.
+
+          A <move> carries the existing instance and its already-correct
+          template resolution to the new parent, so there is nothing to
+          re-resolve and nothing to crash. Cross-file destination is fine:
+          moves are applied after the whole layout is merged, so it does not
+          matter that spartrak.support_strip is declared in this theme's
+          Magento_Theme/layout/default.xml (an earlier module bucket).
+        -->
+        <move element="store_language" destination="spartrak.support_strip"/>
+
+        <move element="navigation.sections" destination="porto_header"/>
+        <move element="top.search" destination="porto_header"/>
+        <move element="minicart" destination="porto_header"/>
+        <move element="currency" destination="porto_header"/>
+        <move element="logo" destination="porto_header"/>
+        <move element="skip_to_content" destination="porto_header"/>
+        <!--move element="breadcrumbs" destination="columns.top" before="-"/-->
+        <move element="page.top" destination="page.wrapper" after="porto_header"/>
+
+        <!-- Spartrak: Figma header logo (node 693:45441) is 68x75, not Porto's 111x50 -->
+        <referenceBlock name="logo">
+            <arguments>
+                <argument name="logo_img_width" xsi:type="number">68</argument>
+                <argument name="logo_img_height" xsi:type="number">75</argument>
+                <!--
+                  Figma's mobile header (node 724:25837) uses a DIFFERENT
+                  lockup, not the desktop one scaled: a small mark over a wide
+                  wordmark, 82x55, built in Figma from two independently-scaled
+                  crops. images/spartrak-logo-compact.png is Figma's own 2x
+                  export of that node.
+
+                  Opt-in per instance, because this same template also renders
+                  the FOOTER logo (node 693:45786, 113x125), which is
+                  mark-dominant like the desktop header and has no Figma mobile
+                  variant. Only the header instance gets the compact source, so
+                  the footer is untouched; see logo.phtml.
+
+                  Served via <picture media>, so each breakpoint downloads
+                  exactly one raster — mobile fetches 19.8KB instead of the
+                  desktop 32.9KB, a net saving on the smaller connection.
+                -->
+                <argument name="compact_logo_src" xsi:type="string">images/spartrak-logo-compact.png</argument>
+            </arguments>
+        </referenceBlock>
+
+        <referenceContainer name="header.container" remove="1"/>
+        <referenceContainer name="header.panel" remove="1"/>
+        <referenceContainer name="header-wrapper" remove="1"/>
+        <referenceContainer name="sidebar.main">
+            <block class="Smartwave\Megamenu\Block\Topmenu" name="sidebar.menu" template="Smartwave_Megamenu::sidebar_menu.phtml"></block>
+            <block class="Smartwave\Megamenu\Block\Topmenu" name="sw.sidebarnav" before="category_leftnav" template="Smartwave_Megamenu::sidemenu.phtml" ifconfig="sw_megamenu/general/sidebarmenu_enable"></block>
+        </referenceContainer>
+        <referenceContainer name="sidebar.second">
+            <block class="Smartwave\Porto\Block\Template" name="sidebar_second_block" after="-" template="Smartwave_Porto::custom_block.phtml" ifconfig="porto_settings/general/sidebar_second_block"/>
+        </referenceContainer>
+
+        <referenceContainer name="main.content">
+            <container name="div.page.main.container" htmlTag="div" htmlClass="page-main-inner">
+              <container name="div.sidebar.menu" htmlTag="div" htmlClass="sidebar-nav" before="-"/>
+            </container>
+        </referenceContainer>
+        <move element="sidebar.menu" destination="div.sidebar.menu"/>
+        <move element="columns" destination="div.page.main.container" before="-"/>
+
+        <referenceContainer name="footer-container">
+            <block class="Smartwave\Porto\Block\Template" name="footer_block" template="html/footer.phtml">
+                <block class="Magento\Store\Block\Switcher" name="footer.store_switcher" template="switch/stores.phtml"/>
+                <!-- Footer logo is larger than the header's per Figma node 693:45786 (113x125) -->
+                <block class="Magento\Theme\Block\Html\Header\Logo" name="spartrak.footer_logo">
+                    <arguments>
+                        <argument name="logoPathResolver" xsi:type="object">Magento\Theme\ViewModel\Block\Html\Header\LogoPathResolver</argument>
+                        <argument name="logo_img_width" xsi:type="number">113</argument>
+                        <argument name="logo_img_height" xsi:type="number">125</argument>
+                    </arguments>
+                </block>
+            </block>
+        </referenceContainer>
+
+        <!--
+          Porto's `custom_link` ("تواصل معنا") was added to `header.links` here.
+          Removed 2026-08-27 with that block: its destination is the contact
+          page, which the Figma account menu now carries as its own
+          "المساعدة والدعم" row (account-chip.phtml), so keeping it would have
+          duplicated the link rather than preserved it.
+        -->
+         <referenceBlock name="porto_newsletter_popup" remove="true"/>
+        <referenceBlock name="footer.newsletter" remove="true"/>
+    </body>
+</page>

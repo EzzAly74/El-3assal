@@ -1,0 +1,303 @@
+<?php
+/**
+ * Spartrak Homepage — Phase 5.
+ *
+ * Implements ia-and-flows.md's 11-module homepage architecture (modules
+ * 1, 5, 6, 7, 8, 9, 10 — modules 2/3/4/11 are Phase 4's Utility Header/
+ * Search/Mega Nav/Footer, untouched here). See this theme's
+ * Magento_Cms/layout/cms_index_index.xml for the full scope-decision
+ * rationale (why Flash Deals / differentiated New-Arrivals-vs-Bestsellers
+ * carousels from the single Figma iteration are NOT built here — they
+ * need discount/sales data that doesn't exist, and CLAUDE.md prohibits
+ * fabricating business claims).
+ *
+ * DATA ACCESS NOTE: the Shop-by-Machine/Brand selector and the Featured
+ * Products rail both need native Magento collections (product, category,
+ * EAV attribute options) that a plain Magento\Framework\View\Element\
+ * Template block has no constructor access to. Building a proper block
+ * class for this is exactly what 11-MODULE-ARCHITECTURE.md's Module 2
+ * (Catalog/Brand Extension) is for — scheduled for Phase 6, not built yet.
+ * Rather than block Phase 5 on a module that doesn't exist, this template
+ * resolves the same native classes directly via ObjectManager — a
+ * deliberate, narrowly-scoped exception to "no ObjectManager in
+ * templates" for genuinely read-only lookups against classes Magento
+ * itself ships, not a pattern to spread elsewhere. Flagged here so Phase 6
+ * can promote these three lookups into a real block class without
+ * guessing why they exist.
+ *
+ * 17-FIGMA-CODE-AUDIT.md fixes (2026-08-24):
+ *   §1.2 CRITICAL — the spartrak_rtl copy of this file had never been
+ *   migrated to the shared Spartrak_Catalog::product/card.phtml partial
+ *   (it rendered a bare name-only link, no image/price/CTA) while the LTR
+ *   copy had. Since RTL/Arabic is this project's default, primary locale,
+ *   that meant the primary storefront showed the more broken card. Both
+ *   theme copies are now identical again (this file IS one of the two
+ *   copies — see the RTL copy for the mirror).
+ *   §2/§3 — Module 5 Hero converted from a single static CMS block into a
+ *   real multi-slide carousel (Figma node 595:14562 confirmed pagination
+ *   dots + arrows). Module 7 Fork Row gained the "النوع" (Type) field
+ *   Figma requires (a 4th "المحرك"/Engine field was NOT added — no real
+ *   attribute backs it; see the Fork Row comment below). Module 10 Brand
+ *   Rail's hardcoded PHP array ($marketingBrands, a genuine Dynamic
+ *   Content Rule violation flagged in §3) is replaced with the real
+ *   admin-manageable "brand" EAV attribute, and relocated to right after
+ *   the Hero/Trust Strip to match Figma's near-top brand-browsing rail
+ *   (node 695:46254) — consolidating two audit findings (the missing
+ *   near-top rail, and the hardcoded-content rule violation) into one
+ *   section instead of building two.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ */
+
+use Magento\Framework\App\ObjectManager;
+
+$om = ObjectManager::getInstance();
+
+// --- Real brand options (Magento-native EAV attribute, admin-manageable
+// via Catalog > Attributes > brand > Manage Options) — feeds both the
+// Fork Row's brand dropdown AND the Brand Rail below. ---
+$brandOptions = [];
+try {
+    $eavConfig = $om->get(\Magento\Eav\Model\Config::class);
+    $brandAttribute = $eavConfig->getAttribute(\Magento\Catalog\Model\Product::ENTITY, 'brand');
+    if ($brandAttribute && $brandAttribute->getId()) {
+        foreach ($brandAttribute->getSource()->getAllOptions(false) as $option) {
+            if ($option['value'] !== '') {
+                $brandOptions[] = $option;
+            }
+        }
+    }
+} catch (\Exception $e) {
+    $brandOptions = [];
+}
+
+// --- Real L1 category tiles — feeds both Module 8 (Shop by Part Type)
+// AND the Fork Row's new "Type" dropdown (see that section's comment). ---
+$partTypeCategories = [];
+try {
+    $storeManager = $om->get(\Magento\Store\Model\StoreManagerInterface::class);
+    $rootCategoryId = $storeManager->getStore()->getRootCategoryId();
+    $categoryCollectionFactory = $om->get(\Magento\Catalog\Model\ResourceModel\Category\CollectionFactory::class);
+    $categoryCollection = $categoryCollectionFactory->create();
+    $categoryCollection->addAttributeToSelect(['name', 'url_key'])
+        ->addFieldToFilter('parent_id', $rootCategoryId)
+        ->addAttributeToFilter('is_active', 1)
+        ->addAttributeToFilter('include_in_menu', 1)
+        ->addAttributeToSort('position', 'ASC');
+    foreach ($categoryCollection as $category) {
+        $partTypeCategories[] = $category;
+    }
+} catch (\Exception $e) {
+    $partTypeCategories = [];
+}
+
+// --- Module 9: Featured Products — honestly "recently added", not a
+// fabricated bestseller/flash-deal claim (no order/sales history exists
+// yet to compute a real bestseller list). ---
+$featuredProducts = [];
+try {
+    $productCollectionFactory = $om->get(\Magento\Catalog\Model\ResourceModel\Product\CollectionFactory::class);
+    $productCollection = $productCollectionFactory->create();
+    $productCollection->addAttributeToSelect(['name', 'small_image', 'price'])
+        ->addStoreFilter()
+        ->addAttributeToFilter('status', \Magento\Catalog\Model\Product\Attribute\Source\Status::STATUS_ENABLED)
+        ->addAttributeToFilter('visibility', ['neq' => \Magento\Catalog\Model\Product\Visibility::VISIBILITY_NOT_VISIBLE])
+        ->setOrder('entity_id', 'DESC')
+        ->setPageSize(8);
+    foreach ($productCollection as $product) {
+        $featuredProducts[] = $product;
+    }
+} catch (\Exception $e) {
+    $featuredProducts = [];
+}
+
+$searchUrl = $block->getUrl('catalogsearch/result');
+
+// Module 5: Hero Carousel slides — up to 5 optional CMS blocks, same
+// hide-if-empty convention as everything else, so admins can populate
+// 1-5 slides without a deploy. Each slide's full content (image/headline/
+// CTA) is authored inside its own block, same as the single-slide Phase 5
+// placeholder was.
+$heroSlides = [];
+for ($i = 1; $i <= 5; $i++) {
+    $slideHtml = $block->getChildHtml('spartrak.homepage.hero_slide_' . $i);
+    if (trim($slideHtml)) {
+        $heroSlides[] = $slideHtml;
+    }
+}
+?>
+<div class="spartrak-home">
+
+    <!-- Module 1: Top Promo Strip -->
+    <?php $promoStrip = $block->getChildHtml('spartrak.homepage.promo_strip'); ?>
+    <?php if (trim($promoStrip)) : ?>
+        <section class="spartrak-home__promo-strip"><?= /* @noEscape */ $promoStrip ?></section>
+    <?php endif; ?>
+
+    <!-- Module 5: Hero Carousel (node 595:14562 — CONFIRMED multi-slide,
+         5-dot pagination + arrows, not a single static banner). Admin adds
+         slides by populating spartrak_homepage_hero_slide_1..5 (Content >
+         Blocks) — no deploy needed to add/remove/reorder-by-editing a
+         slide. Arrows/dots only render when there's more than one slide. -->
+    <?php if ($heroSlides) : ?>
+        <section class="spartrak-home__hero">
+            <div class="spartrak-home__hero-carousel" data-mage-init='{"spartrakHeroCarousel":{}}'>
+                <div class="spartrak-home__hero-track">
+                    <?php foreach ($heroSlides as $slideHtml) : ?>
+                        <div class="spartrak-home__hero-slide" data-hero-slide><?= /* @noEscape */ $slideHtml ?></div>
+                    <?php endforeach; ?>
+                </div>
+                <?php if (count($heroSlides) > 1) : ?>
+                    <button type="button" class="spartrak-home__hero-arrow spartrak-home__hero-arrow--prev" data-hero-prev aria-label="<?= $block->escapeHtmlAttr(__('Previous slide')) ?>"></button>
+                    <button type="button" class="spartrak-home__hero-arrow spartrak-home__hero-arrow--next" data-hero-next aria-label="<?= $block->escapeHtmlAttr(__('Next slide')) ?>"></button>
+                    <div class="spartrak-home__hero-dots" data-hero-dots role="tablist" aria-label="<?= $block->escapeHtmlAttr(__('Slides')) ?>">
+                        <?php foreach ($heroSlides as $index => $slideHtml) : ?>
+                            <button type="button" class="spartrak-home__hero-dot" data-hero-dot data-index="<?= (int) $index ?>" aria-label="<?= $block->escapeHtmlAttr(__('Slide %1', $index + 1)) ?>"></button>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </section>
+    <?php endif; ?>
+
+    <!-- Module 6: Trust / Service Strip -->
+    <?php $trustStrip = $block->getChildHtml('spartrak.homepage.trust_strip'); ?>
+    <?php if (trim($trustStrip)) : ?>
+        <section class="spartrak-home__trust-strip"><?= /* @noEscape */ $trustStrip ?></section>
+    <?php endif; ?>
+
+    <!-- Module 10: Brand Rail — relocated here (Figma node 695:46254 shows
+         this rail right after the hero, not at the page end) and sourced
+         from the real "brand" EAV attribute instead of a hardcoded PHP
+         array (§3 fix: the array violated CLAUDE.md's "every banner/
+         carousel must be admin-manageable" rule — admins already manage
+         this attribute's options in Catalog > Attributes). This trades an
+         arbitrary curated 12-brand marketing list for the real ~30-value
+         filter attribute; no logo image assets exist anywhere in the
+         project for any of these marques (unchanged from the prior
+         implementation) - rendered as text wordmarks, not invented logo
+         files. -->
+    <?php if ($brandOptions) : ?>
+        <section class="spartrak-home__brand-rail">
+            <h2 class="spartrak-home__section-title"><?= $block->escapeHtml(__('Shop by Brand')) ?></h2>
+            <div class="spartrak-home__brand-rail-strip">
+                <?php foreach ($brandOptions as $option) : ?>
+                    <a class="spartrak-home__brand-chip" href="<?= $block->escapeUrl($searchUrl . '?spartrak_brand=' . urlencode($option['label'])) ?>">
+                        <?= $block->escapeHtml($option['label']) ?>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </section>
+    <?php endif; ?>
+
+    <!-- Module 7: Shop by Machine/Brand (Fork Row) -->
+    <?php if ($brandOptions) : ?>
+        <section class="spartrak-home__fork-row">
+            <h2 class="spartrak-home__fork-title"><?= $block->escapeHtml(__('What are you looking for?')) ?></h2>
+            <p class="spartrak-home__fork-subtitle"><?= $block->escapeHtml(__('Choose your brand and model to find the right parts for your machine')) ?></p>
+            <form class="spartrak-home__fork-form" action="<?= $block->escapeUrl($searchUrl) ?>" method="get" data-mage-init='{"spartrakForkRow":{}}'>
+                <div class="spartrak-home__fork-row-fields">
+                    <select name="spartrak_brand" class="spartrak-home__fork-select" aria-label="<?= $block->escapeHtmlAttr(__('Brand')) ?>">
+                        <option value=""><?= $block->escapeHtml(__('Brand')) ?></option>
+                        <?php foreach ($brandOptions as $option) : ?>
+                            <option value="<?= $block->escapeHtmlAttr($option['label']) ?>"><?= $block->escapeHtml($option['label']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php if ($partTypeCategories) : ?>
+                        <!--
+                          "النوع" (Type) field (Figma placeholder example:
+                          "اختر النوع (المحرك, الالة)" — engine/machine).
+                          No distinct "type" attribute exists in the real
+                          catalog data (catalog-data.md: only brand/model/
+                          item_type) - the L1 category tree's top level
+                          IS literally "المحرك" (Engine) among its 7 real
+                          values, so this reuses that real, admin-managed
+                          data instead of inventing a new attribute.
+                        -->
+                        <select name="spartrak_type" class="spartrak-home__fork-select" aria-label="<?= $block->escapeHtmlAttr(__('Type')) ?>">
+                            <option value=""><?= $block->escapeHtml(__('Type (engine, machine…)')) ?></option>
+                            <?php foreach ($partTypeCategories as $category) : ?>
+                                <option value="<?= $block->escapeHtmlAttr($category->getName()) ?>"><?= $block->escapeHtml($category->getName()) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    <?php endif; ?>
+                    <select name="spartrak_model" class="spartrak-home__fork-select" aria-label="<?= $block->escapeHtmlAttr(__('Model')) ?>" disabled data-model-select>
+                        <option value=""><?= $block->escapeHtml(__('Model (select a brand first)')) ?></option>
+                    </select>
+                </div>
+                <!--
+                  Real model values are free-text and only exist for ~32%
+                  of products (catalog-data.md) - populating the model
+                  dropdown dynamically per selected brand needs a live
+                  AJAX endpoint (Module 2 territory, Phase 6). For Phase 5,
+                  "q" search combines whichever fields are filled; the
+                  model select stays present but empty/disabled until that
+                  endpoint exists - honest about the gap, not faked with a
+                  static list that would be wrong for most brands.
+
+                  A 4th, distinct "المحرك" (Engine) field shown in the
+                  Figma audit alongside "النوع" was NOT added here — its
+                  Figma label is identical to a real L1 category name
+                  already used above for "Type", which this project's own
+                  audit flagged as likely Figma copy-paste drift rather
+                  than a genuinely distinct field (17-FIGMA-CODE-AUDIT.md
+                  §5). Revisit once Figma confirms what data it should
+                  actually hold.
+                -->
+                <input type="hidden" name="q" data-fork-query value="" />
+                <button type="submit" class="spartrak-home__fork-submit"><?= $block->escapeHtml(__('Show results')) ?></button>
+            </form>
+        </section>
+    <?php endif; ?>
+
+    <!-- Module 8: Shop by Part Type -->
+    <?php if ($partTypeCategories) : ?>
+        <section class="spartrak-home__part-types">
+            <h2 class="spartrak-home__section-title"><?= $block->escapeHtml(__('Shop by Part Type')) ?></h2>
+            <div class="spartrak-home__part-types-rail">
+                <?php foreach ($partTypeCategories as $category) : ?>
+                    <a class="spartrak-home__part-type-tile" href="<?= $block->escapeUrl($category->getUrl()) ?>">
+                        <span class="spartrak-home__part-type-name"><?= $block->escapeHtml($category->getName()) ?></span>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </section>
+    <?php endif; ?>
+
+    <!-- Module 9: Featured Products -->
+    <?php if ($featuredProducts) : ?>
+        <section class="spartrak-home__featured">
+            <h2 class="spartrak-home__section-title"><?= $block->escapeHtml(__('Recently Added')) ?></h2>
+            <!--
+              Phase 6: rendered via the SAME shared Spartrak_Catalog::
+              product/card.phtml used by the PLP/category/search grid
+              (each theme's own Magento_Catalog/templates/product/
+              list.phtml) - a module template, not a theme file, since
+              this card has no Porto equivalent and both Spartrak themes
+              use it identically (10-THEME-ARCHITECTURE.md's "Theme vs.
+              module boundary" section) - per 04-COMPONENT-INVENTORY.md's
+              single "Card - Product" rule, this is not a homepage-
+              specific card implementation. Price fallback for the real
+              price=0.00 data gap is handled once, centrally, in each
+              theme's own Magento_Catalog/templates/product/price/
+              final_price.phtml (a genuine Porto-file override, so IT
+              stays theme-level and duplicated) - which every card render
+              below goes through automatically.
+            -->
+            <?php
+            $featuredListBlock = $om->get(\Magento\Framework\View\LayoutInterface::class)
+                ->createBlock(\Magento\Catalog\Block\Product\ListProduct::class);
+            ?>
+            <div class="spartrak-home__featured-rail">
+                <?php foreach ($featuredProducts as $product) : ?>
+                    <?= $block->getLayout()->createBlock(\Magento\Framework\View\Element\Template::class)
+                        ->setTemplate('Spartrak_Catalog::product/card.phtml')
+                        ->setData('list_block', $featuredListBlock)
+                        ->setData('product', $product)
+                        ->toHtml() ?>
+                <?php endforeach; ?>
+            </div>
+        </section>
+    <?php endif; ?>
+
+</div>

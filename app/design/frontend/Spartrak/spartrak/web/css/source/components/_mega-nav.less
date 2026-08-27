@@ -1,0 +1,727 @@
+// Spartrak component — Primary Navigation row ("Navbar - Menus")
+//
+// FIGMA SSOT: node 595:14530.
+//
+//   card        bg/surface #ffffff, 1px border/default on ALL FOUR sides,
+//               bottom corners radius 12 (top corners square),
+//               padding 16px 24px, gap 28, align-items + justify-content
+//               center, width hug (1049 at 1440, centred), height 66
+//   menu item   Label/Large — thmanyah sans Medium 500 / 14px / lh 1.3,
+//               text/primary; gap 6 to its chevron where it has children
+//   chevron     16px variant, node 693:45444 (1.5 stroke) — NOT the 14px
+//               utility-strip variant (1.25 stroke)
+//   CTA         bg action/primary, padding 8, radius 13, gap 6,
+//               [list-icon 18, label 14px medium inverse, chevron 16 inverse]
+//
+// MEASURED CONFIRMATION off the 1440 export: card left border at x=195
+// (#e4e3e5 exactly), interior #ffffff, bottom border at y=266..267, and the
+// CTA fill #063196 at (1180,235). The card is centred: (1440-1049)/2 = 195.5.
+//
+// The card sits BELOW the header bar's own bottom border, so the two 1px lines
+// abut — that is what Figma draws (Container ends at y=201.42, card starts at
+// y=201.42), not an accident to be de-duplicated.
+//
+// DOM ORDER: the CTA is FIRST in the template, not last. Figma places it at
+// x=854 of the 1049-wide card, i.e. hard against the card's right edge, which
+// in an RTL document is the inline START. See _support-strip.less for the full
+// explanation of why Figma's LTR child order has to be reversed here.
+//
+// ============================================================================
+// THE FLYOUT — FIGMA-VERIFIED, node 704:26365 ("Overlay", the homepage's
+// "menu open" frame, page node 473:2531)
+// ============================================================================
+//
+//   scrim       fixed, full-viewport, bg/scrim (--color-scrim, #0C0A2033),
+//               backdrop-filter blur(6px) — Figma effect "OVerlay/Popup":
+//               BACKGROUND_BLUR
+//   panel       width 1104, height 540, bg/surface, radius (inherits the
+//               card's own — Figma clips it with `overflow-clip` and draws no
+//               radius of its own, so 0 is correct here), shadow
+//               0 8px 12px rgba(0,0,0,.05) — a real, distinct, lighter shadow
+//               from the flyout's own token-driven --color-scrim, so it is
+//               NOT replaced with that token
+//   categories  node 704:26443, 256px column, rows 41px tall, 1px dividers
+//               between rows, active row on bg/surface-subtle
+//   content     node 704:26368, padding 20, gap 24 between groups; group
+//               header Heading/H5 (bold 16px) + "View all"; tiles 64x64
+//               bg/field image box + Body/Small (14px muted) label, wrapped
+//               with a 16px gap — node 705:31237 "Card - Category Navbar"
+//
+// See topmenu.phtml's own header comment for what this deliberately does NOT
+// reproduce (the brand-discovery pane, per-group product counts) and why —
+// both are pre-existing, already-documented scope boundaries in that file,
+// not new gaps introduced by this pass.
+
+// The nav card's own content box at the design width: `.spartrak-header__row`
+// is capped at @breakpoint-desktop with 40px inline padding, so 1360px is the
+// width the header's other clusters are already aligned to. Declared once here
+// rather than inlined so the two cannot drift apart.
+@mega-nav-content-width: (@breakpoint-desktop - 80px); // 1440 - (40 * 2)
+
+// The card's own block padding, per Figma (padding 16px 24px). Named because
+// the category flyout's hover bridge has to be EXACTLY this tall — see
+// .spartrak-mega-nav__flyout--category at the bottom of the flyout section.
+@mega-nav-block-padding: 16px;
+
+.spartrak-mega-nav {
+    // Width is hug-content and the card is centred by the header's own
+    // `align-items: center` (see _utility-header.less), so this must not
+    // stretch to 100%.
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    box-sizing: border-box;
+    padding: @mega-nav-block-padding 24px;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border-default);
+    // Both bottom corners carry the same radius, so a physical shorthand is
+    // direction-agnostic here and no logical property is needed.
+    border-radius: 0 0 var(--radius-12) var(--radius-12);
+
+    // -----------------------------------------------------------------------
+    // QA FIX (2026-08-27) — this card was the page's ONLY horizontal overflow.
+    // -----------------------------------------------------------------------
+    // MEASURED on the live storefront at a 1280px window (1265px viewport):
+    // `.spartrak-mega-nav` computed to 1462px wide at x = -98, and
+    // documentElement.scrollWidth was 1363 against a 1265 viewport — i.e. 98px
+    // of page-level horizontal scroll, produced entirely by this element. No
+    // other non-fixed node extended past the card's own right edge.
+    //
+    // The cause is structural, not a stray value: the card is hug-width by
+    // design, its parent `.spartrak-header` is `align-items: center` (which
+    // does not stretch OR shrink a child), and nothing here ever capped it. At
+    // 1440 with Figma's eight short labels the intrinsic width is 1049 and it
+    // fits; the live catalogue's real L1 names ("الدبرياج والفتيس ونقل الحركة",
+    // "جسم الجرار والكابينة والإكسسوارات", …) are far longer — the real set
+    // measures 1462px against a 1360px content box — so the intrinsic width
+    // exceeds the viewport long before the 767px collapse point.
+    //
+    // THE ROW STAYS ON ONE LINE. An earlier version of this fix let the list
+    // wrap onto a second row; it removed the overflow but changed the card from
+    // Figma's fixed 66px to 87px on every desktop width, which is a visible
+    // redesign of the header and was rejected. The card is a single 66px row at
+    // every width, exactly as node 595:14530 draws it, and the overflow is
+    // absorbed by scrolling the list instead — see .spartrak-mega-nav__list.
+    //
+    // `position: relative` is REQUIRED, not decorative: it makes this card the
+    // containing block for the category flyouts, which is what lets them escape
+    // the list's scroll clipping. See .spartrak-mega-nav__item.
+    position: relative;
+    max-width: ~"min(100% - 80px, @{mega-nav-content-width})";
+}
+
+// The CTA is a fixed-size cluster: it must never be the thing that squashes or
+// scrolls when the row runs out of room, so it neither grows nor shrinks and
+// the list absorbs every width change.
+.spartrak-mega-nav__browse {
+    flex: 0 0 auto;
+}
+
+// The scrolling half of the row.
+//
+// `flex: 1 1 auto` + `min-width: 0` is the pair that makes the card's max-width
+// bite: without them the list reports its max-content width as an unshrinkable
+// minimum and pushes the card open from the inside, so the card's max-width
+// produces overflow instead of reflow. With them the list is the one element
+// that absorbs the missing width, and `overflow-x: auto` turns that into a
+// contained scroll rather than a page-level one.
+//
+// `align-self: stretch` + `align-items: stretch` are load-bearing, not tidying:
+// they make each `<li>` exactly as tall as the card's content box, so the
+// vertical gap between an item and its flyout is a KNOWN constant (the card's
+// own block padding) that the flyout's hover bridge can be sized against. Left
+// centred, that gap also picks up half the difference between the list height
+// and the taller CTA, which is not expressible in CSS.
+//
+// The scrollbar is hidden because the card is 66px tall and a native horizontal
+// scrollbar inside it reads as a rendering fault; the row being visibly cut at
+// the edge is the affordance. Hiding the bar does NOT remove access —
+// wheel/trackpad, touch drag and keyboard all still scroll it, and tabbing to
+// an off-screen link scrolls it into view natively.
+.spartrak-mega-nav__list {
+    display: flex;
+    align-self: stretch;
+    align-items: stretch;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    // Keeps a trackpad's horizontal fling inside the row instead of triggering
+    // the browser's back-navigation gesture at the end of the scroll.
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    gap: 28px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    &::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+    }
+}
+
+// `position: static` IS THE FIX (2026-08-27). It looks like the absence of a
+// rule; it is the opposite.
+//
+// This used to be `position: relative`, which made the `<li>` the containing
+// block for its own flyout. That is fine while nothing clips — but the list is
+// now a scroll container, and an absolutely positioned element IS clipped by an
+// ancestor's overflow when that ancestor sits between it and its containing
+// block. With the `<li>` as containing block, every category panel was clipped
+// to the 36px-tall scrolling row.
+//
+// Leaving the item static hands the containing block up to `.spartrak-mega-nav`
+// (the nearest positioned ancestor), which is an ANCESTOR of the scroll
+// container rather than inside it — and overflow clipping does not apply to a
+// descendant whose containing block is outside the clipping element. So the
+// panel escapes the scroll clip entirely, with no `position: fixed` and no
+// JS-computed coordinates.
+//
+// VERIFIED by hit-testing on the live storefront: with the row scrolling, a
+// point 510px below the 36px-tall list still resolves to the flyout's own
+// content, and the item -> panel hover path is unbroken at every intervening
+// pixel.
+//
+// The flyout stays a DOM CHILD of the item, so `:hover` still propagates from
+// the panel back up to the item and the existing hover contract is unchanged —
+// only which box it is measured from has moved.
+//
+// The visible consequence: a category panel now opens at the card's inline
+// start instead of under its own item. That is deliberate and is the same place
+// the "تسوق حسب الفئات" panel already opens from; anchoring a panel to an item
+// that the shopper can scroll to an arbitrary x would make it jump around.
+.spartrak-mega-nav__item {
+    position: static;
+
+    // Labels are `white-space: nowrap` (below), so an item is atomic — it never
+    // squashes or breaks a category name; the row scrolls instead.
+    flex: 0 0 auto;
+    // Fills the row's height (see the list's `align-items: stretch`) so the
+    // item -> flyout gap is a known constant, while the link stays optically
+    // centred.
+    display: flex;
+    align-items: center;
+}
+
+.spartrak-mega-nav__link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    // Label/Large
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: var(--letter-spacing-normal);
+    color: var(--color-text-primary);
+    text-decoration: none;
+    white-space: nowrap;
+    // Figma gives the menu items no padding of their own — the 28px card gap
+    // is the entire rhythm. The previous pass added 10px/14px padding, which
+    // pushed the row 20px wider per item and broke the 1049px card width.
+    padding: 0;
+
+    &:hover,
+    &:focus-visible {
+        color: var(--color-action-primary);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// VISITED STATE (2026-08-27) — pinned to each link's own colour.
+// ---------------------------------------------------------------------------
+// Magento's blank theme ships, un-scoped:
+//
+//     a:visited, .alink:visited { color: #063196; text-decoration: none; }
+//
+// at specificity (0,1,1), which OUTRANKS a bare component class (0,1,0). So
+// every category a shopper had already opened turned navy in the nav row while
+// its neighbours stayed ink — a state this design system does not define
+// anywhere. get_variable_defs over the header returns no visited colour at all:
+// Figma draws one treatment per link, and that is the intent being restored.
+//
+// Adding `:visited` to the component's own selectors lands them at (0,2,0),
+// which beats (0,1,1) — so this is specificity earned honestly by naming the
+// state, not an `!important` or an inflated selector chain (CLAUDE.md §9).
+//
+// The two links that DO set a colour restate it; the two that deliberately do
+// not (their labels are inner spans carrying their own colour) are pinned to
+// `inherit` so the global rule cannot tint them either.
+//
+// SCOPE NOTE: this is fixed inside the component Spartrak owns, not globally.
+// The same core rule still applies to Porto- and Magento-owned surfaces
+// (checkout, account pages) where its blue-on-visited is the expected
+// behaviour, and CLAUDE.md §2 forbids customising those merely because the
+// rule exists. If the design system wants no visited recolour anywhere, that
+// is a one-line foundations override — worth a deliberate decision, not a
+// side effect of this fix.
+.spartrak-mega-nav__link:visited {
+    color: var(--color-text-primary);
+}
+
+.spartrak-mega-nav__flyout-view-all:visited {
+    color: var(--color-action-primary);
+}
+
+.spartrak-mega-nav__flyout-tile:visited,
+.spartrak-mega-nav__brand:visited {
+    color: inherit;
+}
+
+// Node 693:45444 — shown only where the category actually has children, which
+// is how Figma draws it: العروض / الفلاتر / قطع المحرك carry no chevron.
+.spartrak-mega-nav__chevron {
+    .spartrak-icon('chevron-down-16.svg'; 16px; var(--color-icon-default));
+}
+
+.spartrak-mega-nav__link:hover .spartrak-mega-nav__chevron,
+.spartrak-mega-nav__link:focus-visible .spartrak-mega-nav__chevron {
+    background-color: var(--color-action-primary);
+}
+
+// Wraps the CTA and its flyout as DOM siblings, so `:hover`/`:focus-within`
+// can be evaluated on ONE ancestor that contains both — see the flyout
+// section below for why that is the fix for the hover dead-zone bug, not
+// just a markup convenience.
+.spartrak-mega-nav__browse {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+// Node 595:14553 — the "تسوق حسب الفئات" CTA. QA FIX (2026-08-25): this used
+// to only open the Mobile Hamburger Drawer via [data-drawer-open]. Live
+// testing showed the desktop browse panel needs a real hover/focus trigger of
+// its own — see .spartrak-mega-nav__flyout below — so [data-drawer-open] is
+// dropped from this button (drawer-opening stays reachable from the header's
+// own hamburger trigger on mobile, where this CTA is hidden anyway per the
+// `@media` rule at the bottom of this file).
+.spartrak-mega-nav__shop-by-categories {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    padding: 8px;
+    border: 0;
+    border-radius: var(--radius-12);
+    background: var(--color-action-primary);
+    // Label/Large, inverse
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-action-primary-text);
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        background: var(--color-action-primary-hover);
+    }
+}
+
+// Node 595:14556 — three horizontal rules, 18px. The previous pass used
+// search.svg here, which drew a magnifier instead of a list glyph.
+.spartrak-mega-nav__shop-by-categories-icon {
+    .spartrak-icon('list-lines.svg'; 18px; currentColor);
+}
+
+// Node 693:45456 — the same 16px chevron geometry as the menu items, exported
+// with a white stroke; masked, so it takes the button's currentColor.
+.spartrak-mega-nav__shop-by-categories-chevron {
+    .spartrak-icon('chevron-down-16.svg'; 16px; currentColor);
+}
+
+// ---------------------------------------------------------------------------
+// Flyout ("Shop by categories" browse panel)
+// ---------------------------------------------------------------------------
+// QA FIX (2026-08-25): both the trigger and the geometry changed after live
+// testing. Previously the flyout opened on hovering an individual L1 `<li>`
+// and sat `top: calc(100% + 16px)` below it — a real 16px dead zone between
+// trigger and panel that the mouse has to cross with nothing `:hover`ed,
+// which drops the panel's `display:flex` before the pointer can reach it.
+// "I can't enter it, it dismissed before I could access" was that bug, not a
+// timing fluke.
+//
+// The fix is structural: the trigger (.spartrak-mega-nav__shop-by-categories)
+// and the flyout are DOM siblings inside .spartrak-mega-nav__browse, and
+// `:hover`/`:focus-within` is evaluated on THAT WRAPPER — so the hoverable
+// region is the union of the button's box and the panel's box, with the panel
+// sitting at `top: 100%` (no added offset). Moving the pointer from the
+// button straight down lands inside the panel with no gap to lose `:hover`
+// in. The gap is a real regression against Figma's `calc(50%+121px)`-style
+// composition (which has its own visual breathing room baked into a
+// different metric); it is accepted because a mega-menu a shopper cannot
+// enter is not a smaller defect than a missing 16px of whitespace — the
+// panel's own shadow still reads as a distinct floating surface without it.
+// Two triggers, one panel component:
+//   .spartrak-mega-nav__browse  the "تسوق حسب الفئات" CTA -> the full browse
+//                               panel (L1 column + content + brand pane)
+//   .spartrak-mega-nav__item    a category -> that category's own children
+//
+// Both use the SAME gapless pattern: the trigger and its panel are siblings
+// inside the hovered element, and the panel sits at `top: 100%`. The <li> is
+// the hover scope for a category exactly as .browse is for the CTA.
+.spartrak-mega-nav__browse:hover > .spartrak-mega-nav__flyout,
+.spartrak-mega-nav__browse:focus-within > .spartrak-mega-nav__flyout,
+.spartrak-mega-nav__item--has-flyout:hover > .spartrak-mega-nav__flyout,
+.spartrak-mega-nav__item--has-flyout:focus-within > .spartrak-mega-nav__flyout {
+    display: flex;
+}
+
+.spartrak-mega-nav__flyout {
+    display: none;
+    position: absolute;
+    // Anchored to .spartrak-mega-nav__browse (the CTA), which Figma also
+    // places hard against the nav card's inline-start — so this ends up
+    // close to Figma's own near-edge placement without needing its
+    // item-specific centring offset (see the QA-fix note above for why that
+    // offset doesn't generalise). `max-width` is the safety net so the fixed
+    // 1104px panel never overflows a narrower viewport than the 1440 design.
+    inset-inline-start: 0;
+    top: 100%;
+    z-index: 30;
+    width: 1104px;
+    max-width: calc(100vw - 32px);
+    height: 540px;
+    overflow: hidden;
+    background: var(--color-bg-surface);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.05);
+}
+
+// A category's own flyout (no L1 tab column, no brand pane — the category IS
+// the selection). Height is capped rather than fixed at 540 so a category with
+// two L2 groups does not render a mostly-empty 540px slab.
+//
+// WIDTH IS THE FULL CARD (2026-08-27), where it used to be content-driven
+// (`width: auto; min-width: 560px`). This is what makes the hover bridge below
+// actually reach: the panel is anchored to the card, not to its item, so a
+// 560px panel simply is not underneath an item sitting at the far end of a
+// 929px row — measured at 1009px, the straight-down path from the first and
+// last categories left the panel entirely. Spanning the card's padding box
+// guarantees the bridge is under every item at every scroll position, which was
+// verified by walking the pointer path pixel-by-pixel from every visible
+// category at 1024 / 1280 / 1440.
+//
+// `width: 100%` on an absolutely positioned element resolves against its
+// containing block's PADDING box — the card's — so this is exactly the card's
+// interior width, matching `inset-inline-start: 0` from the base rule.
+.spartrak-mega-nav__flyout--category {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: auto;
+    max-height: 540px;
+    overflow-y: auto;
+
+    // ----------------------------------------------------------------------
+    // THE HOVER BRIDGE (2026-08-27).
+    // ----------------------------------------------------------------------
+    // Since .spartrak-mega-nav__item went `static`, this panel is measured from
+    // the CARD, so `top: 100%` lands it at the card's outer edge — one card
+    // block-padding BELOW the item it belongs to. That reopens the dead zone
+    // this component already fought once (see the QA note above the flyout
+    // triggers): the pointer leaves the item, crosses padding that is not the
+    // item, `:hover` drops, and the panel closes before it can be reached.
+    //
+    // The bridge is a transparent block-start border rather than a pseudo
+    // element, because the panel carries `overflow-y: auto` and would clip a
+    // pseudo drawn outside its own box — a border is part of the element's box
+    // and is both painted and hit-tested normally. Pulling `top` up by the same
+    // amount keeps the panel's PADDING box exactly where it was, so nothing
+    // moves visually: verified live, the panel body still starts on the card's
+    // bottom edge to the pixel.
+    //
+    // The height must be EXACTLY @mega-nav-block-padding. Taller and the bridge
+    // — which spans the full 560px panel width — would reach up into the item
+    // row and swallow hover on neighbouring categories.
+    //
+    // `background-clip: padding-box` stops the panel's white fill painting out
+    // through the transparent border and overlapping the card above it.
+    top: calc(100% - @mega-nav-block-padding);
+    border-block-start: @mega-nav-block-padding solid transparent;
+    background-clip: padding-box;
+}
+
+// Node 704:26443 "Categoreis". RTL child order (see topmenu.phtml) puts this
+// FIRST so it renders at the flyout's inline start — Figma's rightmost pane.
+.spartrak-mega-nav__flyout-categories {
+    flex: 0 0 256px;
+    width: 256px;
+    height: 100%;
+    overflow-y: auto;
+    // Figma's own Tailwind class here is a physical `border-r`, which sits at
+    // this pane's OUTER edge (nothing beyond it) rather than its shared edge
+    // with the content pane — almost certainly a Figma authoring artefact,
+    // since a divider on an edge that touches nothing is not a legible
+    // affordance. Implemented on the shared edge instead, which is where the
+    // screenshot actually shows a seam between the two panes.
+    border-inline-end: 1px solid var(--color-border-default);
+}
+
+// Node 704:26443's own rows. Named `-l2` from the first pass, when this
+// column selected L2s within one L1's flyout; the QA fix repurposed the same
+// chrome to select L1s within the single "Shop by categories" panel — the
+// class name is kept rather than churned, since nothing about its box model,
+// typography or states changed, only what data feeds it.
+.spartrak-mega-nav__flyout-l2 {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    height: 41px;
+    padding-inline: 16px 12px;
+    border: 0;
+    border-block-end: 1px solid var(--color-border-default);
+    background: none;
+    // Label/Large
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+    text-align: end;
+    cursor: pointer;
+
+    &:last-child {
+        border-block-end: 0;
+    }
+
+    &:hover,
+    &[aria-selected='true'] {
+        background: var(--color-bg-surface-subtle);
+        color: var(--color-action-primary);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// "أكتشف بالبراند" (Discover by brand) pane — Figma node 704:26408
+// ---------------------------------------------------------------------------
+//   pane    flex 1, 1px border/default, padding 20, gap 24, items flex-end
+//   title   Heading/H5 — thmanyah sans Bold 700 / 16px / lh 1.3, text/primary
+//   grid    wrap, gap 20px 16px, justify-content flex-end
+//   plate   64x64 circle (radius 100px), bg/surface, 1px border/default,
+//           padding 16.842, holding a 58x58 mark
+//   label   Body/Small — 14px regular / lh 1.5, text/muted, centred
+//
+// The logos themselves are admin-uploaded swatch images, not theme assets —
+// see Spartrak\Catalog\ViewModel\BrandNavigation for why and how.
+.spartrak-mega-nav__flyout-brands {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 20px;
+    border-inline-end: 1px solid var(--color-border-default);
+}
+
+.spartrak-mega-nav__flyout-brands-title {
+    margin: 0 0 24px;
+    // Heading/H5
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+}
+
+.spartrak-mega-nav__flyout-brands-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px 16px;
+}
+
+.spartrak-mega-nav__brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 64px;
+    text-decoration: none;
+}
+
+// Node 704:26412 "Icon Container".
+.spartrak-mega-nav__brand-plate {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    padding: 3px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-pill);
+    background: var(--color-bg-surface);
+    overflow: hidden;
+
+    img {
+        display: block;
+        width: 58px;
+        height: 58px;
+        // Brand marks are wildly different aspect ratios (a wordmark vs a
+        // roundel), so they are fitted rather than cropped — never stretched.
+        object-fit: contain;
+    }
+}
+
+// Shown only where no swatch has been uploaded yet. Reuses the account-chip
+// avatar's treatment so the fallback still looks like part of the system.
+.spartrak-mega-nav__brand-initial {
+    font-family: var(--font-arabic);
+    font-size: var(--text-20);
+    font-weight: 700;
+    line-height: 1;
+    color: var(--color-action-primary);
+    text-transform: uppercase;
+}
+
+.spartrak-mega-nav__brand-label {
+    width: 64px;
+    // Body/Small
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+    text-align: center;
+    // Brand names vary a lot in length ("فيات" vs "ماسي فيرجسون"); Figma
+    // ellipsises rather than letting one name reflow the grid.
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.spartrak-mega-nav__flyout-content {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 20px;
+}
+
+// One per L1; only the active one visible. QA FIX (2026-08-25): this
+// hidden-attribute toggle used to sit on .spartrak-mega-nav__flyout-group
+// (one per L2, single-active) — moved up one level so a whole L1's worth of
+// L2 groups show together, which is what node 704:26365's own screenshot
+// actually shows (four group headers stacked under one active sidebar
+// entry, not swapped one at a time).
+.spartrak-mega-nav__flyout-l1-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.spartrak-mega-nav__flyout-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-block-end: 12px;
+    // Heading/H5
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+}
+
+.spartrak-mega-nav__flyout-view-all {
+    flex: 0 0 auto;
+    font-size: var(--text-14);
+    color: var(--color-action-primary);
+    text-decoration: none;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+.spartrak-mega-nav__flyout-tiles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.spartrak-mega-nav__flyout-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 64px;
+    text-decoration: none;
+}
+
+// Node 705:31238 "Image Contrainer". Figma's own fallback fill for this box
+// IS bg/field — there is no category image wired into this component set
+// (Product Image is confirmed separately not wired into Card - Product
+// either, per figma-map.md), so every tile in the source frame already shows
+// this plate. Not a placeholder invented here.
+.spartrak-mega-nav__flyout-tile-image {
+    flex: 0 0 auto;
+    width: 64px;
+    height: 64px;
+    background: var(--color-bg-field);
+}
+
+.spartrak-mega-nav__flyout-tile-label {
+    width: 64px;
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+    text-align: center;
+    // Figma clips long labels to two lines rather than wrapping indefinitely
+    // or truncating to one.
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+// The dim+blur backdrop behind an open flyout (Figma's own "Overlay" wrapper
+// node, effect "OVerlay/Popup": BACKGROUND_BLUR). Visibility is data-driven
+// from JS (spartrak-mega-nav.js) rather than a CSS-only sibling selector,
+// because it is a sibling of .spartrak-mega-nav__browse, not a descendant —
+// a plain sibling combinator can't react to a :hover/:focus-within state on
+// one of .browse's own descendants without `:has()`.
+.spartrak-mega-nav__scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+    background: var(--color-scrim);
+    // NO backdrop-filter (removed 2026-08-25, on request).
+    //
+    // Figma's Overlay node carries the effect "OVerlay/Popup": BACKGROUND_BLUR
+    // radius 12, and this rule previously reproduced it as
+    // `backdrop-filter: blur(6px)`. Dropped: it read as the page smearing on
+    // hover, and a backdrop-filter over a full-viewport fixed layer is one of
+    // the more expensive things a browser can be asked to composite —
+    // repainting a blurred copy of everything behind it on every hover of the
+    // nav. The plain dim still separates the panel from the page.
+    //
+    // A flagged deviation from Figma, not an oversight.
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 120ms ease;
+}
+
+.spartrak-mega-nav__scrim[data-visible='true'] {
+    opacity: 1;
+}
+
+// Mobile: Figma's 440 header has no nav row at all — the categories live
+// behind the hamburger drawer.
+@media (max-width: @breakpoint-header-collapse) {
+    .spartrak-mega-nav {
+        display: none;
+    }
+}

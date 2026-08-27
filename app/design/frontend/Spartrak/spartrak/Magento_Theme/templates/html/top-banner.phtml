@@ -1,0 +1,64 @@
+<?php
+/**
+ * Spartrak Top Promo Banner.
+ *
+ * FIGMA SSOT: desktop node 595:14466, mobile node 724:25797.
+ *
+ * ---------------------------------------------------------------------------
+ * ALWAYS VISIBLE — NOT DISMISSABLE (changed 2026-08-25, explicit instruction)
+ * ---------------------------------------------------------------------------
+ * This banner previously had a working dismiss button that persisted the
+ * choice in localStorage. That is now removed entirely, and it is also the
+ * reason the banner "never appeared" during testing: it HAD been dismissed
+ * once, and a localStorage flag is permanent, so it stayed hidden on every
+ * subsequent page load with no way back short of clearing site data.
+ *
+ * Removed rather than reworked, per instruction. What went with it:
+ *   - the close <button> and its icon
+ *   - the synchronous pre-paint script that read localStorage
+ *   - web/js/top-banner.js (the whole widget) and its requirejs-config map
+ *     entry in Spartrak_Catalog
+ *   - the .spartrak-top-banner-dismissed CSS branch
+ *
+ * Net effect is less JS on every page, no localStorage dependency, and no
+ * layout-shift risk at all — the banner is now a static block of markup.
+ *
+ * DELIBERATE FIGMA DEVIATION, FLAGGED: node 693:45402 draws an X at the
+ * banner's inline end. It is not rendered, because a visible close button that
+ * does nothing is worse than no button. If the banner should be dismissable
+ * again, the right shape is a per-session dismissal (sessionStorage) or an
+ * admin on/off toggle — not the permanent localStorage flag that caused this.
+ *
+ * ---------------------------------------------------------------------------
+ * CONTENT COMES FROM CODE, NOT CMS BLOCKS
+ * ---------------------------------------------------------------------------
+ * The offer sentence and badge used to come from two Magento\Cms\Block\Block
+ * children (spartrak_top_banner, spartrak_top_banner_badge). Neither static
+ * block existed in the database, and this template bailed out entirely when
+ * the offer block was empty — so the banner did not render at all.
+ *
+ * Both are now plain __() strings, per the explicit project instruction that
+ * this content is handled in code. The copy is still changeable without a
+ * deploy because __() strings are translatable per store view (the Arabic
+ * wording lives in this theme's i18n/ar_EG.csv), and it removes two
+ * static-block lookups from every page render.
+ *
+ * The offer sentence carries no `%` placeholder: Magento's Phrase renderer
+ * treats `%` specially, so the discount figure is part of the translated
+ * string rather than a substitution, which keeps the source key and the CSV
+ * key byte-identical and avoids a silent no-match.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ */
+?>
+<div class="spartrak-top-banner" role="note">
+    <div class="spartrak-top-banner__inner">
+        <?php /* Node 595:14471 "New Badge" — the yellow-gradient pill. */ ?>
+        <span class="spartrak-top-banner__badge"><?= $block->escapeHtml(__('Offer 15%')) ?></span>
+        <span class="spartrak-top-banner__content">
+            <?= $block->escapeHtml(__('Get 15 percent off your first order on our site, terms and conditions apply')) ?>
+        </span>
+        <?php /* Node 693:45396 — the diagonal affiliate/external arrow. */ ?>
+        <span class="spartrak-top-banner__icon" aria-hidden="true"></span>
+    </div>
+</div>

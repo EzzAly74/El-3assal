@@ -1,0 +1,5 @@
+<?php
+/** @var \Magento\Framework\Escaper $escaper */
+$porto_helper = $this->helper('Smartwave\Porto\Helper\Data');
+?>
+<li><a href="<?php echo $escaper->escapeUrl($porto_helper->getBaseLinkUrl()); ?>contact"><?php echo $escaper->escapeHtml(__('Contact Us')); ?></a></li>

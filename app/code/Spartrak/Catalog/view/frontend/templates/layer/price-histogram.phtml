@@ -1,0 +1,27 @@
+<?php
+/**
+ * Spartrak_Catalog — price-distribution histogram.
+ *
+ * Figma node 569:14168 / 569:14169: nineteen 12px columns, 80px tall,
+ * space-between, sitting 12px down into the range slider's track. Columns
+ * inside the selected range use action/primary; columns outside use
+ * bg/field. Both fills, the column count and the tallest height are read
+ * off the design — see Block\Layer\PriceHistogram for where the numbers
+ * come from and why it renders nothing when there is no real distribution.
+ *
+ * Bar heights are per-bar DATA, so they are the one thing that legitimately
+ * belongs in a style attribute; everything else is in the PLP stylesheet.
+ *
+ * @var \Spartrak\Catalog\Block\Layer\PriceHistogram $block
+ */
+
+if (!$block->canShow()) {
+    return;
+}
+?>
+<div class="spartrak-price-histogram" aria-hidden="true">
+    <?php foreach ($block->getBars() as $bar) : ?>
+        <span class="spartrak-price-histogram__bar<?= $bar['inRange'] ? '' : ' spartrak-price-histogram__bar--muted' ?>"
+              style="--spartrak-bar-height: <?= (int) $bar['height'] ?>px"></span>
+    <?php endforeach; ?>
+</div>

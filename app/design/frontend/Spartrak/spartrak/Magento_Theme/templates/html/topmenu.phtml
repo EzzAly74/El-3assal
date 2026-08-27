@@ -1,0 +1,385 @@
+<?php
+/**
+ * Spartrak Primary Mega Navigation (desktop).
+ *
+ * Overrides Magento_Theme::html/topmenu.phtml via theme fallback — the block
+ * itself (catalog.topnav, class Magento\Theme\Block\Html\Topmenu) is
+ * untouched core, only relocated by Smartwave_Porto's layout into
+ * porto_header (CODEBASE-VERIFIED, 08-PORTO-AUDIT.md). No new layout XML
+ * needed for this file: Magento's theme fallback resolves this path ahead
+ * of both Porto's and core's own copy.
+ *
+ * SCOPE DECISION (not a Figma-verification gap — a cross-phase dependency,
+ * see 15-IMPLEMENTATION-ROADMAP.md Phase 6 / 11-MODULE-ARCHITECTURE.md
+ * Module 2): SITEMAP.md's primary navbar has 4 real top-level items —
+ * Shop by Part, Shop by Brand, Shop by Machine, Offers. Only "Shop by Part"
+ * is category-tree-driven (native Magento data, available here today).
+ * "Shop by Brand"/"Shop by Machine" need the brand EAV-attribute listing,
+ * which is Module 2's job (not yet built) — populating their flyout content
+ * from raw attribute queries here would put business logic in the theme
+ * layer, which 10-THEME-ARCHITECTURE.md explicitly assigns to modules.
+ * They render as real, correctly-labeled/linked top-level items with no
+ * populated flyout yet — documented limitation, not a silent omission.
+ *
+ * ---------------------------------------------------------------------------
+ * THE BROWSE PANEL — FIGMA-VERIFIED node 704:26365 ("Overlay", the homepage's
+ * "menu open" frame, page node 473:2531) — REWIRED 2026-08-25 after live
+ * QA on the first pass
+ * ---------------------------------------------------------------------------
+ * QA FIX: the first pass attached one flyout per L1 menu item, opened by
+ * hovering that item's own link. Two things were wrong with that, both
+ * confirmed live:
+ *
+ * 1. WRONG TRIGGER. The panel must open on hovering/focusing the "تسوق حسب
+ *    الفئات" (Shop by categories) CTA — not on hovering an individual L1 item
+ *    like "قطع المحرك". Individual L1 links are plain navigation again; only
+ *    the CTA opens the browse panel.
+ *
+ * 2. HOVER DEAD-ZONE. The old flyout sat `top: calc(100% + 16px)` below its
+ *    trigger. Moving the pointer from the trigger to the panel crosses that
+ *    16px gap, where nothing is `:hover`ed — so pure-CSS `:hover` visibility
+ *    drops the panel before the pointer arrives, exactly the "dismissed
+ *    before I can access it" report. The fix is structural, not a timer or a
+ *    JS delay: the trigger and the panel are now DOM siblings inside one
+ *    `.spartrak-mega-nav__browse` wrapper, `:hover`/`:focus-within` is
+ *    evaluated on that WRAPPER (not the trigger), and the panel sits at
+ *    `top: 100%` with no gap, so the hoverable region is physically
+ *    continuous from button to panel. (See _mega-nav.less for the CSS side
+ *    of this — the tradeoff of dropping Figma's cosmetic 16px offset for a
+ *    functioning hover target is recorded there.)
+ *
+ * Because the trigger is no longer scoped to one L1, the panel now needs an
+ * L1 selector of its own. It reuses the exact chrome the first pass already
+ * built for L2 selection — a 256px tab column (node 704:26443
+ * "Categoreis") plus a scrollable content pane — one level up:
+ *
+ *   .spartrak-mega-nav__flyout-categories   L1 tabs (only L1s with children)
+ *   .spartrak-mega-nav__flyout-l1-panel     one per L1, only the active
+ *                                           one visible (same hidden-attr
+ *                                           mechanism as before, just moved
+ *                                           up a level)
+ *   .spartrak-mega-nav__flyout-group        one per L2 child of the active
+ *                                           L1 — ALL rendered together and
+ *                                           scrolled, not tab-switched. This
+ *                                           matches what node 704:26365's own
+ *                                           screenshot actually shows: FOUR
+ *                                           group headers ("كرنك وبيل سبائك",
+ *                                           "بستم وشنبر وشميز", ...) stacked
+ *                                           at once under one active
+ *                                           sidebar entry, not swapped one at
+ *                                           a time. The first pass's
+ *                                           single-active-group tab
+ *                                           mechanism was a misreading of
+ *                                           that screenshot; group headers +
+ *                                           tile rows are unchanged, only the
+ *                                           show/hide granularity moved from
+ *                                           "per L2" to "per L1".
+ *
+ * TWO THINGS Figma DRAWS THAT ARE DELIBERATELY NOT REPRODUCED HERE, both
+ * already-established scope boundaries in THIS file, not new ones:
+ *
+ * 1. "أكتشف بالبراند" (Discover by brand) — the third pane (node 704:26408),
+ *    a grid of brand logos. This needs the brand EAV-attribute listing,
+ *    which is Module 2's job and not yet built — the exact same "Shop by
+ *    Brand" dependency this file's SCOPE DECISION note already documents
+ *    for the top-level nav items. Fabricating it from raw attribute queries
+ *    here would put business logic in the theme layer
+ *    (10-THEME-ARCHITECTURE.md).
+ *
+ * 2. The per-group product-count numbers (e.g. "1439" beside "كرنك وبيل
+ *    سبائك"). Magento\Catalog\Plugin\Block\Topmenu's tree nodes carry only
+ *    id/name/url — not a loaded product count — and loading the full
+ *    category model per node to get one would be an N+1 query fan-out
+ *    inside a block that is already ttl-cached and rendered on every page.
+ *    Not shown, rather than shown wrong or shown at a real performance cost.
+ *
+ * Similarly, no per-tile category image is fetched, for the same N+1 reason
+ * — each tile shows Figma's own bg/field placeholder box (node 705:31238's
+ * OWN fallback fill, not an invented one) with the category name. This is a
+ * graceful placeholder state Figma itself draws, not a missing asset.
+ *
+ * The curated-top-N-per-group mechanism (native category `position` order,
+ * already admin-manageable via drag-drop in Catalog > Categories) predates
+ * this Figma verification and is unchanged.
+ *
+ * @var \Magento\Theme\Block\Html\Topmenu $block
+ */
+
+// Curated-top-N per L2 group, per ia-and-flows.md's "top part-types + view all"
+// rule and the CLAUDE.md non-negotiable: never render all 360 leaves.
+$curatedLimit = 6;
+
+// QA FIX (2026-08-23): Magento\Catalog\Plugin\Block\Topmenu populates the
+// category tree via a beforeGetHtml() plugin on this exact class — it only
+// fires when getHtml() is actually invoked. Reading getMenu() directly
+// (as this template intentionally does, to build custom markup instead of
+// consuming Porto/core's own <ul> string) skips that population entirely,
+// leaving the tree empty. Call getHtml() once, discard its string, purely
+// to trigger the plugin's side effect — confirmed necessary via live
+// browser testing (the 3 static Shop-by-Brand/Machine/Offers items
+// rendered, but zero real categories did, until this call was added).
+$block->getHtml();
+$menu = $block->getMenu();
+$l1Nodes = $menu->getChildren();
+
+// Built once, used twice: to render the L1 tab column and, in the same
+// order, the matching content panels. A plain array snapshot rather than
+// re-iterating $l1Nodes twice, so a hasChildren()/getChildren() call can't
+// disagree with itself between the two passes.
+$browsableL1s = [];
+foreach ($l1Nodes as $l1) {
+    if ($l1->hasChildren()) {
+        $browsableL1s[] = $l1;
+    }
+}
+?>
+<nav class="spartrak-mega-nav" data-mage-init='{"spartrakMegaNav":{}}' aria-label="<?= $block->escapeHtmlAttr(__('Primary')) ?>">
+    <?php /* FIGMA (node 595:14553): the "تسوق حسب الفئات" CTA sits at
+             x=854 of the 1049-wide nav card — hard against the card's right
+             edge, which in this RTL storefront is the inline START. This
+             wrapper is therefore emitted FIRST, not last (see
+             _support-strip.less for why every cluster in this header
+             reverses Figma's LTR child order). */ ?>
+    <div class="spartrak-mega-nav__browse">
+        <button type="button" class="spartrak-mega-nav__shop-by-categories" aria-haspopup="true" aria-expanded="false" aria-controls="spartrak-mega-nav-flyout">
+            <?php /* Children [list-icon, label, chevron] are the reverse of
+                     Figma's LTR order (chevron x=8, label x=30, icon x=145),
+                     so RTL renders icon-at-the-right / chevron-at-the-left
+                     exactly as drawn. */ ?>
+            <span class="spartrak-mega-nav__shop-by-categories-icon" aria-hidden="true"></span>
+            <span><?= $block->escapeHtml(__('Shop by categories')) ?></span>
+            <span class="spartrak-mega-nav__shop-by-categories-chevron" aria-hidden="true"></span>
+        </button>
+
+        <?php if ($browsableL1s) : ?>
+            <div class="spartrak-mega-nav__flyout" id="spartrak-mega-nav-flyout" role="menu" aria-label="<?= $block->escapeHtmlAttr(__('Shop by categories')) ?>">
+                <?php /* Node 704:26443 "Categoreis" — RTL child order puts
+                         this FIRST so it lands at the flyout's inline start,
+                         Figma's rightmost pane. Now an L1 selector (was L2 in
+                         the pre-QA-fix pass). */ ?>
+                <div class="spartrak-mega-nav__flyout-categories" role="tablist" aria-label="<?= $block->escapeHtmlAttr(__('Categories')) ?>">
+                    <?php foreach ($browsableL1s as $index => $l1) : ?>
+                        <button
+                            type="button"
+                            class="spartrak-mega-nav__flyout-l2"
+                            id="spartrak-mega-nav-tab-<?= (int) $index ?>"
+                            role="tab"
+                            aria-selected="<?= $index === 0 ? 'true' : 'false' ?>"
+                            aria-controls="spartrak-mega-nav-panel-<?= (int) $index ?>"
+                            data-flyout-tab
+                        >
+                            <?= $block->escapeHtml($l1->getName()) ?>
+                        </button>
+                    <?php endforeach; ?>
+                </div>
+
+                <?php
+                /**
+                 * Node 704:26408 "أكتشف بالبراند" (Discover by brand) — the
+                 * third pane. QA FIX (2026-08-25): this was previously not
+                 * rendered at all, on the grounds that brands needed a Module 2
+                 * Brand entity. That was over-cautious: the `brand` product
+                 * attribute already exists and is already populated (product/
+                 * card.phtml reads it, and the live PDP shows a Brand row), so
+                 * the brand vocabulary is real data available today. It is read
+                 * through the BrandNavigation ViewModel — no template-side
+                 * business logic, no hardcoded list.
+                 *
+                 * RTL child order puts this pane between the category column
+                 * (inline start) and the content pane, matching Figma's
+                 * right-to-left arrangement of Categories | Content | Brands.
+                 */
+                $brandNavigation = $block->getData('brand_navigation');
+                $brands = $brandNavigation && $brandNavigation->hasBrands() ? $brandNavigation->getBrands() : [];
+                ?>
+                <?php if ($brands) : ?>
+                    <div class="spartrak-mega-nav__flyout-brands">
+                        <p class="spartrak-mega-nav__flyout-brands-title"><?= $block->escapeHtml(__('Discover by brand')) ?></p>
+                        <div class="spartrak-mega-nav__flyout-brands-grid">
+                            <?php foreach ($brands as $brand) : ?>
+                                <a href="<?= $block->escapeUrl($brand['url']) ?>" class="spartrak-mega-nav__brand">
+                                    <span class="spartrak-mega-nav__brand-plate">
+                                        <?php if ($brand['logo']) : ?>
+                                            <?php /* ADMIN-MANAGED. The src is the per-option visual
+                                                     swatch image an admin uploaded against the
+                                                     `brand` attribute (Stores > Attributes >
+                                                     brand > Manage Options), served by Magento
+                                                     from pub/media/attribute/swatch/. No filename
+                                                     convention and no artwork lives in code — see
+                                                     Spartrak\Catalog\ViewModel\BrandNavigation.
+                                                     Explicit width/height reserve the box (CLS);
+                                                     lazy+async because this pane sits inside a
+                                                     closed dropdown, so it is never in the initial
+                                                     viewport and never the LCP element. */ ?>
+                                            <img
+                                                src="<?= $block->escapeUrl($brand['logo']) ?>"
+                                                alt="<?= $block->escapeHtmlAttr($brand['label']) ?>"
+                                                width="58"
+                                                height="58"
+                                                loading="lazy"
+                                                decoding="async"
+                                            />
+                                        <?php else : ?>
+                                            <?php /* No swatch uploaded for this option yet. Renders
+                                                     the brand's own initial rather than a broken
+                                                     image or a silently dropped entry — an honest
+                                                     empty state that resolves itself the moment
+                                                     admin uploads the mark. */ ?>
+                                            <span class="spartrak-mega-nav__brand-initial" aria-hidden="true"><?= $block->escapeHtml(mb_substr($brand['label'], 0, 1)) ?></span>
+                                        <?php endif; ?>
+                                    </span>
+                                    <span class="spartrak-mega-nav__brand-label"><?= $block->escapeHtml($brand['label']) ?></span>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <?php /* Node 704:26368 — the content pane. One panel per L1,
+                         only the active one visible; inside a panel, EVERY
+                         L2 group renders together (see the header comment on
+                         why this is per-L1, not per-L2, after the QA fix). */ ?>
+                <div class="spartrak-mega-nav__flyout-content">
+                    <?php foreach ($browsableL1s as $index => $l1) : ?>
+                        <div
+                            class="spartrak-mega-nav__flyout-l1-panel"
+                            id="spartrak-mega-nav-panel-<?= (int) $index ?>"
+                            role="tabpanel"
+                            aria-labelledby="spartrak-mega-nav-tab-<?= (int) $index ?>"
+                            <?= $index === 0 ? '' : 'hidden' ?>
+                        >
+                            <?php foreach ($l1->getChildren() as $l2) : ?>
+                                <div class="spartrak-mega-nav__flyout-group">
+                                    <div class="spartrak-mega-nav__flyout-group-header">
+                                        <span><?= $block->escapeHtml($l2->getName()) ?></span>
+                                        <?php if ($l2->hasChildren() && $l2->getChildren()->count() > $curatedLimit) : ?>
+                                            <a href="<?= $block->escapeUrl($l2->getUrl()) ?>" class="spartrak-mega-nav__flyout-view-all">
+                                                <?= $block->escapeHtml(__('View all')) ?>
+                                            </a>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php if ($l2->hasChildren()) : ?>
+                                        <div class="spartrak-mega-nav__flyout-tiles">
+                                            <?php $shown = 0; ?>
+                                            <?php foreach ($l2->getChildren() as $l3) : ?>
+                                                <?php if ($shown >= $curatedLimit) {
+                                                    break;
+                                                } ?>
+                                                <a href="<?= $block->escapeUrl($l3->getUrl()) ?>" class="spartrak-mega-nav__flyout-tile">
+                                                    <span class="spartrak-mega-nav__flyout-tile-image" aria-hidden="true"></span>
+                                                    <span class="spartrak-mega-nav__flyout-tile-label"><?= $block->escapeHtml($l3->getName()) ?></span>
+                                                </a>
+                                                <?php $shown++; ?>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php endif; ?>
+    </div>
+
+    <?php
+    /**
+     * QA FIX (2026-08-25), second round: hovering a CATEGORY must also open a
+     * mega menu showing that category's own children — not only the "Shop by
+     * categories" CTA. Both triggers are wanted.
+     *
+     * So each L1 with children gets its own panel again, but built the way the
+     * CTA panel is built after the dead-zone fix: the trigger and its panel are
+     * siblings inside one hoverable wrapper (the <li> itself), and the panel
+     * sits flush at `top: 100%` with no gap to lose :hover in. That is what
+     * makes it enterable — the original per-item flyout failed precisely
+     * because it was offset 16px below its trigger.
+     *
+     * Structure inside a per-category panel is Figma's content pane
+     * (704:26368): the L1's L2 children as group headers, each with its
+     * curated top-N L3 children as 64x64 tiles. No L1 tab column here —
+     * the category IS the selection — and no brand pane, which belongs to the
+     * "browse everything" CTA panel.
+     */
+    ?>
+    <ul class="spartrak-mega-nav__list" role="menubar">
+        <?php $position = 1; ?>
+        <?php foreach ($l1Nodes as $l1) : ?>
+            <?php $hasChildren = $l1->hasChildren(); ?>
+            <li class="spartrak-mega-nav__item<?= $hasChildren ? ' spartrak-mega-nav__item--has-flyout' : '' ?>" role="none">
+                <a
+                    href="<?= $block->escapeUrl($l1->getUrl()) ?>"
+                    class="spartrak-mega-nav__link"
+                    role="menuitem"
+                    <?php if ($hasChildren) : ?>aria-haspopup="true" aria-expanded="false"<?php endif; ?>
+                    data-nav-position="<?= (int) $position ?>"
+                >
+                    <span><?= $block->escapeHtml($l1->getName()) ?></span>
+                    <?php
+                    /**
+                     * FIGMA (nodes 595:14533 etc., icon 693:45444): the 16px
+                     * chevron appears ONLY on menu items that have children —
+                     * العروض / الفلاتر / قطع المحرك are drawn without one.
+                     * That is exactly $hasChildren, so the design's own rule
+                     * is data-driven here rather than hardcoded per item.
+                     *
+                     * It is the LAST child (Figma's LTR order puts it first,
+                     * which reverses to last for RTL), so it renders on the
+                     * label's left in Arabic and its right in English.
+                     */
+                    ?>
+                    <?php if ($hasChildren) : ?>
+                        <span class="spartrak-mega-nav__chevron" aria-hidden="true"></span>
+                    <?php endif; ?>
+                </a>
+
+                <?php if ($hasChildren) : ?>
+                    <div class="spartrak-mega-nav__flyout spartrak-mega-nav__flyout--category" role="menu" aria-label="<?= $block->escapeHtmlAttr($l1->getName()) ?>">
+                        <div class="spartrak-mega-nav__flyout-content">
+                            <div class="spartrak-mega-nav__flyout-l1-panel">
+                                <?php foreach ($l1->getChildren() as $l2) : ?>
+                                    <div class="spartrak-mega-nav__flyout-group">
+                                        <div class="spartrak-mega-nav__flyout-group-header">
+                                            <span><?= $block->escapeHtml($l2->getName()) ?></span>
+                                            <?php if ($l2->hasChildren() && $l2->getChildren()->count() > $curatedLimit) : ?>
+                                                <a href="<?= $block->escapeUrl($l2->getUrl()) ?>" class="spartrak-mega-nav__flyout-view-all">
+                                                    <?= $block->escapeHtml(__('View all')) ?>
+                                                </a>
+                                            <?php endif; ?>
+                                        </div>
+                                        <?php if ($l2->hasChildren()) : ?>
+                                            <div class="spartrak-mega-nav__flyout-tiles">
+                                                <?php $shown = 0; ?>
+                                                <?php foreach ($l2->getChildren() as $l3) : ?>
+                                                    <?php if ($shown >= $curatedLimit) {
+                                                        break;
+                                                    } ?>
+                                                    <a href="<?= $block->escapeUrl($l3->getUrl()) ?>" class="spartrak-mega-nav__flyout-tile">
+                                                        <span class="spartrak-mega-nav__flyout-tile-image" aria-hidden="true"></span>
+                                                        <span class="spartrak-mega-nav__flyout-tile-label"><?= $block->escapeHtml($l3->getName()) ?></span>
+                                                    </a>
+                                                    <?php $shown++; ?>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </li>
+            <?php $position++; ?>
+        <?php endforeach; ?>
+    </ul>
+
+    <?php /* Node 704:26365's own wrapper ("Overlay") dims and blurs the rest
+             of the page behind an open panel — Figma effect "OVerlay/Popup":
+             BACKGROUND_BLUR radius 12, fill bg/scrim (--color-scrim, the same
+             token _mobile-drawer.less and _login-modal.less already use for
+             their own scrims). Visibility is JS-driven (spartrak-mega-nav.js)
+             because it must react to hover/focus entering
+             .spartrak-mega-nav__browse, and CSS alone can't target a sibling
+             from a state on an ancestor's OTHER descendant without `:has()`. */ ?>
+    <div class="spartrak-mega-nav__scrim" aria-hidden="true"></div>
+</nav>

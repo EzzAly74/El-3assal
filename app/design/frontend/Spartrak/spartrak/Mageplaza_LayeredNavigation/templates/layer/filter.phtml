@@ -1,0 +1,249 @@
+<?php
+/**
+ * Spartrak — layered-navigation filter option renderer.
+ *
+ * Overrides Mageplaza_LayeredNavigation's own
+ * view/frontend/templates/layer/filter.phtml. It is a genuine override of a
+ * third-party template, so it stays theme-level.
+ *
+ * WHY IT EXISTS. Mageplaza's version is functionally fine but structurally
+ * one element short of Figma's price filter (node 569:14166), which is:
+ *
+ *   569:14168  a 19-column price-distribution HISTOGRAM sitting on the track
+ *   569:14189  the dual-handle range slider
+ *   569:14202  two number inputs, "الاقل" (lowest) and "الاعلي" (highest)
+ *   569:14205  the price-range option rows with their count pills
+ *
+ * Mageplaza renders ONLY the slider for a slider-type filter (its own
+ * template branches: slider OR option rows, never both) and has no
+ * histogram and no min/max inputs at all. This template adds the three
+ * missing pieces and keeps everything else byte-for-byte behaviour-
+ * compatible.
+ *
+ * WHAT IS PRESERVED EXACTLY — do not "tidy" any of it:
+ *   - `#ln_slider_container_<code>`, `#ln_slider_<code>` and
+ *     `#ln_slider_text_<code>`: Mageplaza's mpLayer JS looks these IDs up
+ *     by name to build the jQuery UI slider and write the range readout
+ *     into. Renaming any of them silently kills the price slider.
+ *   - the `<ol class="items"> / <li class="item">` shell, the
+ *     radio-vs-checkbox choice, the disabled state for zero-count items,
+ *     `$filterModel->getItemUrl()` for the href and
+ *     `$filterModel->isShowCounter()` for the count — all straight from
+ *     Mageplaza's own template, because AjaxLayer binds to
+ *     `.filter-options a` and `.filter-options-item`.
+ *
+ * THE MIN/MAX INPUTS submit by setting Magento's OWN `price=from-to`
+ * request parameter on the current URL and dropping `p` (page). That is the
+ * same parameter the slider and the option rows use, so the inputs are a
+ * third way into one existing, working filter — not a parallel mechanism.
+ * The ~12 lines of inline JS exist because a GET form cannot join two
+ * fields into one parameter; there is no library and no new JS file.
+ *
+ * FIGMA VALUE SWAP, CORRECTED DELIBERATELY: in the design the field
+ * labelled "الاعلي" (highest) shows 500 and the one labelled "الاقل"
+ * (lowest) shows 2,500 — the two values are transposed. The LABEL positions
+ * are right for RTL (lowest at the inline-start/right, highest at the
+ * inline-end/left), so those are kept and the values are put with the
+ * labels they belong to. Flagged rather than silently mirrored.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Magento\Catalog\Model\Layer\Filter\Item[] $filterItems
+ */
+
+/*
+ * `$filterItems` is assigned by the FilterRenderer immediately before this
+ * template renders and reset to [] immediately after. Normalising it here
+ * is not defensive noise: Mageplaza's original only ever foreach-es it,
+ * which merely warns on a non-array under PHP 8, whereas this template also
+ * counts it — and count() on a non-array is a fatal TypeError. One line
+ * keeps a missing assignment a no-op instead of a 500.
+ */
+$filterItems = (isset($filterItems) && is_array($filterItems)) ? $filterItems : [];
+
+/** @var \Mageplaza\LayeredNavigation\Model\Layer\Filter\Attribute $filter */
+$filter = $this->getFilter();
+if (!$filter) {
+    return;
+}
+$attributeCode = $filter->getRequestVar();
+
+/** @var \Mageplaza\Layerednavigation\Model\Layer\Filter $filterModel */
+$filterModel = $this->helper(\Mageplaza\LayeredNavigation\Helper\Data::class)->getFilterModel();
+
+$isSlider = $filterModel->isSliderTypes($filter);
+$isMultiple = $filterModel->isMultiple($filter);
+$showCounter = $filterModel->isShowCounter($filter);
+
+/*
+ * The histogram is a DECORATION. It must never be able to take the page
+ * down, so it is built and rendered to a string here, behind a Throwable
+ * guard, and the rest of this template only ever looks at the result.
+ *
+ * `catch (\Throwable)`, not `catch (\Exception)`, on purpose. When Magento
+ * runs with compiled DI and a class is missing from the compiled config,
+ * Factory\Compiled falls back to `new $type()` with no arguments — which
+ * raises ArgumentCountError, an \Error, NOT an \Exception. A plain
+ * `catch (\Exception)` would sail straight past it and 500 the category
+ * page. Same reasoning covers a missing template file.
+ */
+$histogram = null;
+$histogramHtml = '';
+if ($isSlider) {
+    try {
+        $histogram = $block->getLayout()
+            ->createBlock(\Spartrak\Catalog\Block\Layer\PriceHistogram::class)
+            ->setTemplate('Spartrak_Catalog::layer/price-histogram.phtml');
+        $histogramHtml = (string) $histogram->toHtml();
+    } catch (\Throwable $e) {
+        $histogram = null;
+        $histogramHtml = '';
+    }
+}
+
+$priceHelper = $this->helper(\Magento\Framework\Pricing\Helper\Data::class);
+$formId = 'spartrak-price-range-' . $attributeCode;
+
+/*
+ * Input values. Preferred source is the histogram block (it knows the real
+ * catalogue bounds); if that could not be built for any reason the fields
+ * still render, seeded from Magento's own applied `price=from-to`
+ * parameter, so the range inputs keep working on their own.
+ */
+$appliedRange = (string) $block->getRequest()->getParam($attributeCode, '');
+[$appliedFrom, $appliedTo] = array_pad(explode('-', $appliedRange, 2), 2, '');
+
+$fromValue = null;
+$toValue = null;
+if ($histogram !== null) {
+    $fromValue = $histogram->getSelectedFrom();
+    $toValue = $histogram->getSelectedTo();
+} else {
+    $fromValue = is_numeric($appliedFrom) ? (float) $appliedFrom : null;
+    $toValue = is_numeric($appliedTo) ? (float) $appliedTo : null;
+}
+?>
+<?php if ($isSlider) : ?>
+    <?php
+    /*
+     * Mageplaza's template emits the slider container once PER ITEM because
+     * its slider branch sits inside the foreach — which produces duplicate
+     * element IDs on any filter with more than one item. Here it is emitted
+     * once, outside the loop, which is both correct HTML and what mpLayer
+     * actually expects.
+     */
+    ?>
+    <div id="ln_slider_container_<?= $block->escapeHtmlAttr($attributeCode) ?>" class="ln_slider_container">
+        <?= /* @noEscape */ $histogramHtml ?>
+
+        <div id="ln_slider_<?= $block->escapeHtmlAttr($attributeCode) ?>"></div>
+        <div id="ln_slider_text_<?= $block->escapeHtmlAttr($attributeCode) ?>"></div>
+
+        <?php
+        /*
+         * The inputs are NOT gated on the histogram having data. A histogram
+         * needs a price spread to mean anything; two number fields only need
+         * bounds, and they are a genuinely useful way into the same
+         * `price=from-to` filter even on a catalogue with no spread yet
+         * (today: every product is 0.00). The histogram above is the part
+         * that correctly renders nothing until real prices exist — an empty
+         * chart is not drawn with invented bars.
+         */
+        ?>
+        <form class="spartrak-price-inputs" id="<?= $block->escapeHtmlAttr($formId) ?>" action="#" method="get">
+                <label class="spartrak-price-inputs__field">
+                    <span class="spartrak-price-inputs__label"><?= $block->escapeHtml(__('Lowest')) ?></span>
+                    <input class="spartrak-price-inputs__input"
+                           type="text"
+                           inputmode="decimal"
+                           autocomplete="off"
+                           data-role="price-from"
+                           value="<?= $fromValue !== null
+                               ? $block->escapeHtmlAttr($priceHelper->currency($fromValue, true, false))
+                               : '' ?>" />
+                </label>
+                <label class="spartrak-price-inputs__field">
+                    <span class="spartrak-price-inputs__label"><?= $block->escapeHtml(__('Highest')) ?></span>
+                    <input class="spartrak-price-inputs__input"
+                           type="text"
+                           inputmode="decimal"
+                           autocomplete="off"
+                           data-role="price-to"
+                           value="<?= $toValue !== null
+                               ? $block->escapeHtmlAttr($priceHelper->currency($toValue, true, false))
+                               : '' ?>" />
+                </label>
+                <button type="submit" class="spartrak-price-inputs__submit"><?= $block->escapeHtml(__('Apply')) ?></button>
+            </form>
+            <script>
+                (function () {
+                    'use strict';
+                    var form = document.getElementById('<?= $block->escapeJs($formId) ?>');
+                    if (!form || form.getAttribute('data-spartrak-bound')) {
+                        return;
+                    }
+                    form.setAttribute('data-spartrak-bound', '1');
+                    form.addEventListener('submit', function (event) {
+                        event.preventDefault();
+                        var read = function (role) {
+                            var field = form.querySelector('[data-role="' + role + '"]');
+                            // Strip the currency symbol, grouping separators and
+                            // any Arabic-Indic digits back to a plain number.
+                            return field ? field.value.replace(/[^\d.]/g, '') : '';
+                        };
+                        var from = read('price-from');
+                        var to = read('price-to');
+                        if (from === '' && to === '') {
+                            return;
+                        }
+                        var url = new URL(window.location.href);
+                        url.searchParams.set('<?= $block->escapeJs($attributeCode) ?>', (from || '0') + '-' + to);
+                        url.searchParams.delete('p');
+                        window.location.assign(url.toString());
+                    });
+                }());
+            </script>
+    </div>
+<?php endif; ?>
+<?php
+/*
+ * Figma's price filter shows the slider AND the price-range option rows
+ * (569:14205 — "تحت 500 ج.م" / "500 ج.م - 2000 ج.م" / "2500 ج.م فأعلي" with
+ * their count pills), which Mageplaza's own template never does: its
+ * slider branch replaces the rows entirely. Both are rendered here.
+ *
+ * The 2+ guard is the honest part: in slider mode Magento hands back a
+ * single degenerate range whenever the catalogue has no price spread (which
+ * is today's state — every product is 0.00), and one lone radio labelled
+ * "0.00 - 0.00" is not what the design shows. Real price data produces real
+ * ranges and they appear automatically.
+ */
+$renderOptionRows = !$isSlider || count($filterItems) > 1;
+?>
+<?php if ($renderOptionRows) : ?>
+    <ol class="items">
+        <?php foreach ($filterItems as $filterItem) : ?>
+            <li class="item">
+                <?php if ($filterItem->getCount() > 0) : ?>
+                    <input type="<?= $isMultiple ? 'checkbox' : 'radio' ?>"
+                        <?= $isMultiple ? '' : 'name="' . $block->escapeHtmlAttr($attributeCode) . '"' ?>
+                        <?= $filterModel->isSelected($filterItem) ? 'checked="checked"' : '' ?>
+                           aria-label="<?= $block->escapeHtmlAttr(strip_tags((string) $filterItem->getLabel())) ?>" />
+                <?php else : ?>
+                    <input type="<?= $isMultiple ? 'checkbox' : 'radio' ?>" disabled="disabled" aria-hidden="true" />
+                <?php endif; ?>
+                <a href="<?= $block->escapeUrl($filterModel->getItemUrl($filterItem)) ?>">
+                    <?= /* @noEscape */ $filterItem->getLabel() ?>
+                    <?php if ($showCounter) : ?>
+                        <span class="count"><?= (int) $filterItem->getCount() ?>
+                            <span class="filter-count-label">
+                                <?= $block->escapeHtml(
+                                    (int) $filterItem->getCount() === 1 ? __('item') : __('items')
+                                ) ?>
+                            </span>
+                        </span>
+                    <?php endif; ?>
+                </a>
+            </li>
+        <?php endforeach; ?>
+    </ol>
+<?php endif; ?>

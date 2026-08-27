@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!--
+  Frontend-only. The admin login/create pages are a different area entirely and
+  must keep working normally, which putting this file under etc/frontend/
+  guarantees structurally rather than by a check inside the observer.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+
+    <!--
+      One observer class, registered against the three GET auth pages.
+
+      Registered per-full-action-name rather than on the broad
+      `controller_action_predispatch_customer` event on purpose: that broader
+      event fires on EVERY customer-route request (dashboard, orders, addresses,
+      wishlist), so an observer there would be instantiated thousands of times a
+      day to do nothing. These three handles are the whole surface.
+    -->
+    <event name="controller_action_predispatch_customer_account_login">
+        <observer name="spartrak_redirect_native_login_to_modal"
+                  instance="Spartrak\CustomerAuth\Observer\RedirectNativeAuthPageToModal"/>
+    </event>
+    <event name="controller_action_predispatch_customer_account_create">
+        <observer name="spartrak_redirect_native_create_to_modal"
+                  instance="Spartrak\CustomerAuth\Observer\RedirectNativeAuthPageToModal"/>
+    </event>
+    <event name="controller_action_predispatch_customer_account_forgotpassword">
+        <observer name="spartrak_redirect_native_forgotpassword_to_modal"
+                  instance="Spartrak\CustomerAuth\Observer\RedirectNativeAuthPageToModal"/>
+    </event>
+</config>

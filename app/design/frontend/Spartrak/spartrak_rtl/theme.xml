@@ -1,0 +1,43 @@
+<theme xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Config/etc/theme.xsd">
+    <title>Spartrak RTL</title>
+    <!--
+      PARENT CHANGED 2026-08-24: was Smartwave/porto_rtl, now Spartrak/spartrak.
+
+      WHY: with porto_rtl as the parent, this theme was a SIBLING of
+      Spartrak/spartrak rather than a descendant, so Magento's theme fallback
+      never let it see any Spartrak-authored template, layout, JS or LESS.
+      Every shared file had to be physically duplicated into both theme trees
+      — which had already silently drifted and produced three real bugs (the
+      RTL theme was missing the PLP filter-toggle RequireJS mapping, the
+      "Shop by categories" nav CTA, and the Top Promo Banner + utility strip
+      layout additions).
+
+      Making this theme a real child of Spartrak/spartrak gives exactly the
+      single-source-of-truth model Porto itself uses (porto_rtl -> porto):
+      write shared implementation once in Spartrak/spartrak, and keep only
+      genuinely direction-specific overrides here.
+
+      Chain is now: Spartrak/spartrak_rtl -> Spartrak/spartrak
+                    -> Smartwave/porto -> Magento/blank
+
+      Smartwave/porto_rtl is no longer in the chain. Everything it actually
+      contributed was audited and absorbed into this theme, because all of it
+      is genuinely RTL-specific and belongs in an RTL theme anyway:
+        - Smartwave_Porto/templates/html/head.phtml (loads bootstrap.rtl.css /
+          the .rtl header CSS variants and sets js_porto_vars.rtl = "1")
+        - <body class="rtl"> (see this theme's Magento_Theme/layout/default.xml)
+        - its 15 RTL LESS source overrides + animate.css under web/css/
+          (Magento/blank's styles-m.less @imports source/_theme.less,
+          source/_variables.less etc. by relative path, so this theme's copies
+          now win by fallback exactly as porto_rtl's did before)
+      porto_rtl's own etc/view.xml is intentionally NOT absorbed: it was the
+      source of the RTL PDP gallery crash (it redeclared the whole `gallery`
+      var block while omitting `thumbmargin`), and dropping it out of the chain
+      fixes that bug at the root.
+
+      See .claude/docs/10-THEME-ARCHITECTURE.md for the full decision record
+      and the rule for what belongs here vs. in Spartrak/spartrak vs. in a
+      shared module.
+    -->
+    <parent>Spartrak/spartrak</parent>
+</theme>

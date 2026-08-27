@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ElAssal — معاينة التنقل (Navigation)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+:root{
+  --ink:#0A0E14; --ink2:#11161F; --navy:#1F3A93; --navy-d:#172C6E;
+  --yellow:#FFC107; --yellow-h:#E6A800; --soft:#FFF6D9;
+  --gray:#6B7280; --line:#E5E7EB; --tint:#F7F8FA; --green:#16A34A; --red:#DC2626;
+  --r:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:Tajawal,system-ui,sans-serif;background:var(--tint);color:var(--ink)}
+.mono{font-family:'JetBrains Mono',monospace}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.wrap{max-width:1280px;margin:0 auto;padding:0 22px}
+
+/* ===== TIER 1 — utility strip ===== */
+.utility{background:var(--ink);color:#cbd5e1;font-size:13px;transition:height .3s,opacity .3s,padding .3s}
+.utility .wrap{display:flex;align-items:center;justify-content:space-between;height:38px}
+.u-right{display:flex;align-items:center;gap:16px}
+.u-left{display:flex;align-items:center;gap:18px}
+.u-left a:hover,.u-right a:hover{color:#fff}
+.wa{display:inline-flex;align-items:center;gap:7px;color:#34d399;font-weight:700}
+.wa svg{width:15px;height:15px;fill:#34d399}
+.hot{color:var(--yellow);font-weight:700}
+.divider{width:1px;height:14px;background:#334155}
+.lang{display:inline-flex;gap:6px}
+.lang b{color:#fff}
+
+/* ===== TIER 2 — header ===== */
+.header{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:60;transition:box-shadow .3s}
+.header .wrap{display:flex;align-items:center;gap:22px;height:78px;transition:height .3s}
+.logo{display:flex;align-items:center;gap:10px;white-space:nowrap}
+.logo .mark{width:42px;height:42px;border-radius:9px;background:var(--navy);display:grid;place-items:center;color:#fff;font-weight:900;font-size:20px;transition:all .3s}
+.logo .mark b{color:var(--yellow)}
+.logo .txt{line-height:1}
+.logo .txt .n{font-weight:900;font-size:20px;color:var(--navy)}
+.logo .txt .s{font-size:11px;color:var(--gray);font-weight:500}
+/* search */
+.search{flex:1;position:relative;display:flex;border:2px solid var(--ink);border-radius:var(--r);overflow:hidden;transition:box-shadow .2s,border-color .2s}
+.search.focus{border-color:var(--navy);box-shadow:0 0 0 4px #1f3a9320}
+.search .scope{display:flex;align-items:center;gap:6px;padding:0 16px;background:var(--tint);border-inline-end:1px solid var(--line);font-weight:700;font-size:13.5px;color:#374151;white-space:nowrap}
+.search input{flex:1;border:0;outline:0;padding:13px 16px;font-family:inherit;font-size:15px}
+.search input::placeholder{color:#9ca3af}
+.search .go{background:var(--yellow);border:0;padding:0 26px;font-weight:800;font-size:15px;display:flex;align-items:center;gap:8px;transition:background .2s}
+.search .go:hover{background:var(--yellow-h)}
+.search .go svg{width:17px;height:17px}
+.actions{display:flex;align-items:center;gap:6px}
+.iconbtn{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:0;padding:8px 12px;border-radius:9px;color:#1f2937;font-size:11.5px;font-weight:600;transition:background .15s,color .15s}
+.iconbtn:hover{background:var(--tint);color:var(--navy)}
+.iconbtn svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.8}
+.badge{position:absolute;top:2px;inset-inline-start:6px;background:var(--yellow);color:var(--ink);font-size:10px;font-weight:800;min-width:17px;height:17px;border-radius:99px;display:grid;place-items:center;padding:0 4px}
+
+/* ===== TIER 3 — primary navbar ===== */
+.nav{background:var(--navy);position:sticky;top:78px;z-index:55;transition:top .3s}
+.nav .wrap{display:flex;align-items:center;gap:4px;height:52px}
+.mega-trigger{display:flex;align-items:center;gap:10px;background:var(--yellow);color:var(--ink);font-weight:800;font-size:15px;padding:10px 18px;border:0;border-radius:9px;margin-inline-end:8px;transition:background .2s}
+.mega-trigger:hover{background:var(--yellow-h)}
+.mega-trigger svg{width:18px;height:18px}
+.mega-trigger .chev{transition:transform .3s}
+.mega-trigger.open .chev{transform:rotate(180deg)}
+.nlink{color:#dbe3ff;font-weight:700;font-size:14.5px;padding:9px 14px;border-radius:8px;transition:background .15s,color .15s}
+.nlink:hover{background:#ffffff14;color:#fff}
+.nlink.offer{color:var(--yellow)}
+.nspacer{flex:1}
+.ship{display:flex;align-items:center;gap:8px;color:#cbd5e1;font-size:13px;font-weight:600}
+.ship svg{width:18px;height:18px;stroke:var(--yellow);fill:none;stroke-width:1.7}
+
+/* ===== MEGA MENU ===== */
+.backdrop{position:fixed;inset:0;background:#0a0e1466;z-index:50;opacity:0;visibility:hidden;backdrop-filter:blur(2px)}
+.mega{position:absolute;inset-inline:0;top:100%;z-index:56;background:#fff;border-radius:0 0 16px 16px;box-shadow:0 30px 60px -12px #0a0e1455;overflow:hidden;opacity:0;visibility:hidden;transform-origin:top}
+.mega-inner{max-width:1280px;margin:0 auto;padding:0 22px}
+.mega-tabs{display:flex;gap:8px;padding:16px 0 0}
+.mtab{display:flex;align-items:center;gap:10px;background:var(--tint);border:1.5px solid var(--line);border-radius:11px;padding:11px 18px;font-weight:800;font-size:15px;color:#374151;transition:all .18s}
+.mtab .ic{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;background:#fff;border:1px solid var(--line);font-size:17px}
+.mtab small{display:block;font-weight:500;font-size:11.5px;color:var(--gray)}
+.mtab.active{background:var(--soft);border-color:var(--yellow);color:var(--ink)}
+.mtab.active .ic{background:var(--yellow);border-color:var(--yellow)}
+.mtab:hover{border-color:var(--yellow)}
+
+.mpanel{padding:18px 0 26px}
+.mpanel[hidden]{display:none}
+/* by-part layout */
+.part-grid{display:grid;grid-template-columns:248px 1fr;gap:22px;min-height:340px}
+.sys-rail{border-inline-end:1px solid var(--line);padding-inline-end:14px;display:flex;flex-direction:column;gap:2px}
+.sys{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;border-radius:10px;cursor:pointer;font-weight:700;font-size:14px;transition:background .15s}
+.sys:hover{background:var(--tint)}
+.sys.active{background:var(--navy);color:#fff}
+.sys.active .c{color:#cbd5e1}
+.sys .left{display:flex;align-items:center;gap:11px}
+.sys .dot{width:30px;height:30px;border-radius:8px;background:var(--soft);display:grid;place-items:center;font-size:15px;flex-shrink:0}
+.sys.active .dot{background:#ffffff22}
+.sys .c{font-size:11px;color:var(--gray);font-weight:600}
+.cols{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 22px;align-content:start}
+.col h4{font-size:13.5px;color:var(--navy);font-weight:800;margin-bottom:9px;padding-bottom:6px;border-bottom:2px solid var(--soft);display:flex;justify-content:space-between}
+.col h4 .c{color:#9ca3af;font-size:11px;font-weight:600}
+.col a{display:block;font-size:13px;color:#4b5563;padding:3.5px 0;transition:color .12s,padding .12s}
+.col a:hover{color:var(--yellow-h);font-weight:700;padding-inline-start:4px}
+.col .all{color:var(--navy);font-weight:800;font-size:12px;margin-top:5px}
+/* by-brand layout */
+.brand-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.bcard{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 10px;border:1.5px solid var(--line);border-radius:12px;background:#fff;transition:all .18s;cursor:pointer}
+.bcard:hover{border-color:var(--accent,#1F3A93);transform:translateY(-2px);box-shadow:0 8px 18px #0a0e1414}
+.bcard .blogo{width:54px;height:54px;border-radius:10px;display:grid;place-items:center;font-weight:900;color:#fff;font-size:13px;text-align:center;line-height:1;background:var(--accent,#1F3A93)}
+.bcard .bn{font-weight:800;font-size:14px}
+.bcard .bc{font-size:11.5px;color:var(--gray);font-weight:600}
+.mega-foot{border-top:1px solid var(--line);padding:13px 0;display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--gray)}
+.mega-foot a{color:var(--navy);font-weight:800}
+
+/* demo page body */
+.demo{padding:60px 0 120px}
+.demo h1{font-size:30px;font-weight:900;margin-bottom:10px}
+.demo p{color:var(--gray);max-width:640px;line-height:1.7;margin-bottom:14px}
+.note{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-top:24px}
+.note b{color:var(--navy)}
+.spacer{height:900px}
+@media(max-width:900px){
+  .search .scope{display:none}.actions .lbl{display:none}
+  .part-grid{grid-template-columns:1fr}.sys-rail{flex-direction:row;overflow-x:auto;border:0}
+  .cols{grid-template-columns:repeat(2,1fr)}.brand-grid{grid-template-columns:repeat(3,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- TIER 1 -->
+<div class="utility" id="utility">
+  <div class="wrap">
+    <div class="u-right">
+      <a class="wa" href="#"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-2.8.7.8-2.7-.2-.3A8 8 0 1 1 12 20zm4.4-6c-.2-.1-1.4-.7-1.6-.8s-.4-.1-.5.1-.6.8-.8 1-.3.1-.5 0a6.5 6.5 0 0 1-3.2-2.8c-.2-.4.2-.4.6-1.2a.4.4 0 0 0 0-.4l-.8-1.9c-.2-.5-.4-.4-.5-.4h-.5a1 1 0 0 0-.7.3A3 3 0 0 0 6 7.8c0 1.8 1.3 3.5 1.5 3.7s2.6 4 6.3 5.5c2.3.9 2.3.6 2.7.6a2.5 2.5 0 0 0 1.7-1.2 2 2 0 0 0 .1-1.2c0-.1-.2-.2-.4-.3z"/></svg> واتساب</a>
+      <span class="divider"></span>
+      <a href="#"><span class="hot mono">الخط الساخن 12384</span></a>
+    </div>
+    <div class="u-left">
+      <a href="#">تتبع طلبك</a>
+      <a href="#">الفروع</a>
+      <a href="#">اتصل بنا</a>
+      <span class="divider"></span>
+      <a class="lang" href="#"><b>العربية</b> / English</a>
+    </div>
+  </div>
+</div>
+
+<!-- TIER 2 -->
+<header class="header" id="header">
+  <div class="wrap">
+    <a class="logo" href="#">
+      <div class="mark">ع<b>.</b></div>
+      <div class="txt"><div class="n">العسّال</div><div class="s">قطع غيار أصلية · منذ ١٩٧٣</div></div>
+    </a>
+    <form class="search" id="search" onsubmit="return false">
+      <div class="scope">كل الأقسام <svg viewBox="0 0 24 24" width="12" height="12" fill="#6b7280"><path d="M7 10l5 5 5-5z"/></svg></div>
+      <input id="q" placeholder="ابحث برقم الصنف، اسم القطعة، الماركة أو الموديل…">
+      <button class="go"><svg viewBox="0 0 24 24" fill="none" stroke="#0A0E14" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg> بحث</button>
+    </form>
+    <div class="actions">
+      <button class="iconbtn"><svg viewBox="0 0 24 24"><path d="M12 21C5 14.5 3 11 3 8a4.5 4.5 0 0 1 9-1 4.5 4.5 0 0 1 9 1c0 3-2 6.5-9 13z"/></svg><span class="lbl">المفضلة</span></button>
+      <button class="iconbtn"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg><span class="lbl">حسابي</span></button>
+      <button class="iconbtn"><svg viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9h-12z"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M6 6L5 3H2"/></svg><span class="badge">3</span><span class="lbl">السلة</span></button>
+    </div>
+  </div>
+</header>
+
+<!-- TIER 3 -->
+<nav class="nav" id="nav">
+  <div class="wrap">
+    <button class="mega-trigger" id="trigger">
+      <svg viewBox="0 0 24 24" fill="#0A0E14"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      تسوق حسب الفئات
+      <svg class="chev" viewBox="0 0 24 24" width="16" height="16" fill="#0A0E14"><path d="M7 10l5 5 5-5z"/></svg>
+    </button>
+    <a class="nlink" href="#">قطع المحرك</a>
+    <a class="nlink" href="#">الفلاتر</a>
+    <a class="nlink" href="#">الكهرباء</a>
+    <a class="nlink" href="#">كيت العمرة</a>
+    <a class="nlink offer" href="#">العروض 🔥</a>
+    <span class="nspacer"></span>
+    <span class="ship"><svg viewBox="0 0 24 24"><rect x="1" y="6" width="13" height="11" rx="1"/><path d="M14 9h4l3 3v5h-7z"/><circle cx="6" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/></svg> شحن مجاني للطلبات فوق ٢٠٠٠ ج.م</span>
+  </div>
+
+  <!-- MEGA -->
+  <div class="mega" id="mega">
+    <div class="mega-inner">
+      <div class="mega-tabs">
+        <button class="mtab active" data-tab="part"><span class="ic">🔧</span><span>أعرف القطعة<small>تصفّح حسب نوع القطعة</small></span></button>
+        <button class="mtab" data-tab="brand"><span class="ic">🚜</span><span>أعرف الماكينة<small>اختر الماركة والموديل</small></span></button>
+      </div>
+
+      <div class="mpanel" id="panel-part">
+        <div class="part-grid">
+          <div class="sys-rail" id="sysRail"></div>
+          <div class="cols" id="sysCols"></div>
+        </div>
+      </div>
+
+      <div class="mpanel" id="panel-brand" hidden>
+        <div class="brand-grid" id="brandGrid"></div>
+      </div>
+
+      <div class="mega-foot">
+        <span id="footStat">—</span>
+        <a href="#">عرض كل الفئات ←</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="backdrop" id="backdrop"></div>
+
+<!-- demo body -->
+<main class="demo">
+  <div class="wrap">
+    <h1>معاينة قسم التنقّل (Navigation)</h1>
+    <p>هذه معاينة حيّة للهيدر والقائمة الرئيسية مع قائمة الميجا المتحرّكة. مرّر فوق <b>«تسوق حسب الفئات»</b> لفتح القائمة، وجرّب التبديل بين <b>«أعرف القطعة»</b> و<b>«أعرف الماكينة»</b> — وهما الاتجاهان الأساسيان للتصفّح.</p>
+    <p>القائمة مبنيّة من بيانات الكتالوج الحقيقية (<span class="mono">navbar.json</span>): ٧ أنظمة رئيسية ← مجموعات فرعية ← أهم القطع، و٣٠ ماركة بأعداد منتجاتها.</p>
+    <div class="note">جرّب أيضًا: مرّر للأسفل لرؤية تقلّص الهيدر تلقائيًا (sticky shrink)، وركّز على حقل البحث لرؤية تأثير التركيز.</div>
+    <div class="spacer"></div>
+    <h1>نهاية المعاينة</h1>
+  </div>
+</main>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const BRAND_ACCENT={'فورد':'#005CA9','فيات':'#003478','جوندير':'#367C2B','بركنز':'#0072CE','كمنز':'#C8102E','دويتس':'#0A7E3A','نيوهولند':'#005EB8','ماسي':'#C8102E','نصر':'#1F3A93','زيتور':'#E2001A','روسي':'#444','روماني':'#555','ماجروس':'#B11116','سام':'#0050A0'};
+const BRAND_SHORT={'فورد':'FORD','فيات':'FIAT','جوندير':'JD','بركنز':'PERKINS','كمنز':'CUMMINS','دويتس':'DEUTZ','نيوهولند':'NH','ماسي':'MF','نصر':'NASR','زيتور':'ZETOR'};
+const SYS_ICON={'المحرك':'⚙️','الفلاتر':'🛢️','الكهرباء والحساسات':'🔌','الدبرياج والفتيس ونقل الحركة':'🔩','الهيدروليك وPTO والدركسيون':'💧','جسم الجرار والكابينة والإكسسوارات':'🚜','بلي وأويل سيلات و سيور ومثبتات':'🔗'};
+
+let NAV=null, mega=$('#mega'), backdrop=$('#backdrop'), trigger=$('#trigger');
+let openTl=null, isOpen=false, hoverTimer=null;
+
+fetch('navbar.json').then(r=>r.json()).then(d=>{NAV=d;buildPart();buildBrand();
+  if(location.hash==='#open') setTimeout(openMega,150);
+  if(location.hash==='#brand'){setTimeout(()=>{openMega();document.querySelector('.mtab[data-tab=brand]').click();},150);}
+});
+
+function buildPart(){
+  const groups=NAV.primary[0].groups;
+  $('#sysRail').innerHTML=groups.map((g,i)=>`
+    <div class="sys ${i===0?'active':''}" data-i="${i}">
+      <span class="left"><span class="dot">${SYS_ICON[g.title]||'🔧'}</span>${g.title}</span>
+      <span class="c mono">${g.count.toLocaleString('en')}</span>
+    </div>`).join('');
+  drawCols(0);
+  $$('.sys').forEach(el=>el.addEventListener('mouseenter',()=>{
+    $$('.sys').forEach(s=>s.classList.remove('active'));
+    el.classList.add('active'); drawCols(+el.dataset.i);
+  }));
+  $('#footStat').innerHTML=`٧ أنظمة · ٥٣ مجموعة · ٣٦٠ نوع قطعة`;
+}
+function drawCols(i){
+  const g=NAV.primary[0].groups[i];
+  const cols=g.columns.slice(0,8);
+  $('#sysCols').innerHTML=cols.map(c=>`
+    <div class="col">
+      <h4>${c.title}<span class="c mono">${c.count}</span></h4>
+      ${c.items.map(it=>`<a href="#">${it.name}</a>`).join('')}
+      ${c.view_all?`<a class="all" href="#">عرض الكل (+${c.total_subitems-c.items.length})</a>`:''}
+    </div>`).join('');
+  gsap.fromTo('#sysCols .col',{y:8,autoAlpha:0},{y:0,autoAlpha:1,stagger:.035,duration:.28,ease:'power2.out'});
+}
+function buildBrand(){
+  const items=NAV.primary[1].items.slice(0,18);
+  $('#brandGrid').innerHTML=items.map(b=>{
+    const acc=BRAND_ACCENT[b.name]||'#1F3A93';
+    const sh=BRAND_SHORT[b.name]||b.name;
+    return `<a class="bcard" href="#" style="--accent:${acc}">
+      <span class="blogo">${sh}</span>
+      <span class="bn">${b.name}</span>
+      <span class="bc mono">${b.count} قطعة</span></a>`;}).join('');
+}
+
+/* tabs */
+$$('.mtab').forEach(t=>t.addEventListener('click',()=>{
+  $$('.mtab').forEach(x=>x.classList.remove('active')); t.classList.add('active');
+  const part=t.dataset.tab==='part';
+  $('#panel-part').hidden=!part; $('#panel-brand').hidden=part;
+  const sel=part?'#panel-part':'#panel-brand';
+  gsap.fromTo(sel,{autoAlpha:0,y:6},{autoAlpha:1,y:0,duration:.25,ease:'power2.out'});
+  if(!part) gsap.fromTo('#brandGrid .bcard',{y:10,autoAlpha:0},{y:0,autoAlpha:1,stagger:.02,duration:.25});
+}));
+
+/* open / close with GSAP */
+function openMega(){
+  if(isOpen) return; isOpen=true; trigger.classList.add('open');
+  gsap.killTweensOf([mega,backdrop]);
+  gsap.set([mega,backdrop],{visibility:'visible'});
+  gsap.to(backdrop,{autoAlpha:1,duration:.25,ease:'power2.out'});
+  gsap.fromTo(mega,{y:-14,autoAlpha:0,scaleY:.985},{y:0,autoAlpha:1,scaleY:1,duration:.34,ease:'power3.out'});
+  gsap.fromTo('.mega-tabs .mtab',{y:-6,autoAlpha:0},{y:0,autoAlpha:1,stagger:.06,duration:.25,delay:.05});
+  gsap.fromTo('.sys',{x:12,autoAlpha:0},{x:0,autoAlpha:1,stagger:.025,duration:.26,delay:.06,ease:'power2.out'});
+}
+function closeMega(){
+  if(!isOpen) return; isOpen=false; trigger.classList.remove('open');
+  gsap.killTweensOf([mega,backdrop]);
+  gsap.to(mega,{y:-10,autoAlpha:0,duration:.2,ease:'power2.in',onComplete:()=>gsap.set(mega,{visibility:'hidden'})});
+  gsap.to(backdrop,{autoAlpha:0,duration:.2,onComplete:()=>gsap.set(backdrop,{visibility:'hidden'})});
+}
+/* hover intent on trigger + nav area */
+function armOpen(){clearTimeout(hoverTimer);hoverTimer=setTimeout(openMega,90);}
+function armClose(){clearTimeout(hoverTimer);hoverTimer=setTimeout(closeMega,180);}
+trigger.addEventListener('mouseenter',armOpen);
+trigger.addEventListener('click',()=>isOpen?closeMega():openMega());
+mega.addEventListener('mouseenter',()=>clearTimeout(hoverTimer));
+mega.addEventListener('mouseleave',armClose);
+trigger.addEventListener('mouseleave',armClose);
+backdrop.addEventListener('click',closeMega);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMega();});
+
+/* search focus */
+const search=$('#search');
+$('#q').addEventListener('focus',()=>search.classList.add('focus'));
+$('#q').addEventListener('blur',()=>search.classList.remove('focus'));
+
+/* sticky shrink on scroll */
+const utility=$('#utility'), header=$('#header'), nav=$('#nav');
+let lastShrunk=false;
+addEventListener('scroll',()=>{
+  const shrunk=scrollY>20;
+  if(shrunk===lastShrunk) return; lastShrunk=shrunk;
+  if(shrunk){
+    gsap.to(utility,{height:0,opacity:0,paddingTop:0,paddingBottom:0,overflow:'hidden',duration:.3});
+    gsap.to('.header .wrap',{height:62,duration:.3});
+    gsap.to('.logo .mark',{width:34,height:34,fontSize:16,duration:.3});
+    header.style.boxShadow='0 6px 20px #0a0e1414'; nav.style.top='62px';
+  }else{
+    gsap.to(utility,{height:38,opacity:1,duration:.3,clearProps:'overflow,padding'});
+    gsap.to('.header .wrap',{height:78,duration:.3});
+    gsap.to('.logo .mark',{width:42,height:42,fontSize:20,duration:.3});
+    header.style.boxShadow='none'; nav.style.top='78px';
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!--
+Spartrak — Phase 6.
+
+Search results reuse the same Magento_Catalog::product/list.phtml grid and
+Mageplaza layered-navigation filter sidebar as category pages (confirmed in
+Phase 6 discovery: catalogsearch/result and catalog/category/view share the
+same block/template pipeline). This file exists only to give search results
+pages the same working mobile filter toggle fix as catalog_category_view.xml
+— see that file's comment and web/js/spartrak-plp-filter-toggle.js.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <attribute name="data-mage-init" value="{&quot;spartrakPlpFilterToggle&quot;:{}}"/>
+    </body>
+</page>

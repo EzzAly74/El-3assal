@@ -1,0 +1,82 @@
+// Spartrak component — Porto chrome that is still load-bearing, migrated out
+// of the database.
+//
+// PROVENANCE: previously raw CSS in the admin field
+// porto_settings/custom_settings/custom_style (default scope, 365 lines),
+// which Smartwave\Porto\Model\Cssconfig\Generator echoes verbatim into
+// pub/media/porto/configed_css/settings_<store>.css. Porto links that file
+// from html/head.phtml inside the `head.additional` container — i.e. AFTER
+// every layout-declared <css src> — so it outranked this theme on load order
+// as well as specificity (most of the blob was prefixed `html ` for exactly
+// that reason). Original kept at var/porto-custom-style.bak.css.
+//
+// WHY SO LITTLE OF IT SURVIVED: that blob is Porto demo-store CSS, written
+// against Porto's own header/footer/lister markup. This theme replaces that
+// markup — Smartwave_Porto/templates/html/header.phtml emits .spartrak-header,
+// footer.phtml emits .spartrak-footer__*, Magento_Catalog/templates/product/
+// list.phtml emits .spartrak-plp__grid. Every blob class was diffed against
+// the class attributes actually present on the live homepage, a PDP and a
+// category page; the header (.page-header/.type1/.sw-megamenu/.search-area/
+// .nav-sections/...), footer, .widget/.widgettitle, .section-title, .btn-*
+// and .custom-font4 groups matched NOTHING and are deliberately not carried
+// over. `.page-header` survives in the live HTML only inside a Porto jQuery
+// string, never as an element.
+//
+// PORTED FAITHFULLY — values are byte-equivalent to what the blob already
+// rendered, deliberately including its hardcoded greys. Relocating the rules
+// and adopting the tokens are two separate changes; doing both at once would
+// make a visual regression indistinguishable from a migration bug. Hardcoded
+// values carry a TODO naming the candidate token.
+
+// --- Container width -----------------------------------------------------
+// VERIFIED LIVE: <body> carries `layout-1220` (porto_settings/general/layout
+// = 1220). This is the only blob rule confirmed to affect every page.
+//
+// 1440px here is Porto's own grid stop, which happens to equal
+// @breakpoint-desktop. Written as the literal so a future change to
+// Spartrak's Figma-derived breakpoint cannot silently re-cut Porto's
+// container at a different width.
+@media (min-width: 1440px) {
+    .layout-1220 .block.category.event,
+    .layout-1220 .footer.content,
+    .layout-1220 .header.content,
+    .layout-1220 .navigation,
+    .layout-1220 .page-main,
+    .layout-1220 .page-wrapper > .breadcrumbs > ul,
+    .layout-1220 .page-wrapper > .page-bottom,
+    .layout-1220 .page-wrapper > .widget,
+    .layout-1220 .top-container,
+    .layout-1220 .container {
+        max-width: 1420px;
+    }
+}
+
+// --- Porto product listers -----------------------------------------------
+// CONDITIONALLY LIVE — could not be observed on the live site (the catalog
+// currently renders no products on any category, search or PDP page reached),
+// but the code path is real: related/upsell/crosssell blocks and product-list
+// widgets render Smartwave/porto's Magento_Catalog/templates/product/list/
+// items.phtml, which this theme does NOT override and which emits
+// .products-grid, .product-item-info and .owl-carousel. Kept so those blocks
+// don't regress the first time a populated one renders. Re-verify against a
+// populated PDP before deleting.
+.products-grid .product-item {
+    padding-top: 10px;
+}
+
+body:not(.catalog-product-view) .products-grid:not(.small-list) .product-item:hover {
+    box-shadow: 0 5px 25px 0 rgb(0 0 0 / 10%);
+}
+
+.products-grid .product-item .product-item-info.type3 .weltpixel-quickview.weltpixel_quickview_button_v2 {
+    // TODO(tokens): #222529 -> var(--color-bg-inverse) (#0c0a20).
+    background: #222529;
+}
+
+.product-item-info.type3:hover .product-item-photo {
+    box-shadow: none;
+}
+
+.owl-carousel .owl-nav .disabled {
+    opacity: .5;
+}

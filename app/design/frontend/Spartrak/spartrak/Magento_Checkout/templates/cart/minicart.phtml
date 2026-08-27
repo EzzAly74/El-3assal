@@ -1,0 +1,130 @@
+<?php
+/**
+ * Spartrak Minicart trigger.
+ *
+ * FIGMA SSOT: node 595:14508 ("Cart") — a 40x40 circle, 1px border/default on
+ * bg/surface, the "bag-shopping-2" glyph (node 693:45421) at 20px, and a 12x12
+ * count badge on action/primary with a 1px inverse ring. Nothing else: no
+ * subtotal, no price, no "Cart" label, no caret.
+ *
+ * ===========================================================================
+ * WHY THIS TEMPLATE IS OVERRIDDEN
+ * ===========================================================================
+ * The resolved template before this file was Smartwave/porto's own
+ * Magento_Checkout/templates/cart/minicart.phtml, which emits four things
+ * Figma does not have and which were all visibly broken on the live header:
+ *
+ *   1. <i class="minicart-icon porto-icon-cart-thick-1"> — Porto's icon-font
+ *      glyph, rendering a SECOND cart icon next to the Figma one.
+ *   2. <a class="showcart action-subtotal d-none"> — a whole second anchor
+ *      with "Shopping Cart" / "Cart" / "Your Cart" labels and a subtotal.
+ *      It was hidden only by Bootstrap's `.d-none`, and this theme correctly
+ *      dropped Bootstrap (52.9KB for ~15 utility classes — see
+ *      Smartwave_Porto/templates/html/head.phtml), so the labels became
+ *      visible as the "Shopping Cart Cart Your Cart" text on the live site.
+ *   3. class="cart-design-1" — the hook Porto's own minicart chrome is scoped
+ *      under, including an `.active .minicart-icon::after` speech-bubble
+ *      arrow.
+ *   4. A Porto-helper call per page for two design settings this theme does
+ *      not use.
+ *
+ * Rather than re-hide all of that with a stack of `display:none` overrides
+ * (a specificity fight this project's CLAUDE.md §9 explicitly forbids), the
+ * markup is owned outright. Figma specifies a different UI here, which is
+ * exactly the condition §2 gives for replacing Porto's presentation.
+ *
+ * ===========================================================================
+ * MAGENTO BEHAVIOUR PRESERVED VERBATIM — do not "simplify" these
+ * ===========================================================================
+ * Every hook the minicart's own JS depends on is kept:
+ *
+ *   data-block="minicart"      the selector Magento_Ui/js/core/app is bound to
+ *                              in the x-magento-init below, AND the
+ *                              `appendTo` target for the dropdown dialog, AND
+ *                              what Magento_Customer's section invalidation
+ *                              re-renders.
+ *   class="... showcart"       dropdownDialog's `triggerTarget` is ".showcart"
+ *                              — renaming it stops the minicart opening.
+ *   data-bind="scope:
+ *     'minicart_content'"      binds the trigger to the minicart knockout
+ *                              component so the counter updates live.
+ *   .counter.qty + .empty      core CSS/JS keys on these; the `empty` class is
+ *                              knockout-driven from summary_count.
+ *   blockLoader: isLoading     the minicart's busy state — now rendered as the
+ *                              Spartrak spinner (components/_loader.less).
+ *   #minicart-content-wrapper  the dropdown's own scope root + getTemplate().
+ *   window.checkout config     consumed by the checkout/minicart JS.
+ *   Magento_Ui/js/block-loader the loader image registration.
+ *
+ * DROPPED ON PURPOSE: Porto's `popup_design == 2` off-canvas variant and its
+ * `.minicart-overlay` SVG. Figma draws a standard dropdown, and that branch
+ * also pulled in `Magento_Checkout/js/catalog-add-to-cart-mixin`, i.e. extra
+ * JS on every page for a layout this design does not use.
+ *
+ * @var \Magento\Checkout\Block\Cart\Sidebar $block
+ * @var \Magento\Framework\View\Helper\SecureHtmlRenderer $secureRenderer
+ */
+?>
+<div data-block="minicart" class="minicart-wrapper spartrak-minicart">
+    <a
+        class="action showcart"
+        href="<?= $block->escapeUrl($block->getShoppingCartUrl()) ?>"
+        data-bind="scope: 'minicart_content'"
+    >
+        <?php /* Node 693:45421. The glyph is masked from the real Figma SVG in
+                 _utility-header.less (.spartrak-header__icon--cart), not an
+                 icon font — so it takes a design token for its colour and
+                 costs no font file. */ ?>
+        <span class="spartrak-header__icon--cart" aria-hidden="true"></span>
+
+        <?php /* Figma draws this button icon-only, so the label is the
+                 accessible name rather than visible text. */ ?>
+        <span class="spartrak-header__sr-label"><?= $block->escapeHtml(__('Cart')) ?></span>
+
+        <span class="counter qty empty"
+              data-bind="css: { empty: !!getCartParam('summary_count') == false }, blockLoader: isLoading">
+            <span class="counter-number">
+            <!-- ko if: getCartParam('summary_count') --><!-- ko text: getCartParam('summary_count') --><!-- /ko --><!-- /ko -->
+            <!-- ko ifnot: getCartParam('summary_count') -->0<!-- /ko -->
+            </span>
+            <?php /* Kept for assistive tech (the badge alone reads as a bare
+                     number); hidden visually, since Figma's badge is the
+                     numeral only. */ ?>
+            <span class="counter-label spartrak-header__sr-label">
+                <!-- ko i18n: 'items' --><!-- /ko -->
+            </span>
+        </span>
+    </a>
+
+    <?php if ($block->getIsNeedToDisplaySideBar()) : ?>
+        <div class="block block-minicart empty"
+             data-role="dropdownDialog"
+             data-mage-init='{"dropdownDialog":{
+                "appendTo":"[data-block=minicart]",
+                "triggerTarget":".showcart",
+                "timeout": "2000",
+                "closeOnMouseLeave": false,
+                "closeOnEscape": true,
+                "triggerClass":"active",
+                "parentClass":"active",
+                "buttons":[]}}'>
+            <div id="minicart-content-wrapper" data-bind="scope: 'minicart_content'">
+                <!-- ko template: getTemplate() --><!-- /ko -->
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <?= /* @noEscape */ $secureRenderer->renderTag('script', [], 'window.checkout = ' . /* @noEscape */ $block->getSerializedConfig(), false); ?>
+    <script type="text/x-magento-init">
+    {
+        "[data-block='minicart']": {
+            "Magento_Ui/js/core/app": <?= /* @noEscape */ $block->getJsLayout() ?>
+        },
+        "*": {
+            "Magento_Ui/js/block-loader": "<?= $block->escapeJs(
+                $block->escapeUrl($block->getViewFileUrl('images/loader-1.gif'))
+            ) ?>"
+        }
+    }
+    </script>
+</div>

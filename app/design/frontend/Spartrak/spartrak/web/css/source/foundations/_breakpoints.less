@@ -1,0 +1,36 @@
+// Spartrak design tokens — Layer 5: Breakpoints
+// Plain LESS variables (not CSS custom properties — media query conditions
+// can't consume custom properties).
+//
+// CONFIRMED from Figma frame widths: 1440 desktop, 440 mobile.
+@breakpoint-mobile: 440px;
+@breakpoint-desktop: 1440px;
+
+// Structural collapse point — INHERITED, NOT INVENTED.
+//
+// @breakpoint-mobile above is the mobile frame's *design width* (440), not a
+// switch point. Using `max-width: 440px` as the switch left every viewport
+// from 441px to 1439px rendering the DESKTOP header — i.e. a 1017px-wide
+// search bar and a 1049px-wide nav row inside a 600px viewport. That was the
+// single worst responsive defect in the header.
+//
+// The value below is Magento core's own `@screen__m` (768px), which
+// Smartwave/porto also uses, minus 1px. It is therefore not a third
+// invented number: it is the exact width at which Porto and Magento core
+// already flip every other piece of page chrome (nav-sections, page-main
+// gutters, the .media-width() mixin in Magento_Theme/web/css/source/
+// _extend.less). Collapsing the header at the same width keeps the header
+// and the rest of the page switching together instead of at two different
+// widths.
+//
+// Repeated as a literal because spartrak-components.less compiles standalone
+// and never sees Magento's @screen__m. If Magento's value ever changes, this
+// is the one line to change.
+@breakpoint-header-collapse: 767px; // == @screen__m - 1
+
+// Tablet breakpoint: CONFIRMED ABSENT — no tablet frame or token exists
+// anywhere in the Figma file (02-DESIGN-SYSTEM.md / 16-ARCHITECTURE-DECISIONS.md
+// open question #4). This is a genuine business/traffic decision, not a
+// design-file gap — do NOT invent an intermediate value here. Until it's
+// decided, tablet viewports receive the mobile-breakpoint styles (a
+// mobile-first fallback), not an invented tablet-specific layout.

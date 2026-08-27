@@ -1,0 +1,37 @@
+// Spartrak design tokens — Layer 5: Shadows / effects
+// Mirrors the Figma Effects collection. Added by the FIGMA AUTH-MODAL PASS
+// (2026-08-26), which is the first component build to consume named effect
+// tokens rather than raw box-shadow values.
+//
+// Provenance: get_variable_defs on the auth-modal frames (desktop 561:9925,
+// 569:10235, 569:12394; mobile 688:22943, 688:24292) and on the footer
+// (561:9856) returns exactly two effect variables, both DROP_SHADOW:
+//
+//   "Container"     -> color #0000000D, offset (0, 3), radius 8,   spread 0
+//   "Shadow/Input"  -> color #2C363506, offset (0, 1), radius 1.5, spread 0
+//
+// A third name, "Input field", appears on the signup form nodes with
+// byte-identical values to "Shadow/Input" — two Figma names for one effect,
+// so it is one token here rather than two aliases.
+//
+// WHY box-shadow AND NOT filter: drop-shadow(). Figma's DROP_SHADOW on a
+// rectangular frame is geometrically identical to a CSS box-shadow, and
+// box-shadow does not create a containing block / rasterisation layer the way
+// `filter` does. On the modal panel that matters: `filter` on the panel would
+// promote it to its own compositing layer and force the scrim's
+// backdrop-filter to resolve against it, which visibly changes the blur.
+//
+// Radius mapping: Figma's `radius` is a Gaussian blur radius expressed the
+// same way CSS expresses its blur radius, so the numbers transfer 1:1 — no
+// doubling. (Tailwind's `drop-shadow-[...]` output halves it, which is why the
+// generated reference code showed `0 3px 4px` for the Container effect; the
+// variable definition's own value, 8, is the correct one and is used here.)
+
+:root {
+    // The elevated-surface effect: modal panels, popovers, floating cards.
+    --shadow-container: 0 3px 8px rgba(0, 0, 0, 0.05);
+
+    // The inset-ish hairline lift on form controls. Applied to every text
+    // input, the OTP cells, and the OTP step's phone chip.
+    --shadow-input: 0 1px 1.5px rgba(44, 54, 53, 0.03);
+}

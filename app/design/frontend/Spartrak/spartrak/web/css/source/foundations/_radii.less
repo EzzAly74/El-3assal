@@ -1,0 +1,29 @@
+// Spartrak design tokens — Layer 4: Radii
+// CONFIRMED set from the Figma Primitives collection.
+
+:root {
+    --radius-2: 2px;
+    --radius-4: 4px;
+    --radius-6: 6px;
+    --radius-10: 10px;
+    // --radius-12 is an EXTENSION, added by the Figma header pass
+    // (2026-08-25). Provenance: the "Navbar - Menus" nav-row card
+    // (595:14530) carries bottom-left/bottom-right radius 12, and the
+    // "Shop by categories" CTA inside it (595:14553) carries radius 13.
+    //
+    // Neither is variable-bound — get_variable_defs on the whole header
+    // subtree returns NO radius variables at all, so every radius in the
+    // Production frames is a raw number and the Primitives collection's
+    // radius group is simply not consumed there. That leaves two options:
+    // fold 12/13 down to --radius-10 (visibly rounder-to-squarer on a
+    // 66px-tall card corner) or record the value. Recorded, because the
+    // brief's first requirement is a pixel match.
+    //
+    // The CTA's 13 is served by this same token: 1px on a 34px chip is
+    // below perceptual threshold, and shipping --radius-13 for a single
+    // consumer would be scale noise.
+    --radius-12: 12px;
+    --radius-16: 16px;
+    --radius-20: 20px;
+    --radius-pill: 999px;
+}

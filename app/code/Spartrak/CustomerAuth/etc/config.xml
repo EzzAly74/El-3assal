@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <spartrak_auth>
+            <otp>
+                <!--
+                  4 digits, matching the 4-box OTP component in the design, and
+                  therefore also the business rule that the development code is
+                  "1111". ViewModel\AuthConfig renders exactly code_length boxes,
+                  so the UI follows this value rather than hardcoding a count.
+
+                  max_verify_attempts DROPS TO 3 IN THE SAME BREATH. These two
+                  settings have to be chosen as a pair: a 4-digit space is only
+                  10,000 codes, so at the previous 5 attempts an attacker gets
+                  roughly a 1-in-2,000 shot per issued code, and codes can be
+                  re-requested. At 3 attempts that is 1-in-3,333 per code, and
+                  the per-phone and per-IP send quotas cap how many codes can be
+                  drawn per hour. Raising code_length back to 6 is the correct
+                  move if the 4-box layout is ever dropped — do not raise
+                  attempts while the length is 4.
+                -->
+                <code_length>4</code_length>
+                <ttl_seconds>300</ttl_seconds>
+                <max_verify_attempts>3</max_verify_attempts>
+                <resend_cooldown_seconds>60</resend_cooldown_seconds>
+                <max_sends_per_phone>5</max_sends_per_phone>
+                <max_sends_per_ip>20</max_sends_per_ip>
+                <rate_window_seconds>3600</rate_window_seconds>
+                <proof_token_ttl_seconds>900</proof_token_ttl_seconds>
+                <purge_after_days>7</purge_after_days>
+            </otp>
+            <sms>
+                <!--
+                  The shipped default writes the message to var/log instead of
+                  sending it. That is deliberate: no gateway credentials exist
+                  yet, and a module that silently no-ops on send would look
+                  healthy while every shopper is locked out. The log driver makes
+                  the whole flow exercisable end-to-end in staging, and switching
+                  to a real provider is one config change plus one class
+                  implementing SmsGatewayInterface.
+                -->
+                <gateway>log</gateway>
+                <sender_name>SpareTrak</sender_name>
+            </sms>
+            <account>
+                <!--
+                  Magento requires a unique, format-valid email on every
+                  customer. The Figma registration step collects a name and a
+                  password, not an email, so one is synthesized from the verified
+                  phone number when the shopper does not supply one.
+
+                  Mail to this domain must NOT be deliverable — a synthesized
+                  address on a domain someone else owns would send real order
+                  mail to a stranger. RFC 2606 reserves .invalid for exactly
+                  this, so it can never be registered by anyone.
+                  Plugin/Customer/SuppressPlaceholderWelcomeEmail stops Magento
+                  attempting delivery to these addresses at all.
+                -->
+                <placeholder_email_domain>phone.sparetrak.invalid</placeholder_email_domain>
+                <default_country_code>20</default_country_code>
+            </account>
+        </spartrak_auth>
+    </default>
+</config>

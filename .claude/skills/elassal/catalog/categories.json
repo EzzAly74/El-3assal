@@ -1,0 +1,4182 @@
+[
+  {
+    "id": 1,
+    "name_ar": "المحرك",
+    "slug": "المحرك",
+    "level": 1,
+    "parent_id": null,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 5355
+  },
+  {
+    "id": 2,
+    "name_ar": "بستم وشنبر وشميز",
+    "slug": "بستم-وشنبر-وشميز",
+    "level": 2,
+    "parent_id": 1,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 993
+  },
+  {
+    "id": 3,
+    "name_ar": "كيت كامل بستم بالشنبر و الشميز",
+    "slug": "كيت-كامل-بستم-بالشنبر-و-الشميز",
+    "level": 3,
+    "parent_id": 2,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 4,
+    "name_ar": "بستم",
+    "slug": "بستم",
+    "level": 3,
+    "parent_id": 2,
+    "is_leaf": true,
+    "product_count": 440,
+    "product_count_total": 440
+  },
+  {
+    "id": 5,
+    "name_ar": "شنبر",
+    "slug": "شنبر",
+    "level": 3,
+    "parent_id": 2,
+    "is_leaf": true,
+    "product_count": 356,
+    "product_count_total": 356
+  },
+  {
+    "id": 6,
+    "name_ar": "شميز",
+    "slug": "شميز",
+    "level": 3,
+    "parent_id": 2,
+    "is_leaf": true,
+    "product_count": 159,
+    "product_count_total": 159
+  },
+  {
+    "id": 7,
+    "name_ar": "بنز بستم",
+    "slug": "بنز-بستم",
+    "level": 3,
+    "parent_id": 2,
+    "is_leaf": true,
+    "product_count": 8,
+    "product_count_total": 8
+  },
+  {
+    "id": 8,
+    "name_ar": "تيلة بستم",
+    "slug": "تيلة-بستم",
+    "level": 3,
+    "parent_id": 2,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 9,
+    "name_ar": "استيك شميز",
+    "slug": "استيك-شميز",
+    "level": 3,
+    "parent_id": 2,
+    "is_leaf": true,
+    "product_count": 25,
+    "product_count_total": 25
+  },
+  {
+    "id": 10,
+    "name_ar": "لينة شميز",
+    "slug": "لينة-شميز",
+    "level": 3,
+    "parent_id": 2,
+    "is_leaf": true,
+    "product_count": 5,
+    "product_count_total": 5
+  },
+  {
+    "id": 11,
+    "name_ar": "كرنك وبيل وسبايك",
+    "slug": "كرنك-وبيل-وسبايك",
+    "level": 2,
+    "parent_id": 1,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 1439
+  },
+  {
+    "id": 12,
+    "name_ar": "عمود كرنك",
+    "slug": "عمود-كرنك",
+    "level": 3,
+    "parent_id": 11,
+    "is_leaf": true,
+    "product_count": 124,
+    "product_count_total": 124
+  },
+  {
+    "id": 13,
+    "name_ar": "جلبة كرنك",
+    "slug": "جلبة-كرنك",
+    "level": 3,
+    "parent_id": 11,
+    "is_leaf": true,
+    "product_count": 57,
+    "product_count_total": 57
+  },
+  {
+    "id": 14,
+    "name_ar": "جلبة بيل",
+    "slug": "جلبة-بيل",
+    "level": 3,
+    "parent_id": 11,
+    "is_leaf": true,
+    "product_count": 108,
+    "product_count_total": 108
+  },
+  {
+    "id": 15,
+    "name_ar": "ذراع بيل",
+    "slug": "ذراع-بيل",
+    "level": 3,
+    "parent_id": 11,
+    "is_leaf": true,
+    "product_count": 123,
+    "product_count_total": 123
+  },
+  {
+    "id": 16,
+    "name_ar": "سبيكة محرك",
+    "slug": "سبيكة-محرك",
+    "level": 3,
+    "parent_id": 11,
+    "is_leaf": true,
+    "product_count": 833,
+    "product_count_total": 833
+  },
+  {
+    "id": 17,
+    "name_ar": "هلال كرنك",
+    "slug": "هلال-كرنك",
+    "level": 3,
+    "parent_id": 11,
+    "is_leaf": true,
+    "product_count": 90,
+    "product_count_total": 90
+  },
+  {
+    "id": 18,
+    "name_ar": "فلانشة / اوكشة كرنك",
+    "slug": "فلانشة-اوكشة-كرنك",
+    "level": 3,
+    "parent_id": 11,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 19,
+    "name_ar": "حدافة / فلام",
+    "slug": "حدافة-فلام",
+    "level": 3,
+    "parent_id": 11,
+    "is_leaf": true,
+    "product_count": 17,
+    "product_count_total": 17
+  },
+  {
+    "id": 20,
+    "name_ar": "مسمار حدافة / فلام",
+    "slug": "مسمار-حدافة-فلام",
+    "level": 3,
+    "parent_id": 11,
+    "is_leaf": true,
+    "product_count": 5,
+    "product_count_total": 5
+  },
+  {
+    "id": 21,
+    "name_ar": "طنبورة كرنك",
+    "slug": "طنبورة-كرنك",
+    "level": 3,
+    "parent_id": 11,
+    "is_leaf": true,
+    "product_count": 11,
+    "product_count_total": 11
+  },
+  {
+    "id": 22,
+    "name_ar": "مسمار بيل",
+    "slug": "مسمار-بيل",
+    "level": 3,
+    "parent_id": 11,
+    "is_leaf": true,
+    "product_count": 23,
+    "product_count_total": 23
+  },
+  {
+    "id": 23,
+    "name_ar": "مسمار كرنك",
+    "slug": "مسمار-كرنك",
+    "level": 3,
+    "parent_id": 11,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 24,
+    "name_ar": "ترس فلام",
+    "slug": "ترس-فلام",
+    "level": 3,
+    "parent_id": 11,
+    "is_leaf": true,
+    "product_count": 29,
+    "product_count_total": 29
+  },
+  {
+    "id": 25,
+    "name_ar": "وش سلندر وصبابات",
+    "slug": "وش-سلندر-وصبابات",
+    "level": 2,
+    "parent_id": 1,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 473
+  },
+  {
+    "id": 26,
+    "name_ar": "وش سلندر",
+    "slug": "وش-سلندر",
+    "level": 3,
+    "parent_id": 25,
+    "is_leaf": true,
+    "product_count": 25,
+    "product_count_total": 25
+  },
+  {
+    "id": 27,
+    "name_ar": "صباب محرك",
+    "slug": "صباب-محرك",
+    "level": 3,
+    "parent_id": 25,
+    "is_leaf": true,
+    "product_count": 149,
+    "product_count_total": 149
+  },
+  {
+    "id": 28,
+    "name_ar": "دليل صباب",
+    "slug": "دليل-صباب",
+    "level": 3,
+    "parent_id": 25,
+    "is_leaf": true,
+    "product_count": 43,
+    "product_count_total": 43
+  },
+  {
+    "id": 29,
+    "name_ar": "قواعد صباب",
+    "slug": "قواعد-صباب",
+    "level": 3,
+    "parent_id": 25,
+    "is_leaf": true,
+    "product_count": 40,
+    "product_count_total": 40
+  },
+  {
+    "id": 30,
+    "name_ar": "تيل صباب",
+    "slug": "تيل-صباب",
+    "level": 3,
+    "parent_id": 25,
+    "is_leaf": true,
+    "product_count": 19,
+    "product_count_total": 19
+  },
+  {
+    "id": 31,
+    "name_ar": "سوستة صباب",
+    "slug": "سوستة-صباب",
+    "level": 3,
+    "parent_id": 25,
+    "is_leaf": true,
+    "product_count": 14,
+    "product_count_total": 14
+  },
+  {
+    "id": 32,
+    "name_ar": "طبق صباب",
+    "slug": "طبق-صباب",
+    "level": 3,
+    "parent_id": 25,
+    "is_leaf": true,
+    "product_count": 5,
+    "product_count_total": 5
+  },
+  {
+    "id": 33,
+    "name_ar": "كستبان",
+    "slug": "كستبان",
+    "level": 3,
+    "parent_id": 25,
+    "is_leaf": true,
+    "product_count": 28,
+    "product_count_total": 28
+  },
+  {
+    "id": 34,
+    "name_ar": "شاكوش تاكية",
+    "slug": "شاكوش-تاكية",
+    "level": 3,
+    "parent_id": 25,
+    "is_leaf": true,
+    "product_count": 11,
+    "product_count_total": 11
+  },
+  {
+    "id": 35,
+    "name_ar": "سيخ تاكية",
+    "slug": "سيخ-تاكية",
+    "level": 3,
+    "parent_id": 25,
+    "is_leaf": true,
+    "product_count": 19,
+    "product_count_total": 19
+  },
+  {
+    "id": 36,
+    "name_ar": "عمود تاكية",
+    "slug": "عمود-تاكية",
+    "level": 3,
+    "parent_id": 25,
+    "is_leaf": true,
+    "product_count": 15,
+    "product_count_total": 15
+  },
+  {
+    "id": 37,
+    "name_ar": "غطاء تاكية",
+    "slug": "غطاء-تاكية",
+    "level": 3,
+    "parent_id": 25,
+    "is_leaf": true,
+    "product_count": 29,
+    "product_count_total": 29
+  },
+  {
+    "id": 38,
+    "name_ar": "مسمار وش سلندر",
+    "slug": "مسمار-وش-سلندر",
+    "level": 3,
+    "parent_id": 25,
+    "is_leaf": true,
+    "product_count": 18,
+    "product_count_total": 18
+  },
+  {
+    "id": 39,
+    "name_ar": "كامة وتقسيمة",
+    "slug": "كامة-وتقسيمة",
+    "level": 2,
+    "parent_id": 1,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 187
+  },
+  {
+    "id": 40,
+    "name_ar": "عمود كامة",
+    "slug": "عمود-كامة",
+    "level": 3,
+    "parent_id": 39,
+    "is_leaf": true,
+    "product_count": 36,
+    "product_count_total": 36
+  },
+  {
+    "id": 41,
+    "name_ar": "جلبة كامة",
+    "slug": "جلبة-كامة",
+    "level": 3,
+    "parent_id": 39,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 42,
+    "name_ar": "ترس كامة",
+    "slug": "ترس-كامة",
+    "level": 3,
+    "parent_id": 39,
+    "is_leaf": true,
+    "product_count": 10,
+    "product_count_total": 10
+  },
+  {
+    "id": 43,
+    "name_ar": "ترس كرنك",
+    "slug": "ترس-كرنك",
+    "level": 3,
+    "parent_id": 11,
+    "is_leaf": true,
+    "product_count": 13,
+    "product_count_total": 13
+  },
+  {
+    "id": 44,
+    "name_ar": "ترس تقسيمة",
+    "slug": "ترس-تقسيمة",
+    "level": 3,
+    "parent_id": 39,
+    "is_leaf": true,
+    "product_count": 23,
+    "product_count_total": 23
+  },
+  {
+    "id": 45,
+    "name_ar": "وش تقسيمة",
+    "slug": "وش-تقسيمة",
+    "level": 3,
+    "parent_id": 39,
+    "is_leaf": true,
+    "product_count": 38,
+    "product_count_total": 38
+  },
+  {
+    "id": 46,
+    "name_ar": "سير",
+    "slug": "سير",
+    "level": 3,
+    "parent_id": 39,
+    "is_leaf": true,
+    "product_count": 74,
+    "product_count_total": 74
+  },
+  {
+    "id": 47,
+    "name_ar": "شداد سير",
+    "slug": "شداد-سير",
+    "level": 3,
+    "parent_id": 39,
+    "is_leaf": true,
+    "product_count": 6,
+    "product_count_total": 6
+  },
+  {
+    "id": 48,
+    "name_ar": "جوانات و اويل سيلات المحرك",
+    "slug": "جوانات-و-اويل-سيلات-المحرك",
+    "level": 2,
+    "parent_id": 1,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 736
+  },
+  {
+    "id": 49,
+    "name_ar": "طقم جوان",
+    "slug": "طقم-جوان",
+    "level": 3,
+    "parent_id": 48,
+    "is_leaf": true,
+    "product_count": 348,
+    "product_count_total": 348
+  },
+  {
+    "id": 50,
+    "name_ar": "جوان وش سلندر",
+    "slug": "جوان-وش-سلندر",
+    "level": 3,
+    "parent_id": 48,
+    "is_leaf": true,
+    "product_count": 255,
+    "product_count_total": 255
+  },
+  {
+    "id": 51,
+    "name_ar": "جوان كرتير",
+    "slug": "جوان-كرتير",
+    "level": 3,
+    "parent_id": 48,
+    "is_leaf": true,
+    "product_count": 12,
+    "product_count_total": 12
+  },
+  {
+    "id": 52,
+    "name_ar": "جوان غطاء تاكية",
+    "slug": "جوان-غطاء-تاكية",
+    "level": 3,
+    "parent_id": 48,
+    "is_leaf": true,
+    "product_count": 23,
+    "product_count_total": 23
+  },
+  {
+    "id": 53,
+    "name_ar": "جوان وش تقسيمة",
+    "slug": "جوان-وش-تقسيمة",
+    "level": 3,
+    "parent_id": 48,
+    "is_leaf": true,
+    "product_count": 5,
+    "product_count_total": 5
+  },
+  {
+    "id": 54,
+    "name_ar": "جوان طلمبة زيت",
+    "slug": "جوان-طلمبة-زيت",
+    "level": 3,
+    "parent_id": 48,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 55,
+    "name_ar": "جوان طلمبة مياة",
+    "slug": "جوان-طلمبة-مياة",
+    "level": 3,
+    "parent_id": 48,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 56,
+    "name_ar": "جوان فرن شكمان",
+    "slug": "جوان-فرن-شكمان",
+    "level": 3,
+    "parent_id": 48,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 57,
+    "name_ar": "جوانات أخرى",
+    "slug": "جوانات-أخرى",
+    "level": 3,
+    "parent_id": 48,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 58,
+    "name_ar": "دورة زيت المحرك",
+    "slug": "دورة-زيت-المحرك",
+    "level": 2,
+    "parent_id": 1,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 251
+  },
+  {
+    "id": 59,
+    "name_ar": "طلمبة زيت محرك",
+    "slug": "طلمبة-زيت-محرك",
+    "level": 3,
+    "parent_id": 58,
+    "is_leaf": true,
+    "product_count": 172,
+    "product_count_total": 172
+  },
+  {
+    "id": 60,
+    "name_ar": "قاعدة طلمبة زيت",
+    "slug": "قاعدة-طلمبة-زيت",
+    "level": 3,
+    "parent_id": 58,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 61,
+    "name_ar": "ترس طلمبة زيت",
+    "slug": "ترس-طلمبة-زيت",
+    "level": 3,
+    "parent_id": 58,
+    "is_leaf": true,
+    "product_count": 16,
+    "product_count_total": 16
+  },
+  {
+    "id": 62,
+    "name_ar": "بلف زيت",
+    "slug": "بلف-زيت",
+    "level": 3,
+    "parent_id": 58,
+    "is_leaf": true,
+    "product_count": 13,
+    "product_count_total": 13
+  },
+  {
+    "id": 63,
+    "name_ar": "عمود طلمبة زيت",
+    "slug": "عمود-طلمبة-زيت",
+    "level": 3,
+    "parent_id": 58,
+    "is_leaf": true,
+    "product_count": 7,
+    "product_count_total": 7
+  },
+  {
+    "id": 64,
+    "name_ar": "كوعة زيت",
+    "slug": "كوعة-زيت",
+    "level": 3,
+    "parent_id": 58,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 65,
+    "name_ar": "رشاش زيت",
+    "slug": "رشاش-زيت",
+    "level": 3,
+    "parent_id": 58,
+    "is_leaf": true,
+    "product_count": 8,
+    "product_count_total": 8
+  },
+  {
+    "id": 66,
+    "name_ar": "مقاس زيت",
+    "slug": "مقاس-زيت",
+    "level": 3,
+    "parent_id": 58,
+    "is_leaf": true,
+    "product_count": 15,
+    "product_count_total": 15
+  },
+  {
+    "id": 67,
+    "name_ar": "مصفة زيت",
+    "slug": "مصفة-زيت",
+    "level": 3,
+    "parent_id": 58,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 68,
+    "name_ar": "كرتير زيت",
+    "slug": "كرتير-زيت",
+    "level": 3,
+    "parent_id": 58,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 69,
+    "name_ar": "غطاء زيت",
+    "slug": "غطاء-زيت",
+    "level": 3,
+    "parent_id": 58,
+    "is_leaf": true,
+    "product_count": 14,
+    "product_count_total": 14
+  },
+  {
+    "id": 70,
+    "name_ar": "مبخرة زيت",
+    "slug": "مبخرة-زيت",
+    "level": 3,
+    "parent_id": 58,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 71,
+    "name_ar": "تربو",
+    "slug": "تربو",
+    "level": 2,
+    "parent_id": 1,
+    "is_leaf": false,
+    "product_count": 76,
+    "product_count_total": 83
+  },
+  {
+    "id": 72,
+    "name_ar": "قلب تربو",
+    "slug": "قلب-تربو",
+    "level": 3,
+    "parent_id": 71,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 73,
+    "name_ar": "كوعة تربو",
+    "slug": "كوعة-تربو",
+    "level": 3,
+    "parent_id": 71,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 74,
+    "name_ar": "توربينة",
+    "slug": "توربينة",
+    "level": 3,
+    "parent_id": 71,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 75,
+    "name_ar": "كاوتش توربينة",
+    "slug": "كاوتش-توربينة",
+    "level": 3,
+    "parent_id": 71,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 76,
+    "name_ar": "حوامل وقواعد المحرك",
+    "slug": "حوامل-وقواعد-المحرك",
+    "level": 2,
+    "parent_id": 1,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 17
+  },
+  {
+    "id": 77,
+    "name_ar": "قاعدة موتور",
+    "slug": "قاعدة-موتور",
+    "level": 3,
+    "parent_id": 76,
+    "is_leaf": true,
+    "product_count": 17,
+    "product_count_total": 17
+  },
+  {
+    "id": 78,
+    "name_ar": "دورة الوقود والحقن",
+    "slug": "دورة-الوقود-والحقن",
+    "level": 2,
+    "parent_id": 1,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 439
+  },
+  {
+    "id": 79,
+    "name_ar": "طلمبة جاز",
+    "slug": "طلمبة-جاز",
+    "level": 3,
+    "parent_id": 78,
+    "is_leaf": true,
+    "product_count": 52,
+    "product_count_total": 52
+  },
+  {
+    "id": 80,
+    "name_ar": "وش طلمبة جاز",
+    "slug": "وش-طلمبة-جاز",
+    "level": 3,
+    "parent_id": 78,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 81,
+    "name_ar": "هد طلمبة جاز",
+    "slug": "هد-طلمبة-جاز",
+    "level": 3,
+    "parent_id": 78,
+    "is_leaf": true,
+    "product_count": 122,
+    "product_count_total": 122
+  },
+  {
+    "id": 82,
+    "name_ar": "بلف طلمبة جاز",
+    "slug": "بلف-طلمبة-جاز",
+    "level": 3,
+    "parent_id": 78,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 83,
+    "name_ar": "سوستة طلمبة جاز",
+    "slug": "سوستة-طلمبة-جاز",
+    "level": 3,
+    "parent_id": 78,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 84,
+    "name_ar": "فبر طلمبة جاز",
+    "slug": "فبر-طلمبة-جاز",
+    "level": 3,
+    "parent_id": 78,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 85,
+    "name_ar": "بلف جاز",
+    "slug": "بلف-جاز",
+    "level": 3,
+    "parent_id": 78,
+    "is_leaf": true,
+    "product_count": 4,
+    "product_count_total": 4
+  },
+  {
+    "id": 86,
+    "name_ar": "اكس سرعة",
+    "slug": "اكس-سرعة",
+    "level": 3,
+    "parent_id": 78,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 87,
+    "name_ar": "كباس طلمبة جاز",
+    "slug": "كباس-طلمبة-جاز",
+    "level": 3,
+    "parent_id": 78,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 88,
+    "name_ar": "فارغة طلمبة جاز",
+    "slug": "فارغة-طلمبة-جاز",
+    "level": 3,
+    "parent_id": 78,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 89,
+    "name_ar": "ترس / كوبلن طلمبة جاز",
+    "slug": "ترس-كوبلن-طلمبة-جاز",
+    "level": 3,
+    "parent_id": 78,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 90,
+    "name_ar": "اسورة طلمبة جاز",
+    "slug": "اسورة-طلمبة-جاز",
+    "level": 3,
+    "parent_id": 78,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 91,
+    "name_ar": "رشاشات وفونيات",
+    "slug": "رشاشات-وفونيات",
+    "level": 2,
+    "parent_id": 1,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 148
+  },
+  {
+    "id": 92,
+    "name_ar": "رشاش",
+    "slug": "رشاش",
+    "level": 3,
+    "parent_id": 91,
+    "is_leaf": true,
+    "product_count": 25,
+    "product_count_total": 25
+  },
+  {
+    "id": 93,
+    "name_ar": "رشاش جاز",
+    "slug": "رشاش-جاز",
+    "level": 3,
+    "parent_id": 91,
+    "is_leaf": true,
+    "product_count": 27,
+    "product_count_total": 27
+  },
+  {
+    "id": 94,
+    "name_ar": "فونية جاز",
+    "slug": "فونية-جاز",
+    "level": 3,
+    "parent_id": 91,
+    "is_leaf": true,
+    "product_count": 85,
+    "product_count_total": 85
+  },
+  {
+    "id": 95,
+    "name_ar": "طربوش رشاش",
+    "slug": "طربوش-رشاش",
+    "level": 3,
+    "parent_id": 91,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 96,
+    "name_ar": "لاكور رشاش",
+    "slug": "لاكور-رشاش",
+    "level": 3,
+    "parent_id": 91,
+    "is_leaf": true,
+    "product_count": 4,
+    "product_count_total": 4
+  },
+  {
+    "id": 97,
+    "name_ar": "جلبة رشاش",
+    "slug": "جلبة-رشاش",
+    "level": 3,
+    "parent_id": 91,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 98,
+    "name_ar": "غرفة رشاش",
+    "slug": "غرفة-رشاش",
+    "level": 3,
+    "parent_id": 91,
+    "is_leaf": true,
+    "product_count": 5,
+    "product_count_total": 5
+  },
+  {
+    "id": 99,
+    "name_ar": "مواسير وخراطيم جاز",
+    "slug": "مواسير-وخراطيم-جاز",
+    "level": 2,
+    "parent_id": 1,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 10
+  },
+  {
+    "id": 100,
+    "name_ar": "مواسير جاز",
+    "slug": "مواسير-جاز",
+    "level": 3,
+    "parent_id": 99,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 101,
+    "name_ar": "خرطوم جاز",
+    "slug": "خرطوم-جاز",
+    "level": 3,
+    "parent_id": 99,
+    "is_leaf": true,
+    "product_count": 5,
+    "product_count_total": 5
+  },
+  {
+    "id": 102,
+    "name_ar": "كاوتش راجع جاز",
+    "slug": "كاوتش-راجع-جاز",
+    "level": 3,
+    "parent_id": 99,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 103,
+    "name_ar": "لاكور جاز",
+    "slug": "لاكور-جاز",
+    "level": 3,
+    "parent_id": 99,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 104,
+    "name_ar": "تانك وملحقات الجاز",
+    "slug": "تانك-وملحقات-الجاز",
+    "level": 2,
+    "parent_id": 1,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 30
+  },
+  {
+    "id": 105,
+    "name_ar": "سلك جاز",
+    "slug": "سلك-جاز",
+    "level": 3,
+    "parent_id": 104,
+    "is_leaf": true,
+    "product_count": 11,
+    "product_count_total": 11
+  },
+  {
+    "id": 106,
+    "name_ar": "سلك بطال جاز",
+    "slug": "سلك-بطال-جاز",
+    "level": 3,
+    "parent_id": 104,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 107,
+    "name_ar": "تانك جاز",
+    "slug": "تانك-جاز",
+    "level": 3,
+    "parent_id": 104,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 108,
+    "name_ar": "عوامة تانك جاز",
+    "slug": "عوامة-تانك-جاز",
+    "level": 3,
+    "parent_id": 104,
+    "is_leaf": true,
+    "product_count": 4,
+    "product_count_total": 4
+  },
+  {
+    "id": 109,
+    "name_ar": "غطاء تانك جاز",
+    "slug": "غطاء-تانك-جاز",
+    "level": 3,
+    "parent_id": 104,
+    "is_leaf": true,
+    "product_count": 7,
+    "product_count_total": 7
+  },
+  {
+    "id": 110,
+    "name_ar": "حنفية جاز",
+    "slug": "حنفية-جاز",
+    "level": 3,
+    "parent_id": 104,
+    "is_leaf": true,
+    "product_count": 7,
+    "product_count_total": 7
+  },
+  {
+    "id": 111,
+    "name_ar": "بزبوز جاز",
+    "slug": "بزبوز-جاز",
+    "level": 3,
+    "parent_id": 104,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 112,
+    "name_ar": "كارجة جاز",
+    "slug": "كارجة-جاز",
+    "level": 3,
+    "parent_id": 78,
+    "is_leaf": true,
+    "product_count": 229,
+    "product_count_total": 229
+  },
+  {
+    "id": 113,
+    "name_ar": "بلف كارجة",
+    "slug": "بلف-كارجة",
+    "level": 3,
+    "parent_id": 78,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 114,
+    "name_ar": "صباع كارجة جاز",
+    "slug": "صباع-كارجة-جاز",
+    "level": 3,
+    "parent_id": 78,
+    "is_leaf": true,
+    "product_count": 7,
+    "product_count_total": 7
+  },
+  {
+    "id": 115,
+    "name_ar": "كباية كارجة جاز",
+    "slug": "كباية-كارجة-جاز",
+    "level": 3,
+    "parent_id": 78,
+    "is_leaf": true,
+    "product_count": 6,
+    "product_count_total": 6
+  },
+  {
+    "id": 116,
+    "name_ar": "منظم جاز",
+    "slug": "منظم-جاز",
+    "level": 3,
+    "parent_id": 78,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 117,
+    "name_ar": "دورة التبريد والمياة",
+    "slug": "دورة-التبريد-والمياة",
+    "level": 2,
+    "parent_id": 1,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 479
+  },
+  {
+    "id": 118,
+    "name_ar": "طلمبة مياة",
+    "slug": "طلمبة-مياة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 249,
+    "product_count_total": 249
+  },
+  {
+    "id": 119,
+    "name_ar": "طقم اصلاح طلمبة مياة",
+    "slug": "طقم-اصلاح-طلمبة-مياة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 17,
+    "product_count_total": 17
+  },
+  {
+    "id": 120,
+    "name_ar": "عمود طلمبة مياة",
+    "slug": "عمود-طلمبة-مياة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 10,
+    "product_count_total": 10
+  },
+  {
+    "id": 121,
+    "name_ar": "بلية طلمبة مياة",
+    "slug": "بلية-طلمبة-مياة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 122,
+    "name_ar": "حشو طلمبة مياة",
+    "slug": "حشو-طلمبة-مياة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 123,
+    "name_ar": "قلاب طلمبة مياة",
+    "slug": "قلاب-طلمبة-مياة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 124,
+    "name_ar": "قاعدة طلمبة مياة",
+    "slug": "قاعدة-طلمبة-مياة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 125,
+    "name_ar": "طنبورة طلمبة مياة",
+    "slug": "طنبورة-طلمبة-مياة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 5,
+    "product_count_total": 5
+  },
+  {
+    "id": 126,
+    "name_ar": "ردياتير مياة",
+    "slug": "ردياتير-مياة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 24,
+    "product_count_total": 24
+  },
+  {
+    "id": 127,
+    "name_ar": "علبة ردياتير",
+    "slug": "علبة-ردياتير",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 128,
+    "name_ar": "غطاء ردياتير",
+    "slug": "غطاء-ردياتير",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 8,
+    "product_count_total": 8
+  },
+  {
+    "id": 129,
+    "name_ar": "قاعدة ردياتير",
+    "slug": "قاعدة-ردياتير",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 4,
+    "product_count_total": 4
+  },
+  {
+    "id": 130,
+    "name_ar": "قربة ردياتير",
+    "slug": "قربة-ردياتير",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 131,
+    "name_ar": "قميص / دروة ردياتير",
+    "slug": "قميص-دروة-ردياتير",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 132,
+    "name_ar": "قربة مياة",
+    "slug": "قربة-مياة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 11,
+    "product_count_total": 11
+  },
+  {
+    "id": 133,
+    "name_ar": "غطاء قربة",
+    "slug": "غطاء-قربة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 134,
+    "name_ar": "خرطوم مياة",
+    "slug": "خرطوم-مياة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 135,
+    "name_ar": "كوعة / كاوتش مياة",
+    "slug": "كوعة-كاوتش-مياة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 136,
+    "name_ar": "طبة مياة",
+    "slug": "طبة-مياة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 9,
+    "product_count_total": 9
+  },
+  {
+    "id": 137,
+    "name_ar": "مروحة تبريد",
+    "slug": "مروحة-تبريد",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 138,
+    "name_ar": "ريشة مروحة",
+    "slug": "ريشة-مروحة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 139,
+    "name_ar": "بلية مروحة",
+    "slug": "بلية-مروحة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 140,
+    "name_ar": "قاعدة مروحة",
+    "slug": "قاعدة-مروحة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 7,
+    "product_count_total": 7
+  },
+  {
+    "id": 141,
+    "name_ar": "طنبورة مروحة",
+    "slug": "طنبورة-مروحة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 142,
+    "name_ar": "كلاتش مروحة",
+    "slug": "كلاتش-مروحة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 143,
+    "name_ar": "ترموستات",
+    "slug": "ترموستات",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 30,
+    "product_count_total": 30
+  },
+  {
+    "id": 144,
+    "name_ar": "قاعدة / كوعة ترموستات",
+    "slug": "قاعدة-كوعة-ترموستات",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 145,
+    "name_ar": "حساس حرارة",
+    "slug": "حساس-حرارة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 35,
+    "product_count_total": 35
+  },
+  {
+    "id": 146,
+    "name_ar": "سربنتينة زيت",
+    "slug": "سربنتينة-زيت",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 42,
+    "product_count_total": 42
+  },
+  {
+    "id": 147,
+    "name_ar": "غطاء سربنتينة",
+    "slug": "غطاء-سربنتينة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 148,
+    "name_ar": "جوان غطاء سربنتينة",
+    "slug": "جوان-غطاء-سربنتينة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 149,
+    "name_ar": "كاوتش سربنتينة",
+    "slug": "كاوتش-سربنتينة",
+    "level": 3,
+    "parent_id": 117,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 150,
+    "name_ar": "الفلاتر",
+    "slug": "الفلاتر",
+    "level": 1,
+    "parent_id": null,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 243
+  },
+  {
+    "id": 151,
+    "name_ar": "فلتر زيت",
+    "slug": "فلتر-زيت",
+    "level": 2,
+    "parent_id": 150,
+    "is_leaf": false,
+    "product_count": 65,
+    "product_count_total": 66
+  },
+  {
+    "id": 152,
+    "name_ar": "فلتر جاز",
+    "slug": "فلتر-جاز",
+    "level": 2,
+    "parent_id": 150,
+    "is_leaf": false,
+    "product_count": 55,
+    "product_count_total": 56
+  },
+  {
+    "id": 153,
+    "name_ar": "فلتر هواء",
+    "slug": "فلتر-هواء",
+    "level": 2,
+    "parent_id": 150,
+    "is_leaf": false,
+    "product_count": 38,
+    "product_count_total": 43
+  },
+  {
+    "id": 154,
+    "name_ar": "فلتر هواء خارجي",
+    "slug": "فلتر-هواء-خارجي",
+    "level": 3,
+    "parent_id": 153,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 155,
+    "name_ar": "فلتر هواء داخلي",
+    "slug": "فلتر-هواء-داخلي",
+    "level": 3,
+    "parent_id": 153,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 156,
+    "name_ar": "فلتر هيدروليك",
+    "slug": "فلتر-هيدروليك",
+    "level": 2,
+    "parent_id": 150,
+    "is_leaf": false,
+    "product_count": 10,
+    "product_count_total": 12
+  },
+  {
+    "id": 157,
+    "name_ar": "قواعد وكبايات الفلاتر",
+    "slug": "قواعد-وكبايات-الفلاتر",
+    "level": 2,
+    "parent_id": 150,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 35
+  },
+  {
+    "id": 158,
+    "name_ar": "قاعدة فلتر",
+    "slug": "قاعدة-فلتر",
+    "level": 3,
+    "parent_id": 157,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 159,
+    "name_ar": "قاعدة فلتر زيت",
+    "slug": "قاعدة-فلتر-زيت",
+    "level": 3,
+    "parent_id": 157,
+    "is_leaf": true,
+    "product_count": 10,
+    "product_count_total": 10
+  },
+  {
+    "id": 160,
+    "name_ar": "قاعدة فلتر جاز",
+    "slug": "قاعدة-فلتر-جاز",
+    "level": 3,
+    "parent_id": 157,
+    "is_leaf": true,
+    "product_count": 14,
+    "product_count_total": 14
+  },
+  {
+    "id": 161,
+    "name_ar": "قاعدة فلتر هواء",
+    "slug": "قاعدة-فلتر-هواء",
+    "level": 3,
+    "parent_id": 157,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 162,
+    "name_ar": "كباية فلتر جاز",
+    "slug": "كباية-فلتر-جاز",
+    "level": 3,
+    "parent_id": 157,
+    "is_leaf": true,
+    "product_count": 6,
+    "product_count_total": 6
+  },
+  {
+    "id": 163,
+    "name_ar": "حشو فلتر",
+    "slug": "حشو-فلتر",
+    "level": 2,
+    "parent_id": 150,
+    "is_leaf": true,
+    "product_count": 31,
+    "product_count_total": 31
+  },
+  {
+    "id": 164,
+    "name_ar": "حشو جاز",
+    "slug": "حشو-جاز",
+    "level": 3,
+    "parent_id": 152,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 165,
+    "name_ar": "حشو زيت",
+    "slug": "حشو-زيت",
+    "level": 3,
+    "parent_id": 151,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 166,
+    "name_ar": "حشو هواية",
+    "slug": "حشو-هواية",
+    "level": 3,
+    "parent_id": 153,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 167,
+    "name_ar": "حشو هيدروليك",
+    "slug": "حشو-هيدروليك",
+    "level": 3,
+    "parent_id": 156,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 168,
+    "name_ar": "الكهرباء والحساسات",
+    "slug": "الكهرباء-والحساسات",
+    "level": 1,
+    "parent_id": null,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 382
+  },
+  {
+    "id": 169,
+    "name_ar": "مارش و اجزاء مارش",
+    "slug": "مارش-و-اجزاء-مارش",
+    "level": 2,
+    "parent_id": 168,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 88
+  },
+  {
+    "id": 170,
+    "name_ar": "اوتوماتيك مارش",
+    "slug": "اوتوماتيك-مارش",
+    "level": 3,
+    "parent_id": 169,
+    "is_leaf": true,
+    "product_count": 13,
+    "product_count_total": 13
+  },
+  {
+    "id": 171,
+    "name_ar": "ترس مارش",
+    "slug": "ترس-مارش",
+    "level": 3,
+    "parent_id": 169,
+    "is_leaf": true,
+    "product_count": 9,
+    "product_count_total": 9
+  },
+  {
+    "id": 172,
+    "name_ar": "مارش",
+    "slug": "مارش",
+    "level": 3,
+    "parent_id": 169,
+    "is_leaf": true,
+    "product_count": 50,
+    "product_count_total": 50
+  },
+  {
+    "id": 173,
+    "name_ar": "كويل مارش",
+    "slug": "كويل-مارش",
+    "level": 3,
+    "parent_id": 169,
+    "is_leaf": true,
+    "product_count": 4,
+    "product_count_total": 4
+  },
+  {
+    "id": 174,
+    "name_ar": "موبينة مارش",
+    "slug": "موبينة-مارش",
+    "level": 3,
+    "parent_id": 169,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 175,
+    "name_ar": "قلة مارش",
+    "slug": "قلة-مارش",
+    "level": 3,
+    "parent_id": 169,
+    "is_leaf": true,
+    "product_count": 4,
+    "product_count_total": 4
+  },
+  {
+    "id": 176,
+    "name_ar": "مخدات مارش",
+    "slug": "مخدات-مارش",
+    "level": 3,
+    "parent_id": 169,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 177,
+    "name_ar": "جلبة مارش",
+    "slug": "جلبة-مارش",
+    "level": 3,
+    "parent_id": 169,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 178,
+    "name_ar": "اكرة مارش",
+    "slug": "اكرة-مارش",
+    "level": 3,
+    "parent_id": 169,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 179,
+    "name_ar": "شربون مارش",
+    "slug": "شربون-مارش",
+    "level": 3,
+    "parent_id": 169,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 180,
+    "name_ar": "دينامو و اجزاء دينامو",
+    "slug": "دينامو-و-اجزاء-دينامو",
+    "level": 2,
+    "parent_id": 168,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 35
+  },
+  {
+    "id": 181,
+    "name_ar": "قاعدة دينامو",
+    "slug": "قاعدة-دينامو",
+    "level": 3,
+    "parent_id": 180,
+    "is_leaf": true,
+    "product_count": 4,
+    "product_count_total": 4
+  },
+  {
+    "id": 182,
+    "name_ar": "دينامو",
+    "slug": "دينامو",
+    "level": 3,
+    "parent_id": 180,
+    "is_leaf": true,
+    "product_count": 23,
+    "product_count_total": 23
+  },
+  {
+    "id": 183,
+    "name_ar": "طنبورة دينامو",
+    "slug": "طنبورة-دينامو",
+    "level": 3,
+    "parent_id": 180,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 184,
+    "name_ar": "مروحة طنبورة دينامو",
+    "slug": "مروحة-طنبورة-دينامو",
+    "level": 3,
+    "parent_id": 180,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 185,
+    "name_ar": "كتاويت دينامو",
+    "slug": "كتاويت-دينامو",
+    "level": 3,
+    "parent_id": 180,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 186,
+    "name_ar": "موبينة دينامو",
+    "slug": "موبينة-دينامو",
+    "level": 3,
+    "parent_id": 180,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 187,
+    "name_ar": "شدادة دينمو",
+    "slug": "شدادة-دينمو",
+    "level": 3,
+    "parent_id": 180,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 188,
+    "name_ar": "حساسات",
+    "slug": "حساسات",
+    "level": 2,
+    "parent_id": 168,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 71
+  },
+  {
+    "id": 189,
+    "name_ar": "حساس زيت",
+    "slug": "حساس-زيت",
+    "level": 3,
+    "parent_id": 188,
+    "is_leaf": true,
+    "product_count": 37,
+    "product_count_total": 37
+  },
+  {
+    "id": 190,
+    "name_ar": "حساس سرعة",
+    "slug": "حساس-سرعة",
+    "level": 3,
+    "parent_id": 188,
+    "is_leaf": true,
+    "product_count": 14,
+    "product_count_total": 14
+  },
+  {
+    "id": 191,
+    "name_ar": "حساس عام",
+    "slug": "حساس-عام",
+    "level": 3,
+    "parent_id": 188,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 192,
+    "name_ar": "شمعة سخان",
+    "slug": "شمعة-سخان",
+    "level": 3,
+    "parent_id": 188,
+    "is_leaf": true,
+    "product_count": 20,
+    "product_count_total": 20
+  },
+  {
+    "id": 193,
+    "name_ar": "مفاتيح وكونتاك",
+    "slug": "مفاتيح-وكونتاك",
+    "level": 2,
+    "parent_id": 168,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 26
+  },
+  {
+    "id": 194,
+    "name_ar": "سولونيد و بطال",
+    "slug": "سولونيد-و-بطال",
+    "level": 2,
+    "parent_id": 168,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 65
+  },
+  {
+    "id": 195,
+    "name_ar": "سولونيد",
+    "slug": "سولونيد",
+    "level": 3,
+    "parent_id": 194,
+    "is_leaf": true,
+    "product_count": 65,
+    "product_count_total": 65
+  },
+  {
+    "id": 196,
+    "name_ar": "ذراع إشارة",
+    "slug": "ذراع-إشارة",
+    "level": 3,
+    "parent_id": 193,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 197,
+    "name_ar": "مفتاح PTO",
+    "slug": "مفتاح-PTO",
+    "level": 3,
+    "parent_id": 193,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 198,
+    "name_ar": "مفتاح نور",
+    "slug": "مفتاح-نور",
+    "level": 3,
+    "parent_id": 193,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 199,
+    "name_ar": "مفتاح انتظار",
+    "slug": "مفتاح-انتظار",
+    "level": 3,
+    "parent_id": 193,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 200,
+    "name_ar": "مفتاح مساحات",
+    "slug": "مفتاح-مساحات",
+    "level": 3,
+    "parent_id": 193,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 201,
+    "name_ar": "مفتاح تانك",
+    "slug": "مفتاح-تانك",
+    "level": 3,
+    "parent_id": 193,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 202,
+    "name_ar": "كونتاك",
+    "slug": "كونتاك",
+    "level": 3,
+    "parent_id": 193,
+    "is_leaf": true,
+    "product_count": 11,
+    "product_count_total": 11
+  },
+  {
+    "id": 203,
+    "name_ar": "قاطع تيار",
+    "slug": "قاطع-تيار",
+    "level": 3,
+    "parent_id": 193,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 204,
+    "name_ar": "كي ستارت",
+    "slug": "كي-ستارت",
+    "level": 3,
+    "parent_id": 193,
+    "is_leaf": true,
+    "product_count": 4,
+    "product_count_total": 4
+  },
+  {
+    "id": 205,
+    "name_ar": "عدادات وتابلوه",
+    "slug": "عدادات-وتابلوه",
+    "level": 2,
+    "parent_id": 168,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 31
+  },
+  {
+    "id": 206,
+    "name_ar": "عداد حرارة",
+    "slug": "عداد-حرارة",
+    "level": 3,
+    "parent_id": 205,
+    "is_leaf": true,
+    "product_count": 5,
+    "product_count_total": 5
+  },
+  {
+    "id": 207,
+    "name_ar": "عداد زيت",
+    "slug": "عداد-زيت",
+    "level": 3,
+    "parent_id": 205,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 208,
+    "name_ar": "عداد سرعة",
+    "slug": "عداد-سرعة",
+    "level": 3,
+    "parent_id": 205,
+    "is_leaf": true,
+    "product_count": 4,
+    "product_count_total": 4
+  },
+  {
+    "id": 209,
+    "name_ar": "عداد ساعات تشغيل",
+    "slug": "عداد-ساعات-تشغيل",
+    "level": 3,
+    "parent_id": 205,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 210,
+    "name_ar": "عداد أعطال",
+    "slug": "عداد-أعطال",
+    "level": 3,
+    "parent_id": 205,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 211,
+    "name_ar": "عداد دينامو",
+    "slug": "عداد-دينامو",
+    "level": 3,
+    "parent_id": 205,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 212,
+    "name_ar": "عداد جاز",
+    "slug": "عداد-جاز",
+    "level": 3,
+    "parent_id": 205,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 213,
+    "name_ar": "تابلوه",
+    "slug": "تابلوه",
+    "level": 3,
+    "parent_id": 205,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 214,
+    "name_ar": "شاشة مولد",
+    "slug": "شاشة-مولد",
+    "level": 3,
+    "parent_id": 205,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 215,
+    "name_ar": "كارتة مولد",
+    "slug": "كارتة-مولد",
+    "level": 3,
+    "parent_id": 205,
+    "is_leaf": true,
+    "product_count": 13,
+    "product_count_total": 13
+  },
+  {
+    "id": 216,
+    "name_ar": "أسلاك وفيش وفيوزات",
+    "slug": "أسلاك-وفيش-وفيوزات",
+    "level": 2,
+    "parent_id": 168,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 22
+  },
+  {
+    "id": 217,
+    "name_ar": "سلك كهرباء",
+    "slug": "سلك-كهرباء",
+    "level": 3,
+    "parent_id": 216,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 218,
+    "name_ar": "سلك سرعة",
+    "slug": "سلك-سرعة",
+    "level": 3,
+    "parent_id": 216,
+    "is_leaf": true,
+    "product_count": 14,
+    "product_count_total": 14
+  },
+  {
+    "id": 219,
+    "name_ar": "ضفيرة",
+    "slug": "ضفيرة",
+    "level": 3,
+    "parent_id": 216,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 220,
+    "name_ar": "فيشة",
+    "slug": "فيشة",
+    "level": 3,
+    "parent_id": 216,
+    "is_leaf": true,
+    "product_count": 4,
+    "product_count_total": 4
+  },
+  {
+    "id": 221,
+    "name_ar": "فيوز",
+    "slug": "فيوز",
+    "level": 3,
+    "parent_id": 216,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 222,
+    "name_ar": "لارية كهرباء",
+    "slug": "لارية-كهرباء",
+    "level": 3,
+    "parent_id": 216,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 223,
+    "name_ar": "إضاءة وكلاكس",
+    "slug": "إضاءة-وكلاكس",
+    "level": 2,
+    "parent_id": 168,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 44
+  },
+  {
+    "id": 224,
+    "name_ar": "فانوس",
+    "slug": "فانوس",
+    "level": 3,
+    "parent_id": 223,
+    "is_leaf": true,
+    "product_count": 21,
+    "product_count_total": 21
+  },
+  {
+    "id": 225,
+    "name_ar": "فانوس إشارة",
+    "slug": "فانوس-إشارة",
+    "level": 3,
+    "parent_id": 223,
+    "is_leaf": true,
+    "product_count": 18,
+    "product_count_total": 18
+  },
+  {
+    "id": 226,
+    "name_ar": "باغة فانوس",
+    "slug": "باغة-فانوس",
+    "level": 3,
+    "parent_id": 223,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 227,
+    "name_ar": "كلاكس",
+    "slug": "كلاكس",
+    "level": 3,
+    "parent_id": 223,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 228,
+    "name_ar": "الدبرياج والفتيس ونقل الحركة",
+    "slug": "الدبرياج-والفتيس-ونقل-الحركة",
+    "level": 1,
+    "parent_id": null,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 1102
+  },
+  {
+    "id": 229,
+    "name_ar": "أجزاء دبرياج",
+    "slug": "أجزاء-دبرياج",
+    "level": 2,
+    "parent_id": 228,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 314
+  },
+  {
+    "id": 230,
+    "name_ar": "ديسك دبرياج",
+    "slug": "ديسك-دبرياج",
+    "level": 3,
+    "parent_id": 229,
+    "is_leaf": true,
+    "product_count": 88,
+    "product_count_total": 88
+  },
+  {
+    "id": 231,
+    "name_ar": "مسمار ديسك",
+    "slug": "مسمار-ديسك",
+    "level": 3,
+    "parent_id": 229,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 232,
+    "name_ar": "أسطوانة دبرياج",
+    "slug": "أسطوانة-دبرياج",
+    "level": 3,
+    "parent_id": 229,
+    "is_leaf": true,
+    "product_count": 115,
+    "product_count_total": 115
+  },
+  {
+    "id": 233,
+    "name_ar": "بلية دبرياج",
+    "slug": "بلية-دبرياج",
+    "level": 3,
+    "parent_id": 229,
+    "is_leaf": true,
+    "product_count": 53,
+    "product_count_total": 53
+  },
+  {
+    "id": 234,
+    "name_ar": "فحمة دبرياج",
+    "slug": "فحمة-دبرياج",
+    "level": 3,
+    "parent_id": 229,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 235,
+    "name_ar": "ريشة ديسك دبرياج",
+    "slug": "ريشة-ديسك-دبرياج",
+    "level": 3,
+    "parent_id": 229,
+    "is_leaf": true,
+    "product_count": 36,
+    "product_count_total": 36
+  },
+  {
+    "id": 236,
+    "name_ar": "عمود درك",
+    "slug": "عمود-درك",
+    "level": 3,
+    "parent_id": 258,
+    "is_leaf": true,
+    "product_count": 21,
+    "product_count_total": 21
+  },
+  {
+    "id": 237,
+    "name_ar": "بلاطة ديسك دبرياج",
+    "slug": "بلاطة-ديسك-دبرياج",
+    "level": 3,
+    "parent_id": 229,
+    "is_leaf": true,
+    "product_count": 9,
+    "product_count_total": 9
+  },
+  {
+    "id": 238,
+    "name_ar": "فورش دبرياج",
+    "slug": "فورش-دبرياج",
+    "level": 3,
+    "parent_id": 229,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 239,
+    "name_ar": "سوستة دبرياج",
+    "slug": "سوستة-دبرياج",
+    "level": 3,
+    "parent_id": 229,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 240,
+    "name_ar": "سلك دبرياج",
+    "slug": "سلك-دبرياج",
+    "level": 3,
+    "parent_id": 229,
+    "is_leaf": true,
+    "product_count": 6,
+    "product_count_total": 6
+  },
+  {
+    "id": 241,
+    "name_ar": "ماستر دبرياج",
+    "slug": "ماستر-دبرياج",
+    "level": 3,
+    "parent_id": 321,
+    "is_leaf": true,
+    "product_count": 29,
+    "product_count_total": 29
+  },
+  {
+    "id": 242,
+    "name_ar": "فتيس",
+    "slug": "فتيس",
+    "level": 2,
+    "parent_id": 228,
+    "is_leaf": false,
+    "product_count": 125,
+    "product_count_total": 185
+  },
+  {
+    "id": 243,
+    "name_ar": "وش فتيس",
+    "slug": "وش-فتيس",
+    "level": 3,
+    "parent_id": 242,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 244,
+    "name_ar": "بلاطة فتيس",
+    "slug": "بلاطة-فتيس",
+    "level": 3,
+    "parent_id": 242,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 245,
+    "name_ar": "أجزاء فتيس أخرى",
+    "slug": "أجزاء-فتيس-أخرى",
+    "level": 3,
+    "parent_id": 242,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 246,
+    "name_ar": "صاج فتيس",
+    "slug": "صاج-فتيس",
+    "level": 3,
+    "parent_id": 242,
+    "is_leaf": true,
+    "product_count": 4,
+    "product_count_total": 4
+  },
+  {
+    "id": 247,
+    "name_ar": "عصاية فتيس",
+    "slug": "عصاية-فتيس",
+    "level": 3,
+    "parent_id": 242,
+    "is_leaf": true,
+    "product_count": 18,
+    "product_count_total": 18
+  },
+  {
+    "id": 248,
+    "name_ar": "أسطوانة فتيس",
+    "slug": "أسطوانة-فتيس",
+    "level": 3,
+    "parent_id": 242,
+    "is_leaf": true,
+    "product_count": 21,
+    "product_count_total": 21
+  },
+  {
+    "id": 249,
+    "name_ar": "هلال / لافية فتيس",
+    "slug": "هلال-لافية-فتيس",
+    "level": 3,
+    "parent_id": 242,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 250,
+    "name_ar": "جوان فتيس",
+    "slug": "جوان-فتيس",
+    "level": 3,
+    "parent_id": 242,
+    "is_leaf": true,
+    "product_count": 14,
+    "product_count_total": 14
+  },
+  {
+    "id": 251,
+    "name_ar": "عمود فتيس",
+    "slug": "عمود-فتيس",
+    "level": 3,
+    "parent_id": 258,
+    "is_leaf": true,
+    "product_count": 20,
+    "product_count_total": 20
+  },
+  {
+    "id": 252,
+    "name_ar": "تروس فتيس / ستوليك / فخدة / سريع وبطئ",
+    "slug": "تروس-فتيس-ستوليك-فخدة-سريع-وبطئ",
+    "level": 2,
+    "parent_id": 228,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 176
+  },
+  {
+    "id": 253,
+    "name_ar": "تروس",
+    "slug": "تروس",
+    "level": 3,
+    "parent_id": 252,
+    "is_leaf": true,
+    "product_count": 5,
+    "product_count_total": 5
+  },
+  {
+    "id": 254,
+    "name_ar": "سيكوميزر",
+    "slug": "سيكوميزر",
+    "level": 3,
+    "parent_id": 252,
+    "is_leaf": true,
+    "product_count": 23,
+    "product_count_total": 23
+  },
+  {
+    "id": 255,
+    "name_ar": "غويشة",
+    "slug": "غويشة",
+    "level": 3,
+    "parent_id": 252,
+    "is_leaf": true,
+    "product_count": 24,
+    "product_count_total": 24
+  },
+  {
+    "id": 256,
+    "name_ar": "برميل",
+    "slug": "برميل",
+    "level": 3,
+    "parent_id": 252,
+    "is_leaf": true,
+    "product_count": 22,
+    "product_count_total": 22
+  },
+  {
+    "id": 257,
+    "name_ar": "عمود",
+    "slug": "عمود",
+    "level": 3,
+    "parent_id": 252,
+    "is_leaf": true,
+    "product_count": 101,
+    "product_count_total": 101
+  },
+  {
+    "id": 258,
+    "name_ar": "اكسات و عمدان و كردان و صليبة",
+    "slug": "اكسات-و-عمدان-و-كردان-و-صليبة",
+    "level": 2,
+    "parent_id": 228,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 94
+  },
+  {
+    "id": 259,
+    "name_ar": "عمود كردان",
+    "slug": "عمود-كردان",
+    "level": 3,
+    "parent_id": 258,
+    "is_leaf": true,
+    "product_count": 6,
+    "product_count_total": 6
+  },
+  {
+    "id": 260,
+    "name_ar": "صليبة كردان",
+    "slug": "صليبة-كردان",
+    "level": 3,
+    "parent_id": 258,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 261,
+    "name_ar": "كرسي نص",
+    "slug": "كرسي-نص",
+    "level": 3,
+    "parent_id": 258,
+    "is_leaf": true,
+    "product_count": 8,
+    "product_count_total": 8
+  },
+  {
+    "id": 262,
+    "name_ar": "اوكشة",
+    "slug": "اوكشة",
+    "level": 3,
+    "parent_id": 258,
+    "is_leaf": true,
+    "product_count": 8,
+    "product_count_total": 8
+  },
+  {
+    "id": 263,
+    "name_ar": "كعب كردان",
+    "slug": "كعب-كردان",
+    "level": 3,
+    "parent_id": 258,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 264,
+    "name_ar": "جلبة كردان",
+    "slug": "جلبة-كردان",
+    "level": 3,
+    "parent_id": 258,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 265,
+    "name_ar": "كوبلن",
+    "slug": "كوبلن",
+    "level": 3,
+    "parent_id": 266,
+    "is_leaf": true,
+    "product_count": 25,
+    "product_count_total": 25
+  },
+  {
+    "id": 266,
+    "name_ar": "كرونة ودفرنس",
+    "slug": "كرونة-ودفرنس",
+    "level": 2,
+    "parent_id": 228,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 67
+  },
+  {
+    "id": 267,
+    "name_ar": "كرونة",
+    "slug": "كرونة",
+    "level": 3,
+    "parent_id": 266,
+    "is_leaf": true,
+    "product_count": 10,
+    "product_count_total": 10
+  },
+  {
+    "id": 268,
+    "name_ar": "بلية كرونة",
+    "slug": "بلية-كرونة",
+    "level": 3,
+    "parent_id": 266,
+    "is_leaf": true,
+    "product_count": 4,
+    "product_count_total": 4
+  },
+  {
+    "id": 269,
+    "name_ar": "حلة كرونة",
+    "slug": "حلة-كرونة",
+    "level": 3,
+    "parent_id": 266,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 270,
+    "name_ar": "اصلاح كرونة",
+    "slug": "اصلاح-كرونة",
+    "level": 3,
+    "parent_id": 266,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 271,
+    "name_ar": "ترس و بنيون",
+    "slug": "ترس-و-بنيون",
+    "level": 3,
+    "parent_id": 266,
+    "is_leaf": true,
+    "product_count": 5,
+    "product_count_total": 5
+  },
+  {
+    "id": 272,
+    "name_ar": "الهيدروليك وPTO والدركسيون",
+    "slug": "الهيدروليك-وPTO-والدركسيون",
+    "level": 1,
+    "parent_id": null,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 212
+  },
+  {
+    "id": 273,
+    "name_ar": "طلمبات هيدروليك وباور",
+    "slug": "طلمبات-هيدروليك-وباور",
+    "level": 2,
+    "parent_id": 272,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 188
+  },
+  {
+    "id": 274,
+    "name_ar": "طلمبة هيدروليك / دريكسيون / باور",
+    "slug": "طلمبة-هيدروليك-دريكسيون-باور",
+    "level": 3,
+    "parent_id": 273,
+    "is_leaf": true,
+    "product_count": 174,
+    "product_count_total": 174
+  },
+  {
+    "id": 275,
+    "name_ar": "طقم اصلاح طلمبة هيدروليك",
+    "slug": "طقم-اصلاح-طلمبة-هيدروليك",
+    "level": 3,
+    "parent_id": 273,
+    "is_leaf": true,
+    "product_count": 9,
+    "product_count_total": 9
+  },
+  {
+    "id": 276,
+    "name_ar": "ترس / كوبلن طلمبة هيدروليك",
+    "slug": "ترس-كوبلن-طلمبة-هيدروليك",
+    "level": 3,
+    "parent_id": 273,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 277,
+    "name_ar": "طلمبة PTO",
+    "slug": "طلمبة-PTO",
+    "level": 3,
+    "parent_id": 273,
+    "is_leaf": true,
+    "product_count": 5,
+    "product_count_total": 5
+  },
+  {
+    "id": 278,
+    "name_ar": "طلمبة زيت فتيس",
+    "slug": "طلمبة-زيت-فتيس",
+    "level": 3,
+    "parent_id": 242,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 279,
+    "name_ar": "بلوف ومنظمات هيدروليك",
+    "slug": "بلوف-ومنظمات-هيدروليك",
+    "level": 2,
+    "parent_id": 272,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 15
+  },
+  {
+    "id": 280,
+    "name_ar": "بلف هيدروليك",
+    "slug": "بلف-هيدروليك",
+    "level": 3,
+    "parent_id": 279,
+    "is_leaf": true,
+    "product_count": 15,
+    "product_count_total": 15
+  },
+  {
+    "id": 281,
+    "name_ar": "منظم هيدروليك / دريكسيون",
+    "slug": "منظم-هيدروليك-دريكسيون",
+    "level": 3,
+    "parent_id": 279,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 282,
+    "name_ar": "بستم هيدروليك / دريكسيون",
+    "slug": "بستم-هيدروليك-دريكسيون",
+    "level": 3,
+    "parent_id": 279,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 283,
+    "name_ar": "مواسير وخراطيم هيدروليك",
+    "slug": "مواسير-وخراطيم-هيدروليك",
+    "level": 2,
+    "parent_id": 272,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 9
+  },
+  {
+    "id": 284,
+    "name_ar": "خراطيم هيدروليك",
+    "slug": "خراطيم-هيدروليك",
+    "level": 3,
+    "parent_id": 283,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 285,
+    "name_ar": "مواسير دريكسيون",
+    "slug": "مواسير-دريكسيون",
+    "level": 3,
+    "parent_id": 283,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 286,
+    "name_ar": "قربة زيت هيدروليك",
+    "slug": "قربة-زيت-هيدروليك",
+    "level": 3,
+    "parent_id": 283,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 287,
+    "name_ar": "كاوتش هيدروليك",
+    "slug": "كاوتش-هيدروليك",
+    "level": 3,
+    "parent_id": 283,
+    "is_leaf": true,
+    "product_count": 4,
+    "product_count_total": 4
+  },
+  {
+    "id": 288,
+    "name_ar": "بنز هيدروليك",
+    "slug": "بنز-هيدروليك",
+    "level": 3,
+    "parent_id": 283,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 289,
+    "name_ar": "جلبة هيدروليك",
+    "slug": "جلبة-هيدروليك",
+    "level": 3,
+    "parent_id": 283,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 290,
+    "name_ar": "PTO",
+    "slug": "PTO",
+    "level": 2,
+    "parent_id": 228,
+    "is_leaf": false,
+    "product_count": 15,
+    "product_count_total": 55
+  },
+  {
+    "id": 291,
+    "name_ar": "أجزاء PTO أخرى",
+    "slug": "أجزاء-PTO-أخرى",
+    "level": 3,
+    "parent_id": 290,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 292,
+    "name_ar": "بلية PTO",
+    "slug": "بلية-PTO",
+    "level": 3,
+    "parent_id": 290,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 293,
+    "name_ar": "سلك PTO",
+    "slug": "سلك-PTO",
+    "level": 3,
+    "parent_id": 290,
+    "is_leaf": true,
+    "product_count": 4,
+    "product_count_total": 4
+  },
+  {
+    "id": 294,
+    "name_ar": "اسطوانة مياة / PTO",
+    "slug": "اسطوانة-مياة-PTO",
+    "level": 3,
+    "parent_id": 290,
+    "is_leaf": true,
+    "product_count": 20,
+    "product_count_total": 20
+  },
+  {
+    "id": 295,
+    "name_ar": "عمود PTO",
+    "slug": "عمود-PTO",
+    "level": 3,
+    "parent_id": 290,
+    "is_leaf": true,
+    "product_count": 15,
+    "product_count_total": 15
+  },
+  {
+    "id": 296,
+    "name_ar": "دريكسيون وتيش",
+    "slug": "دريكسيون-وتيش",
+    "level": 2,
+    "parent_id": 228,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 23
+  },
+  {
+    "id": 297,
+    "name_ar": "علبة دريكسيون",
+    "slug": "علبة-دريكسيون",
+    "level": 3,
+    "parent_id": 296,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 298,
+    "name_ar": "طارة دريكسيون",
+    "slug": "طارة-دريكسيون",
+    "level": 3,
+    "parent_id": 296,
+    "is_leaf": true,
+    "product_count": 4,
+    "product_count_total": 4
+  },
+  {
+    "id": 299,
+    "name_ar": "عمود دريكسيون",
+    "slug": "عمود-دريكسيون",
+    "level": 3,
+    "parent_id": 296,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 300,
+    "name_ar": "تيش دريكسيون",
+    "slug": "تيش-دريكسيون",
+    "level": 3,
+    "parent_id": 296,
+    "is_leaf": true,
+    "product_count": 6,
+    "product_count_total": 6
+  },
+  {
+    "id": 301,
+    "name_ar": "بيض تيش دريكسيون",
+    "slug": "بيض-تيش-دريكسيون",
+    "level": 3,
+    "parent_id": 296,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 302,
+    "name_ar": "وصلة دريكسيون",
+    "slug": "وصلة-دريكسيون",
+    "level": 3,
+    "parent_id": 296,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 303,
+    "name_ar": "سنارة دريكسيون",
+    "slug": "سنارة-دريكسيون",
+    "level": 3,
+    "parent_id": 296,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 304,
+    "name_ar": "صليبة دريكسيون",
+    "slug": "صليبة-دريكسيون",
+    "level": 3,
+    "parent_id": 296,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 305,
+    "name_ar": "شيالة ورفع",
+    "slug": "شيالة-ورفع",
+    "level": 2,
+    "parent_id": 228,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 29
+  },
+  {
+    "id": 306,
+    "name_ar": "شيالة",
+    "slug": "شيالة",
+    "level": 3,
+    "parent_id": 305,
+    "is_leaf": true,
+    "product_count": 10,
+    "product_count_total": 10
+  },
+  {
+    "id": 307,
+    "name_ar": "ذراع شيالة هيدروليك",
+    "slug": "ذراع-شيالة-هيدروليك",
+    "level": 3,
+    "parent_id": 305,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 308,
+    "name_ar": "سنارة رفع هيدروليك",
+    "slug": "سنارة-رفع-هيدروليك",
+    "level": 3,
+    "parent_id": 305,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 309,
+    "name_ar": "ماكينة شيالة",
+    "slug": "ماكينة-شيالة",
+    "level": 3,
+    "parent_id": 305,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 310,
+    "name_ar": "كفة شيالة",
+    "slug": "كفة-شيالة",
+    "level": 3,
+    "parent_id": 305,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 311,
+    "name_ar": "بنز شيالة",
+    "slug": "بنز-شيالة",
+    "level": 3,
+    "parent_id": 305,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 312,
+    "name_ar": "شداد",
+    "slug": "شداد",
+    "level": 3,
+    "parent_id": 305,
+    "is_leaf": true,
+    "product_count": 11,
+    "product_count_total": 11
+  },
+  {
+    "id": 313,
+    "name_ar": "فرامل",
+    "slug": "فرامل",
+    "level": 2,
+    "parent_id": 228,
+    "is_leaf": false,
+    "product_count": 4,
+    "product_count_total": 57
+  },
+  {
+    "id": 314,
+    "name_ar": "تيل فرامل",
+    "slug": "تيل-فرامل",
+    "level": 3,
+    "parent_id": 313,
+    "is_leaf": true,
+    "product_count": 9,
+    "product_count_total": 9
+  },
+  {
+    "id": 315,
+    "name_ar": "طوق فرامل",
+    "slug": "طوق-فرامل",
+    "level": 3,
+    "parent_id": 313,
+    "is_leaf": true,
+    "product_count": 8,
+    "product_count_total": 8
+  },
+  {
+    "id": 316,
+    "name_ar": "طنبورة فرامل",
+    "slug": "طنبورة-فرامل",
+    "level": 3,
+    "parent_id": 313,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 317,
+    "name_ar": "أسطوانة فرامل",
+    "slug": "أسطوانة-فرامل",
+    "level": 3,
+    "parent_id": 313,
+    "is_leaf": true,
+    "product_count": 20,
+    "product_count_total": 20
+  },
+  {
+    "id": 318,
+    "name_ar": "ديسك فرامل",
+    "slug": "ديسك-فرامل",
+    "level": 3,
+    "parent_id": 313,
+    "is_leaf": true,
+    "product_count": 8,
+    "product_count_total": 8
+  },
+  {
+    "id": 319,
+    "name_ar": "كوز فرامل",
+    "slug": "كوز-فرامل",
+    "level": 3,
+    "parent_id": 313,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 320,
+    "name_ar": "كاوتش فرامل",
+    "slug": "كاوتش-فرامل",
+    "level": 3,
+    "parent_id": 313,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 321,
+    "name_ar": "ماستر وسيرفو دبرياج / فرامل / عجل",
+    "slug": "ماستر-وسيرفو-دبرياج-فرامل-عجل",
+    "level": 2,
+    "parent_id": 228,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 58
+  },
+  {
+    "id": 322,
+    "name_ar": "ماستر فرامل",
+    "slug": "ماستر-فرامل",
+    "level": 3,
+    "parent_id": 321,
+    "is_leaf": true,
+    "product_count": 17,
+    "product_count_total": 17
+  },
+  {
+    "id": 323,
+    "name_ar": "ماستر عجل",
+    "slug": "ماستر-عجل",
+    "level": 3,
+    "parent_id": 321,
+    "is_leaf": true,
+    "product_count": 8,
+    "product_count_total": 8
+  },
+  {
+    "id": 324,
+    "name_ar": "سيرفو فرامل",
+    "slug": "سيرفو-فرامل",
+    "level": 3,
+    "parent_id": 321,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 325,
+    "name_ar": "دواسة فرامل هواء",
+    "slug": "دواسة-فرامل-هواء",
+    "level": 3,
+    "parent_id": 321,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 326,
+    "name_ar": "حنفية و بلف هواء",
+    "slug": "حنفية-و-بلف-هواء",
+    "level": 3,
+    "parent_id": 321,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 327,
+    "name_ar": "كمبرسور فرامل",
+    "slug": "كمبرسور-فرامل",
+    "level": 3,
+    "parent_id": 321,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 328,
+    "name_ar": "فرامل يد",
+    "slug": "فرامل-يد",
+    "level": 2,
+    "parent_id": 228,
+    "is_leaf": false,
+    "product_count": 1,
+    "product_count_total": 10
+  },
+  {
+    "id": 329,
+    "name_ar": "فرملة يد",
+    "slug": "فرملة-يد",
+    "level": 3,
+    "parent_id": 328,
+    "is_leaf": true,
+    "product_count": 9,
+    "product_count_total": 9
+  },
+  {
+    "id": 330,
+    "name_ar": "سلك فرامل يد",
+    "slug": "سلك-فرامل-يد",
+    "level": 3,
+    "parent_id": 328,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 331,
+    "name_ar": "عجل وصرة",
+    "slug": "عجل-وصرة",
+    "level": 2,
+    "parent_id": 228,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 16
+  },
+  {
+    "id": 332,
+    "name_ar": "صرة عجل",
+    "slug": "صرة-عجل",
+    "level": 3,
+    "parent_id": 331,
+    "is_leaf": true,
+    "product_count": 6,
+    "product_count_total": 6
+  },
+  {
+    "id": 333,
+    "name_ar": "طوق عجل",
+    "slug": "طوق-عجل",
+    "level": 3,
+    "parent_id": 331,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 334,
+    "name_ar": "ترندة عجل",
+    "slug": "ترندة-عجل",
+    "level": 3,
+    "parent_id": 331,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 335,
+    "name_ar": "جنط",
+    "slug": "جنط",
+    "level": 3,
+    "parent_id": 331,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 336,
+    "name_ar": "لقمة جنط",
+    "slug": "لقمة-جنط",
+    "level": 3,
+    "parent_id": 331,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 337,
+    "name_ar": "مشحمة عجل",
+    "slug": "مشحمة-عجل",
+    "level": 3,
+    "parent_id": 331,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 338,
+    "name_ar": "صليبة ستوليك",
+    "slug": "صليبة-ستوليك",
+    "level": 3,
+    "parent_id": 258,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 339,
+    "name_ar": "ستوليك",
+    "slug": "ستوليك",
+    "level": 3,
+    "parent_id": 266,
+    "is_leaf": true,
+    "product_count": 21,
+    "product_count_total": 21
+  },
+  {
+    "id": 340,
+    "name_ar": "طنبورة عجل",
+    "slug": "طنبورة-عجل",
+    "level": 3,
+    "parent_id": 331,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 341,
+    "name_ar": "مسامير وصواميل عجل",
+    "slug": "مسامير-وصواميل-عجل",
+    "level": 2,
+    "parent_id": 228,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 18
+  },
+  {
+    "id": 342,
+    "name_ar": "مسمار عجل",
+    "slug": "مسمار-عجل",
+    "level": 3,
+    "parent_id": 341,
+    "is_leaf": true,
+    "product_count": 16,
+    "product_count_total": 16
+  },
+  {
+    "id": 343,
+    "name_ar": "صمولة عجل",
+    "slug": "صمولة-عجل",
+    "level": 3,
+    "parent_id": 341,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 344,
+    "name_ar": "مسمار لقمة جنط",
+    "slug": "مسمار-لقمة-جنط",
+    "level": 3,
+    "parent_id": 341,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 345,
+    "name_ar": "محبس لقمة جنط",
+    "slug": "محبس-لقمة-جنط",
+    "level": 3,
+    "parent_id": 341,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 346,
+    "name_ar": "صليبة اكس",
+    "slug": "صليبة-اكس",
+    "level": 3,
+    "parent_id": 258,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 347,
+    "name_ar": "اكس عجل",
+    "slug": "اكس-عجل",
+    "level": 3,
+    "parent_id": 258,
+    "is_leaf": true,
+    "product_count": 14,
+    "product_count_total": 14
+  },
+  {
+    "id": 348,
+    "name_ar": "ركبة اكس",
+    "slug": "ركبة-اكس",
+    "level": 3,
+    "parent_id": 258,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 349,
+    "name_ar": "جلبة اكس",
+    "slug": "جلبة-اكس",
+    "level": 3,
+    "parent_id": 258,
+    "is_leaf": true,
+    "product_count": 8,
+    "product_count_total": 8
+  },
+  {
+    "id": 350,
+    "name_ar": "بلية اكس",
+    "slug": "بلية-اكس",
+    "level": 3,
+    "parent_id": 258,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 351,
+    "name_ar": "فخدة",
+    "slug": "فخدة",
+    "level": 2,
+    "parent_id": null,
+    "is_leaf": true,
+    "product_count": 12,
+    "product_count_total": 12
+  },
+  {
+    "id": 352,
+    "name_ar": "بلية فخدة",
+    "slug": "بلية-فخدة",
+    "level": 2,
+    "parent_id": null,
+    "is_leaf": true,
+    "product_count": 10,
+    "product_count_total": 10
+  },
+  {
+    "id": 353,
+    "name_ar": "بنز فخدة",
+    "slug": "بنز-فخدة",
+    "level": 2,
+    "parent_id": null,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 354,
+    "name_ar": "جسم الجرار والكابينة والإكسسوارات",
+    "slug": "جسم-الجرار-والكابينة-والإكسسوارات",
+    "level": 1,
+    "parent_id": null,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 86
+  },
+  {
+    "id": 355,
+    "name_ar": "كبوت وشبكة ورفرف",
+    "slug": "كبوت-وشبكة-ورفرف",
+    "level": 2,
+    "parent_id": 354,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 39
+  },
+  {
+    "id": 356,
+    "name_ar": "كبوت",
+    "slug": "كبوت",
+    "level": 3,
+    "parent_id": 355,
+    "is_leaf": true,
+    "product_count": 6,
+    "product_count_total": 6
+  },
+  {
+    "id": 357,
+    "name_ar": "شدادة كبوت",
+    "slug": "شدادة-كبوت",
+    "level": 3,
+    "parent_id": 355,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 358,
+    "name_ar": "شبكة",
+    "slug": "شبكة",
+    "level": 3,
+    "parent_id": 355,
+    "is_leaf": true,
+    "product_count": 21,
+    "product_count_total": 21
+  },
+  {
+    "id": 359,
+    "name_ar": "رفرف",
+    "slug": "رفرف",
+    "level": 3,
+    "parent_id": 355,
+    "is_leaf": true,
+    "product_count": 8,
+    "product_count_total": 8
+  },
+  {
+    "id": 360,
+    "name_ar": "مساعد كابوت",
+    "slug": "مساعد-كابوت",
+    "level": 3,
+    "parent_id": 355,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 361,
+    "name_ar": "وش جرار",
+    "slug": "وش-جرار",
+    "level": 3,
+    "parent_id": 355,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 362,
+    "name_ar": "كمبرسور تكيف",
+    "slug": "كمبرسور-تكيف",
+    "level": 3,
+    "parent_id": 363,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 363,
+    "name_ar": "كابينة وأبواب",
+    "slug": "كابينة-وأبواب",
+    "level": 2,
+    "parent_id": 354,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 30
+  },
+  {
+    "id": 364,
+    "name_ar": "كابينة",
+    "slug": "كابينة",
+    "level": 3,
+    "parent_id": 363,
+    "is_leaf": true,
+    "product_count": 7,
+    "product_count_total": 7
+  },
+  {
+    "id": 365,
+    "name_ar": "قاعدة كابينة",
+    "slug": "قاعدة-كابينة",
+    "level": 3,
+    "parent_id": 363,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 366,
+    "name_ar": "مساعد كابينة",
+    "slug": "مساعد-كابينة",
+    "level": 3,
+    "parent_id": 363,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 367,
+    "name_ar": "مفصلة كابينة",
+    "slug": "مفصلة-كابينة",
+    "level": 3,
+    "parent_id": 363,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 368,
+    "name_ar": "اوكرة باب",
+    "slug": "اوكرة-باب",
+    "level": 3,
+    "parent_id": 363,
+    "is_leaf": true,
+    "product_count": 13,
+    "product_count_total": 13
+  },
+  {
+    "id": 369,
+    "name_ar": "بلاور كابينة",
+    "slug": "بلاور-كابينة",
+    "level": 3,
+    "parent_id": 363,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 370,
+    "name_ar": "كالون اكرة باب",
+    "slug": "كالون-اكرة-باب",
+    "level": 3,
+    "parent_id": 363,
+    "is_leaf": true,
+    "product_count": 0,
+    "product_count_total": 0
+  },
+  {
+    "id": 371,
+    "name_ar": "مراية",
+    "slug": "مراية",
+    "level": 3,
+    "parent_id": 363,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 372,
+    "name_ar": "ذراع مراية",
+    "slug": "ذراع-مراية",
+    "level": 3,
+    "parent_id": 363,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 373,
+    "name_ar": "علامات واستيكرات",
+    "slug": "علامات-واستيكرات",
+    "level": 2,
+    "parent_id": 354,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 17
+  },
+  {
+    "id": 374,
+    "name_ar": "علامة",
+    "slug": "علامة",
+    "level": 3,
+    "parent_id": 373,
+    "is_leaf": true,
+    "product_count": 10,
+    "product_count_total": 10
+  },
+  {
+    "id": 375,
+    "name_ar": "علامة شبكة",
+    "slug": "علامة-شبكة",
+    "level": 3,
+    "parent_id": 373,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 376,
+    "name_ar": "استيكر",
+    "slug": "استيكر",
+    "level": 3,
+    "parent_id": 373,
+    "is_leaf": true,
+    "product_count": 4,
+    "product_count_total": 4
+  },
+  {
+    "id": 377,
+    "name_ar": "عاكس",
+    "slug": "عاكس",
+    "level": 3,
+    "parent_id": 373,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 378,
+    "name_ar": "شكمان وهواء خارجي",
+    "slug": "شكمان-وهواء-خارجي",
+    "level": 2,
+    "parent_id": 1,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 70
+  },
+  {
+    "id": 379,
+    "name_ar": "شكمان",
+    "slug": "شكمان",
+    "level": 3,
+    "parent_id": 378,
+    "is_leaf": true,
+    "product_count": 20,
+    "product_count_total": 20
+  },
+  {
+    "id": 380,
+    "name_ar": "فرن شكمان",
+    "slug": "فرن-شكمان",
+    "level": 3,
+    "parent_id": 25,
+    "is_leaf": true,
+    "product_count": 23,
+    "product_count_total": 23
+  },
+  {
+    "id": 381,
+    "name_ar": "ماسورة شكمان",
+    "slug": "ماسورة-شكمان",
+    "level": 3,
+    "parent_id": 378,
+    "is_leaf": true,
+    "product_count": 7,
+    "product_count_total": 7
+  },
+  {
+    "id": 382,
+    "name_ar": "علبة شكمان",
+    "slug": "علبة-شكمان",
+    "level": 3,
+    "parent_id": 378,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 383,
+    "name_ar": "عصفورة شكمان",
+    "slug": "عصفورة-شكمان",
+    "level": 3,
+    "parent_id": 378,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 384,
+    "name_ar": "جلبة شكمان",
+    "slug": "جلبة-شكمان",
+    "level": 3,
+    "parent_id": 378,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 385,
+    "name_ar": "قفيز شكمان",
+    "slug": "قفيز-شكمان",
+    "level": 3,
+    "parent_id": 378,
+    "is_leaf": true,
+    "product_count": 3,
+    "product_count_total": 3
+  },
+  {
+    "id": 386,
+    "name_ar": "عمة هواية",
+    "slug": "عمة-هواية",
+    "level": 3,
+    "parent_id": 378,
+    "is_leaf": true,
+    "product_count": 11,
+    "product_count_total": 11
+  },
+  {
+    "id": 387,
+    "name_ar": "كوعة شكمان",
+    "slug": "كوعة-شكمان",
+    "level": 3,
+    "parent_id": 378,
+    "is_leaf": true,
+    "product_count": 8,
+    "product_count_total": 8
+  },
+  {
+    "id": 388,
+    "name_ar": "هواية",
+    "slug": "هواية",
+    "level": 3,
+    "parent_id": 378,
+    "is_leaf": true,
+    "product_count": 11,
+    "product_count_total": 11
+  },
+  {
+    "id": 389,
+    "name_ar": "كوعة هواية",
+    "slug": "كوعة-هواية",
+    "level": 3,
+    "parent_id": 378,
+    "is_leaf": true,
+    "product_count": 4,
+    "product_count_total": 4
+  },
+  {
+    "id": 390,
+    "name_ar": "مانفول هواء",
+    "slug": "مانفول-هواء",
+    "level": 3,
+    "parent_id": 25,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 391,
+    "name_ar": "باغة هواية",
+    "slug": "باغة-هواية",
+    "level": 3,
+    "parent_id": 378,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 392,
+    "name_ar": "بلي وأويل سيلات و سيور ومثبتات",
+    "slug": "بلي-وأويل-سيلات-و-سيور-ومثبتات",
+    "level": 1,
+    "parent_id": null,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 574
+  },
+  {
+    "id": 393,
+    "name_ar": "بلي",
+    "slug": "بلي",
+    "level": 2,
+    "parent_id": 392,
+    "is_leaf": false,
+    "product_count": 4,
+    "product_count_total": 127
+  },
+  {
+    "id": 394,
+    "name_ar": "بلية",
+    "slug": "بلية",
+    "level": 3,
+    "parent_id": 393,
+    "is_leaf": true,
+    "product_count": 112,
+    "product_count_total": 112
+  },
+  {
+    "id": 395,
+    "name_ar": "ظرف بلية",
+    "slug": "ظرف-بلية",
+    "level": 3,
+    "parent_id": 393,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 396,
+    "name_ar": "هون بلية",
+    "slug": "هون-بلية",
+    "level": 3,
+    "parent_id": 393,
+    "is_leaf": true,
+    "product_count": 10,
+    "product_count_total": 10
+  },
+  {
+    "id": 397,
+    "name_ar": "أويل سيلات",
+    "slug": "أويل-سيلات",
+    "level": 2,
+    "parent_id": 392,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 194
+  },
+  {
+    "id": 398,
+    "name_ar": "اويل سيل",
+    "slug": "اويل-سيل",
+    "level": 3,
+    "parent_id": 397,
+    "is_leaf": true,
+    "product_count": 194,
+    "product_count_total": 194
+  },
+  {
+    "id": 399,
+    "name_ar": "اويل سيل كرنك",
+    "slug": "اويل-سيل-كرنك",
+    "level": 3,
+    "parent_id": 48,
+    "is_leaf": true,
+    "product_count": 80,
+    "product_count_total": 80
+  },
+  {
+    "id": 400,
+    "name_ar": "وش اويل سيل",
+    "slug": "وش-اويل-سيل",
+    "level": 3,
+    "parent_id": 48,
+    "is_leaf": true,
+    "product_count": 7,
+    "product_count_total": 7
+  },
+  {
+    "id": 401,
+    "name_ar": "كاوتش/اويل سيل صباب",
+    "slug": "كاوتش-اويل-سيل-صباب",
+    "level": 3,
+    "parent_id": 25,
+    "is_leaf": true,
+    "product_count": 34,
+    "product_count_total": 34
+  },
+  {
+    "id": 402,
+    "name_ar": "جلب",
+    "slug": "جلب",
+    "level": 3,
+    "parent_id": 252,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 403,
+    "name_ar": "كاوتش وجلد وأورينج",
+    "slug": "كاوتش-وجلد-وأورينج",
+    "level": 2,
+    "parent_id": 392,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 91
+  },
+  {
+    "id": 404,
+    "name_ar": "كاوتش",
+    "slug": "كاوتش",
+    "level": 3,
+    "parent_id": 403,
+    "is_leaf": true,
+    "product_count": 35,
+    "product_count_total": 35
+  },
+  {
+    "id": 405,
+    "name_ar": "اورينج",
+    "slug": "اورينج",
+    "level": 3,
+    "parent_id": 403,
+    "is_leaf": true,
+    "product_count": 4,
+    "product_count_total": 4
+  },
+  {
+    "id": 406,
+    "name_ar": "استيك",
+    "slug": "استيك",
+    "level": 3,
+    "parent_id": 403,
+    "is_leaf": true,
+    "product_count": 52,
+    "product_count_total": 52
+  },
+  {
+    "id": 407,
+    "name_ar": "مسامير وصواميل",
+    "slug": "مسامير-وصواميل",
+    "level": 2,
+    "parent_id": 392,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 57
+  },
+  {
+    "id": 408,
+    "name_ar": "مسمار",
+    "slug": "مسمار",
+    "level": 3,
+    "parent_id": 407,
+    "is_leaf": true,
+    "product_count": 46,
+    "product_count_total": 46
+  },
+  {
+    "id": 409,
+    "name_ar": "صامولة",
+    "slug": "صامولة",
+    "level": 3,
+    "parent_id": 407,
+    "is_leaf": true,
+    "product_count": 1,
+    "product_count_total": 1
+  },
+  {
+    "id": 410,
+    "name_ar": "جاويط",
+    "slug": "جاويط",
+    "level": 3,
+    "parent_id": 407,
+    "is_leaf": true,
+    "product_count": 10,
+    "product_count_total": 10
+  },
+  {
+    "id": 411,
+    "name_ar": "ورد وطبات وقفيز",
+    "slug": "ورد-وطبات-وقفيز",
+    "level": 2,
+    "parent_id": 392,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 25
+  },
+  {
+    "id": 412,
+    "name_ar": "وردة",
+    "slug": "وردة",
+    "level": 3,
+    "parent_id": 411,
+    "is_leaf": true,
+    "product_count": 19,
+    "product_count_total": 19
+  },
+  {
+    "id": 413,
+    "name_ar": "طبة",
+    "slug": "طبة",
+    "level": 3,
+    "parent_id": 411,
+    "is_leaf": true,
+    "product_count": 2,
+    "product_count_total": 2
+  },
+  {
+    "id": 414,
+    "name_ar": "قفيز",
+    "slug": "قفيز",
+    "level": 3,
+    "parent_id": 411,
+    "is_leaf": true,
+    "product_count": 4,
+    "product_count_total": 4
+  },
+  {
+    "id": 415,
+    "name_ar": "بنز وسنارات",
+    "slug": "بنز-وسنارات",
+    "level": 2,
+    "parent_id": 392,
+    "is_leaf": false,
+    "product_count": 0,
+    "product_count_total": 80
+  },
+  {
+    "id": 416,
+    "name_ar": "بنز",
+    "slug": "بنز",
+    "level": 3,
+    "parent_id": 415,
+    "is_leaf": true,
+    "product_count": 53,
+    "product_count_total": 53
+  },
+  {
+    "id": 417,
+    "name_ar": "سنارة",
+    "slug": "سنارة",
+    "level": 3,
+    "parent_id": 415,
+    "is_leaf": true,
+    "product_count": 23,
+    "product_count_total": 23
+  },
+  {
+    "id": 418,
+    "name_ar": "مشحمة",
+    "slug": "مشحمة",
+    "level": 3,
+    "parent_id": 415,
+    "is_leaf": true,
+    "product_count": 4,
+    "product_count_total": 4
+  }
+]

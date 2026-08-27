@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Cron:etc/crontab.xsd">
+    <group id="default">
+        <!-- Data retention, not housekeeping: every row in the ledger holds a
+             phone number, so spent rows are deleted rather than accumulated. -->
+        <job name="spartrak_customer_auth_purge_otp" instance="Spartrak\CustomerAuth\Cron\PurgeExpiredOtpRequests" method="execute">
+            <schedule>25 3 * * *</schedule>
+        </job>
+    </group>
+</config>

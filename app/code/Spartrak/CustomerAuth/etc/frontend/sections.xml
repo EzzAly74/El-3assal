@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<!--
+  Invalidate customer section data after any successful auth transition.
+
+  This file is what makes the header actually update. Magento caches customer
+  section data (the "Welcome, ..." name, the account menu, the minicart) in
+  localStorage and only refetches a section when a POST to a registered action
+  invalidates it. Without these entries, a shopper who signs in through the modal
+  keeps seeing a logged-out header until they hard-reload — the session is real,
+  the UI just never hears about it. This is the single most commonly missed step
+  when auth is moved off Magento's own customer/account/* routes.
+
+  "*" is the right scope for all four: signing in, registering and resetting a
+  password each change the customer identity wholesale, and a guest cart merge on
+  login changes the cart section too.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Customer:etc/sections.xsd">
+    <!--
+      QA FIX (2026-08-25) — these three were "spartrak_auth/...", the ROUTE ID.
+      Magento matches these keys against the request URL PATH, i.e. the
+      frontName, so they never matched and no section was ever invalidated on
+      sign-in. The header therefore kept rendering the guest state over a real
+      session, which is the exact failure this file's own comment above warns
+      about.
+
+      Traced through Magento_Customer/view/frontend/web/js/section-config.js:
+      getAffectedSections(url) strips the base URL and "index.php", lowercases
+      the remainder, then matches `route.indexOf(section) === 0`. The POST goes
+      to /phone-auth/account/loginPost (routes.xml declares
+      frontName="phone-auth" for route id="spartrak_auth"), which canonizes to
+      "phone-auth/account/loginpost" — and that never starts with
+      "spartrak_auth/...".
+
+      It is an easy mistake to make because Magento's own modules mostly use
+      the same string for both (Magento_Customer's route id AND frontName are
+      both "customer"), so copying its sections.xml reads as if the route id is
+      what belongs here.
+    -->
+    <action name="phone-auth/account/loginPost">
+        <section name="*"/>
+    </action>
+    <action name="phone-auth/account/createPost">
+        <section name="*"/>
+    </action>
+    <action name="phone-auth/password/resetPost">
+        <section name="*"/>
+    </action>
+</config>

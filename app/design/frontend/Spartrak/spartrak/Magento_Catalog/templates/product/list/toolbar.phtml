@@ -1,0 +1,185 @@
+<?php
+/**
+ * Spartrak — PLP / search-results toolbar.
+ *
+ * Overrides Smartwave/porto's Magento_Catalog/templates/product/list/
+ * toolbar.phtml (the Magento\Catalog\Block\Product\ProductList\Toolbar
+ * template). Category browsing and search results share this one block, so
+ * this single file covers both.
+ *
+ * --- FIGMA PASS 2026-08-26, node 569:13635 ---------------------------
+ * Read live via the Figma MCP server (file 6FRlQfPIncVUvNiJLn2kbT). The
+ * design's toolbar is two stacked rows, 16px apart:
+ *
+ *   row 1  569:13636  results heading, pulled to the inline-start edge:
+ *                     [ 2,500+ ]  Heading/H2  arabic bold 24/1.3
+ *                     [ نتائج بحث منتجات "جون ديير" ]  Body/Small 14/1.5
+ *                     grey, with the search term itself bold + text/primary
+ *   row 2  569:13640  full width:
+ *            569:13646  three quick-sort chips at the inline-start edge,
+ *                       8px apart, each h40 / px16 / 1px border/default /
+ *                       square corners / Shadow-Input, Label/Large 14/1.3,
+ *                       with a 16px gradient icon AFTER the label in the
+ *                       LTR canvas (= at the inline-start under RTL)
+ *            569:13641  the sort control at the inline-end edge, h40 /
+ *                       px20 / same border + shadow, "الترتيب: الافتراضي"
+ *                       with a 16px chevron-down
+ *
+ * WHAT IS REUSED, NOT REBUILT
+ *   - the sort <select> is Magento's own [data-role="sorter"] control, so
+ *     productListToolbarForm still binds to it and sorting keeps working
+ *     exactly as before — only its chrome is restyled;
+ *   - the pager is Magento's own Html\Pager child block, untouched, just
+ *     given its native anchor text so "Previous"/"Next" render as the words
+ *     the design shows (a translatable string, not CSS content);
+ *   - Porto's mobile filter-toggle anchor is carried over VERBATIM, inline
+ *     SVG included, because spartrak-plp-filter-toggle.js is already wired
+ *     to that exact element and Figma has no mobile PLP frame to replace it
+ *     with (do not swap in a different icon here on a guess);
+ *   - Porto's trailing infinite-loader script is kept unchanged.
+ *
+ * DELIBERATE OMISSIONS, per CLAUDE.md section 3 (Figma is the UI SSOT for
+ * this surface) — say the word and either comes straight back:
+ *   - the LIMITER ("products per page") and the VIEW-MODE switcher
+ *     (grid/list). Neither exists anywhere in the Figma PLP.
+ *   - the sort DIRECTION toggle (Magento's sort-asc/sort-desc anchor). The
+ *     design's sort control is a single dropdown with no direction control.
+ *
+ * BACKEND REQUIRED — NOT FAKED. The three chips Figma names are
+ * "الأكثر مبيعا" (best selling), "الأكثر بحثا" (most searched) and
+ * "خصومات مميزه" (special discounts). None of the three is a native Magento
+ * sort option, and wiring a chip to a product_list_order value the toolbar
+ * does not know would give a control that silently does nothing. So each
+ * chip renders only when its sort key really exists in
+ * getAvailableOrders(); on today's catalog that means none of them render.
+ * All three are implementable from data Magento already keeps —
+ * sales_bestsellers_aggregated_* for best-selling, Reports' product-view
+ * aggregates for most-searched, special_price for discounts — via a small
+ * module that registers the sort options and their collection modifiers.
+ * That module is the next step, not a gap in this file.
+ *
+ * @var $block \Magento\Catalog\Block\Product\ProductList\Toolbar
+ */
+
+$collectionSize = (int) $block->getCollection()->getSize();
+
+// Real search term, used for the results heading. Present only on
+// catalogsearch pages; a category page has no `q`.
+$searchTerm = trim((string) $block->getRequest()->getParam('q', ''));
+
+/**
+ * Quick-sort chips (Figma 569:13646). The map is the DESIGN's intent; the
+ * filter below is what keeps it honest. Order matters: the first entry is
+ * the inline-start-most chip, which under RTL is the rightmost — matching
+ * Figma, where "الأكثر مبيعا" sits furthest right.
+ *
+ * `icon` values are the exact gradient SVGs Figma exports for these three
+ * chips; all three were byte-compared against the copies already in this
+ * theme's web/images/icons/ and match, so no new asset was added:
+ *   fire-simple.svg == 569:13663 (1277 B)   trend-up.svg == 569:13656 (1720 B)
+ *   lightning.svg   == 569:13650 (1503 B)
+ */
+$quickSortMap = [
+    'bestsellers' => ['label' => __('Best selling'), 'icon' => 'fire-simple.svg'],
+    'most_viewed' => ['label' => __('Most searched'), 'icon' => 'trend-up.svg'],
+    'special_price' => ['label' => __('Special offers'), 'icon' => 'lightning.svg'],
+];
+
+$availableOrders = (array) $block->getAvailableOrders();
+$currentOrder = (string) $block->getCurrentOrder();
+
+$quickSorts = [];
+foreach ($quickSortMap as $orderKey => $chip) {
+    if (array_key_exists($orderKey, $availableOrders)) {
+        $quickSorts[$orderKey] = $chip;
+    }
+}
+
+// Magento's own pager child block. It is NOT rendered here — list.phtml
+// renders it once, on its own, below the grid where Figma puts it
+// (node 569:14143). Giving it anchor text makes it render the words
+// "Previous"/"Next" inside the pill instead of an empty span for a CSS
+// icon to fill — translatable and readable by assistive tech, which a CSS
+// `content` string is not. Setting it here rather than in list.phtml keeps
+// all toolbar configuration in the toolbar's own template.
+$pagerBlock = $block->getChildBlock('product_list_toolbar_pager');
+if ($pagerBlock) {
+    $pagerBlock->setAnchorTextForPrevious(__('Previous'))->setAnchorTextForNext(__('Next'));
+}
+?>
+<?php if ($collectionSize) : ?>
+    <div class="toolbar toolbar-products spartrak-toolbar" data-mage-init='<?= /* @noEscape */ $block->getWidgetOptionsJson() ?>'>
+
+        <?php /* Porto's mobile filter toggle — carried over verbatim, see header. */ ?>
+        <a href="#" class="porto-product-filters-toggle sidebar-toggle d-inline-flex d-lg-none"><svg data-name="Layer 3" id="Layer_3" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><line class="cls-1" x1="15" x2="26" y1="9" y2="9"></line><line class="cls-1" x1="6" x2="9" y1="9" y2="9"></line><line class="cls-1" x1="23" x2="26" y1="16" y2="16"></line><line class="cls-1" x1="6" x2="17" y1="16" y2="16"></line><line class="cls-1" x1="17" x2="26" y1="23" y2="23"></line><line class="cls-1" x1="6" x2="11" y1="23" y2="23"></line><path class="cls-2" d="M14.5,8.92A2.6,2.6,0,0,1,12,11.5,2.6,2.6,0,0,1,9.5,8.92a2.5,2.5,0,0,1,5,0Z"></path><path class="cls-2" d="M22.5,15.92a2.5,2.5,0,1,1-5,0,2.5,2.5,0,0,1,5,0Z"></path><path class="cls-3" d="M21,16a1,1,0,1,1-2,0,1,1,0,0,1,2,0Z"></path><path class="cls-2" d="M16.5,22.92A2.6,2.6,0,0,1,14,25.5a2.6,2.6,0,0,1-2.5-2.58,2.5,2.5,0,0,1,5,0Z"></path></svg> <span><?= $block->escapeHtml(__('Filters')) ?></span></a>
+
+        <?php /*
+          Row 1 — results heading (Figma 569:13636). DOM order is
+          [count, label] so that under dir=rtl the number lands at the
+          inline-start (right) edge with the sentence to its left, exactly
+          as the design renders, and mirrors cleanly for an LTR store.
+          The count is the collection's real size — no "+" flourish is
+          added, because that would misstate a real number.
+        */ ?>
+        <p class="spartrak-toolbar__head">
+            <strong class="spartrak-toolbar__count"><?= $block->escapeHtml(number_format($collectionSize)) ?></strong>
+            <span class="spartrak-toolbar__label">
+                <?php if ($searchTerm !== '') : ?>
+                    <?= $block->escapeHtml(__('Product search results for')) ?>
+                    &ldquo;<strong class="spartrak-toolbar__term"><?= $block->escapeHtml($searchTerm) ?></strong>&rdquo;
+                <?php else : ?>
+                    <?= $block->escapeHtml(__('products')) ?>
+                <?php endif; ?>
+            </span>
+        </p>
+
+        <?php /* Row 2 — quick-sort chips + the sort control (Figma 569:13640). */ ?>
+        <div class="spartrak-toolbar__controls">
+            <div class="spartrak-toolbar__quick">
+                <?php foreach ($quickSorts as $orderKey => $chip) : ?>
+                    <?php $isActive = ($currentOrder === $orderKey); ?>
+                    <a class="spartrak-chip<?= $isActive ? ' spartrak-chip--active' : '' ?>"
+                       href="<?= $block->escapeUrl($block->getOrderUrl($orderKey, 'desc')) ?>"
+                       <?= $isActive ? 'aria-current="true"' : '' ?>>
+                        <img class="spartrak-chip__icon"
+                             src="<?= $block->escapeUrl($block->getViewFileUrl('images/icons/' . $chip['icon'])) ?>"
+                             alt=""
+                             width="16"
+                             height="16"
+                             loading="lazy"
+                             decoding="async" />
+                        <span class="spartrak-chip__label"><?= $block->escapeHtml($chip['label']) ?></span>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+
+            <?php if (count($availableOrders) > 1) : ?>
+                <div class="spartrak-toolbar__sort spartrak-sorter">
+                    <span class="spartrak-sorter__text">
+                        <label class="spartrak-sorter__label" for="sorter"><?= $block->escapeHtml(__('Sort:')) ?></label>
+                        <select id="sorter" data-role="sorter" class="spartrak-sorter__select">
+                            <?php foreach ($availableOrders as $orderKey => $orderLabel) : ?>
+                                <option value="<?= $block->escapeHtmlAttr($orderKey) ?>"
+                                    <?= $currentOrder === (string) $orderKey ? ' selected="selected"' : '' ?>>
+                                    <?= $block->escapeHtml(__($orderLabel)) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </span>
+                    <span class="spartrak-sorter__chevron" aria-hidden="true"></span>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+<?php endif; ?>
+<script>
+    require([
+        'jquery'
+    ], function ($) {
+        'use strict';
+        if ($('.layered-filter-block-container').length == 0) {
+            $('.infinite-loader').hide();
+            $('.toolbar.toolbar-products').show();
+        }
+    });
+</script>

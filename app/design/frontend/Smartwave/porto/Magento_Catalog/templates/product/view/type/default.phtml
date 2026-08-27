@@ -1,0 +1,26 @@
+<?php
+/**
+ * Copyright © 2013-2017 Magento, Inc. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+
+// phpcs:disable
+/** @var \Magento\Framework\Escaper $escaper */
+
+?>
+<?php /* @var $block \Magento\Catalog\Block\Product\View\AbstractView */?>
+<?php $_product = $block->getProduct() ?>
+
+<?php if ($block->displayProductStockStatus()): ?>
+    <?php if ($_product->isAvailable()): ?>
+        <span><?= $escaper->escapeHtml(__('Availability')) ?>: </span>
+        <div class="stock available" title="<?= $escaper->escapeHtmlAttr(__('In stock')) ?>">
+            <span class="label"> <?= $escaper->escapeHtml(__('In stock')) ?></span>
+        </div>
+    <?php else: ?>
+        <span><<?= $escaper->escapeHtml(__('Availability')) ?>: </span>
+        <div class="stock unavailable" title="<?= $escaper->escapeHtmlAttr(__('Out of stock')) ?>">
+        	<span class="label"> <?= $escaper->escapeHtml(__('Out of stock')) ?></span>
+        </div>
+    <?php endif; ?>
+<?php endif; ?>

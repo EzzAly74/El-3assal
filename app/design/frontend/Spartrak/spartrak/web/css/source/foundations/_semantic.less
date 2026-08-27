@@ -1,0 +1,65 @@
+// Spartrak design tokens — Layer 2: Semantic roles
+// Mirrors the Figma "2. Semantic" variable collection. Every component
+// consumes ONLY these role tokens, never a --primitive-* value directly.
+
+:root {
+    --color-action-primary: var(--primitive-navy);
+    --color-action-primary-hover: var(--primitive-navy-hover);
+    --color-action-primary-text: var(--primitive-surface); // Figma: action.primary-text = neutral.0
+
+    // FIGMA AUTH-MODAL PASS (2026-08-26). Figma: action/primary-disabled.
+    // The disabled primary CTA on the register-phone and OTP-incomplete
+    // states. Distinct from --color-text-disabled, which tints disabled TEXT;
+    // this is a disabled BUTTON FILL and the two are not interchangeable.
+    --color-action-primary-disabled: var(--primitive-navy-disabled);
+    // Label colour on that fill. The two Figma variants disagree — the
+    // desktop node binds `action/secondary` (#ffffff), the mobile node binds
+    // `action/favorite-inactive` (#1a144f). Resolved to the ink value on
+    // contrast grounds (CLAUDE.md §15): #1a144f on #8faef0 is ~5.6:1 and
+    // clears WCAG AA, whereas #ffffff on #8faef0 is ~2.2:1 and fails it. The
+    // mobile variant is therefore the correct one and the desktop binding is
+    // treated as the authoring slip.
+    --color-action-primary-disabled-text: var(--primitive-icon-ink);
+    --color-action-accent: var(--primitive-yellow);
+    --color-action-accent-hover: var(--primitive-yellow-hover);
+    --color-action-accent-text: var(--primitive-ink); // Figma: action.accent-text = neutral.1000
+    --color-callout-soft: var(--primitive-yellow-soft);
+    --color-rating-empty: var(--primitive-star-empty);
+    --color-border-focus: var(--primitive-navy); // Figma: border.focus = blue.500
+
+    --color-text-primary: var(--primitive-ink);
+    --color-text-secondary: var(--primitive-text-secondary);
+    --color-text-muted: var(--primitive-text-muted);
+    --color-text-disabled: var(--primitive-text-disabled); // disabled state only — never live text
+    --color-text-inverse: var(--primitive-surface); // Figma: text.inverse = neutral.0
+
+    --color-border-default: var(--primitive-border);
+    --color-border-strong: var(--primitive-border-strong);
+    --color-border-on-media: var(--primitive-alpha-white-10); // Figma: border.on-media = alpha.white-10
+
+    --color-bg-field: var(--primitive-field-bg);
+    --color-bg-surface: var(--primitive-surface);
+    --color-bg-surface-subtle: var(--primitive-surface-subtle);
+    --color-bg-page: var(--primitive-page-tint);
+    --color-bg-inverse: var(--primitive-ink); // Figma: bg.inverse = neutral.1000
+
+    --color-feedback-success: var(--primitive-success);
+    --color-feedback-danger: var(--primitive-danger);
+    --color-icon-ink: var(--primitive-icon-ink);
+    --color-scrim: var(--primitive-alpha-ink-20); // Figma: bg.scrim = alpha.ink-20
+
+    // FIGMA HEADER PASS (2026-08-25) — role names mirror the Figma
+    // "2. Semantic" variable names returned by get_variable_defs on the
+    // header frames, so the mapping stays greppable in both directions.
+    // Figma: icon/default. An alias of --color-icon-ink (same primitive) —
+    // kept because the header nodes bind this NAME, so a reader diffing the
+    // Figma variable list against this file finds it.
+    --color-icon-default: var(--primitive-icon-ink);
+    // Figma: blue/0 — the account-chip avatar plate (693:45429).
+    --color-bg-avatar: var(--primitive-blue-0);
+
+    // Promo badge gradient stops — see _tokens.less for why these are raw
+    // in Figma and therefore real primitives here.
+    --color-badge-promo-start: var(--primitive-yellow-promo-start);
+    --color-badge-promo-end: var(--primitive-yellow-promo-end);
+}

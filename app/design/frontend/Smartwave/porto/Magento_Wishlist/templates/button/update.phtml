@@ -1,0 +1,16 @@
+<?php
+/**
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+
+// phpcs:disable
+/** @var \Magento\Framework\Escaper $escaper */
+
+?>
+
+<?php if ($block->getWishlist()->getItemsCount()): ?>
+    <button type="submit" name="do" title="<?= $escaper->escapeHtml(__('Update Wish List')) ?>" class="action update primary">
+        <span><?= $escaper->escapeHtml(__('Update Wish List')) ?></span>
+    </button>
+<?php endif;?>

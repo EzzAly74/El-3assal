@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!--
+Spartrak — Phase 6.
+
+Only change from Porto's own catalog_category_view.xml (layout="2columns-left",
+untouched, still inherited): a body attribute that wires the working mobile
+filter toggle fix (see web/js/spartrak-plp-filter-toggle.js's own header
+comment for why this lives here rather than as a Porto toolbar.phtml
+override).
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <attribute name="data-mage-init" value="{&quot;spartrakPlpFilterToggle&quot;:{}}"/>
+    </body>
+</page>

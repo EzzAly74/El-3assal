@@ -1,0 +1,180 @@
+// Spartrak — design-system ownership layer.
+//
+// WHY IT LIVES HERE AND NOT IN source/components/
+// Magento emits the storefront's CSS as TWO separately-linked files:
+//
+//   1. media="all"                       -> the merged bundle (styles-m +
+//                                           module CSS + this theme's own
+//                                           spartrak-*.css)
+//   2. media="screen and (min-width:768px)" -> styles-l.min.css
+//
+// ...and (2) is linked AFTER (1). So a rule in spartrak-components.css can
+// never outrank a desktop rule in styles-l on equal specificity, no matter
+// where it sits inside the bundle. That is exactly how Porto's
+// `.form.create.account .actions-toolbar > .primary .action{background:#222529}`
+// kept winning on desktop even after the component layer claimed it.
+//
+// `//@magento_import 'source/_extend.less'` is Magento's own designated
+// extension hook (see vendor/magento/theme-frontend-blank/web/css/styles-m.less
+// and styles-l.less). It is deliberately written as a `//` comment — Magento's
+// MagentoImport preprocessor treats it as live, plain LESS compilers ignore it
+// — and it is collected AFTER `source/_module.less` (where Porto's per-module
+// LESS lands) and after `source/_theme.less`. Crucially it is collected into
+// BOTH styles-m and styles-l, so one copy of these rules wins on mobile and
+// desktop alike, with no duplication and no media-query juggling.
+//
+// It resolves per MODULE, not per theme, which is why this file sits under
+// Magento_Theme/ rather than web/css/source/ — Magento_Theme is also last
+// alphabetically among the modules that ship one, so this lands at the end.
+//
+// WHAT BELONGS HERE
+// Only rules that claim markup this theme does not template but whose look
+// the design system must own, AND where there is no LESS variable to rebind.
+// Anything fixable by a variable belongs in
+// web/css/source/_spartrak-magento-bindings.less instead — that is the
+// cleaner seam and it is where .action.primary, links, forms, pager, ratings
+// and prices are already handled at the source.
+//
+// Porto hardcodes #222529 (its @theme-color) as a LITERAL in the rules below
+// rather than referencing the variable, so the binding layer cannot reach
+// them. Each selector MIRRORS Porto's exactly — no !important, no inflated
+// specificity — and wins on position alone.
+//
+// Values come from foundations/_tokens.less via the CSS custom properties in
+// foundations/_semantic.less. Custom properties resolve at computed-value
+// time, so it does not matter that :root is declared in a different file.
+
+//
+//  These are not incidental Porto decoration. They are core commerce
+//  surfaces (add-to-cart, checkout CTA, minicart, filters, qty, fieldsets)
+//  that the design system should own outright, so this block is Spartrak
+//  claiming them — the "Spartrak Design System -> Spartrak components ->
+//  Magento core -> Porto fallback" order, not an override fight.
+//
+//  SPECIFICITY: each selector below MIRRORS Porto's exactly. Verified in the
+//  built bundle that this theme's CSS is emitted after Porto's (Spartrak
+//  starts at byte ~551k, Porto's module CSS at ~307k), so equal specificity
+//  is sufficient and no !important or inflated selector is needed. If the
+//  head asset order ever changes, these stop winning — that is the intended
+//  tripwire, not a fragility to paper over.
+//
+//  Every rule restates ONLY the property carrying the literal; all other
+//  Porto declarations on these selectors are deliberately left intact so the
+//  fallback layer keeps its layout/sizing work.
+
+//  Primary CTAs ------------------------------------------------------------
+.box-tocart .action.tocart {
+    background: var(--color-action-primary);
+
+    &:hover,
+    &:focus {
+        background: var(--color-action-primary-hover);
+    }
+}
+
+.cart-summary .checkout-methods-items .action.primary.checkout {
+    background-color: var(--color-action-primary);
+
+    &:hover,
+    &:focus {
+        background-color: var(--color-action-primary-hover);
+    }
+}
+
+.cart-empty .btn-go-shop {
+    background-color: var(--color-action-primary);
+
+    &:hover,
+    &:focus {
+        background-color: var(--color-action-primary-hover);
+    }
+}
+
+//  Headings / legends ------------------------------------------------------
+.login-container .block .block-title {
+    color: var(--color-text-primary);
+}
+
+.fieldset > .legend {
+    color: var(--color-text-primary);
+}
+
+.fieldset > .field .action {
+    color: var(--color-action-primary);
+}
+
+//  Minicart ----------------------------------------------------------------
+.minicart-wrapper .block-minicart {
+    color: var(--color-text-primary);
+}
+
+//  REMOVED 2026-08-25: `.cart-design-2 .action.showcart .minicart-icon`.
+//  This theme now owns Magento_Checkout::cart/minicart.phtml, and that
+//  override emits neither the `cart-design-N` wrapper class nor Porto's
+//  `<i class="minicart-icon">` icon-font element — so the selector could no
+//  longer match anything. Deleted rather than left as dead CSS.
+
+//  Catalog toolbar / layered navigation -------------------------------------
+.toolbar a.porto-product-filters-toggle svg {
+    stroke: var(--color-icon-ink);
+}
+
+.toolbar select {
+    color: var(--color-text-primary);
+}
+
+.filter-options-title {
+    color: var(--color-text-primary);
+
+    .toggle:before {
+        background: var(--color-icon-ink);
+    }
+}
+
+//  Quantity input ----------------------------------------------------------
+.qty.field .input-text.qty {
+    color: var(--color-text-primary);
+}
+
+//  'Open Sans' literals — the theme no longer loads Open Sans (see
+//  foundations/_fonts.less); left alone these two would be the only things on
+//  the storefront still pulling those four woff2 faces onto the wire.
+//    Magento_Cms  : lib/web/css/source/lib/_typography.less (.cms-content-important)
+//    Smartwave_Dailydeals : view/frontend/web/css/style.css (.dailydeal-label)
+.cms-content-important {
+    font-family: var(--font-arabic);
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-surface-subtle);
+}
+
+.catalog-product-view .sw-dailydeal .dailydeal-label {
+    font-family: var(--font-arabic);
+    color: var(--color-text-primary);
+}
+
+//  Account forms -----------------------------------------------------------
+//  Porto: Magento_Customer/web/css/source/_module.less.
+//
+//  This one needs the .media-width() mixin, not a plain rule. Porto scopes it
+//  with that same mixin, which registers the rule with Magento's responsive
+//  collector (source/lib/_responsive.less) — and styles-l.less imports the
+//  collector AFTER source/_extend.less. So a plain rule here is emitted at
+//  ~byte 69k while Porto's collected one lands at ~106k and still wins.
+//  Going through the collector puts both in the same pass, in theme-fallback
+//  order, where this theme's copy comes last.
+//
+//  The guard also scopes the rule to desktop exactly as Porto's is, so mobile
+//  is untouched — which is correct here: the mobile bundle has no competing
+//  rule to override.
+.media-width(@extremum, @break) when (@extremum = 'min') and (@break = @screen__m) {
+    .form.create.account .actions-toolbar > .primary .action,
+    .form.create.account .actions-toolbar > .secondary .action {
+        background: var(--color-action-primary);
+        color: var(--color-action-primary-text);
+
+        &:hover,
+        &:focus {
+            background: var(--color-action-primary-hover);
+        }
+    }
+}

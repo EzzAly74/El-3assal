@@ -1,0 +1,348 @@
+// Spartrak component — Utility Strip ("Top Container")
+//
+// FIGMA SSOT: desktop node 595:14476, mobile node 724:25804.
+//
+//   frame       padding 16px, border-block-end 1px border/default #e4e3e5,
+//               display flex, justify-content space-between,
+//               align-items flex-start  -> computed height 50px
+//   background  desktop #f9f9f9, mobile #ffffff  (see BACKGROUND below)
+//   options     gap 16, align-items center; each label Label/Base
+//               (thmanyah sans Medium 500 / 12px / lh 1.3) in text/primary
+//   notices     gap 8, align-items center; each label Body/XSmall
+//               (thmanyah sans Regular 400 / 12px / lh 1.5) in text/primary
+//   dot         4x4 circle, fill neutral/600 #6d6c79 (= --color-text-muted)
+//
+// ============================================================================
+// DOM ORDER: WHY EVERY CLUSTER IS "BACKWARDS" RELATIVE TO THE FIGMA CODE
+// ============================================================================
+// Figma's auto-layout on these frames is LTR-ordered, but the frames are
+// RTL-COMPOSED — the pixel positions are the Arabic storefront's truth. Those
+// two facts together mean the generated Figma code's child order is the
+// REVERSE of what an RTL document needs.
+//
+// Proof, from four independent clusters on this header (all verified against
+// the 1440 PNG export):
+//   Main Navbar   Figma x: actions 40 | search centre | logo 1331
+//                 -> in RTL the logo must be the FIRST child (start = right)
+//   Search bar    Figma x: submit 4 | placeholder 109 | loupe 981
+//                 -> loupe first (leads, at the right), submit last
+//   Language      Figma x: chevron 0 | "عربي" 18 | globe 45
+//                 -> globe first (icon leads), chevron last (disclosure
+//                    trails) — which is also the only sensible RTL reading
+//   Profile chip  Figma x: chevron 0 | "Karim" 24 | avatar 72
+//                 -> avatar first, chevron last
+// In every case, reversing Figma's x-order yields both (a) the exact RTL
+// pixel positions and (b) the natural semantic order. That is not a
+// coincidence: it is what an RTL composition looks like when it is read back
+// out through an LTR tool.
+//
+// The payoff: ONE DOM serves both store views. `direction: rtl` on the
+// Arabic store reproduces Figma exactly; the LTR store gets a true mirror
+// (logo left, search centre, actions right — correct LTR convention) for
+// free. No [dir] overrides, no duplicated markup, no row-reverse hacks.
+// This is why every rule below uses logical properties.
+//
+// ============================================================================
+// BACKGROUND
+// ============================================================================
+// Figma declares the Navbar "Container" fill as `bg/on-media-subtle`
+// (#ffffff14). Transcribed literally that is rgba(255,255,255,.08), which
+// over this storefront's white page resolves to ~#ffffff — but the Figma
+// frame RENDERS #f9f9f9. Measured off the 1440 export inside the utility
+// strip (600,68), the navbar (600,145) and both gutters beside the nav-row
+// card (80,235 / 1380,235): #f9f9f9 at every point, which is exactly
+// --primitive-surface-subtle. The opaque token is therefore the pixel-exact
+// implementation and the alpha value is not. See foundations/_tokens.less.
+//
+// This strip is a separate DOM block from the navbar (it is wired before
+// porto_header, not inside it), so it cannot inherit that fill and paints it
+// itself. _utility-header.less paints the identical value on the navbar, so
+// the two read as the one continuous surface Figma draws.
+
+.spartrak-support-strip {
+    background: var(--color-bg-surface-subtle);
+    border-block-end: 1px solid var(--color-border-default);
+}
+
+.spartrak-support-strip__inner {
+    display: flex;
+    justify-content: space-between;
+    // Figma: align-items flex-start. The two clusters have different
+    // line-heights (Options 1.3 -> 16px, Notices 1.5 -> 18px) and Figma tops
+    // them both at y=16, so the taller one sets the 50px frame height.
+    align-items: flex-start;
+    gap: 12px 20px;
+    padding: 16px;
+    max-width: @breakpoint-desktop;
+    margin-inline: auto;
+}
+
+// Figma node 595:14494 "Menus" — payment/shipping copy + hotline. FIRST in
+// the DOM so RTL places it at the inline start (the right, x=1048 in Figma).
+.spartrak-support-strip__notices {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+}
+
+// Figma node 595:14477 "Options" — track order / language / contact. LAST in
+// the DOM so RTL places it at the inline end (the left, x=16 in Figma).
+.spartrak-support-strip__options {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.spartrak-support-strip__notice {
+    // Body/XSmall
+    font-family: var(--font-arabic);
+    font-size: var(--text-12);
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: var(--letter-spacing-normal);
+    color: var(--color-text-primary);
+    white-space: nowrap;
+}
+
+// Node 595:14496 / 595:14499 — a 4px filled circle, fill #6d6c79.
+// Drawn in CSS rather than shipped as an SVG on purpose: the Figma export is
+// a 229-byte <circle> with no glyph information in it, so a border-radius box
+// is the same pixels for zero bytes and zero requests. This is the one place
+// in this pass where a Figma "asset" is not committed as a file, and it is a
+// geometric primitive, not artwork.
+.spartrak-support-strip__separator {
+    flex: 0 0 auto;
+    width: 4px;
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: var(--color-text-muted);
+}
+
+.spartrak-support-strip__item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    // Label/Base
+    font-family: var(--font-arabic);
+    font-size: var(--text-12);
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: var(--letter-spacing-normal);
+    color: var(--color-text-primary);
+    text-decoration: none;
+    white-space: nowrap;
+
+    &:hover,
+    &:focus-visible {
+        color: var(--color-action-primary);
+    }
+}
+
+// Node 595:14489 — the delivery-truck glyph on "تتبع طلبك". currentColor so
+// it picks up the item's hover state for free.
+.spartrak-support-strip__icon--track {
+    .spartrak-icon('truck.svg'; 16px);
+}
+
+// Phone numbers and Latin-script addresses inside an RTL block: the bidi
+// algorithm reorders an embedded LTR run unless it is isolated, which is what
+// turned "+20 122 314 9614" into "9614 314 122 20+" on the Arabic store view
+// (QA, 2026-08-23). This content is inherently Latin-script — design-tokens.md
+// mandates Latin digits in both locales — so isolating it is correct in both
+// directions, not an RTL-only workaround.
+//
+// Scoped to the hotline value only. It must NOT hit the marketing copy or the
+// Options labels, which are genuine Arabic prose.
+.spartrak-support-strip__notice--hotline-value {
+    unicode-bidi: isolate;
+    direction: ltr;
+}
+
+// ---------------------------------------------------------------------------
+// Language switcher
+// ---------------------------------------------------------------------------
+// Figma puts the language control in this strip (node 595:14481: globe +
+// store name + chevron), NOT in the main navbar where the previous pass had
+// it. The markup below is Porto's own Magento_Store::switch/languages.phtml,
+// unmodified — the block is RELOCATED by <move> in layout XML, not
+// re-instantiated.
+//
+// That distinction matters: the 2026-08-24 pass tried to satisfy this same
+// Figma requirement by declaring a SECOND Magento\Store\Block\Switcher here,
+// which fatal-errored on every page ("Call to a member function
+// getTargetStoreRedirectUrl() on null" — the new instance resolved to
+// Magento_Store's CORE template, which needs a view model Porto's own
+// template does not) and had to be reverted. A <move> carries the existing,
+// working instance and its template resolution with it, so there is no second
+// instantiation and nothing to crash.
+//
+// Everything below is presentation only. The dropdownDialog widget, the
+// data-post store-switch payload and the URL building are all untouched
+// Porto/Magento behaviour.
+.spartrak-support-strip {
+    .switcher.language {
+        // A flex item alongside the other Options entries, so it sits on the
+        // same baseline instead of behaving like a block and breaking the row.
+        display: flex;
+        align-items: center;
+        flex: 0 0 auto;
+        margin: 0;
+        // Porto's own rules give this a font-size/colour of its own; restated
+        // so the trigger matches the sibling Options items exactly.
+        font-family: var(--font-arabic);
+        font-size: var(--text-12);
+        line-height: 1.3;
+    }
+
+    // "Language" — Figma shows only the store name. Kept for assistive tech
+    // rather than removed from the template (which is Porto's, not ours).
+    .switcher-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .switcher-options {
+        position: relative;
+        display: inline-block;
+    }
+
+    // NO COUNTRY FLAGS. Porto's template renders a flag <img> next to the
+    // store name in the trigger AND next to every option in the dropdown,
+    // gated on porto_settings/header/language_flag. Figma's language control
+    // (node 595:14481) is globe + store name + chevron only — no flag.
+    //
+    // Suppressed here rather than by switching that Porto setting off: the
+    // config is a Porto-wide toggle this project does not own, and the
+    // storefront's appearance should not depend on an unrelated admin flag
+    // staying in one position. Hiding the <img> is also what keeps the flag
+    // out of the dropdown, which the setting alone would still populate.
+    .switcher img {
+        display: none;
+    }
+
+    .switcher-trigger {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        color: var(--color-text-primary);
+
+        strong {
+            font-weight: 500;
+        }
+
+        // Globe (node 693:45407) then the store name then the disclosure
+        // chevron (node 693:45405, the 14px variant). ::before is the first
+        // flex child, so in RTL it lands at the inline start — the right —
+        // exactly as Figma draws it, and mirrors to the left in the LTR store.
+        &:before {
+            content: '';
+            .spartrak-icon('globe.svg'; 16px; var(--color-icon-default));
+            margin-inline-end: 6px;
+        }
+
+        // Figma uses a 6px gap between globe and label but only 4px between
+        // label and chevron, so the two are set as margins rather than one
+        // flex `gap`.
+        &:after {
+            content: '';
+            .spartrak-icon('chevron-down.svg'; 14px; var(--color-icon-default));
+            margin-inline-start: 4px;
+        }
+
+        &:hover {
+            color: var(--color-action-primary);
+        }
+    }
+
+    // Not in Figma (the open state of this control is not drawn on any
+    // Production frame). Minimal token-built popover so the existing,
+    // functional Porto dropdown is legible instead of unstyled — no invented
+    // decoration beyond a surface, a border and the design system's radius.
+    //
+    // QA FIX (2026-08-25): this rule previously set no `position`, so the
+    // dropdown opened IN FLOW. Inside a `flex-wrap: wrap` row that made it a
+    // flex item of its own, wrapping to a new line, growing the strip's height
+    // and shoving every sibling around — the "layout not arranged" symptom.
+    // It has to be out of flow so opening it changes nothing about the row.
+    //
+    // Anchored to .switcher-options (position: relative, above) at the inline
+    // END so the panel hangs under the control and stays inside the viewport
+    // in both directions: in RTL the control sits toward the left of the
+    // strip's Options cluster, and an inline-start anchor would push the panel
+    // off-canvas.
+    // Magento's dropdownDialog widget WRAPS the <ul> in a
+    // `.mage-dropdown-dialog` div and runs with `autoPosition: false`, so
+    // nothing positions that wrapper — it is a plain in-flow block. Both it
+    // and the bare list are pulled out of flow here, so the strip's layout is
+    // identical open or closed no matter which of the two the widget ends up
+    // showing (and it still works if the widget never initialises).
+    .mage-dropdown-dialog,
+    .switcher-dropdown {
+        position: absolute;
+        inset-inline-end: 0;
+        top: calc(100% + 6px);
+        z-index: 40;
+    }
+
+    // When the wrapper IS present it owns the placement, so the list inside it
+    // must not try to position itself a second time.
+    .mage-dropdown-dialog .switcher-dropdown {
+        position: static;
+        top: auto;
+    }
+
+    .switcher-dropdown {
+        margin: 0;
+        padding: 4px 0;
+        list-style: none;
+        min-width: 140px;
+        // The strip centres its clusters; the panel's own items read from the
+        // inline start regardless.
+        text-align: start;
+        background: var(--color-bg-surface);
+        border: 1px solid var(--color-border-default);
+        border-radius: var(--radius-6);
+        box-shadow: 0 4px 12px var(--color-scrim);
+
+        a {
+            display: block;
+            padding: 6px 12px;
+            color: var(--color-text-primary);
+            text-decoration: none;
+
+            &:hover {
+                background: var(--color-bg-surface-subtle);
+                color: var(--color-action-primary);
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Mobile — Figma node 724:25804
+// ---------------------------------------------------------------------------
+// Same padding, border and two-cluster layout. Two differences, both real:
+//   1. background is bg/surface (#ffffff), not #f9f9f9
+//   2. the Options cluster drops "أتصل بنا", and the Notices cluster drops
+//      both marketing copy lines — only the hotline survives
+@media (max-width: @breakpoint-header-collapse) {
+    .spartrak-support-strip {
+        background: var(--color-bg-surface);
+    }
+
+    .spartrak-support-strip__item--contact,
+    .spartrak-support-strip__notice--marketing,
+    .spartrak-support-strip__separator {
+        display: none;
+    }
+}

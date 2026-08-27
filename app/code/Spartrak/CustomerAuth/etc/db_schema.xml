@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+
+    <!--
+      OTP request ledger.
+
+      One row per code issued. The code itself is NEVER stored: only a salted
+      one-way hash (Magento\Framework\Encryption\EncryptorInterface), so a
+      database read cannot recover a live code. Same for the post-verification
+      proof token, which is stored as a plain SHA-256 digest (it is already a
+      256-bit random value, so a slow hash buys nothing and costs latency).
+
+      The ledger is also the rate-limit substrate: the limiter counts rows by
+      phone and by IP over a time window rather than keeping a separate counter
+      store, which keeps send-throttling correct across multiple web nodes with
+      no shared cache required.
+    -->
+    <table name="spartrak_customer_otp" resource="default" engine="innodb" comment="Spartrak phone OTP request ledger">
+        <column xsi:type="int" name="request_id" unsigned="true" nullable="false" identity="true" comment="Request ID"/>
+        <column xsi:type="varchar" name="phone" length="20" nullable="false" comment="Phone number in E.164"/>
+        <column xsi:type="varchar" name="purpose" length="32" nullable="false" comment="signup|password_reset"/>
+        <column xsi:type="varchar" name="code_hash" length="255" nullable="false" comment="Salted one-way hash of the OTP code"/>
+        <column xsi:type="varchar" name="token_hash" length="64" nullable="true" comment="SHA-256 of the post-verification proof token"/>
+        <column xsi:type="smallint" name="attempts" unsigned="true" nullable="false" default="0" comment="Failed verification attempts"/>
+        <column xsi:type="varchar" name="status" length="16" nullable="false" default="pending" comment="pending|verified|consumed|revoked|undelivered"/>
+        <column xsi:type="varchar" name="ip_address" length="45" nullable="true" comment="Requesting IP (IPv6-capable length)"/>
+        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false" default="0" comment="Store view the request originated from"/>
+        <column xsi:type="timestamp" name="expires_at" nullable="true" comment="Code expiry"/>
+        <column xsi:type="timestamp" name="token_expires_at" nullable="true" comment="Proof-token expiry"/>
+        <column xsi:type="timestamp" name="created_at" nullable="false" default="CURRENT_TIMESTAMP" comment="Created at"/>
+        <column xsi:type="timestamp" name="updated_at" nullable="false" default="CURRENT_TIMESTAMP" on_update="true" comment="Updated at"/>
+
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="request_id"/>
+        </constraint>
+
+        <!-- Verification looks up the newest pending row for a phone+purpose. -->
+        <index referenceId="SPARTRAK_CUSTOMER_OTP_PHONE_PURPOSE_STATUS" indexType="btree">
+            <column name="phone"/>
+            <column name="purpose"/>
+            <column name="status"/>
+        </index>
+        <!-- Proof-token redemption is a single-row lookup on this digest. -->
+        <index referenceId="SPARTRAK_CUSTOMER_OTP_TOKEN_HASH" indexType="btree">
+            <column name="token_hash"/>
+        </index>
+        <!-- Per-phone and per-IP send throttling windows. -->
+        <index referenceId="SPARTRAK_CUSTOMER_OTP_PHONE_CREATED_AT" indexType="btree">
+            <column name="phone"/>
+            <column name="created_at"/>
+        </index>
+        <index referenceId="SPARTRAK_CUSTOMER_OTP_IP_ADDRESS_CREATED_AT" indexType="btree">
+            <column name="ip_address"/>
+            <column name="created_at"/>
+        </index>
+        <!-- Cron purge scans by expiry. -->
+        <index referenceId="SPARTRAK_CUSTOMER_OTP_EXPIRES_AT" indexType="btree">
+            <column name="expires_at"/>
+        </index>
+    </table>
+
+    <!--
+      Phone number as a first-class customer identifier.
+
+      These are real columns on customer_entity, not EAV varchar rows, for two
+      reasons that both matter in production:
+
+        1. UNIQUENESS. A UNIQUE index is the only way to make "one account per
+           phone number" actually atomic. An application-level "select then
+           insert" check loses to two concurrent registrations; a unique index
+           does not. MySQL permits unlimited NULLs in a unique index, so every
+           pre-existing email-only customer stays valid.
+
+        2. LOOKUP COST. Sign-in resolves phone -> customer on every attempt. A
+           static column is one indexed read against customer_entity; an EAV
+           attribute is a join into customer_entity_varchar filtered by
+           attribute_id. The Setup/Patch/Data/AddPhoneAttributes patch declares
+           the matching EAV attribute rows with backend_type="static" so the
+           admin customer form and grid still see these columns as attributes.
+    -->
+    <table name="customer_entity">
+        <column xsi:type="varchar" name="phone_number" length="20" nullable="true" comment="Phone number in E.164 — Spartrak login identifier"/>
+        <column xsi:type="timestamp" name="phone_verified_at" nullable="true" comment="When phone ownership was last proven by OTP"/>
+        <constraint xsi:type="unique" referenceId="CUSTOMER_ENTITY_PHONE_NUMBER">
+            <column name="phone_number"/>
+        </constraint>
+    </table>
+</schema>

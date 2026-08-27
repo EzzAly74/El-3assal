@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<!--
+  Spartrak head assets.
+
+  The <remove> block below strips assets that Smartwave/porto's own
+  Magento_Theme/layout/default_head_blocks.xml adds to every page and that
+  this theme inherits. Each removal was verified against the rendered output
+  of the live homepage, PDP, category and search pages — the class prefixes
+  these files define do not appear anywhere in that markup:
+
+      owl.carousel.css        4.7KB   "owl-"        0 occurrences
+      simple-line-icons.css  12.1KB   "simple-line" 0 occurrences
+      font-awesome.min.css    8.5KB   "fa-"         0 occurrences
+      Shadows Into Light              a decorative Google script face, absent
+                                      from _typography.less's stack
+                                      (thmanyah sans / Inter / Inter Tight)
+
+  The font link costs more than its byte count suggests: it is a separate
+  DNS + TLS + request to a third-party host, on an origin currently serving
+  HTTP/1.1, so it competes for the per-host connection budget rather than
+  multiplexing.
+
+  DELIBERATELY KEPT (do not add to this list without re-verifying):
+    - fancybox/css/jquery.fancybox.css — "fancybox" appears 20x in the live
+      output, but only inside inline JS config strings, never as markup. It
+      is injected at runtime when a lightbox opens, so a static markup scan
+      cannot prove it dead. Verify by exercising the gallery/popup first.
+    - icon-fonts/css/porto-icons-codes.css — "porto-icon-*" is still live in
+      Porto's compare-products sidebar and on the native minicart trigger.
+      _utility-header.less already masks the minicart glyph with a real SVG
+      (.spartrak-icon), so once the compare block is restyled this file can
+      go too — that is the last thing holding an 18KB icon font on the page.
+    - icon-fonts/css/animation.css — 1.9KB, pairs with the icon font above.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <remove src="owl.carousel/assets/owl.carousel.css"/>
+        <remove src="simple-line-icons/css/simple-line-icons.css"/>
+        <remove src="font-awesome/css/font-awesome.min.css"/>
+        <remove src="//fonts.googleapis.com/css?family=Shadows+Into+Light"/>
+
+        <css src="css/spartrak-foundations.css"/>
+        <css src="css/spartrak-components.css"/>
+    </head>
+</page>

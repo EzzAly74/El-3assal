@@ -1,0 +1,43 @@
+// Spartrak design tokens — Layer 5: Icon system
+//
+// Resolves 16-ARCHITECTURE-DECISIONS.md risk #8 ("icon system still open"),
+// which is why every component built in Phases 4-6 shipped empty icon boxes.
+//
+// SOURCE: real SVGs exported from the Figma file via the Figma MCP
+// (file 6FRlQfPIncVUvNiJLn2kbT), one per icon node, committed under
+// web/images/icons/. Node IDs are recorded next to each usage so the asset
+// can be re-pulled if the design changes.
+//
+// WHY MASKS, NOT <img> OR background-image: the exported SVGs carry the
+// stroke colour of their Figma *context* baked in — e.g. icons/search.svg is
+// stroke="white" because in Figma it sits inside the navy search CTA. Used as
+// an <img> or background-image, that white icon is invisible on this theme's
+// white header. A CSS mask reads only the SVG's alpha channel and takes its
+// colour from `background-color`, so one asset serves every context and the
+// colour stays a design token. It also means the existing empty
+// `<span class="...__icon">` placeholders in the templates need no markup
+// change at all — they just gain a mask here.
+//
+// Colour defaults to `currentColor` so an icon inherits its parent's text
+// colour (and therefore its hover/focus states) for free. Pass an explicit
+// token only where the icon must diverge from the surrounding text.
+
+// @file  — filename inside web/images/icons/
+// @size  — square edge length; icons in this design are all square
+// @color — any colour token; `currentColor` inherits from the text
+.spartrak-icon(@file; @size: 20px; @color: currentColor) {
+    width: @size;
+    height: @size;
+    flex: 0 0 auto;
+    background-color: @color;
+    // Longhand rather than the `mask:` shorthand on purpose: LESS parses the
+    // `/` in `center / contain` as division and mangles the shorthand.
+    -webkit-mask-image: url('../images/icons/@{file}');
+    mask-image: url('../images/icons/@{file}');
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}

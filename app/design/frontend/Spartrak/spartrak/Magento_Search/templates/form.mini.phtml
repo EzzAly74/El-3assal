@@ -1,0 +1,183 @@
+<?php
+/**
+ * Spartrak Header Search.
+ *
+ * FIGMA SSOT: desktop node 595:14520, mobile node 724:25849.
+ *
+ *   bar     62px tall (52 on mobile), bg/field #f3f3f4 (bg/surface-subtle
+ *           #f9f9f9 on mobile), 1px border/default, radius 100px, gap 8,
+ *           padding-inline 16 on the loupe side / 4 on the button side
+ *   loupe   node 693:45436, 20px, stroke bound to action/primary #063196
+ *   input   Body/Large — thmanyah sans Regular 400 / 18px / lh 1.5,
+ *           placeholder in text/muted, aligned to the inline start
+ *   button  node 595:14521 — 97x62, action/primary, radius 100px,
+ *           padding-inline 14, [label "بحث" 16px Medium inverse, loupe 20px]
+ *
+ * ===========================================================================
+ * WHY THIS EMITS SPARTRAK CLASSES AND NOT CORE'S
+ * ===========================================================================
+ * QA FIX (2026-08-25). The first version of this override kept core's class
+ * names (.block-search / .form.minisearch / .field.search / .actions /
+ * .action.search) and styled them. On the live site the desktop search
+ * rendered nothing like Figma: no navy submit button, a stray icon-font
+ * magnifier, and a ~250px-wide box floated right.
+ *
+ * ROOT CAUSE — the styles-l trap this theme already documents in
+ * Magento_Theme/web/css/source/_extend.less. Magento emits the storefront's
+ * CSS as two separately-linked files, and `styles-l.min.css`
+ * (media="screen and (min-width:768px)") is linked AFTER the merged bundle
+ * that contains spartrak-components.css. theme-frontend-blank's
+ * Magento_CatalogSearch/web/css/source/_module.less puts its entire desktop
+ * search treatment inside `.media-width('min', @screen__m)`:
+ *
+ *     .block-search        { float: right; width: 250px; padding-left: 15px; }
+ *     .block-search .action.search {
+ *         .lib-button-icon(@_icon-font-content: @icon-search,
+ *                          @_icon-font-text-hide: true);   // hides the label,
+ *                                                          // adds a glyph
+ *         .lib-button-reset();                             // kills background
+ *         position: absolute; right: 10px; top: 0;
+ *     }
+ *
+ * `.block-search .action.search` is (0,3,0) — the SAME specificity as
+ * `.spartrak-header__search .action.search`. Equal specificity is broken by
+ * source order, and blank's copy is in the file that loads second, so it won
+ * every one of those properties on desktop only. No amount of restating
+ * declarations in the component layer fixes that; it needed either a
+ * higher-specificity selector (a specificity war, forbidden by CLAUDE.md §9)
+ * or the rules relocated into _extend.less.
+ *
+ * The real fix is to stop competing. Spartrak owns this template, so it owns
+ * its class names: with no `.block-search` / `.action.search` in the markup,
+ * blank's desktop rules simply do not match, and the component file is the
+ * only thing styling this component — no override, no !important, no
+ * duplicated declarations, and less CSS overall.
+ *
+ * ===========================================================================
+ * MAGENTO BEHAVIOUR PRESERVED — every hook quickSearch needs is still here
+ * ===========================================================================
+ * Verified against vendor/magento/module-search/view/frontend/web/js/
+ * form-mini.js, which is what `quickSearch` resolves to:
+ *
+ *   .spartrak-search__form  options.formSelector — the form it binds submit to
+ *                           (a class, not the usual #search_mini_form id; see
+ *                           the note on the <form> below for why)
+ *   #search               the element the widget is initialised on
+ *   #search_autocomplete  options.destinationSelector — where results render
+ *   button[type="submit"] options.submitBtn, looked up INSIDE the form; the
+ *                         widget enables/disables it as the query changes.
+ *                         It matches on the attribute, NOT on a class, which
+ *                         is why dropping `.action.search` is safe.
+ *
+ * The `name`, `maxlength`, `role="combobox"`, `aria-autocomplete`,
+ * `autocomplete="off"` and `aria-expanded` attributes are core's own, kept
+ * verbatim. $block->getChildHtml() still renders the Advanced Search link
+ * slot. Autocomplete, submit and the results route are untouched.
+ *
+ * The block is a plain Magento\Framework\View\Element\Template (declared in
+ * Smartwave_Porto/layout/default.xml), so it has no configProvider /
+ * additionalSearchFormData ViewModels — core's own 2.4.8 template would fatal
+ * on $configProvider->getSearchHelperData(). The search helper is therefore
+ * reached the same way Porto reaches it, which is the arrangement already
+ * proven in production here.
+ *
+ * TWO PLACEHOLDERS: Figma specifies different placeholder copy per breakpoint
+ * — the long string at 1440 and the short "ابحث هنا.." at 440. Placeholder
+ * text cannot be swapped in CSS, so both are emitted as attributes and
+ * spartrakUtilityHeader picks one with matchMedia. They stay real
+ * translatable strings (theme i18n/ar_EG.csv) rather than literals in JS.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ */
+$helper = $this->helper('Magento\Search\Helper\Data');
+$suggestUrl = $block->getUrl('search/ajax/suggest', ['_secure' => $block->getRequest()->isSecure()]);
+?>
+<div class="spartrak-search">
+    <?php
+    /**
+     * NO id="search_mini_form" — deliberately.
+     *
+     * Mageplaza_Search ships this in its own
+     * view/frontend/web/css/source/_module.less:
+     *
+     *     .media-width('min', @screen__m) {
+     *         #search_mini_form { width: 374px; float: right; }
+     *     }
+     *
+     * An ID selector is (1,0,0) and beats ANY class selector no matter how
+     * many classes are stacked or which file loads later — so no amount of
+     * component CSS could have undone that 374px float, and out-specifying it
+     * would have meant an ID or !important of our own. Both are the
+     * specificity war CLAUDE.md §9 forbids.
+     *
+     * Dropping the id removes the match instead. Verified safe: nothing in
+     * app/ references #search_mini_form (only Magefan's unrelated
+     * #blog_search_mini_form), and core's quickSearch takes the form from
+     * `options.formSelector`, which is set to this form's class below.
+     *
+     * Mageplaza's own frontend search blocks are already removed in this
+     * theme's Magento_Theme/layout/default.xml; its stylesheet still compiles
+     * into the bundle because the module is enabled, and `_module.less` is
+     * collected by @magento_import rather than a <css src>, so it cannot be
+     * dropped with <remove>. Not matching it is the clean way out.
+     */
+    ?>
+    <form class="spartrak-search__form" action="<?= $block->escapeUrl($helper->getResultUrl()) ?>" method="get">
+        <?php /* Decorative loupe, node 693:45436. Emitted first so RTL places
+                 it at the inline start (Figma x=981 of 1017, the right edge)
+                 — see header.phtml on child order. Purely ornamental; the
+                 input carries the accessible name. */ ?>
+        <span class="spartrak-search__icon" aria-hidden="true"></span>
+
+        <div class="spartrak-search__field">
+            <input id="search"
+                   data-mage-init='{"quickSearch":{
+                        "formSelector":".spartrak-search__form",
+                        "url":"<?= $block->escapeHtmlAttr($suggestUrl) ?>",
+                        "destinationSelector":"#search_autocomplete"}
+                   }'
+                   type="text"
+                   name="<?= $block->escapeHtmlAttr($helper->getQueryParamName()) ?>"
+                   value="<?= $block->escapeHtmlAttr($helper->getEscapedQueryText()) ?>"
+                   placeholder="<?= $block->escapeHtmlAttr(__('Search by part number, part name, brand, or model....')) ?>"
+                   data-placeholder-compact="<?= $block->escapeHtmlAttr(__('Search here..')) ?>"
+                   aria-label="<?= $block->escapeHtmlAttr(__('Search')) ?>"
+                   class="spartrak-search__input"
+                   maxlength="<?= $block->escapeHtmlAttr($helper->getMaxQueryLength()) ?>"
+                   role="combobox"
+                   aria-haspopup="false"
+                   aria-autocomplete="both"
+                   aria-expanded="false"
+                   autocomplete="off"/>
+            <div id="search_autocomplete" class="spartrak-search__autocomplete"></div>
+            <?php
+            /**
+             * $block->getChildHtml() is deliberately NOT called here.
+             *
+             * Core's own form.mini.phtml renders it at this point, which is
+             * what emitted the "Advanced Search" link that was leaking out
+             * below the search pill on the live header. Figma's search bar
+             * (node 595:14520) contains exactly three things — the loupe, the
+             * input and the submit button — and no secondary link.
+             *
+             * Nothing else is lost: this theme's `top.search` block is declared
+             * with no children of its own (see Smartwave_Porto/layout/
+             * default.xml), so the advanced-search link was the only child, and
+             * it remains reachable at its own /catalogsearch/advanced route.
+             */
+            ?>
+        </div>
+
+        <?php /* Node 595:14521. `type="submit"` is what quickSearch finds —
+                 no class dependency. The label is visible here (Figma shows
+                 "بحث"); core and Porto visually hide it. The button's
+                 trailing loupe is a ::after in CSS, because in Figma's LTR
+                 order the icon comes first and therefore trails once
+                 reversed for RTL. */ ?>
+        <button type="submit"
+                class="spartrak-search__submit"
+                title="<?= $block->escapeHtmlAttr(__('Search')) ?>">
+            <span><?= $block->escapeHtml(__('Search')) ?></span>
+        </button>
+    </form>
+</div>

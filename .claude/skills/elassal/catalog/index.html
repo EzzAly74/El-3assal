@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ElAssal — معاينة الكتالوج والبحث</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0A0E14; --navy:#1F3A93; --yellow:#FFC107; --yellow-h:#E6A800;
+  --soft:#FFF6D9; --gray:#6B7280; --tint:#F7F8FA; --green:#16A34A; --red:#DC2626;
+  --line:#E5E7EB; --radius:10px;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Tajawal,system-ui,sans-serif;background:var(--tint);color:var(--ink)}
+.mono{font-family:'JetBrains Mono',monospace}
+a{color:inherit;text-decoration:none}
+.promo{background:var(--ink);color:#fff;font-size:13px;text-align:center;padding:7px}
+.promo b{color:var(--yellow)}
+
+/* header */
+.header{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50}
+.hwrap{max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:18px;padding:12px 20px}
+.logo{font-weight:800;font-size:24px;color:var(--navy);white-space:nowrap}
+.logo span{color:var(--yellow-h)}
+.searchbox{flex:1;display:flex;border:2px solid var(--ink);border-radius:var(--radius);overflow:hidden}
+.searchbox input{flex:1;border:0;padding:12px 14px;font-family:inherit;font-size:15px;outline:0}
+.searchbox button{background:var(--yellow);border:0;padding:0 22px;font-weight:700;cursor:pointer;font-family:inherit;font-size:15px}
+.searchbox button:hover{background:var(--yellow-h)}
+.support{display:flex;gap:8px}
+.chip{display:flex;align-items:center;gap:6px;background:var(--tint);border:1px solid var(--line);border-radius:99px;padding:7px 12px;font-size:13px;font-weight:500}
+.chip.wa{background:#25D36615;border-color:#25D36655;color:#128C7E}
+
+/* navbar */
+.nav{background:var(--navy);position:relative;z-index:40}
+.nwrap{max-width:1280px;margin:0 auto;display:flex;gap:4px;padding:0 20px}
+.nav-item{color:#fff;padding:14px 18px;font-weight:700;cursor:pointer;font-size:15px;border-bottom:3px solid transparent}
+.nav-item:hover{background:#ffffff14;border-bottom-color:var(--yellow)}
+.nav-item.cta{color:var(--yellow)}
+
+/* mega menu */
+.mega{display:none;position:absolute;inset-inline:0;top:100%;background:#fff;border-bottom:3px solid var(--yellow);box-shadow:0 18px 40px #0003;padding:22px;z-index:45}
+.mega.open{display:block}
+.mega-wrap{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:230px 1fr;gap:20px}
+.mega-l1s{border-inline-end:1px solid var(--line);padding-inline-end:14px;display:flex;flex-direction:column;gap:2px}
+.l1btn{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:8px;cursor:pointer;font-weight:700;font-size:14px}
+.l1btn:hover,.l1btn.active{background:var(--soft)}
+.l1btn .cnt{font-size:11px;color:var(--gray);font-weight:500}
+.cols{display:grid;grid-template-columns:repeat(3,1fr);gap:18px 24px;align-content:start}
+.col h4{margin:0 0 8px;font-size:14px;color:var(--navy);border-bottom:2px solid var(--soft);padding-bottom:5px}
+.col h4 .c{color:var(--gray);font-size:11px;font-weight:500}
+.col a{display:block;padding:3px 0;font-size:13px;color:#374151}
+.col a:hover{color:var(--yellow-h);font-weight:700}
+.col .all{color:var(--navy);font-weight:700;font-size:12px;margin-top:4px}
+
+/* page */
+.wrap{max-width:1280px;margin:0 auto;padding:22px 20px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.stat .n{font-size:28px;font-weight:800;color:var(--navy)}
+.stat .l{color:var(--gray);font-size:13px;margin-top:2px}
+.section-t{font-size:20px;font-weight:800;margin:6px 0 14px}
+.brands{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:26px}
+.brand{background:#fff;border:1px solid var(--line);border-radius:99px;padding:8px 14px;font-weight:700;font-size:14px;cursor:pointer}
+.brand:hover{border-color:var(--navy);color:var(--navy)}
+.brand .c{color:var(--gray);font-weight:500;font-size:12px}
+
+/* results */
+.results{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:6px}
+.card .nm{font-weight:700;font-size:14px;line-height:1.4}
+.card .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto}
+.tag{font-size:11px;background:var(--tint);border:1px solid var(--line);border-radius:6px;padding:2px 7px;color:#374151}
+.tag.b{background:var(--soft);border-color:#f0d98a;color:#8a6d00}
+.tag.sku{background:#eef2ff;border-color:#c7d2fe;color:var(--navy)}
+.hint{color:var(--gray);font-size:13px;margin:4px 0 12px}
+.examples b{cursor:pointer;color:var(--navy);background:#fff;border:1px solid var(--line);border-radius:99px;padding:3px 10px;font-size:12px;margin-inline-end:6px;display:inline-block;margin-bottom:6px}
+.examples b:hover{background:var(--soft)}
+.empty{color:var(--gray);padding:30px;text-align:center}
+</style>
+</head>
+<body>
+<div class="promo">شحن لكل المحافظات · استلام من الفرع · دعم فني واتساب — <b>قطع غيار أصلية منذ ١٩٧٣</b></div>
+
+<header class="header">
+  <div class="hwrap">
+    <div class="logo">العسّال <span>PARTS</span></div>
+    <div class="searchbox">
+      <input id="q" placeholder="ابحث بالقطعة + الماركة معاً… مثال: بستم فيات" autocomplete="off">
+      <button onclick="runSearch()">بحث</button>
+    </div>
+    <div class="support">
+      <div class="chip wa">واتساب</div>
+      <div class="chip">الخط الساخن</div>
+      <div class="chip">الفروع</div>
+    </div>
+  </div>
+  <nav class="nav">
+    <div class="nwrap" id="navitems"></div>
+    <div class="mega" id="mega"><div class="mega-wrap"><div class="mega-l1s" id="megaL1"></div><div class="cols" id="megaCols"></div></div></div>
+  </nav>
+</header>
+
+<div class="wrap">
+  <div id="home">
+    <div class="stats" id="stats"></div>
+    <div class="section-t">تسوّق حسب الماركة</div>
+    <div class="brands" id="brands"></div>
+    <div class="section-t">جرّب البحث المدمج (قطعة + ماركة)</div>
+    <div class="examples" id="examples"></div>
+  </div>
+  <div id="searchview" style="display:none">
+    <div class="hint" id="searchhint"></div>
+    <div class="results" id="results"></div>
+  </div>
+</div>
+
+<script>
+let CATS=[], NAV=null, PRODUCTS=[];
+const $=s=>document.querySelector(s);
+
+// --- Arabic normalization (mirrors SEARCH-SPEC.md) ---
+function norm(s){
+  if(!s) return '';
+  s=String(s);
+  const ar='٠١٢٣٤٥٦٧٨٩', fa='۰۱۲۳۴۵۶۷۸۹';
+  s=s.replace(/[٠-٩]/g,d=>ar.indexOf(d)).replace(/[۰-۹]/g,d=>fa.indexOf(d));
+  s=s.replace(/[ً-ْٰـ]/g,'');
+  s=s.replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/ؤ/g,'و').replace(/ئ/g,'ي');
+  s=s.replace(/[\/\\]/g,' ');
+  return s.replace(/\s+/g,' ').trim().toLowerCase();
+}
+
+async function load(){
+  [CATS,NAV,PRODUCTS]=await Promise.all([
+    fetch('categories.json').then(r=>r.json()),
+    fetch('navbar.json').then(r=>r.json()),
+    fetch('products.json').then(r=>r.json()),
+  ]);
+  renderNav(); renderStats(); renderBrands(); renderExamples();
+}
+
+function renderStats(){
+  const mapped=PRODUCTS.filter(p=>p.match_method!=='uncategorized').length;
+  const roots=CATS.filter(c=>c.level===1).length;
+  const brands=NAV.primary[1].items.length;
+  const s=[[PRODUCTS.length.toLocaleString(),'منتج (SKU)'],
+          [Math.round(mapped/PRODUCTS.length*100)+'%','مصنّف على الشجرة'],
+          [roots+' / '+CATS.length,'تصنيف رئيسي / إجمالي'],
+          [brands,'ماركة']];
+  $('#stats').innerHTML=s.map(x=>`<div class="stat"><div class="n mono">${x[0]}</div><div class="l">${x[1]}</div></div>`).join('');
+}
+
+function renderNav(){
+  const labels=NAV.primary;
+  $('#navitems').innerHTML=labels.map((g,i)=>
+    `<div class="nav-item ${g.label==='العروض'?'cta':''}" data-i="${i}">${g.label} ${g.type==='mega'?'▾':''}</div>`).join('');
+  const mega=$('#mega');
+  document.querySelectorAll('.nav-item').forEach(el=>{
+    el.onmouseenter=()=>{
+      const g=labels[+el.dataset.i];
+      if(g.type==='mega'){ buildMega(g.groups); mega.classList.add('open'); }
+      else mega.classList.remove('open');
+    };
+  });
+  $('.nav').onmouseleave=()=>mega.classList.remove('open');
+}
+
+function buildMega(groups){
+  const l1=$('#megaL1');
+  l1.innerHTML=groups.map((g,i)=>`<div class="l1btn ${i===0?'active':''}" data-i="${i}">${g.title}<span class="cnt mono">${g.count.toLocaleString()}</span></div>`).join('');
+  const draw=i=>{
+    document.querySelectorAll('.l1btn').forEach((b,j)=>b.classList.toggle('active',j===i));
+    const g=groups[i];
+    $('#megaCols').innerHTML=g.columns.map(c=>
+      `<div class="col"><h4>${c.title} <span class="c mono">${c.count}</span></h4>
+       ${c.items.map(it=>`<a>${it.name} <span class="c mono" style="color:#9ca3af">${it.count}</span></a>`).join('')}
+       ${c.view_all?`<a class="all">عرض الكل (+${c.total_subitems-c.items.length})</a>`:''}</div>`).join('');
+  };
+  draw(0);
+  document.querySelectorAll('.l1btn').forEach(b=>b.onmouseenter=()=>draw(+b.dataset.i));
+}
+
+function renderBrands(){
+  $('#brands').innerHTML=NAV.primary[1].items.map(b=>
+    `<div class="brand" onclick="searchBrand('${b.name}')">${b.name} <span class="c mono">${b.count}</span></div>`).join('');
+}
+function renderExamples(){
+  const ex=['بستم فيات','فيات بستم 100','طلمبة مياة بركنز','فلتر زيت فورد','perkins piston','جوندير ترس'];
+  $('#examples').innerHTML=ex.map(e=>`<b onclick="setQ('${e}')">${e}</b>`).join('');
+}
+function setQ(v){$('#q').value=v;runSearch();}
+function searchBrand(b){$('#q').value=b;runSearch();}
+
+function runSearch(){
+  const raw=$('#q').value.trim();
+  if(!raw){showHome();return;}
+  const toks=norm(raw).split(' ').filter(Boolean);
+  const res=[];
+  for(const p of PRODUCTS){
+    const blob=' '+p.search+' ';
+    if(toks.every(t=>blob.includes(' '+t)||blob.includes(t))){ res.push(p); if(res.length>=300)break; }
+  }
+  $('#home').style.display='none';
+  $('#searchview').style.display='block';
+  $('#searchhint').innerHTML=`نتائج <b>"${raw}"</b> — ${res.length}${res.length>=300?'+':''} منتج (كل الكلمات، أي ترتيب)`;
+  $('#results').innerHTML=res.length?res.slice(0,120).map(p=>`
+    <div class="card">
+      <div class="nm">${p.name||'—'}</div>
+      <div class="meta">
+        ${p.brand?`<span class="tag b">${p.brand}</span>`:''}
+        ${p.l1?`<span class="tag">${p.l1}</span>`:''}
+        ${p.l3?`<span class="tag">${p.l3}</span>`:''}
+        <span class="tag sku mono">#${p.sku}</span>
+      </div>
+    </div>`).join(''):`<div class="empty">لا توجد نتائج — جرّب كلمات أقل</div>`;
+  window.scrollTo(0,0);
+}
+function showHome(){$('#searchview').style.display='none';$('#home').style.display='block';}
+$('#q').addEventListener('keydown',e=>{if(e.key==='Enter')runSearch();if(!$('#q').value)showHome();});
+load();
+</script>
+</body>
+</html>

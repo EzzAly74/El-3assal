@@ -1,0 +1,250 @@
+// Spartrak component — Homepage sections (Phase 5).
+// Semantic tokens only, logical properties for RTL (no [dir] override
+// needed — nothing here required a genuine flip beyond what logical
+// properties give for free, same as every Phase 4 component).
+//
+// ASSUMPTION — REQUIRES FIGMA VERIFICATION: every visual detail below
+// (spacing, card sizing, rail behavior, colors beyond the token set) is a
+// documented default, not a Figma-confirmed value — 01-FIGMA-AUDIT.md's
+// homepage pass confirmed section ORDER and the Fork Row's structural
+// existence, not exact chrome for any of these modules.
+
+.spartrak-home {
+    max-width: @breakpoint-desktop;
+    margin-inline: auto;
+    padding-inline: 16px;
+}
+
+.spartrak-home__promo-strip {
+    background: var(--color-bg-page);
+    text-align: center;
+    padding: 8px 16px;
+    font-size: var(--text-12);
+}
+
+.spartrak-home__hero {
+    margin-block: 16px;
+}
+
+// 17-FIGMA-CODE-AUDIT.md §2/§3 fix (2026-08-24): Hero converted from a
+// single static image/block into a real carousel (node 595:14562 —
+// confirmed 5-dot pagination + arrows). Each slide's own content
+// (image/headline/CTA) is CMS-authored HTML — this file only owns the
+// carousel mechanics' chrome (track, arrows, dots), not slide internals.
+.spartrak-home__hero-carousel {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-10);
+}
+
+.spartrak-home__hero-track {
+    display: flex;
+    transition: transform 0.3s ease;
+
+    img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+    }
+}
+
+.spartrak-home__hero-slide {
+    flex: 0 0 100%;
+    min-width: 0;
+}
+
+.spartrak-home__hero-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--color-bg-surface);
+    box-shadow: 0 4px 8px var(--color-scrim);
+    cursor: pointer;
+
+    &--prev {
+        inset-inline-start: 16px;
+    }
+
+    &--next {
+        inset-inline-end: 16px;
+    }
+}
+
+.spartrak-home__hero-dots {
+    position: absolute;
+    bottom: 16px;
+    inset-inline: 0;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.spartrak-home__hero-dot {
+    width: 8px;
+    height: 8px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--color-bg-surface);
+    opacity: 0.6;
+    padding: 0;
+    cursor: pointer;
+
+    &[aria-selected="true"] {
+        opacity: 1;
+        background: var(--color-action-primary);
+    }
+}
+
+.spartrak-home__trust-strip {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 0;
+    border-block: 1px solid var(--color-border-default);
+    font-size: var(--text-12);
+    color: var(--color-text-secondary);
+    flex-wrap: wrap;
+}
+
+.spartrak-home__section-title {
+    font-size: var(--text-20);
+    color: var(--color-text-primary);
+    margin-block: 24px 12px;
+}
+
+// --- Fork Row (Shop by Machine/Brand) ---
+.spartrak-home__fork-row {
+    background: var(--color-bg-surface-subtle);
+    border-radius: var(--radius-10);
+    padding: 24px;
+    margin-block: 24px;
+    text-align: center;
+}
+
+.spartrak-home__fork-title {
+    font-size: var(--text-24);
+    color: var(--color-text-primary);
+    margin-block-end: 4px;
+}
+
+.spartrak-home__fork-subtitle {
+    font-size: var(--text-14);
+    color: var(--color-text-secondary);
+    margin-block-end: 16px;
+}
+
+.spartrak-home__fork-form {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+}
+
+.spartrak-home__fork-row-fields {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.spartrak-home__fork-select {
+    padding: 10px 12px;
+    border-radius: var(--radius-6);
+    border: 1px solid var(--color-border-default);
+    background: var(--color-bg-field);
+    font-size: var(--text-14);
+    min-width: 180px;
+
+    &:disabled {
+        color: var(--color-text-disabled);
+    }
+}
+
+.spartrak-home__fork-submit {
+    background: var(--color-action-primary);
+    color: var(--color-action-primary-text);
+    border: 0;
+    border-radius: var(--radius-6);
+    padding: 10px 24px;
+    font-size: var(--text-14);
+    cursor: pointer;
+
+    &:hover {
+        background: var(--color-action-primary-hover);
+    }
+}
+
+// --- Shop by Part Type / Featured Products rails ---
+.spartrak-home__part-types-rail,
+.spartrak-home__featured-rail,
+.spartrak-home__brand-rail-strip {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-block-end: 8px;
+    scroll-snap-type: x proximity;
+}
+
+.spartrak-home__part-type-tile {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    min-width: 140px;
+    padding: 16px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-6);
+    text-align: center;
+    text-decoration: none;
+    color: var(--color-text-primary);
+    font-size: var(--text-14);
+
+    &:hover {
+        border-color: var(--color-action-primary);
+    }
+}
+
+// Featured Products rail: sizes the shared .spartrak-card (see
+// _product-card.less) for this horizontal-scroll context. The card's own
+// look (image/brand/name/price/add-to-cart) is defined once, centrally,
+// in _product-card.less — same rules the PLP grid uses.
+.spartrak-home__featured-rail .spartrak-card {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    width: 200px;
+}
+
+.spartrak-home__brand-chip {
+    flex: 0 0 auto;
+    padding: 10px 16px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-pill);
+    font-size: var(--text-12);
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+    text-decoration: none; // now a real link to the brand's filtered results (17-FIGMA-CODE-AUDIT.md fix)
+
+    &:hover {
+        border-color: var(--color-action-primary);
+        color: var(--color-action-primary);
+    }
+}
+
+@media (max-width: @breakpoint-mobile) {
+    .spartrak-home__trust-strip {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .spartrak-home__fork-row-fields {
+        flex-direction: column;
+    }
+
+    .spartrak-home__fork-select {
+        min-width: 100%;
+    }
+}

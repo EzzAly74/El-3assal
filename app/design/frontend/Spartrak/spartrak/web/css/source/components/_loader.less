@@ -1,0 +1,83 @@
+// Spartrak component — Magento loader chrome.
+//
+// Replaces Magento's default `images/loader-1.gif` / `loader-2.gif` busy
+// indicator with the design system's own spinner
+// (foundations/_spinner.less), coloured from --color-action-primary.
+//
+// WHAT MAGENTO ACTUALLY EMITS — there are exactly two shapes, and both are
+// covered below. Verified against core, not assumed:
+//
+//  1. An <img>-based mask. Emitted by
+//       lib/web/mage/loader.js               (options.template)
+//       Magento_Ui/templates/block-loader.html
+//       Magento_Checkout::onepage.phtml      (#checkout-loader)
+//       Magento_Theme::html/main_css_preloader.phtml
+//       Magento_Multishipping, Magento_LoginAsCustomerFrontendUi
+//     Markup: .loading-mask > .loader > (img + p). theme-frontend-blank's
+//     _loaders.less already hides the <p>; this file hides the <img> and
+//     draws the ring on .loader's own ::before instead.
+//
+//  2. A ::before-based mask. Emitted by lib/_loaders.less's .lib-loader()
+//     mixin, whose only frontend consumer is `.load.indicator`. That mixin
+//     paints the GIF as a background-image, so there is no element to hide —
+//     the fix is at the source: _spartrak-magento-bindings.less rebinds
+//     @loader-icon__background-image / @loading__background-image to `none`,
+//     so core generates `background: transparent none no-repeat 50% 50%` and
+//     never references the GIF. This file then re-sizes that same ::before
+//     from the mixin's 160x160 box down to the ring.
+//
+// WHY NO !IMPORTANT AND NO INFLATED SELECTORS: every selector here mirrors
+// the core/blank selector it claims, and this bundle is emitted after
+// Magento's own module CSS (see Magento_Theme/web/css/source/_extend.less
+// for the byte-offset evidence), so equal specificity wins on position.
+//
+// FUNCTIONALITY AND TIMING ARE UNTOUCHED. No JS is overridden, no template
+// is overridden, no widget is remapped. Every loader still appears and
+// disappears on exactly the same processStart/processStop, knockout
+// blockLoader binding and checkoutLoader events as before — only the glyph
+// inside the overlay changed. That is why checkout, add-to-cart, minicart
+// and every AJAX section refresh keep working.
+//
+// ONE HONEST RESIDUAL: shape (1)'s <img> still carries a src, so a browser
+// may still fetch loader-1.gif the first time a loader appears, even though
+// it is display:none. CSS cannot cancel an <img> fetch. Killing it outright
+// would mean either overriding core JS/templates (out of scope, and the
+// brief forbids vendor changes) or shipping a blank GIF over the theme's
+// own images/loader-1.gif (which would be authoring a substitute asset —
+// explicitly forbidden). It is one ~2KB same-origin, immutably-cached
+// request that only fires on a page that is already mid-AJAX, so it is left
+// visible rather than papered over.
+
+//  Shape 1 — <img>-based overlays -------------------------------------------
+.loading-mask {
+    .loader {
+        // The <img> was the only positioned child, so .loader itself needs to
+        // become the centring context once it is hidden. inset/margin:auto
+        // rather than a translate offset, so nothing depends on direction.
+        position: absolute;
+        inset: 0;
+
+        > img {
+            display: none;
+        }
+
+        &:before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            margin: auto;
+            .spartrak-spinner();
+        }
+    }
+}
+
+//  Shape 2 — .lib-loader()'s ::before ---------------------------------------
+//  Core already gives this ::before `content:''`, `position:absolute`,
+//  `inset:0`, `margin:auto` and a 160x160 box. Only the box and the ring are
+//  restated; the positioning is left to core so the two shapes stay in sync
+//  if core ever changes it.
+.load.indicator {
+    &:before {
+        .spartrak-spinner();
+    }
+}

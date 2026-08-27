@@ -1,0 +1,65 @@
+// Spartrak design tokens — Layer 3: Typography
+// Mirrors the Figma "3. Typography" collection (30 tokens, 38 named text
+// styles). Only the raw family/scale primitives are encoded here — the 38
+// composed text styles (family+size+weight+line-height combinations) are
+// deferred to per-component build time, extracted live from Figma Dev Mode
+// as each component is built (26/38 enumerated so far — see
+// 15-IMPLEMENTATION-ROADMAP.md Phase 0). Do not guess the remaining styles.
+
+:root {
+    // Thmanyah Sans is now SELF-HOSTED and in-hand — see _fonts.less for the
+    // @font-face declarations, the source/licence, and why only 400/500/700
+    // are shipped. This supersedes the 2026-08-23 "files not yet confirmed,
+    // fall back to the system UI stack" note that stood here.
+    //
+    // The family covers Latin as well as Arabic (see the unicode-range in
+    // _fonts.less), so --font-latin points at the same face rather than
+    // pulling a second family onto the critical path. The system stack is
+    // retained purely as the swap-period / no-woff2 fallback.
+    --font-arabic: 'thmanyah sans', system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
+    --font-latin: 'thmanyah sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    // Prices/quantities. Was 'Inter Tight', which is not loaded anywhere and
+    // would have silently rendered as system-ui next to Thmanyah body text.
+    // Thmanyah Sans covers Latin digits (see _fonts.less unicode-range), so
+    // numerals now match the rest of the page instead of mixing families.
+    --font-numeral: 'thmanyah sans', system-ui, sans-serif;
+    --font-mono-sku: 'JetBrains Mono', ui-monospace, monospace; // SKUs / part numbers
+
+    // Type scale — real usage clusters on 16/14/12/18/10/20; any other size
+    // observed in Figma (13, 15, 17, 10.5 …) is drift, fold it into this scale.
+    //
+    // --text-7 is NOT drift, despite sitting below the documented scale: it
+    // is a named Figma typography variable, `size/2xs` = 7, returned by
+    // get_variable_defs on the MOBILE header (724:25796) and composed into
+    // the named text style `Label/Micro` (thmanyah sans Bold 700, 7px,
+    // line-height 1.3, letter-spacing normal). Its one and only consumer is
+    // the 12x12 favourite/cart count badge on mobile, where the desktop's
+    // 10px `Label/Small` does not fit inside the ring. design-tokens.md
+    // simply had not transcribed the 2xs step yet.
+    --text-7: 7px;
+    --text-10: 10px;
+    --text-12: 12px;
+    --text-14: 14px;
+    --text-16: 16px;
+    --text-18: 18px;
+    --text-20: 20px;
+    --text-24: 24px;
+    --text-28: 28px;
+    --text-32: 32px;
+    --text-40: 40px;
+
+    // Letter spacing — the Figma "3. Typography" collection's own
+    // letter-spacing variables, previously untranscribed. Confirmed live on
+    // the header frames: `letter-spacing/normal` = 0 (every text style) and
+    // `letter-spacing/wide` = 0.5 (only `Label/Small`, i.e. the desktop
+    // count badge). Added as tokens rather than inlined because both are
+    // part of composed text styles that other components will reuse.
+    --letter-spacing-normal: 0;
+    --letter-spacing-wide: 0.5px;
+    // `letter-spacing/tight` = -0.5, confirmed on the auth modal's OTP cells
+    // (Figma text style `Display/Medium`: thmanyah sans Bold 32px, line-height
+    // 1.2, tracking -0.5). Its only consumer is the 32px OTP digit, where the
+    // negative tracking is what keeps a wide glyph optically centred in a
+    // 72px cell.
+    --letter-spacing-tight: -0.5px;
+}

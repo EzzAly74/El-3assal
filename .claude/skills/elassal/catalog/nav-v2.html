@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ElAssal — التنقّل v2 (Bartar tri-pane)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+:root{
+  --ink:#0A0E14;--navy:#1F3A93;--navy-d:#172C6E;--yellow:#FFC107;--yellow-h:#E6A800;
+  --soft:#FFF6D9;--gray:#6B7280;--line:#ECEEF1;--line2:#E5E7EB;--tint:#F7F8FA;--green:#16A34A;--red:#DC2626;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Tajawal,system-ui,sans-serif;background:#fff;color:var(--ink)}
+.mono{font-family:'JetBrains Mono',monospace}
+a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer}
+.wrap{max-width:1320px;margin:0 auto;padding:0 28px}
+
+/* compare bar */
+.cmp{background:#0A0E14;color:#cbd5e1;font-size:12.5px;text-align:center;padding:6px}
+.cmp a{color:var(--yellow);font-weight:700}
+
+/* promo */
+.promo{background:var(--ink);color:#fff;font-size:13.5px;position:relative}
+.promo .wrap{display:flex;align-items:center;justify-content:center;gap:10px;height:44px}
+.promo .new{background:var(--yellow);color:var(--ink);font-weight:800;font-size:11px;padding:3px 9px;border-radius:99px}
+.promo .x{position:absolute;inset-inline-start:28px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:18px;background:none;border:0}
+
+/* header */
+.header{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:60}
+.header .wrap{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;height:74px;gap:20px}
+.search{display:flex;align-items:center;gap:10px;background:var(--tint);border:1px solid var(--line2);border-radius:11px;padding:11px 15px;max-width:330px;transition:border-color .2s,box-shadow .2s}
+.search.focus{border-color:var(--navy);box-shadow:0 0 0 3px #1f3a9318;background:#fff}
+.search svg{width:18px;height:18px;stroke:#9ca3af;fill:none;stroke-width:2}
+.search input{border:0;background:none;outline:0;font-family:inherit;font-size:14px;width:100%}
+.logo{display:flex;align-items:center;gap:9px;justify-self:center}
+.logo .mk{width:36px;height:36px;border-radius:9px;background:var(--navy);display:grid;place-items:center;color:#fff;font-weight:900;font-size:18px}
+.logo .mk b{color:var(--yellow)}
+.logo .n{font-weight:900;font-size:22px;color:var(--navy)}
+.actions{display:flex;align-items:center;gap:14px;justify-self:end}
+.iconbtn{position:relative;background:none;border:0;color:#374151;display:grid;place-items:center}
+.iconbtn svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.8}
+.iconbtn:hover{color:var(--navy)}
+.badge{position:absolute;top:-5px;inset-inline-start:-7px;background:var(--navy);color:#fff;font-size:10px;font-weight:800;min-width:17px;height:17px;border-radius:99px;display:grid;place-items:center}
+.user{display:flex;align-items:center;gap:8px;background:var(--tint);border:1px solid var(--line2);border-radius:99px;padding:5px 12px 5px 7px;font-weight:700;font-size:14px}
+.user .av{width:26px;height:26px;border-radius:99px;background:var(--navy);color:#fff;display:grid;place-items:center;font-size:12px}
+
+/* pill nav */
+.pillwrap{position:relative;display:flex;justify-content:center;z-index:55}
+.pill{display:flex;align-items:center;gap:4px;background:#fff;border:1px solid var(--line2);border-radius:14px;padding:6px;margin-top:-21px;box-shadow:0 8px 24px #0a0e1410}
+.pill a,.pill button{display:flex;align-items:center;gap:7px;padding:10px 16px;border-radius:10px;font-weight:700;font-size:14.5px;color:#374151;background:none;border:0;transition:background .15s,color .15s}
+.pill a:hover,.pill button:hover{background:var(--tint);color:var(--navy)}
+.pill .active{background:var(--navy);color:#fff}
+.pill svg{width:14px;height:14px;fill:currentColor;transition:transform .3s}
+.pill .open svg.chev{transform:rotate(180deg)}
+.pill .flash{color:var(--red)}
+
+/* MEGA (floating tri-pane, Bartar style) */
+.backdrop{position:fixed;inset:0;background:#0a0e1433;z-index:40;opacity:0;visibility:hidden}
+.mega{position:absolute;top:100%;left:50%;transform:translateX(-50%);width:1180px;max-width:96vw;
+  background:#fff;border:1px solid var(--line2);border-radius:16px;box-shadow:0 30px 70px -15px #0a0e1455;
+  z-index:56;opacity:0;visibility:hidden;overflow:hidden;margin-top:10px}
+.tri{display:grid;grid-template-columns:230px 300px 1fr;min-height:430px}
+/* left: systems */
+.syscol{border-inline-end:1px solid var(--line);padding:14px 12px;display:flex;flex-direction:column;gap:1px}
+.sys{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;border-radius:9px;cursor:pointer;font-weight:700;font-size:14px;color:#374151;transition:background .14s,color .14s}
+.sys:hover{background:var(--tint)}
+.sys.active{background:var(--soft);color:var(--ink)}
+.sys.active::after{content:'‹';color:var(--yellow-h);font-weight:900}
+.sys .c{font-size:11px;color:#9ca3af;font-weight:600}
+.sys.head{color:var(--navy);font-weight:800}
+/* middle: brands */
+.brandcol{border-inline-end:1px solid var(--line);padding:20px 22px}
+.mh{font-size:14px;font-weight:800;color:var(--ink);margin-bottom:16px}
+.bgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px 10px}
+.bcell{display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer}
+.blogo{width:58px;height:58px;border-radius:14px;display:grid;place-items:center;font-weight:900;color:#fff;font-size:12px;text-align:center;line-height:1.05;background:var(--accent,#1F3A93);box-shadow:0 4px 10px #0a0e1418;transition:transform .15s}
+.bcell:hover .blogo{transform:translateY(-3px)}
+.bcell .bn{font-size:12px;font-weight:700;color:#374151}
+.bcell .bc{font-size:10.5px;color:#9ca3af}
+/* right: subcategory thumbnails */
+.subcol{padding:20px 24px;overflow:auto;max-height:430px}
+.subgrp{margin-bottom:18px}
+.subgrp h4{font-size:13.5px;font-weight:800;color:var(--ink);margin-bottom:11px;display:flex;justify-content:space-between}
+.subgrp h4 .c{color:#9ca3af;font-size:11px;font-weight:600}
+.tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:13px}
+.tile{display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer}
+.thumb{width:100%;aspect-ratio:1;border-radius:12px;background:linear-gradient(135deg,#f3f4f6,#e9ebef);display:grid;place-items:center;font-size:24px;transition:background .15s,transform .15s;border:1px solid var(--line)}
+.tile:hover .thumb{background:var(--soft);transform:translateY(-2px)}
+.tile .tn{font-size:11.5px;color:#4b5563;text-align:center;line-height:1.3}
+.tile:hover .tn{color:var(--navy);font-weight:700}
+/* selected-brand crumb */
+.crumb{grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:11px 24px;background:var(--soft);border-top:1px solid #f0d98a;font-size:13px;font-weight:700;color:#8a6d00}
+.crumb b{color:var(--ink)}
+.crumb .clear{margin-inline-start:auto;color:var(--navy);cursor:pointer;font-size:12px}
+.crumb.hide{display:none}
+
+.demo{padding:60px 0 140px}
+.demo h1{font-size:28px;font-weight:900;margin-bottom:8px}
+.demo p{color:var(--gray);max-width:680px;line-height:1.7}
+.spacer{height:200px}
+@media(max-width:1000px){.tri{grid-template-columns:1fr}.brandcol,.syscol{border:0}}
+</style>
+</head>
+<body>
+
+<div class="cmp">معاينة <b>v2 (Bartar tri-pane)</b> — قارن مع <a href="nav.html">v1 (التبويبات)</a></div>
+
+<div class="promo">
+  <div class="wrap"><span class="new">جديد</span> اشترك في برنامج الإحالة واكسب مع كل طلب! ↗</div>
+  <button class="x">✕</button>
+</div>
+
+<header class="header">
+  <div class="wrap">
+    <form class="search" id="search" onsubmit="return false">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+      <input id="q" placeholder="ابحث عن قطعة، رقم صنف، ماركة…">
+    </form>
+    <a class="logo" href="#"><span class="mk">ع<b>.</b></span><span class="n">العسّال</span></a>
+    <div class="actions">
+      <button class="iconbtn"><svg viewBox="0 0 24 24"><path d="M12 21C5 14.5 3 11 3 8a4.5 4.5 0 0 1 9-1 4.5 4.5 0 0 1 9 1c0 3-2 6.5-9 13z"/></svg><span class="badge">0</span></button>
+      <button class="iconbtn"><svg viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9h-12z"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M6 6L5 3H2"/></svg><span class="badge">3</span></button>
+      <div class="user"><span class="av">ع</span>حسابي <svg viewBox="0 0 24 24" width="12" fill="#6b7280"><path d="M7 10l5 5 5-5z"/></svg></div>
+    </div>
+  </div>
+</header>
+
+<div class="pillwrap">
+  <nav class="pill">
+    <button id="trigger" class="active">تسوق حسب الفئات <svg class="chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></button>
+    <a href="#">الماركات <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></a>
+    <a href="#" class="flash">تخفيضات 🔥</a>
+    <a href="#">الأكثر مبيعًا</a>
+    <a href="#">اتصل بنا</a>
+  </nav>
+
+  <div class="mega" id="mega">
+    <div class="tri">
+      <div class="syscol" id="syscol"></div>
+      <div class="brandcol">
+        <div class="mh">تصفّح حسب الماركة <span class="mono" id="sysName" style="color:#9ca3af;font-weight:600"></span></div>
+        <div class="bgrid" id="bgrid"></div>
+      </div>
+      <div class="subcol" id="subcol"></div>
+    </div>
+    <div class="crumb hide" id="crumb"></div>
+  </div>
+</div>
+<div class="backdrop" id="backdrop"></div>
+
+<main class="demo"><div class="wrap">
+  <h1>التنقّل — النسخة الثانية (tri-pane)</h1>
+  <p>مستوحاة من المرجع (Bartar): القائمة تعرض <b>الاتجاهين معًا في سياق واحد</b>. مرّر على نظام (مثل «المحرك») في العمود الأيمن، فتظهر <b>ماركاته</b> في الوسط و<b>مستويات قطعه</b> على اليسار — وهذا يطابق رحلة المستخدم: <b>المحرك ← فيات ← المستوى</b>. اضغط ماركة لترى مسار التصفية.</p>
+  <div class="spacer"></div>
+</div></main>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const ACCENT={'فورد':'#005CA9','فيات':'#003478','جوندير':'#367C2B','بركنز':'#0072CE','كمنز':'#C8102E','دويتس':'#0A7E3A','نيوهولند':'#005EB8','ماسي':'#C8102E','نصر':'#1F3A93','زيتور':'#E2001A','روسي':'#555','روماني':'#666','ماجروس':'#B11116','سام':'#0050A0'};
+const SHORT={'فورد':'FORD','فيات':'FIAT','جوندير':'JOHN<br>DEERE','بركنز':'PERKINS','كمنز':'CUMMINS','دويتس':'DEUTZ','نيوهولند':'NEW<br>HOLLAND','ماسي':'MASSEY','نصر':'NASR','زيتور':'ZETOR','روسي':'روسي','روماني':'روماني','ماجروس':'MAGIRUS','سام':'SAME'};
+const ICON={'المحرك':'⚙️','الفلاتر':'🛢️','الكهرباء والحساسات':'🔌','الدبرياج والفتيس ونقل الحركة':'🔩','الهيدروليك وPTO والدركسيون':'💧','جسم الجرار والكابينة والإكسسوارات':'🚜','بلي وأويل سيلات و سيور ومثبتات':'🔗'};
+let NAV=null,cur=0,isOpen=false,t=null;
+const mega=$('#mega'),backdrop=$('#backdrop'),trigger=$('#trigger');
+
+fetch('navbar.json').then(r=>r.json()).then(d=>{NAV=d;buildSys();draw(0);
+  if(location.hash==='#open')setTimeout(openMega,150);});
+
+function buildSys(){
+  const gs=NAV.primary[0].groups;
+  $('#syscol').innerHTML=
+    `<div class="sys head">وصل حديثًا</div><div class="sys head">العروض 🔥</div>`+
+    gs.map((g,i)=>`<div class="sys ${i===0?'active':''}" data-i="${i}">
+      <span>${ICON[g.title]||'🔧'} ${g.title}</span><span class="c mono">${g.count.toLocaleString('en')}</span></div>`).join('');
+  $$('.sys[data-i]').forEach(el=>el.addEventListener('mouseenter',()=>{cur=+el.dataset.i;
+    $$('.sys').forEach(s=>s.classList.remove('active'));el.classList.add('active');draw(cur);clearCrumb();}));
+}
+function draw(i){
+  const g=NAV.primary[0].groups[i];
+  $('#sysName').textContent='· '+g.title;
+  // middle: brands within this system
+  const brands=(g.brands||[]).slice(0,12);
+  $('#bgrid').innerHTML=brands.map(b=>{
+    const acc=ACCENT[b.name]||'#1F3A93',sh=SHORT[b.name]||b.name;
+    return `<div class="bcell" data-b="${b.name}" style="--accent:${acc}">
+      <div class="blogo">${sh}</div><div class="bn">${b.name}</div><div class="bc mono">${b.count}</div></div>`;}).join('');
+  $$('.bcell').forEach(c=>c.addEventListener('click',()=>setCrumb(g.title,c.dataset.b)));
+  // right: subcategory levels (L2 -> top L3 tiles)
+  const cols=g.columns.slice(0,4);
+  $('#subcol').innerHTML=cols.map(c=>`
+    <div class="subgrp"><h4>${c.title}<span class="c mono">${c.count}</span></h4>
+      <div class="tiles">${c.items.slice(0,5).map(it=>`
+        <div class="tile"><div class="thumb">${ICON[g.title]||'🔧'}</div><div class="tn">${it.name}</div></div>`).join('')}
+      </div></div>`).join('');
+  gsap.fromTo('#bgrid .bcell',{y:8,autoAlpha:0},{y:0,autoAlpha:1,stagger:.02,duration:.25});
+  gsap.fromTo('#subcol .subgrp',{y:10,autoAlpha:0},{y:0,autoAlpha:1,stagger:.05,duration:.28});
+}
+function setCrumb(sys,brand){
+  const cr=$('#crumb');cr.classList.remove('hide');
+  cr.innerHTML=`المسار: <b>${sys}</b> ← <b>${brand}</b> ← اختر مستوى القطعة من اليسار
+    <span class="clear" onclick="clearCrumb()">إلغاء ✕</span>`;
+}
+function clearCrumb(){$('#crumb').classList.add('hide');}
+
+function openMega(){if(isOpen)return;isOpen=true;trigger.classList.add('open');trigger.classList.add('active');
+  gsap.killTweensOf([mega,backdrop]);gsap.set([mega,backdrop],{visibility:'visible'});
+  gsap.to(backdrop,{autoAlpha:1,duration:.22});
+  gsap.fromTo(mega,{y:-12,autoAlpha:0},{y:0,autoAlpha:1,duration:.32,ease:'power3.out'});
+  gsap.fromTo('.syscol .sys',{x:10,autoAlpha:0},{x:0,autoAlpha:1,stagger:.02,duration:.24,delay:.05});}
+function closeMega(){if(!isOpen)return;isOpen=false;trigger.classList.remove('open');
+  gsap.killTweensOf([mega,backdrop]);
+  gsap.to(mega,{y:-8,autoAlpha:0,duration:.18,onComplete:()=>gsap.set(mega,{visibility:'hidden'})});
+  gsap.to(backdrop,{autoAlpha:0,duration:.18,onComplete:()=>gsap.set(backdrop,{visibility:'hidden'})});}
+function armOpen(){clearTimeout(t);t=setTimeout(openMega,90);}
+function armClose(){clearTimeout(t);t=setTimeout(closeMega,180);}
+trigger.addEventListener('mouseenter',armOpen);
+trigger.addEventListener('click',()=>isOpen?closeMega():openMega());
+mega.addEventListener('mouseenter',()=>clearTimeout(t));
+mega.addEventListener('mouseleave',armClose);
+trigger.addEventListener('mouseleave',armClose);
+backdrop.addEventListener('click',closeMega);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMega();});
+const search=$('#search');
+$('#q').addEventListener('focus',()=>search.classList.add('focus'));
+$('#q').addEventListener('blur',()=>search.classList.remove('focus'));
+</script>
+</body>
+</html>

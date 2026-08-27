@@ -1,0 +1,104 @@
+<?php
+/**
+ * Spartrak Header.
+ *
+ * FIGMA SSOT: desktop node 595:14474 (Navbar), mobile node 724:25823.
+ * Structure below maps 1:1 onto those frames:
+ *
+ *   .spartrak-header        = Navbar        (column, centres the nav card)
+ *   .spartrak-header__bar   = Container     (shared surface + bottom border)
+ *   .spartrak-header__row   = Main Navbar   (logo / search / actions)
+ *   spartrak.primary_nav    = Navbar-Menus  (the nav-row card)
+ *
+ * ---------------------------------------------------------------------------
+ * WHY THE CHILD ORDER LOOKS REVERSED VS THE FIGMA CODE
+ * ---------------------------------------------------------------------------
+ * The Figma frames are RTL-COMPOSED (this is the Arabic-first storefront), but
+ * Figma's auto-layout serialises children in LTR x-order. So the order Figma's
+ * generated code hands you is the mirror of what an RTL document needs.
+ *
+ * Figma x-positions, desktop Main Navbar:  actions 40 | search 289 | logo 1332
+ * In `direction: rtl` the FIRST child is placed at the RIGHT, so to land the
+ * logo at x=1332 it has to come first. Emitting [logo, search, actions] gives:
+ *   - Arabic store  -> logo right, search centre, actions left  = Figma exactly
+ *   - English store -> logo left, search centre, actions right  = true mirror,
+ *                      and the correct LTR convention
+ * One template, one stylesheet, no [dir] branches. Same reasoning applies
+ * inside the actions cluster ([account, cart, wishlist]) and inside the search
+ * form. See web/css/source/components/_support-strip.less for the full note.
+ *
+ * ---------------------------------------------------------------------------
+ * WHAT MOVED OUT OF THIS TEMPLATE
+ * ---------------------------------------------------------------------------
+ * - store_language. Figma puts the language control in the utility strip
+ *   (node 595:14481), not in the main navbar. It is RELOCATED there by
+ *   <move> in Smartwave_Porto/layout/default.xml — deliberately a move and not
+ *   a second Magento\Store\Block\Switcher instance, because the 2026-08-24
+ *   attempt to declare a second instance fatal-errored on every page. See
+ *   that layout file and _support-strip.less.
+ *
+ * - header.links. Figma replaces the bare link list with the account chip
+ *   (node 595:14513). The links themselves are still rendered — inside the
+ *   chip's menu — so nothing Magento provides is dropped. See
+ *   Magento_Theme::html/account-chip.phtml.
+ *
+ * - The mobile search toggle. Figma's 440 header shows the search bar
+ *   permanently expanded on its own row (node 724:25846), so the icon that
+ *   used to expand/collapse it, and the JS behind it, are both gone. That is a
+ *   net reduction in DOM and JS, not a feature loss.
+ *
+ * @var \Smartwave\Porto\Block\Template $block
+ */
+?>
+<header class="spartrak-header" role="banner" data-mage-init='{"spartrakUtilityHeader":{}}'>
+    <div class="spartrak-header__bar">
+        <div class="spartrak-header__row">
+            <?php /* Mobile only (node 724:25844). Same 40x40 chrome as the
+                     favourite/cart buttons, with Figma's own burger glyph
+                     (node 724:26316) whose three rules are deliberately
+                     unequal — hence a real asset, not three CSS bars. */ ?>
+            <button
+                type="button"
+                class="spartrak-header__drawer-trigger"
+                data-drawer-open
+                aria-label="<?= $block->escapeHtmlAttr(__('Open menu')) ?>"
+                aria-expanded="false"
+            >
+                <span class="spartrak-header__icon--burger" aria-hidden="true"></span>
+            </button>
+
+            <div class="spartrak-header__logo">
+                <?= $block->getChildHtml('logo') ?>
+            </div>
+
+            <div class="spartrak-header__search">
+                <?= $block->getChildHtml('top.search') ?>
+            </div>
+
+            <div class="spartrak-header__actions">
+                <?php /* RTL reading order: the chip sits nearest the centre
+                         (Figma x=104 of the 224-wide cluster), the wishlist
+                         furthest out (x=0). */ ?>
+                <div class="spartrak-header__account" data-account-chip>
+                    <?= $block->getChildHtml('spartrak.account_chip') ?>
+                </div>
+
+                <div class="spartrak-header__cart">
+                    <?= $block->getChildHtml('minicart') ?>
+                </div>
+
+                <div class="spartrak-header__wishlist-wrap">
+                    <?= $block->getChildHtml('spartrak.header.wishlist') ?>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <?php /* The nav-row card is a sibling of the bar, not nested inside it —
+             Figma node 595:14530 hangs below the Container's bottom border and
+             is narrower than the viewport, which is what the header's
+             `align-items: center` centres. Rendered directly rather than
+             through a wrapper div, so there is no element that exists only to
+             hold a class. */ ?>
+    <?= $block->getChildHtml('spartrak.primary_nav') ?>
+</header>

@@ -1,0 +1,123 @@
+<?php
+/**
+ * Spartrak Utility Strip ("Top Container").
+ *
+ * FIGMA SSOT: desktop node 595:14476, mobile node 724:25804.
+ *
+ * Two clusters, `justify-content: space-between`:
+ *   notices (node 595:14494) — hotline label + number, shipping copy,
+ *                              payment copy, separated by 4px dots
+ *   options (node 595:14477) — track order / language / contact us
+ *
+ * CHILD ORDER is the reverse of Figma's LTR x-order, because these frames are
+ * RTL-composed — see header.phtml's note. Concretely: `notices` is emitted
+ * first so RTL places it at the inline start (Figma x=1048, the right), and
+ * `options` last so it lands at the inline end (Figma x=16, the left). Within
+ * `options` the same reversal puts "تتبع طلبك" nearest the start and "أتصل
+ * بنا" furthest out, which is what the 1440 export shows.
+ *
+ * ===========================================================================
+ * CONTENT COMES FROM CODE, NOT CMS BLOCKS
+ * ===========================================================================
+ * QA FIX (2026-08-25). The previous version pulled the hotline, shipping and
+ * payment copy from five Magento\Cms\Block\Block children
+ * (spartrak_support_*). Those static blocks were never created in the
+ * database, so on the live site every one of them rendered EMPTY — which is
+ * precisely why the strip looked nothing like Figma: the whole right-hand
+ * cluster was simply missing.
+ *
+ * They are now plain __() strings, per the explicit project instruction that
+ * this content is handled in code. That is also the better engineering
+ * outcome here:
+ *
+ *   - It renders correctly on a fresh install with zero admin setup, so the
+ *     header can never silently lose half its content again.
+ *   - The copy stays changeable WITHOUT a deploy: __() strings are
+ *     translatable, so Admin > Stores > Translations (or the theme's
+ *     i18n/ar_EG.csv) still owns the wording per store view.
+ *   - It removes five Magento\Cms\Block\Block instantiations, and their five
+ *     static-block lookups, from EVERY page render — a real cost on a block
+ *     that appears site-wide (CLAUDE.md §4).
+ *
+ * The Arabic copy is in this theme's i18n/ar_EG.csv, so the English store
+ * view shows the source strings and the Arabic store view shows Figma's exact
+ * wording.
+ *
+ * ===========================================================================
+ * THE LANGUAGE SWITCHER
+ * ===========================================================================
+ * Figma places it here (node 595:14481: globe + store name + chevron), not in
+ * the main navbar. It is rendered below as `store_language` — Porto's own,
+ * already-working Magento\Store\Block\Switcher instance, RELOCATED into this
+ * block by <move> in Smartwave_Porto/layout/default.xml.
+ *
+ * A <move> and not a new block declaration, deliberately: the 2026-08-24 pass
+ * tried to satisfy this same requirement by declaring a SECOND
+ * Magento\Store\Block\Switcher here, and it fatal-errored on every page even
+ * after an explicit template prefix — the new instance kept resolving to
+ * Magento_Store's core template, which calls $block->getViewModel() and was
+ * never wired, instead of Porto's working override. Moving the existing
+ * instance carries its own template resolution with it, so there is nothing
+ * to re-resolve and nothing to crash.
+ *
+ * ===========================================================================
+ * WHAT FIGMA DOES *NOT* PUT IN THIS STRIP — flagged, not silently dropped
+ * ===========================================================================
+ * WhatsApp and Branches appear nowhere in Figma's header, desktop or mobile,
+ * so they are not rendered here. Both remain reachable site-wide from the
+ * footer, and "أتصل بنا" here links to the real contact route. This does
+ * narrow ia-and-flows.md's "support actions visible everywhere" from the
+ * header to the footer; called out for a decision rather than settled here.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ */
+$contactUsUrl = $block->getUrl('contact/index/index');
+$trackOrderUrl = $block->getUrl('sales/guest/form');
+$languageSwitcher = $block->getChildHtml('store_language');
+?>
+<div class="spartrak-support-strip" role="complementary" aria-label="<?= $block->escapeHtmlAttr(__('Store information')) ?>">
+    <div class="spartrak-support-strip__inner">
+        <div class="spartrak-support-strip__notices">
+            <?php /* Figma node 595:14494. Order here is RTL reading order:
+                     hotline label, its number, shipping, payment — with a 4px
+                     dot between consecutive items. */ ?>
+            <span class="spartrak-support-strip__notice"><?= $block->escapeHtml(__('Hotline')) ?></span>
+            <span class="spartrak-support-strip__separator" aria-hidden="true"></span>
+            <?php /* The number is Latin-script inside an RTL block, so it is
+                     bidi-isolated in CSS (see _support-strip.less) to stop
+                     "12384" reordering. */ ?>
+            <a class="spartrak-support-strip__notice spartrak-support-strip__notice--hotline-value"
+               href="tel:<?= $block->escapeHtmlAttr(__('12384')) ?>"><?= $block->escapeHtml(__('12384')) ?></a>
+            <span class="spartrak-support-strip__separator" aria-hidden="true"></span>
+            <span class="spartrak-support-strip__notice spartrak-support-strip__notice--marketing">
+                <?= $block->escapeHtml(__('Fast delivery nationwide')) ?>
+            </span>
+            <span class="spartrak-support-strip__separator" aria-hidden="true"></span>
+            <span class="spartrak-support-strip__notice spartrak-support-strip__notice--marketing">
+                <?= $block->escapeHtml(__('Secure payment options')) ?>
+            </span>
+        </div>
+
+        <div class="spartrak-support-strip__options">
+            <?php /* Node 595:14486 — icon leads the label (Figma x: label 0,
+                     icon 56 in LTR order, so the icon trails there and leads
+                     once reversed for RTL). */ ?>
+            <a class="spartrak-support-strip__item" href="<?= $block->escapeUrl($trackOrderUrl) ?>">
+                <span class="spartrak-support-strip__icon--track" aria-hidden="true"></span>
+                <span><?= $block->escapeHtml(__('Track your order')) ?></span>
+            </a>
+
+            <?php if (trim($languageSwitcher)) : ?>
+                <?= /* @noEscape */ $languageSwitcher ?>
+            <?php endif; ?>
+
+            <?php /* Node 595:14478 — label only, no icon in Figma. Mobile
+                     (node 724:25805) drops this item entirely; hidden by CSS
+                     rather than by a viewport check in PHP, because this block
+                     is full-page-cached and cannot branch on device. */ ?>
+            <a class="spartrak-support-strip__item spartrak-support-strip__item--contact" href="<?= $block->escapeUrl($contactUsUrl) ?>">
+                <span><?= $block->escapeHtml(__('Contact us')) ?></span>
+            </a>
+        </div>
+    </div>
+</div>

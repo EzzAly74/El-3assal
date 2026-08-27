@@ -1,0 +1,143 @@
+<?php
+/**
+ * Spartrak Logo.
+ *
+ * Overrides Porto's own Magento_Theme::html/header/logo.phtml (theme fallback:
+ * spartrak -> porto) for one reason: the SpareTrak brand asset.
+ *
+ * WHY NOT getLogoSrc(): Magento\Theme\ViewModel\Block\Html\Header\
+ * LogoPathResolver reads the `design/header/logo_src` store config and, when
+ * that is empty, falls back to the theme asset `images/logo.svg`. Neither
+ * exists for this project (no Admin logo was uploaded, and this brand's asset
+ * is a raster PNG, not an SVG), so getLogoSrc() resolved to a missing file and
+ * the storefront rendered Porto's own stock "porto eCommerce" placeholder
+ * logo instead — CONFIRMED on the live Arabic store, 2026-08-24.
+ *
+ * Per the project brand rule (skills/elassal/SKILL.md): SpareTrak is the
+ * consumer-facing storefront brand — every string/asset a shopper sees — while
+ * ElAssal is the company/legal entity. So the storefront header carries the
+ * SpareTrak mark, NOT skills/elassal/assets/elassal-logo.png (the corporate
+ * ElAssal mark, correct for invoices and corporate identity only).
+ *
+ * ===========================================================================
+ * TWO LOCKUPS — BOTH EXPORTED FROM FIGMA, NEITHER AUTHORED HERE
+ * ===========================================================================
+ * images/spartrak-logo.png  135x152, 32.9KB — the mark-dominant stacked
+ *   lockup. Derived from the 1024x1024 transparent PNG source fill behind
+ *   Figma node 735:32550, auto-trimmed of its padding and resampled to 2x the
+ *   Figma header render size (68.24 x 75.42) so it stays crisp on retina
+ *   without shipping a 400KB image. Proportions VERIFIED against the 1440
+ *   export: Figma renders 67x75 with a 60px mark over a 67-wide wordmark; this
+ *   asset is 135x152 with a ~122px mark over a full-width wordmark — the same
+ *   80/15/5 mark/wordmark/gap split.
+ *
+ * images/spartrak-logo-compact.png  164x110, 19.8KB — Figma's OWN 2x export
+ *   of node 724:25837, the mobile lockup. It is NOT the desktop asset scaled:
+ *   Figma builds the mobile version from two independently-scaled clipped
+ *   crops of the same source, producing a small mark over a wide wordmark
+ *   (mark 38x41, wordmark 80x13, 82x55 overall) where the desktop lockup is
+ *   mark-dominant. Scaling the desktop asset to fit either axis would have
+ *   missed the other by ~35px, so the mobile lockup is committed as its own
+ *   Figma export rather than re-proportioned by hand.
+ *
+ * Served through <picture media>, so each breakpoint downloads exactly ONE
+ * raster and never both — mobile pays 19.8KB instead of the desktop 32.9KB, so
+ * this is a net saving on the smaller connection, not an added cost.
+ *
+ * BOTH <source> and <img> carry explicit width/height. That is the layout-shift
+ * guard: without width/height on the <source>, the browser would reserve the
+ * <img> attributes' 68:75 box for the mobile image and then reflow to 82:55
+ * once it decoded — a visible jump in the header on every mobile page load.
+ *
+ * ===========================================================================
+ * SCOPE OF THE COMPACT VARIANT
+ * ===========================================================================
+ * This one template also serves the FOOTER logo instance (node 693:45786,
+ * 113x125), which is mark-dominant like the desktop header and has no
+ * Figma-specified mobile variant. The <picture> wrapper is therefore opt-in
+ * via the `compact_logo_src` block argument, set only on the header instance
+ * in Smartwave_Porto/layout/default.xml. Without it this template emits the
+ * same single <img> it always did, so the footer is untouched by this pass.
+ *
+ * Dimensions come from the block's own logo_img_width/logo_img_height
+ * arguments, set per-instance in that same layout file (68x75 header per node
+ * 693:45441, 113x125 footer per node 693:45786), so one template serves both
+ * placements without hardcoding either size.
+ *
+ * Deliberately always renders a link, unlike Porto's version which swaps to a
+ * non-clickable <strong> on the homepage — Figma shows no such distinction and
+ * a clickable logo is the stronger convention.
+ *
+ * @var \Magento\Theme\Block\Html\Header\Logo $block
+ */
+$storeName = $block->getThemeName() ?: $block->getLogoAlt();
+
+/**
+ * QA FIX (2026-08-27) — PER-INSTANCE LAYOUT ARGUMENTS WIN OVER STORE CONFIG.
+ *
+ * These two lines used to prefer $block->getLogoSizeResolver() and fall back
+ * to the block's own arguments. That is backwards for this theme, and it was
+ * measurably wrong on the live site: the resolver reads the GLOBAL
+ * design/header/logo_width|logo_height store config, which still holds Porto's
+ * stock 111 x 44, so BOTH logo instances rendered width="111" height="44" —
+ * neither the header's 68x75 (node 693:45441) nor the footer's 113x125 (node
+ * 693:45786) that Smartwave_Porto/layout/default.xml passes per instance.
+ *
+ * Those attributes are the CLS guard: the browser reserved a 111x44 box and
+ * then reflowed to whatever the stylesheet resolved once the raster decoded —
+ * a visible jump on every page load, on the two elements that sit at the very
+ * top and very bottom of every page.
+ *
+ * A per-instance layout argument is a deliberate, specific statement about ONE
+ * placement; the store config is a single global value that cannot describe two
+ * differently-proportioned lockups at once. So the argument is now authoritative
+ * and the resolver is the fallback for any instance that sets no argument —
+ * which preserves the admin-configurable behaviour everywhere it is still the
+ * only source.
+ */
+$logoSizeResolver = $block->getLogoSizeResolver();
+$logoWidth = $block->getLogoWidth()
+    ?: ($logoSizeResolver !== null ? $logoSizeResolver->getWidth() : null);
+$logoHeight = $block->getLogoHeight()
+    ?: ($logoSizeResolver !== null ? $logoSizeResolver->getHeight() : null);
+
+$logoSrc = $block->getViewFileUrl('images/spartrak-logo.png');
+$logoAlt = $block->getLogoAlt() ?: 'SpareTrak';
+
+// Opt-in compact (mobile) lockup — header instance only. The intrinsic CSS
+// size of images/spartrak-logo-compact.png, which is Figma's 2x export of the
+// 82x55 mobile lockup.
+$compactLogo = $block->getData('compact_logo_src');
+$compactWidth = 82;
+$compactHeight = 55;
+?>
+<a
+    class="logo"
+    href="<?= $block->escapeUrl($block->getUrl('')) ?>"
+    title="<?= $block->escapeHtmlAttr($storeName) ?>"
+    aria-label="<?= $block->escapeHtmlAttr(__('SpareTrak home')) ?>"
+>
+    <?php if ($compactLogo) : ?>
+    <picture>
+        <source
+            media="(max-width: 767px)"
+            srcset="<?= $block->escapeUrl($block->getViewFileUrl($compactLogo)) ?>"
+            width="<?= /* @noEscape */ $compactWidth ?>"
+            height="<?= /* @noEscape */ $compactHeight ?>"
+        />
+        <img
+            src="<?= $block->escapeUrl($logoSrc) ?>"
+            alt="<?= $block->escapeHtmlAttr($logoAlt) ?>"
+            <?= $logoWidth ? 'width="' . $block->escapeHtmlAttr($logoWidth) . '"' : '' ?>
+            <?= $logoHeight ? 'height="' . $block->escapeHtmlAttr($logoHeight) . '"' : '' ?>
+        />
+    </picture>
+    <?php else : ?>
+    <img
+        src="<?= $block->escapeUrl($logoSrc) ?>"
+        alt="<?= $block->escapeHtmlAttr($logoAlt) ?>"
+        <?= $logoWidth ? 'width="' . $block->escapeHtmlAttr($logoWidth) . '"' : '' ?>
+        <?= $logoHeight ? 'height="' . $block->escapeHtmlAttr($logoHeight) . '"' : '' ?>
+    />
+    <?php endif; ?>
+</a>

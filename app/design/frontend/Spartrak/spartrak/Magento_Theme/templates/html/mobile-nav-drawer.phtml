@@ -1,0 +1,211 @@
+<?php
+/**
+ * Spartrak Mobile Menu.
+ *
+ * FIGMA SSOT: node 645:39265 ("Homepage/menu view") — the mobile header's
+ * open-menu state. READ FROM FIGMA FOR THE FIRST TIME on 2026-08-25; every
+ * prior version of this component carried the note "STILL PENDING FIGMA ...
+ * the Figma MCP connector is not authorized in this session", which is why the
+ * live mobile view did not match the design.
+ *
+ * WHAT FIGMA ACTUALLY SPECIFIES — and how it differs from the old build:
+ *
+ *   NOT A SLIDE-IN OVERLAY. The header stays exactly where it is and this
+ *   panel opens below it, full-viewport-width, on the page surface. The old
+ *   build was an 88%-wide / 360px-max fixed overlay with a scrim and its own
+ *   close button — none of which Figma has. The scrim and the in-panel close
+ *   button are therefore gone.
+ *
+ *   THE HAMBURGER BECOMES AN X. Node 724:45067: the same 40px bordered pill in
+ *   the header row swaps its burger glyph for the close glyph while the menu
+ *   is open. That is now the only close affordance, driven purely by CSS off
+ *   the trigger's own aria-expanded (see _utility-header.less), so it costs no
+ *   extra markup and no extra JS.
+ *
+ *   FOUR ROWS, node 645:39267 "Menus": a white 16px-padded panel, 8px between
+ *   rows, each row 52px tall with a 20px chevron and a 16px Medium label. The
+ *   labels are الفئات / البراندات / قطع المحرك / عروض.
+ *
+ *   A PROFILE ROW, node 645:39280: pinned under the rows with a 1px top
+ *   border, holding a 48px avatar (bg/brand-subtle plate, 1.2px icon/default
+ *   ring, initials in text/link), the customer's full name at 18px Medium, and
+ *   a chevron.
+ *
+ * DELIBERATELY NOT IMPLEMENTED: the frame's bottom bar showing "sparetrak.com"
+ * between two frosted-glass pill buttons with page dots. That is the DESIGNER'S
+ * iOS SAFARI CHROME MOCKUP — it uses the SF Pro system font, Apple's
+ * "Symbol 1" glyph components and a backdrop-blur glass treatment, and it sits
+ * in a `ToolbarBottomIPhone` component with a `property1="no button"` variant.
+ * It is the device frame around the design, not part of the storefront. A web
+ * page cannot and must not draw the browser's own address bar.
+ *
+ * CONTENT IS IN CODE, NOT CMS BLOCKS: the row labels are __() strings (Arabic
+ * in this theme's i18n/ar_EG.csv), matching the rest of this header pass. The
+ * category data underneath is real Magento category-tree data.
+ *
+ * @var \Magento\Theme\Block\Html\Topmenu $block
+ */
+
+$curatedLimit = 6;
+
+// QA FIX (2026-08-23) — see topmenu.phtml's comment: getHtml() must be called
+// once to trigger Magento\Catalog\Plugin\Block\Topmenu's category tree
+// population; its return string is discarded.
+$block->getHtml();
+$menu = $block->getMenu();
+$l1Nodes = $menu->getChildren();
+
+// "قطع المحرك" (Engine parts) is a merchandising shortcut to the single
+// largest L1 category. Resolved by matching the live tree rather than a
+// hardcoded id/url, so it stays correct if the category is renamed or moved.
+$engineShortcut = null;
+foreach ($l1Nodes as $l1) {
+    if (trim((string) $l1->getName()) === 'المحرك') {
+        $engineShortcut = $l1;
+        break;
+    }
+}
+?>
+<div class="spartrak-mobile-drawer" data-mage-init='{"spartrakMobileDrawer":{}}' aria-hidden="true">
+    <div class="spartrak-mobile-drawer__panel" role="dialog" aria-modal="false" aria-label="<?= $block->escapeHtmlAttr(__('Menu')) ?>">
+
+        <?php /* Node 645:39267 "Menus" — the white row panel. */ ?>
+        <div class="spartrak-mobile-drawer__menus">
+
+            <?php
+            /**
+             * Each row's children are [label, chevron]: the reverse of Figma's
+             * LTR child order (chevron first, label flex-1 and right-aligned),
+             * which is what puts the label at the inline start and the chevron
+             * at the inline end once RTL is applied. Same reversal rule as
+             * every other cluster in this header — see header.phtml.
+             */
+            ?>
+            <section class="spartrak-mobile-drawer__group" data-group="categories">
+                <button type="button" class="spartrak-mobile-drawer__row" data-accordion-trigger aria-expanded="false">
+                    <span class="spartrak-mobile-drawer__row-label"><?= $block->escapeHtml(__('Categories')) ?></span>
+                    <span class="spartrak-mobile-drawer__row-chevron" aria-hidden="true"></span>
+                </button>
+                <div class="spartrak-mobile-drawer__group-panel" hidden>
+                    <ul class="spartrak-mobile-drawer__l1-list">
+                        <?php foreach ($l1Nodes as $l1) : ?>
+                            <li class="spartrak-mobile-drawer__l1">
+                                <a href="<?= $block->escapeUrl($l1->getUrl()) ?>"><?= $block->escapeHtml($l1->getName()) ?></a>
+                                <?php if ($l1->hasChildren()) : ?>
+                                    <button type="button" class="spartrak-mobile-drawer__l1-expand" data-l1-expand aria-label="<?= $block->escapeHtmlAttr(__('Expand %1', $l1->getName())) ?>" aria-expanded="false">
+                                        <span class="spartrak-mobile-drawer__row-chevron" aria-hidden="true"></span>
+                                    </button>
+                                    <ul class="spartrak-mobile-drawer__l2-list" hidden>
+                                        <?php foreach ($l1->getChildren() as $l2) : ?>
+                                            <li>
+                                                <a href="<?= $block->escapeUrl($l2->getUrl()) ?>"><?= $block->escapeHtml($l2->getName()) ?></a>
+                                                <?php if ($l2->hasChildren()) : ?>
+                                                    <?php
+                                                    $l3Children = $l2->getChildren();
+                                                    $l3Count = $l3Children->count();
+                                                    $shown = 0;
+                                                    ?>
+                                                    <ul class="spartrak-mobile-drawer__l3-list">
+                                                        <?php foreach ($l3Children as $l3) : ?>
+                                                            <?php if ($shown >= $curatedLimit) {
+                                                                break;
+                                                            } ?>
+                                                            <li><a href="<?= $block->escapeUrl($l3->getUrl()) ?>"><?= $block->escapeHtml($l3->getName()) ?></a></li>
+                                                            <?php $shown++; ?>
+                                                        <?php endforeach; ?>
+                                                        <?php if ($l3Count > $curatedLimit) : ?>
+                                                            <li><a href="<?= $block->escapeUrl($l2->getUrl()) ?>" class="spartrak-mobile-drawer__view-all"><?= $block->escapeHtml(__('View all')) ?></a></li>
+                                                        <?php endif; ?>
+                                                    </ul>
+                                                <?php endif; ?>
+                                            </li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                <?php endif; ?>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            </section>
+
+            <section class="spartrak-mobile-drawer__group" data-group="brands">
+                <button type="button" class="spartrak-mobile-drawer__row" data-accordion-trigger aria-expanded="false">
+                    <span class="spartrak-mobile-drawer__row-label"><?= $block->escapeHtml(__('Brands')) ?></span>
+                    <span class="spartrak-mobile-drawer__row-chevron" aria-hidden="true"></span>
+                </button>
+                <div class="spartrak-mobile-drawer__group-panel" hidden>
+                    <?php
+                    /**
+                     * Real brand data, from the same admin-managed source the
+                     * desktop mega panel uses: the `brand` attribute's option
+                     * list, with logos from each option's visual swatch (see
+                     * Spartrak\Catalog\ViewModel\BrandNavigation). No hardcoded
+                     * brand list, and no empty-state placeholder any more.
+                     */
+                    $brandNavigation = $block->getData('brand_navigation');
+                    $brands = $brandNavigation && $brandNavigation->hasBrands() ? $brandNavigation->getBrands() : [];
+                    ?>
+                    <?php if ($brands) : ?>
+                        <ul class="spartrak-mobile-drawer__l2-list">
+                            <?php foreach ($brands as $brand) : ?>
+                                <li><a href="<?= $block->escapeUrl($brand['url']) ?>"><?= $block->escapeHtml($brand['label']) ?></a></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
+                </div>
+            </section>
+
+            <?php if ($engineShortcut) : ?>
+                <section class="spartrak-mobile-drawer__group" data-group="engine">
+                    <button type="button" class="spartrak-mobile-drawer__row" data-accordion-trigger aria-expanded="false">
+                        <span class="spartrak-mobile-drawer__row-label"><?= $block->escapeHtml(__('Engine parts')) ?></span>
+                        <span class="spartrak-mobile-drawer__row-chevron" aria-hidden="true"></span>
+                    </button>
+                    <div class="spartrak-mobile-drawer__group-panel" hidden>
+                        <ul class="spartrak-mobile-drawer__l2-list">
+                            <?php foreach ($engineShortcut->getChildren() as $l2) : ?>
+                                <li><a href="<?= $block->escapeUrl($l2->getUrl()) ?>"><?= $block->escapeHtml($l2->getName()) ?></a></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                </section>
+            <?php endif; ?>
+
+            <section class="spartrak-mobile-drawer__group" data-group="offers">
+                <a class="spartrak-mobile-drawer__row" href="<?= $block->escapeUrl($block->getUrl('offers')) ?>">
+                    <span class="spartrak-mobile-drawer__row-label"><?= $block->escapeHtml(__('Offers')) ?></span>
+                    <span class="spartrak-mobile-drawer__row-chevron" aria-hidden="true"></span>
+                </a>
+            </section>
+        </div>
+
+        <?php
+        /**
+         * Node 645:39280 "Profile". Children are [avatar, name, chevron] in
+         * RTL order — Figma's LTR order is chevron / name / avatar.
+         *
+         * Both states are rendered and toggled client-side from the customerData
+         * `customer` section, never branched in PHP: this block is ttl-cached
+         * inside a full-page-cached page, so a PHP branch on the session would
+         * be baked into a cached response and served to the wrong visitor.
+         */
+        ?>
+        <div class="spartrak-mobile-drawer__profile" data-drawer-account>
+            <div class="spartrak-mobile-drawer__profile-guest" data-account-guest>
+                <button type="button" class="spartrak-mobile-drawer__profile-row" data-auth-open data-auth-step="login">
+                    <span class="spartrak-mobile-drawer__avatar" aria-hidden="true"></span>
+                    <span class="spartrak-mobile-drawer__profile-name"><?= $block->escapeHtml(__('Sign in')) ?></span>
+                    <span class="spartrak-mobile-drawer__row-chevron" aria-hidden="true"></span>
+                </button>
+            </div>
+
+            <div class="spartrak-mobile-drawer__profile-customer" data-account-customer hidden>
+                <a class="spartrak-mobile-drawer__profile-row" href="<?= $block->escapeUrl($block->getUrl('customer/account')) ?>">
+                    <span class="spartrak-mobile-drawer__avatar" aria-hidden="true" data-account-initial></span>
+                    <span class="spartrak-mobile-drawer__profile-name" data-account-name></span>
+                    <span class="spartrak-mobile-drawer__row-chevron" aria-hidden="true"></span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,38 @@
+{
+    "spartrak_customer_otp": {
+        "column": {
+            "request_id": true,
+            "phone": true,
+            "purpose": true,
+            "code_hash": true,
+            "token_hash": true,
+            "attempts": true,
+            "status": true,
+            "ip_address": true,
+            "store_id": true,
+            "expires_at": true,
+            "token_expires_at": true,
+            "created_at": true,
+            "updated_at": true
+        },
+        "constraint": {
+            "PRIMARY": true
+        },
+        "index": {
+            "SPARTRAK_CUSTOMER_OTP_PHONE_PURPOSE_STATUS": true,
+            "SPARTRAK_CUSTOMER_OTP_TOKEN_HASH": true,
+            "SPARTRAK_CUSTOMER_OTP_PHONE_CREATED_AT": true,
+            "SPARTRAK_CUSTOMER_OTP_IP_ADDRESS_CREATED_AT": true,
+            "SPARTRAK_CUSTOMER_OTP_EXPIRES_AT": true
+        }
+    },
+    "customer_entity": {
+        "column": {
+            "phone_number": true,
+            "phone_verified_at": true
+        },
+        "constraint": {
+            "CUSTOMER_ENTITY_PHONE_NUMBER": true
+        }
+    }
+}

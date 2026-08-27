@@ -1,0 +1,729 @@
+<?php
+/**
+ * Spartrak Login/Register Modal.
+ *
+ * FIGMA-MEASURED REBUILD, 2026-08-26. The Figma MCP connector is now
+ * authorized, so the "SCOPE, still open: exact Figma spacing/typography/icons
+ * for every step (BLOCKED / REQUIRES FIGMA ACCESS)" note this docblock used to
+ * carry is resolved. Source nodes, desktop then mobile:
+ *
+ *   login              561:9925   /  688:22943
+ *   register - phone   569:10235  /  688:23851
+ *   OTP                561:10625  /  688:23390   (+ disabled + complete states)
+ *   register - details  569:12394  /  688:25218
+ *   loading            572:15113  /  688:25653
+ *
+ * The MARKUP changed shape in three ways as a result, all of them structural
+ * rather than cosmetic; see _login-modal.less for the measured values.
+ *
+ *  1. Every step now has a HEADING BLOCK — a 28px title plus a muted 16px
+ *     lede — where before it had a bare 20px title. Figma writes a specific
+ *     description for each of the five states; none of them was rendered.
+ *
+ *  2. The OTP step is a different component, not a restyled one. It echoes the
+ *     number back inside a 12px-radius chip with a 24x24 phone icon, and its
+ *     four cells are 72x80 with a 32px digit over a 24px underline. The
+ *     `placeholder=" "` on each cell is load-bearing, not decoration: it makes
+ *     the not-yet-filled state addressable as `:placeholder-shown` so the
+ *     lighter underline Figma exports for an empty cell needs no JS class.
+ *
+ *  3. "Or continue with" is a bare centred line of text. The two hairlines
+ *     that used to flank it exist in no Figma state.
+ *
+ * WHERE THIS DELIBERATELY DIVERGES FROM FIGMA, and why. Each of these is a
+ * conflict inside the design source or with a settled business rule, not a
+ * preference:
+ *
+ *  a. THE MOBILE LOGIN STEP IS PHONE-ONLY IN FIGMA (no password field; its CTA
+ *     is "التالي", implying phone -> OTP -> in). The desktop login node has
+ *     phone AND password. The settled business rule is phone + password signs
+ *     in directly, with OTP reserved for signup and password reset — so the
+ *     desktop node is the one implemented, at the mobile node's panel
+ *     geometry. CLAUDE.md §3: Figma wins on presentation, not against an
+ *     explicit business requirement.
+ *
+ *  b. THE DESKTOP LOGIN CTA READS "التالي" ("Next") even though that step has
+ *     both fields and completes the journey. That label is inherited from the
+ *     phone-first mobile flow in (a). Rendered as "Sign in" — which is Figma's
+ *     own string for this action on the OTP-login state ("تسجيل الدخول").
+ *
+ *  c. NO FORGOT-PASSWORD FLOW EXISTS IN FIGMA. The backend has supported
+ *     `purpose=password_reset` end to end (send -> verify -> resetPost) all
+ *     along, and dropping the entry point would leave a shopper who forgot
+ *     their password with no route back into their account. The three reset
+ *     steps are kept and built from the SAME measured components as the Figma
+ *     states — no new visual language is invented for them.
+ *
+ *  d. NO CLOSE BUTTON EXISTS IN ANY OF THE FOURTEEN FIGMA STATES. One is kept:
+ *     a modal dialog must expose a visible, focusable dismiss control
+ *     (CLAUDE.md §15). Esc and a scrim click are both undiscoverable and
+ *     neither is announced to assistive tech.
+ *
+ *  e. FIGMA COPY TYPOS are corrected, and listed here so the correction is
+ *     reviewable rather than silent: the OTP title reads "أدخل رمز OPT" (OPT
+ *     for OTP) in all four OTP states; the loading title reads "لحظه من فضلك"
+ *     (لحظه for لحظة); the details labels read "الأسم" (for الاسم). The
+ *     corrected forms are in i18n/ar_EG.csv.
+ *
+ *  f. THE COUNTRY FLAG IS NOT RENDERED — BLOCKED / REQUIRES FIGMA ASSET. The
+ *     20x20 flag beside "+20" cannot be exported cleanly (it is ~28 vector
+ *     fragments inside a component variant, and every export returns either
+ *     the fragments or a canvas-contaminated render), and the one clean export
+ *     that reached this repo is the SYRIAN flag — Figma's variant for this
+ *     instance is labelled `Property = syria`, which is a defect in the design
+ *     file for an Egypt-only store. A wrong national flag is worse than none,
+ *     and authoring or downloading a substitute is forbidden (CLAUDE.md §3).
+ *     See the note in _login-modal.less for exactly what to add when the
+ *     correct asset lands.
+ *
+ * UNCHANGED FROM THE PREVIOUS BUILD, and still true:
+ *
+ *  - REGISTRATION FIELD SET: mobile -> OTP -> firstname + lastname + password
+ *    + confirmation. No email field, ever — `Registrar::register()` does not
+ *    accept one as a parameter, so a posted `email` could not reach account
+ *    identity even by accident. The backend synthesizes an internal
+ *    placeholder address (PlaceholderEmail / CustomerEmail view model); it is
+ *    never rendered anywhere customer-facing. `password_confirmation` is
+ *    REQUIRED server-side (CreatePost.php).
+ *
+ *  - THE OTP BOX COUNT IS CONFIGURATION, NOT A CONSTANT. It renders
+ *    `code_length` cells. Figma draws 4 and the shipped default is now 4, but
+ *    the range is admin-settable 4-8 and hardcoding 4 would leave a shopper
+ *    unable to type digits 5 and 6 of a code they can see in the SMS. The
+ *    stylesheet caps each cell at Figma's 72px and lets them shrink, so a
+ *    longer code still fits one line on a phone.
+ *
+ *  - NO FORM KEY IS RENDERED. This block is cacheable and store-scoped on
+ *    purpose, and a form key baked into a cached page is stale for everyone
+ *    who receives it. The widget reads the `form_key` cookie and rewrites it
+ *    from each auth response — sign-in, registration and reset all regenerate
+ *    the session id, invalidating the previous key. See spartrak-auth.js.
+ *
+ *  - GOOGLE IS INERT: rendered per Figma, but `disabled`, with no handler and
+ *    no data-auth-* hook. Social login is not part of this build; the control
+ *    exists so the layout matches the design without silently dropping a
+ *    Figma element and without building unrequested OAuth.
+ *
+ * Per-field errors: a server error whose response carries a `field` key
+ * (FieldValidationException / InvalidPhoneNumberException — see
+ * AbstractJsonAction) is rendered against the matching `[data-field-error]`
+ * element inside the submitting form, in addition to — not instead of — the
+ * shared `[data-auth-error]` region, which still carries the message text for
+ * screen readers and for any error with no specific field.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ * @var \Spartrak\CustomerAuth\ViewModel\AuthConfig $authConfig
+ */
+
+$authConfig = $block->getData('auth_config');
+
+$codeLength = $authConfig->getCodeLength();
+$signupPurpose = $authConfig->getSignupPurpose();
+$resetPurpose = $authConfig->getPasswordResetPurpose();
+$countryCode = $authConfig->getDefaultCountryCode();
+$ttlMinutes = $authConfig->getCodeTtlMinutes();
+
+$widgetConfig = [
+    'spartrakAuth' => [
+        'endpoints' => [
+            'otpSend' => $block->getUrl('spartrak_auth/otp/send', ['_secure' => true]),
+            'otpVerify' => $block->getUrl('spartrak_auth/otp/verify', ['_secure' => true]),
+            'login' => $block->getUrl('spartrak_auth/account/loginPost', ['_secure' => true]),
+            'register' => $block->getUrl('spartrak_auth/account/createPost', ['_secure' => true]),
+            'passwordReset' => $block->getUrl('spartrak_auth/password/resetPost', ['_secure' => true]),
+        ],
+        'codeLength' => $codeLength,
+        'resendSeconds' => $authConfig->getResendCooldownSeconds(),
+    ],
+];
+
+/**
+ * The heading block every step opens with: 28px title + muted 16px lede,
+ * centred, 12px apart (Figma "Tittle and Description", 561:9926).
+ *
+ * `$measure` reflects Figma's own per-state choice rather than a default:
+ * login and both OTP steps cap the lede at 264px so it breaks into the
+ * balanced lines the design shows, while the register steps let it run the
+ * full content width.
+ */
+$head = static function (
+    string $stepId,
+    string $title,
+    string $lede,
+    bool $measure = false
+) use ($block): string {
+    $ledeClass = 'spartrak-auth__lede' . ($measure ? ' spartrak-auth__lede--measure' : '');
+
+    return '<div class="spartrak-auth__head">'
+        . '<h2 class="spartrak-auth__title" id="spartrak-auth-title-' . $block->escapeHtmlAttr($stepId) . '">'
+        . $block->escapeHtml($title)
+        . '</h2>'
+        . '<p class="' . $ledeClass . '">' . $block->escapeHtml($lede) . '</p>'
+        . '</div>';
+};
+
+/**
+ * Per-step error region. `role="alert"` so a screen reader announces a failed
+ * sign-in without the shopper having to go looking for it, and `hidden` rather
+ * than empty so an emptied region is not announced as a change.
+ *
+ * Hidden means `display: none`, so it contributes no flex gap while there is
+ * no message — the step's spacing is Figma's exactly until something goes
+ * wrong, and only then does the region take its place in the rhythm.
+ */
+$errorRegion = static function (): string {
+    return '<p class="spartrak-auth__error" data-auth-error role="alert" hidden></p>';
+};
+
+/**
+ * Per-field error slot. Empty and hidden until spartrak-auth.js fills one in
+ * from a response's `field` key.
+ *
+ * `role="alert"` added 2026-08-27, when _showError stopped mirroring every
+ * field message into the shared region as well (it was printing each one
+ * twice). The shared region used to be the only live region on the step, so
+ * with the message now landing HERE instead, this element has to announce it
+ * — otherwise de-duplicating the visible text would have silently cost screen
+ * reader users the announcement entirely.
+ */
+$fieldError = static function (string $field) use ($block): string {
+    return '<span class="spartrak-auth__field-error" data-field-error="'
+        . $block->escapeHtmlAttr($field) . '" role="alert" hidden></span>';
+};
+
+/**
+ * The phone field: a 48px bordered wrapper holding the entry segment and a
+ * "+NN" country chip.
+ *
+ * FIGMA SSOT: node 817:19277 ("Text Input"), re-read 2026-08-27 — Inputs
+ * wrapper h48 / border 1px border/default / radius 0 / Shadow-Input; chip
+ * padding 12 (near) 14 (far), gap 8, children [ "+NN" 16px Medium, flag 20 ],
+ * divider on the chip's far edge; entry segment flex-1, padding 8/12,
+ * placeholder in text/muted.
+ *
+ * ---------------------------------------------------------------------------
+ * CHIP ORDER — FIXED 2026-08-27
+ * ---------------------------------------------------------------------------
+ * The chip used to be emitted FIRST, which in this RTL document put it at the
+ * right-hand end of the field. Figma's own render of this component (the frame
+ * is the Arabic one) puts the chip at the LEFT and the number entry to its
+ * right, with the hairline divider between them. Emitting the chip LAST is
+ * what reproduces that, and it follows the same "reverse Figma's LTR child
+ * order" rule the rest of this header/modal pass already uses (see
+ * mobile-nav-drawer.phtml and _support-strip.less).
+ *
+ * Tab order is unaffected: the chip is an aria-hidden <span>, not a control,
+ * so the field still receives focus directly.
+ *
+ * The chip is display context ONLY — aria-hidden, and never concatenated with
+ * the value before posting. The server-side Normalizer applies the default
+ * country code itself and accepts a local "01…" number, so prepending "+20"
+ * here would produce "+2001…" and fail every submission.
+ *
+ * The flag is Figma's own 20x20 glyph for this component
+ * (images/icons/phone-country-flag.svg) — see that file's usage note in
+ * _login-modal.less, which records what the glyph actually depicts.
+ */
+$phoneField = static function (
+    string $id,
+    string $label,
+    string $placeholder
+) use ($block, $fieldError, $countryCode): string {
+    $flagUrl = $block->escapeUrl($block->getViewFileUrl('images/icons/phone-country-flag.svg'));
+
+    return '<div class="field required">'
+        . '<label for="' . $block->escapeHtmlAttr($id) . '">' . $block->escapeHtml($label) . '</label>'
+        . '<div class="spartrak-auth__phone">'
+        . '<input type="tel" id="' . $block->escapeHtmlAttr($id) . '" name="phone" class="input-text" '
+        . 'placeholder="' . $block->escapeHtmlAttr($placeholder) . '" '
+        . 'data-auth-phone-input required autocomplete="tel" inputmode="tel" />'
+        . '<span class="spartrak-auth__phone-code" aria-hidden="true">'
+        . '<span class="spartrak-auth__phone-code-value">+' . $block->escapeHtml($countryCode) . '</span>'
+        . '<img class="spartrak-auth__phone-flag" src="' . $flagUrl . '" width="20" height="20" alt="" '
+        . 'aria-hidden="true" loading="lazy" decoding="async" />'
+        . '</span>'
+        . '</div>'
+        . $fieldError('phone')
+        . '</div>';
+};
+
+/**
+ * A password field with Figma's eye reveal.
+ *
+ * One closure rather than repeating this markup at all five password inputs
+ * (login, registration x2, reset x2): a shared render point means the reveal
+ * can never drift out of sync between fields the way five hand-copied blocks
+ * eventually would.
+ *
+ * The reveal is a real flex sibling of the input, ordered AFTER it, which puts
+ * it at the inline-end — Figma's position — and gives the natural tab order
+ * (into the field, then onto its own control). It is working JS
+ * (spartrak-auth.js `_onPasswordToggle`): it flips type="password" <-> "text"
+ * and updates aria-pressed/aria-label. The glyph itself does not change,
+ * because only one eye icon exists in the design; inventing a second "hidden"
+ * variant is exactly the asset guess CLAUDE.md §3 forbids.
+ */
+$passwordField = static function (
+    string $id,
+    string $name,
+    string $label,
+    string $placeholder,
+    string $autocomplete
+) use ($block, $fieldError): string {
+    $eyeIconUrl = $block->escapeUrl($block->getViewFileUrl('images/icons/password-eye.svg'));
+
+    return '<div class="field required">'
+        . '<label for="' . $block->escapeHtmlAttr($id) . '">' . $block->escapeHtml($label) . '</label>'
+        . '<div class="spartrak-auth__password">'
+        . '<input type="password" id="' . $block->escapeHtmlAttr($id) . '" '
+        . 'name="' . $block->escapeHtmlAttr($name) . '" class="input-text" '
+        . 'placeholder="' . $block->escapeHtmlAttr($placeholder) . '" '
+        . 'required autocomplete="' . $block->escapeHtmlAttr($autocomplete) . '" />'
+        . '<button type="button" class="spartrak-auth__reveal" data-password-toggle '
+        . 'aria-pressed="false" aria-label="' . $block->escapeHtmlAttr(__('Show password')) . '" '
+        . 'aria-controls="' . $block->escapeHtmlAttr($id) . '">'
+        . '<img src="' . $eyeIconUrl . '" width="20" height="20" alt="" aria-hidden="true" />'
+        . '</button>'
+        . '</div>'
+        . $fieldError($name === 'password_confirmation' ? 'password_confirmation' : 'password')
+        . '</div>';
+};
+
+/**
+ * The number being verified, echoed back in Figma's 12px-radius chip with its
+ * 24x24 phone icon. Filled by spartrak-auth.js from the send response.
+ */
+$phoneChip = static function () use ($block): string {
+    $iconUrl = $block->escapeUrl($block->getViewFileUrl('images/icons/phone-call.svg'));
+
+    return '<p class="spartrak-auth__phone-chip">'
+        . '<img src="' . $iconUrl . '" width="24" height="24" alt="" aria-hidden="true" />'
+        . '<span class="spartrak-auth__phone-echo" data-auth-phone-echo></span>'
+        . '</p>';
+};
+
+/**
+ * One OTP entry group, rendered per verify step.
+ *
+ * Each step gets its own group rather than sharing one: the signup and reset
+ * journeys are separate step machines, and a shared group would carry digits
+ * typed in one flow into the other when a shopper backs out and starts again.
+ *
+ * The `placeholder=" "` attribute was dropped on 2026-08-27 along with the
+ * `:placeholder-shown` rule it existed to trigger. Figma draws only two cell
+ * states — filled (rule in icon/default) and active (border AND rule in
+ * action/primary) — so the third, "empty but not focused, lighter rule" state
+ * that rule invented is gone, and with it the attribute's only consumer.
+ */
+$otpGroup = static function (string $stepId) use ($block, $codeLength): string {
+    $html = '<div class="spartrak-otp" data-otp-group role="group" aria-label="'
+        . $block->escapeHtmlAttr(__('Verification code')) . '">';
+
+    for ($i = 0; $i < $codeLength; $i++) {
+        $html .= '<input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" '
+            . 'autocomplete="' . ($i === 0 ? 'one-time-code' : 'off') . '" '
+            . 'class="spartrak-otp__box" data-otp-box '
+            . 'id="' . $block->escapeHtmlAttr($stepId . '-otp-' . $i) . '" '
+            . 'aria-label="' . $block->escapeHtmlAttr(__('Digit %1', $i + 1)) . '" />';
+    }
+
+    return $html . '</div>';
+};
+
+/**
+ * The resend control. Figma renders it as a full-width grey button with no
+ * countdown; the countdown span is a Spartrak addition, because the backend
+ * enforces a cooldown and a button that silently rejects a click for 60
+ * seconds is worse than one that says why. `data-resend-seconds` is only the
+ * pre-first-response value; each send response carries an authoritative
+ * `resend_in`.
+ */
+$resendControl = static function () use ($block, $authConfig): string {
+    return '<button type="button" class="spartrak-auth__secondary" data-otp-resend disabled '
+        . 'data-resend-seconds="' . (int) $authConfig->getResendCooldownSeconds() . '">'
+        . '<span data-resend-label>' . $block->escapeHtml(__('Resend code')) . '</span>'
+        . ' <span class="spartrak-auth__resend-timer" data-resend-countdown>('
+        . '<span data-resend-timer>' . (int) $authConfig->getResendCooldownSeconds() . '</span>s)</span>'
+        . '</button>';
+};
+
+/** Bare centred line. NO flanking rules — see the class docblock. */
+$orText = static function () use ($block): string {
+    return '<p class="spartrak-auth__or">' . $block->escapeHtml(__('Or continue with')) . '</p>';
+};
+
+/**
+ * Deliberately NOT a <button type="submit"> and NOT inside data-auth-form's
+ * submit handling: `disabled` makes it inert to both click and keyboard
+ * activation, and it carries no data-auth-* attribute to bind to.
+ *
+ * Icon before label in DOM, which lands it on Figma's side of the centred pair
+ * in RTL and mirrors correctly in LTR without an override.
+ */
+$googleButton = static function () use ($block): string {
+    $iconUrl = $block->escapeUrl($block->getViewFileUrl('images/icons/google.svg'));
+
+    return '<button type="button" class="spartrak-auth__social" disabled '
+        . 'title="' . $block->escapeHtmlAttr(__('Coming soon')) . '" '
+        . 'aria-label="' . $block->escapeHtmlAttr(__('Continue with Google')) . '">'
+        . '<img src="' . $iconUrl . '" width="20" height="20" alt="" aria-hidden="true" />'
+        . '<span>' . $block->escapeHtml(__('Continue with Google')) . '</span>'
+        . '</button>';
+};
+?>
+<div class="spartrak-auth" data-mage-init='<?= $block->escapeHtmlAttr(json_encode($widgetConfig)) ?>' aria-hidden="true">
+    <div class="spartrak-auth__scrim" data-auth-close></div>
+
+    <div class="spartrak-auth__panel" role="dialog" aria-modal="true" data-auth-panel
+         aria-labelledby="spartrak-auth-title-login">
+        <button type="button" class="spartrak-auth__close" data-auth-close
+                aria-label="<?= $block->escapeHtmlAttr(__('Close')) ?>">
+            <span aria-hidden="true">&times;</span>
+        </button>
+
+        <!-- ============================ Sign in ============================ -->
+        <section class="spartrak-auth__step" data-auth-step="login">
+            <?= /* @noEscape */ $head(
+                'login',
+                __('Welcome back!'),
+                __('Sign in now and buy the items you saved in your cart.'),
+                true
+            ) ?>
+
+            <form class="spartrak-auth__form" method="post" novalidate
+                  data-auth-form
+                  data-auth-endpoint="login"
+                  data-auth-next="finish">
+                <?= /* @noEscape */ $errorRegion() ?>
+
+                <?= /* @noEscape */ $phoneField(
+                    'spartrak-login-phone',
+                    __('Phone number'),
+                    __('Please enter your phone number')
+                ) ?>
+
+                <?= /* @noEscape */ $passwordField(
+                    'spartrak-login-password',
+                    'password',
+                    __('Password'),
+                    __('Please enter your password'),
+                    'current-password'
+                ) ?>
+
+                <button type="button" class="spartrak-auth__link spartrak-auth__link--inline"
+                        data-auth-goto="reset-phone"><?= $block->escapeHtml(__('Forgot your password?')) ?></button>
+
+                <button type="submit" class="spartrak-auth__submit">
+                    <span data-submit-label><?= $block->escapeHtml(__('Sign in')) ?></span>
+                </button>
+
+                <p class="spartrak-auth__prompt">
+                    <span class="spartrak-auth__prompt-question"><?= $block->escapeHtml(__("Don't have an account?")) ?></span>
+                    <button type="button" class="spartrak-auth__link" data-auth-goto="signup">
+                        <?= $block->escapeHtml(__('Sign up')) ?>
+                    </button>
+                </p>
+            </form>
+
+            <?= /* @noEscape */ $orText() ?>
+            <?= /* @noEscape */ $googleButton() ?>
+        </section>
+
+        <!-- ======================== Sign up — phone ======================== -->
+        <section class="spartrak-auth__step" data-auth-step="signup" hidden>
+            <?= /* @noEscape */ $head(
+                'signup',
+                __('Create a new account'),
+                __('Create a new account now so you can save items in your cart and shop with ease.')
+            ) ?>
+
+            <form class="spartrak-auth__form" method="post" novalidate
+                  data-auth-form
+                  data-auth-endpoint="otpSend"
+                  data-auth-purpose="<?= $block->escapeHtmlAttr($signupPurpose) ?>"
+                  data-auth-next="signup-otp">
+                <?= /* @noEscape */ $errorRegion() ?>
+
+                <?= /* @noEscape */ $phoneField(
+                    'spartrak-signup-phone',
+                    __('Phone number'),
+                    __('Please enter your phone number')
+                ) ?>
+
+                <button type="submit" class="spartrak-auth__submit">
+                    <span data-submit-label><?= $block->escapeHtml(__('Next')) ?></span>
+                </button>
+
+                <p class="spartrak-auth__prompt">
+                    <span class="spartrak-auth__prompt-question"><?= $block->escapeHtml(__('Already have an account?')) ?></span>
+                    <button type="button" class="spartrak-auth__link" data-auth-goto="login">
+                        <?= $block->escapeHtml(__('Sign in')) ?>
+                    </button>
+                </p>
+            </form>
+
+            <?= /* @noEscape */ $orText() ?>
+            <?= /* @noEscape */ $googleButton() ?>
+        </section>
+
+        <!-- ======================= Sign up — verify ======================== -->
+        <section class="spartrak-auth__step" data-auth-step="signup-otp" hidden>
+            <?= /* @noEscape */ $head(
+                'signup-otp',
+                __('Enter OTP'),
+                __('We have sent a verification code to your phone number.'),
+                true
+            ) ?>
+
+            <form class="spartrak-auth__otp-stack" method="post" novalidate
+                  data-auth-form
+                  data-auth-endpoint="otpVerify"
+                  data-auth-purpose="<?= $block->escapeHtmlAttr($signupPurpose) ?>"
+                  data-auth-next="registration">
+                <?= /* @noEscape */ $errorRegion() ?>
+                <?= /* @noEscape */ $phoneChip() ?>
+                <?= /* @noEscape */ $otpGroup('signup') ?>
+
+                <div class="spartrak-auth__actions">
+                    <button type="submit" class="spartrak-auth__submit">
+                        <span data-submit-label><?= $block->escapeHtml(__('Next')) ?></span>
+                    </button>
+
+                    <?= /* @noEscape */ $resendControl() ?>
+
+                    <p class="spartrak-auth__hint">
+                        <?= $block->escapeHtml(__('The code expires in %1 minutes.', $ttlMinutes)) ?>
+                    </p>
+
+                    <button type="button" class="spartrak-auth__link" data-auth-goto="signup">
+                        <?= $block->escapeHtml(__('Use a different number')) ?>
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- ===================== Sign up — profile ========================= -->
+        <section class="spartrak-auth__step" data-auth-step="registration" hidden>
+            <?= /* @noEscape */ $head(
+                'registration',
+                __('Complete your personal details'),
+                __('Complete your personal details so you can continue shopping and add products to your cart.')
+            ) ?>
+
+            <form class="spartrak-auth__form" method="post" novalidate
+                  data-auth-form
+                  data-auth-endpoint="register"
+                  data-auth-next="finish">
+                <?= /* @noEscape */ $errorRegion() ?>
+
+                <!--
+                  No email field, deliberately, and not merely omitted from
+                  this markup: Registrar::register() does not accept an $email
+                  parameter at all, so there is nothing on the backend for one
+                  to reach even if a hidden/injected field posted one.
+                -->
+                <div class="field required">
+                    <label for="spartrak-reg-firstname"><?= $block->escapeHtml(__('First name')) ?></label>
+                    <input type="text" id="spartrak-reg-firstname" name="firstname" class="input-text"
+                           placeholder="<?= $block->escapeHtmlAttr(__('Please enter your first name')) ?>"
+                           required autocomplete="given-name" />
+                    <?= /* @noEscape */ $fieldError('firstname') ?>
+                </div>
+
+                <div class="field required">
+                    <label for="spartrak-reg-lastname"><?= $block->escapeHtml(__('Last name')) ?></label>
+                    <input type="text" id="spartrak-reg-lastname" name="lastname" class="input-text"
+                           placeholder="<?= $block->escapeHtmlAttr(__('Please enter your last name')) ?>"
+                           required autocomplete="family-name" />
+                    <?= /* @noEscape */ $fieldError('lastname') ?>
+                </div>
+
+                <?= /* @noEscape */ $passwordField(
+                    'spartrak-reg-password',
+                    'password',
+                    __('Password'),
+                    __('Please enter your password'),
+                    'new-password'
+                ) ?>
+
+                <?= /* @noEscape */ $passwordField(
+                    'spartrak-reg-password-confirm',
+                    'password_confirmation',
+                    __('Confirm password'),
+                    __('Please confirm your password'),
+                    'new-password'
+                ) ?>
+
+                <button type="submit" class="spartrak-auth__submit">
+                    <span data-submit-label><?= $block->escapeHtml(__('Create account')) ?></span>
+                </button>
+            </form>
+        </section>
+
+        <!-- ==================== Password reset — phone =====================
+             No Figma state (see docblock note c). Built from the same measured
+             components as the states that do have one. -->
+        <section class="spartrak-auth__step" data-auth-step="reset-phone" hidden>
+            <?= /* @noEscape */ $head(
+                'reset-phone',
+                __('Reset your password'),
+                __('Enter your phone number and we will send you a verification code.')
+            ) ?>
+
+            <form class="spartrak-auth__form" method="post" novalidate
+                  data-auth-form
+                  data-auth-endpoint="otpSend"
+                  data-auth-purpose="<?= $block->escapeHtmlAttr($resetPurpose) ?>"
+                  data-auth-next="reset-otp">
+                <?= /* @noEscape */ $errorRegion() ?>
+
+                <?= /* @noEscape */ $phoneField(
+                    'spartrak-reset-phone',
+                    __('Phone number'),
+                    __('Please enter your phone number')
+                ) ?>
+
+                <button type="submit" class="spartrak-auth__submit">
+                    <span data-submit-label><?= $block->escapeHtml(__('Next')) ?></span>
+                </button>
+
+                <p class="spartrak-auth__prompt">
+                    <button type="button" class="spartrak-auth__link" data-auth-goto="login">
+                        <?= $block->escapeHtml(__('Back to sign in')) ?>
+                    </button>
+                </p>
+            </form>
+        </section>
+
+        <!-- ==================== Password reset — verify ==================== -->
+        <section class="spartrak-auth__step" data-auth-step="reset-otp" hidden>
+            <?= /* @noEscape */ $head(
+                'reset-otp',
+                __('Enter OTP'),
+                __('We have sent a verification code to your phone number.'),
+                true
+            ) ?>
+
+            <form class="spartrak-auth__otp-stack" method="post" novalidate
+                  data-auth-form
+                  data-auth-endpoint="otpVerify"
+                  data-auth-purpose="<?= $block->escapeHtmlAttr($resetPurpose) ?>"
+                  data-auth-next="reset-password">
+                <?= /* @noEscape */ $errorRegion() ?>
+                <?= /* @noEscape */ $phoneChip() ?>
+                <?= /* @noEscape */ $otpGroup('reset') ?>
+
+                <div class="spartrak-auth__actions">
+                    <button type="submit" class="spartrak-auth__submit">
+                        <span data-submit-label><?= $block->escapeHtml(__('Next')) ?></span>
+                    </button>
+
+                    <?= /* @noEscape */ $resendControl() ?>
+
+                    <p class="spartrak-auth__hint">
+                        <?= $block->escapeHtml(__('The code expires in %1 minutes.', $ttlMinutes)) ?>
+                    </p>
+
+                    <button type="button" class="spartrak-auth__link" data-auth-goto="reset-phone">
+                        <?= $block->escapeHtml(__('Use a different number')) ?>
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- =================== Password reset — new password =============== -->
+        <section class="spartrak-auth__step" data-auth-step="reset-password" hidden>
+            <?= /* @noEscape */ $head(
+                'reset-password',
+                __('Choose a new password'),
+                __('Pick a new password for your account.')
+            ) ?>
+
+            <form class="spartrak-auth__form" method="post" novalidate
+                  data-auth-form
+                  data-auth-endpoint="passwordReset"
+                  data-auth-next="finish">
+                <?= /* @noEscape */ $errorRegion() ?>
+
+                <?= /* @noEscape */ $passwordField(
+                    'spartrak-reset-password',
+                    'password',
+                    __('New password'),
+                    __('Please enter your new password'),
+                    'new-password'
+                ) ?>
+
+                <?= /* @noEscape */ $passwordField(
+                    'spartrak-reset-password-confirm',
+                    'password_confirmation',
+                    __('Confirm new password'),
+                    __('Please confirm your new password'),
+                    'new-password'
+                ) ?>
+
+                <!--
+                  Stated up front, not after the fact: resetPost evicts every
+                  other session for the account. A shopper whose phone silently
+                  signs itself out an hour later has no way to connect that to
+                  what they just did here.
+                -->
+                <p class="spartrak-auth__hint">
+                    <?= $block->escapeHtml(__('You will be signed out on any other devices.')) ?>
+                </p>
+
+                <button type="submit" class="spartrak-auth__submit">
+                    <span data-submit-label><?= $block->escapeHtml(__('Save password')) ?></span>
+                </button>
+            </form>
+        </section>
+
+        <!-- ============================ Loading ===========================
+             Figma 572:15113 / 688:25653. A TRANSITIONAL state, not a
+             confirmation — the panel narrows to 400 and pads 40 top and
+             bottom, which the stylesheet applies off this step being visible
+             rather than via a JS class. -->
+        <section class="spartrak-auth__step" data-auth-step="success" hidden>
+            <div class="spartrak-auth__success" role="status" aria-live="polite">
+                <img class="spartrak-auth__success-icon"
+                     src="<?= $block->escapeUrl($block->getViewFileUrl('images/icons/spinner.svg')) ?>"
+                     width="80" height="80" alt="" aria-hidden="true" />
+                <div class="spartrak-auth__head">
+                    <h2 class="spartrak-auth__title" id="spartrak-auth-title-success" data-auth-success-message>
+                        <?= $block->escapeHtml(__('One moment please!')) ?>
+                    </h2>
+                    <?php
+                    /**
+                     * QA FIX (2026-08-27): this line was a single hardcoded
+                     * string — "Your account is being created…" — and this step
+                     * is the terminal state of ALL THREE journeys, so signing in
+                     * to an account you have had for a year announced that your
+                     * account was being created. Reported from the live site.
+                     *
+                     * The three variants are rendered as data attributes rather
+                     * than looked up in JS, so the copy stays translated by
+                     * __() in the same place as every other string in this
+                     * template (i18n/ar_EG.csv), instead of depending on the JS
+                     * translation dictionary being deployed. spartrak-auth.js
+                     * picks one from the submitting form's own
+                     * `data-auth-endpoint`, which is the only thing that
+                     * reliably identifies the journey at that point — the step
+                     * id is already 'success' by then.
+                     *
+                     * The element's own text is the signup copy, so the markup
+                     * is still correct with JavaScript disabled or before the
+                     * widget initialises.
+                     */
+                    ?>
+                    <p class="spartrak-auth__lede spartrak-auth__lede--loading"
+                       data-auth-loading-lede
+                       data-lede-login="<?= $block->escapeHtmlAttr(__("You're being signed in. Please don't close this page.")) ?>"
+                       data-lede-signup="<?= $block->escapeHtmlAttr(__("Your account is being created. Please don't close this page.")) ?>"
+                       data-lede-reset="<?= $block->escapeHtmlAttr(__("Your password is being updated. Please don't close this page.")) ?>">
+                        <?= $block->escapeHtml(__("Your account is being created. Please don't close this page.")) ?>
+                    </p>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>

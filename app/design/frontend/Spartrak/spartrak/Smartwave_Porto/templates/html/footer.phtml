@@ -1,0 +1,295 @@
+<?php
+/**
+ * Spartrak Footer.
+ *
+ * FIGMA SSOT: node 561:9856 ("Footer Links", 1440x419). Verified byte-identical
+ * across all three desktop frames that contain a footer — 561:9856 (checkout),
+ * 595:14998 (home) and 704:24884 — same structure, padding, tokens, gaps,
+ * column geometry and Arabic strings in every one. So there is one footer, not
+ * a per-page variant.
+ *
+ * ===========================================================================
+ * TWO REAL BUGS THIS REPLACES
+ * ===========================================================================
+ *  1. THE FOUR LINK COLUMNS RENDERED EMPTY. The previous template called
+ *     `getChildHtml('spartrak.footer_links_1'..'_4')`, and those four blocks
+ *     are declared NOWHERE in any layout XML in this theme — only
+ *     `spartrak.footer_logo` exists. So every column emitted a title and then
+ *     nothing. This is the exact failure the support strip already hit and
+ *     documented (see support-strip.phtml's "CONTENT COMES FROM CODE, NOT CMS
+ *     BLOCKS" note): child blocks that were never created, silently rendering
+ *     empty on the live site.
+ *
+ *  2. THE STYLESHEET AND THE TEMPLATE DID NOT AGREE ON CLASS NAMES. _footer.less
+ *     styled `__social-link`, `__contact`, `__contact-item`, `__support` and
+ *     `__newsletter`; the template emitted `__social-links`,
+ *     `__social-links-list`, `__social-links-item` and no contact markup at
+ *     all. Every one of those rules was dead, which is why the social row had
+ *     no 36px pill and the bottom bar had no phone/email at all.
+ *
+ * ===========================================================================
+ * CONTENT COMES FROM CODE, NOT CMS BLOCKS
+ * ===========================================================================
+ * Same explicit project instruction the support strip records, and the same
+ * three reasons apply verbatim here: it renders correctly on a fresh install
+ * with zero admin setup (so the footer can never silently lose its links
+ * again), the wording stays changeable WITHOUT a deploy because __() strings
+ * are translatable per store view via Admin > Stores > Translations or this
+ * theme's i18n/ar_EG.csv, and it keeps four static-block lookups off every
+ * single page render (CLAUDE.md §4).
+ *
+ * The hotline reuses `__('Hotline')` and `__('12384')` — the SAME source
+ * strings the support strip uses — so the header and footer can never show
+ * different numbers. Note that Figma's footer draws 12304 while Figma's own
+ * header draws 12384; rather than shipping both, one source wins and the
+ * discrepancy is raised.
+ *
+ * ===========================================================================
+ * RTL CHILD ORDER
+ * ===========================================================================
+ * These frames are RTL-composed, so child order here is the REVERSE of Figma's
+ * LTR x-order — the convention header.phtml and support-strip.phtml already
+ * establish and document. Concretely:
+ *   - the brand block is emitted FIRST so RTL places it at the inline start
+ *     (Figma x=1050, the right edge), and the four link columns follow in
+ *     reverse so they land left-to-right as تواصل معنا / عن الشركة /
+ *     خدمة العملاء / تسوق.
+ *   - in the bottom bar, contact is emitted before copyright so copyright
+ *     lands at the inline end (Figma x=0, the left).
+ *   - inside each contact item the icon precedes the text, which puts the icon
+ *     at the inline start — Figma's arrangement, and the conventional one in
+ *     LTR too, so it needs no direction-specific override.
+ *
+ * ===========================================================================
+ * LINK TARGETS — the one thing not derivable from Figma
+ * ===========================================================================
+ * Figma supplies the twenty labels but no hrefs. Every target below is
+ * therefore a CONVENTIONAL Magento default collected into the single
+ * `$href` map, so correcting one is a one-line change in one place rather
+ * than a hunt through markup. `_direct` resolves to {base_url}/{identifier},
+ * which is how a CMS page or category is linked by url key without a DB
+ * lookup at render time.
+ *
+ * The four SOCIAL URLs are genuinely unknown business data — Figma provides no
+ * hrefs and inventing an official brand account would be fabricating content.
+ * They are left empty on purpose, and an empty entry renders the pill as a
+ * non-interactive <span> instead of a dead <a href="#">: the Figma element is
+ * still present and correctly styled, but nothing broken ships. Filling in
+ * `$socialUrl` is all that is needed to activate them.
+ *
+ * ===========================================================================
+ * FIGMA CONTENT ISSUES, reproduced verbatim and flagged rather than "fixed"
+ * ===========================================================================
+ *  - Column 1 ("تواصل معنا" / Contact us) lists فروعنا, الوظائف,
+ *    سياسة الخصوصية and الشروط والاحكام — the same four items as column 2
+ *    ("عن الشركة" / About the company). A Contact column carrying Privacy
+ *    Policy and Careers reads like unfinished duplication in the source, but it
+ *    is a content decision, not an orthographic slip, so it is reproduced
+ *    exactly as drawn and raised for review.
+ *  - The bottom-bar phone (+2012000000001, thirteen digits) and email
+ *    (sparetrak@gmail.com) both look like placeholders. Reproduced as
+ *    translatable literals, same mechanism as the hotline, so either can be
+ *    corrected per store view without a deploy.
+ *
+ * @var \Smartwave\Porto\Block\Template $block
+ */
+
+/** Resolve a CMS page / category url key to an absolute storefront URL. */
+$href = static function (string $identifier) use ($block): string {
+    return $block->getUrl('', ['_direct' => $identifier]);
+};
+
+/**
+ * The four link columns. Figma order is preserved in the DECLARATION (so this
+ * reads the same way the design does, left to right); the reversal for RTL
+ * happens once, at render, below.
+ */
+$columns = [
+    [
+        'title' => __('Contact Us'),
+        // Rendered by $hotlineItem() rather than as a plain link: Figma gives
+        // this one item mixed type — a regular muted label followed by a bold
+        // ink number — which no other item in the footer has.
+        'hotline' => true,
+        'items' => [
+            ['label' => __('Our branches'), 'url' => $href('branches')],
+            ['label' => __('Careers'), 'url' => $href('careers')],
+            ['label' => __('Privacy policy'), 'url' => $href('privacy-policy-cookie-restriction-mode')],
+            ['label' => __('Terms and conditions'), 'url' => $href('terms-and-conditions')],
+        ],
+    ],
+    [
+        'title' => __('About'),
+        'items' => [
+            ['label' => __('About us'), 'url' => $href('about-us')],
+            ['label' => __('Our branches'), 'url' => $href('branches')],
+            ['label' => __('Careers'), 'url' => $href('careers')],
+            ['label' => __('Privacy policy'), 'url' => $href('privacy-policy-cookie-restriction-mode')],
+            ['label' => __('Terms and conditions'), 'url' => $href('terms-and-conditions')],
+        ],
+    ],
+    [
+        'title' => __('Customer Service'),
+        'items' => [
+            ['label' => __('Track your order'), 'url' => $block->getUrl('sales/guest/form')],
+            ['label' => __('Return policy'), 'url' => $href('return-policy')],
+            ['label' => __('Shipping policy'), 'url' => $href('shipping-policy')],
+            ['label' => __('FAQ'), 'url' => $href('faq')],
+            ['label' => __('Call us'), 'url' => $href('contact')],
+        ],
+    ],
+    [
+        'title' => __('Shop'),
+        'items' => [
+            ['label' => __('Engine parts'), 'url' => $href('engine-parts')],
+            ['label' => __('Overhaul kit'), 'url' => $href('overhaul-kit')],
+            ['label' => __('Pumps'), 'url' => $href('pumps')],
+            ['label' => __('Filters'), 'url' => $href('filters')],
+            ['label' => __('All brands'), 'url' => $href('brands')],
+        ],
+    ],
+];
+
+/**
+ * Social channels, in Figma's left-to-right order. `url` is intentionally
+ * empty — see the LINK TARGETS note above. Icons are the real 16x16 Figma
+ * exports (561:9898 / 561:9901 / 561:9905 / 561:9910).
+ */
+$socialUrl = [
+    'whatsapp' => '',
+    'youtube' => '',
+    'instagram' => '',
+    'facebook' => '',
+];
+
+$social = [
+    ['key' => 'whatsapp', 'label' => __('WhatsApp'), 'icon' => 'whatsapp.svg'],
+    ['key' => 'youtube', 'label' => __('YouTube'), 'icon' => 'youtube.svg'],
+    ['key' => 'instagram', 'label' => __('Instagram'), 'icon' => 'instagram.svg'],
+    ['key' => 'facebook', 'label' => __('Facebook'), 'icon' => 'facebook.svg'],
+];
+
+/** Figma's mixed-type hotline row: muted label + bold ink number, 8px apart. */
+$hotlineItem = static function () use ($block): string {
+    $number = (string) __('12384');
+
+    return '<li class="spartrak-footer__item">'
+        . '<a class="spartrak-footer__link spartrak-footer__hotline" '
+        . 'href="tel:' . $block->escapeHtmlAttr($number) . '">'
+        . '<span class="spartrak-footer__hotline-label">' . $block->escapeHtml(__('Hotline')) . '</span>'
+        // Latin digits inside an Arabic run: isolate as LTR or the bidi
+        // algorithm reorders them. Same fix as the support strip's own.
+        . '<span class="spartrak-footer__hotline-number">' . $block->escapeHtml($number) . '</span>'
+        . '</a>'
+        . '</li>';
+};
+
+/**
+ * One contact item in the bottom bar: 20x20 icon then text, 8px apart. The
+ * value is a translatable literal so it is correctable per store view.
+ */
+$contactItem = static function (
+    string $icon,
+    string $value,
+    string $scheme,
+    string $label
+) use ($block): string {
+    return '<a class="spartrak-footer__contact-item" '
+        . 'href="' . $block->escapeHtmlAttr($scheme . $value) . '" '
+        . 'aria-label="' . $block->escapeHtmlAttr($label) . '">'
+        . '<img class="spartrak-footer__contact-icon" '
+        . 'src="' . $block->escapeUrl($block->getViewFileUrl('images/icons/' . $icon)) . '" '
+        . 'width="20" height="20" alt="" aria-hidden="true" loading="lazy" decoding="async" />'
+        . '<span class="spartrak-footer__contact-value">' . $block->escapeHtml($value) . '</span>'
+        . '</a>';
+};
+
+$phone = (string) __('+2012000000001');
+$email = (string) __('sparetrak@gmail.com');
+?>
+<footer class="spartrak-footer" role="contentinfo">
+    <div class="spartrak-footer__links-area">
+        <div class="spartrak-footer__row">
+            <?php /* Emitted first so RTL puts it at the inline start (Figma x=1050). */ ?>
+            <div class="spartrak-footer__brand">
+                <div class="spartrak-footer__logo">
+                    <?= $block->getChildHtml('spartrak.footer_logo') ?>
+                </div>
+
+                <p class="spartrak-footer__about">
+                    <?= $block->escapeHtml(__('Al-Assal Trading and Supplies — over 50 years of experience supplying genuine diesel engine spare parts for every global brand. Mohsen Al-Assal and Partners.')) ?>
+                </p>
+
+                <ul class="spartrak-footer__social">
+                    <?php foreach (array_reverse($social) as $channel): ?>
+                        <?php
+                        $url = $socialUrl[$channel['key']] ?? '';
+                        $iconHtml = '<img src="'
+                            . $block->escapeUrl($block->getViewFileUrl('images/icons/' . $channel['icon']))
+                            . '" width="16" height="16" alt="" aria-hidden="true" loading="lazy" decoding="async" />';
+                        ?>
+                        <li class="spartrak-footer__social-item">
+                            <?php if ($url !== ''): ?>
+                                <a class="spartrak-footer__social-link"
+                                   href="<?= $block->escapeUrl($url) ?>"
+                                   rel="noopener noreferrer" target="_blank"
+                                   aria-label="<?= $block->escapeHtmlAttr($channel['label']) ?>">
+                                    <?= /* @noEscape */ $iconHtml ?>
+                                </a>
+                            <?php else: ?>
+                                <?php /* No URL supplied — see the LINK TARGETS note. Rendered as
+                                        the same styled pill, but inert, so no dead href ships. */ ?>
+                                <span class="spartrak-footer__social-link"
+                                      role="img"
+                                      aria-label="<?= $block->escapeHtmlAttr($channel['label']) ?>">
+                                    <?= /* @noEscape */ $iconHtml ?>
+                                </span>
+                            <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+
+            <?php /* Reversed for RTL — see the RTL CHILD ORDER note. */ ?>
+            <?php foreach (array_reverse($columns) as $index => $column): ?>
+                <?php $titleId = 'spartrak-footer-col-' . $index; ?>
+                <nav class="spartrak-footer__col" aria-labelledby="<?= $block->escapeHtmlAttr($titleId) ?>">
+                    <h2 class="spartrak-footer__col-title" id="<?= $block->escapeHtmlAttr($titleId) ?>">
+                        <?= $block->escapeHtml($column['title']) ?>
+                    </h2>
+                    <ul class="spartrak-footer__list">
+                        <?php if (!empty($column['hotline'])): ?>
+                            <?= /* @noEscape */ $hotlineItem() ?>
+                        <?php endif; ?>
+                        <?php foreach ($column['items'] as $item): ?>
+                            <li class="spartrak-footer__item">
+                                <a class="spartrak-footer__link" href="<?= $block->escapeUrl($item['url']) ?>">
+                                    <?= $block->escapeHtml($item['label']) ?>
+                                </a>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </nav>
+            <?php endforeach; ?>
+        </div>
+    </div>
+
+    <div class="spartrak-footer__bottom">
+        <div class="spartrak-footer__bottom-row">
+            <?php /* Contact first so copyright lands at the inline end (Figma x=0). */ ?>
+            <?php /* Email before phone, so RTL lands phone at the inline end —
+                     Figma puts the phone group LEFT of the email group (phone at
+                     x=0, email at x=203 inside the 427 contact frame), confirmed
+                     against the node's own 1440 PNG export. Same reversal rule as
+                     everywhere else in this template. */ ?>
+            <div class="spartrak-footer__contact">
+                <?= /* @noEscape */ $contactItem('email.svg', $email, 'mailto:', (string) __('Email us')) ?>
+                <?= /* @noEscape */ $contactItem('phone.svg', $phone, 'tel:', (string) __('Call us')) ?>
+            </div>
+
+            <p class="spartrak-footer__copyright">
+                <?= $block->escapeHtml(__('© %1 - All rights reserved to SpareTrak', date('Y'))) ?>
+            </p>
+        </div>
+    </div>
+</footer>

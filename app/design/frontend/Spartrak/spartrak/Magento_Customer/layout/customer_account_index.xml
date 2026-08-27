@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<!--
+  Wires the CustomerEmail view model into the dashboard's Account Information
+  block. The TEMPLATE override needs no layout entry at all — the file at
+  Magento_Customer/templates/account/dashboard/info.phtml in this theme already
+  shadows core's copy via ordinary theme-fallback path resolution, the same
+  mechanism this theme relies on everywhere else (see e.g. Magento_Search's
+  form.mini.phtml override). This file's only job is the <arguments> injection,
+  which layout XML is the correct place for regardless.
+
+  <referenceBlock>, not a re-declared <block>: this stays a genuine EXTENSION of
+  core's own customer_account_index.xml — the block class, position and
+  cacheable="false" are exactly as core declared them.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="customer_account_dashboard_info">
+            <arguments>
+                <argument name="customer_email" xsi:type="object">Spartrak\CustomerAuth\ViewModel\CustomerEmail</argument>
+            </arguments>
+        </referenceBlock>
+    </body>
+</page>

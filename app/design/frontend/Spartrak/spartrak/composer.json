@@ -1,0 +1,19 @@
+{
+    "name": "spartrak/theme-frontend-spartrak",
+    "description": "SpareTrak storefront theme (LTR/English) — child theme of Smartwave Porto",
+    "require": {
+        "php": "~8.1.0||~8.2.0||~8.3.0",
+        "smartwave/theme-frontend-porto": ">=2.2.1",
+        "magento/framework": "*"
+    },
+    "type": "magento2-theme",
+    "version": "0.1.0",
+    "license": [
+        "proprietary"
+    ],
+    "autoload": {
+        "files": [
+            "registration.php"
+        ]
+    }
+}

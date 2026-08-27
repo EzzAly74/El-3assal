@@ -1,0 +1,199 @@
+<?php
+/**
+ * Spartrak Header Account Chip.
+ *
+ * FIGMA SSOT: node 595:14513 ("Profile") — a 40px-tall pill, 1px
+ * border/default on bg/surface, padding-inline start 14 / end 6, 8px gaps,
+ * children in RTL order [avatar 28px, first name 14px Medium, chevron 16px].
+ * Geometry verified by measurement on the 1440 export (chip 144..264, chevron
+ * box 150..166, name 175..213, avatar plate 222..250).
+ *
+ * Replaces the bare `header.links` list the previous header rendered in this
+ * slot. Until 2026-08-27 that block was re-declared as this chip's child so
+ * Magento's own account links rendered inside the dropdown; it now renders the
+ * account navigation Figma specifies instead — see "THE SIGNED-IN MENU" below
+ * for what those core links were doing wrong and why state-independent routes
+ * are the fix rather than a workaround.
+ *
+ * ---------------------------------------------------------------------------
+ * SERVER-SIDE IS THE FIRST PAINT; customerData IS THE AUTHORITY
+ * ---------------------------------------------------------------------------
+ * QA FIX (2026-08-27) — reported symptom: the desktop chip intermittently
+ * showed "تسجيل الدخول" (sign in) to a signed-in shopper, while the MOBILE
+ * drawer on the very same page load showed that shopper's real name. That
+ * combination is the diagnosis: within one response, customerData knew the
+ * visitor was signed in and the server-rendered HTML did not.
+ *
+ * HISTORY. The 2026-08-25 pass moved the decision from customerData into PHP,
+ * reading Magento\Framework\App\Http\Context via
+ * Spartrak\CustomerAuth\ViewModel\CustomerState, on the reasoning that
+ * HttpContext is the object Magento's own full-page cache varies on and is
+ * therefore safe to branch on inside a cached page. That reasoning is correct
+ * ABOUT MAGENTO'S FPC — and insufficient here, because Magento's FPC is not
+ * the only cache in front of this store. The live responses carry an
+ * `x-cache-nxaccel` header: there is a separate HTTP cache layer ahead of
+ * Magento whose key we neither control nor can see from the theme. Any layer
+ * that serves one visitor's HTML to another turns a PHP branch on session
+ * state into exactly the bug reported, and no amount of correctness inside
+ * Magento can fix a variant chosen upstream of it.
+ *
+ * So the STATE decision is client-side again — but this version is not a
+ * repeat of the pre-2026-08-25 build, which failed for an unrelated and
+ * since-fixed reason (sections.xml keyed its actions on the route id instead
+ * of the URL path, so signing in invalidated nothing and the `customer`
+ * section was never fetched at all). Two things are different now:
+ *
+ *   1. THE SECTION ACTUALLY RESOLVES. That sections.xml bug is fixed, and the
+ *      mobile drawer — which has used this exact contract throughout — is the
+ *      standing proof: it reports the right name on the same page loads where
+ *      this chip reported the wrong state.
+ *
+ *   2. PHP STILL CHOOSES THE FIRST PAINT. CustomerState has not been removed;
+ *      it now sets which of the two chips starts un-`hidden`. On a correctly
+ *      keyed response that guess is right, so there is no flash, no toggle and
+ *      no layout shift — the same rendering the server-side-only version gave.
+ *      When the guess is wrong, the widget corrects it instead of leaving a
+ *      shopper greeted as a stranger. A server-side HINT is safe where a
+ *      server-side VERDICT is not.
+ *
+ * This is also what Magento core itself does for this element: the Luma header
+ * ships Magento_Customer/js/view/authentication-link, a customerData-driven
+ * component, in preference to the HttpContext-driven
+ * Customer\Block\Account\AuthorizationLink.
+ *
+ * The NAME was always client-side and stays that way: a customer's name is not
+ * a cache-vary dimension, and making it one would give every shopper a private
+ * copy of every page.
+ *
+ * ---------------------------------------------------------------------------
+ * TWO DELIBERATE DEPARTURES FROM THE FRAME — both flagged in the handover
+ * ---------------------------------------------------------------------------
+ * 1. NO AVATAR PHOTOGRAPH. Figma fills the 28px circle with a stock
+ *    head-and-shoulders photo (the same raster the logo is cropped out of).
+ *    Magento has no customer-avatar feature, so shipping it would render one
+ *    stock person's face as EVERY signed-in shopper's avatar. It is a design
+ *    placeholder, not a brand asset. The plate's size, radius and colour
+ *    (blue/0 #f4f7fd) are reproduced exactly and filled with the customer's
+ *    own initial — real data, nothing invented, no asset authored.
+ *
+ * 2. THE GUEST STATE IS NOT IN FIGMA. Every header frame in the file shows the
+ *    signed-in chip; no frame shows what a first-time visitor sees, which is
+ *    what most visitors see. Implemented as the same pill with a sign-in label
+ *    and no avatar plate (there is no initial to put in it), opening the
+ *    existing auth modal. Geometry, tokens and type are the signed-in chip's;
+ *    only the contents differ. Needs a designer decision, not a guess.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ */
+$customerState = $block->getData('customer_state');
+
+// The FIRST-PAINT guess only — see the header note. spartrak-utility-header.js
+// overrides it from the customerData `customer` section once that resolves.
+$isLoggedIn = $customerState !== null && $customerState->isLoggedIn();
+?>
+<div class="spartrak-header__account-guest" data-account-guest<?= $isLoggedIn ? ' hidden' : '' ?>>
+    <button
+        type="button"
+        class="spartrak-header__account-chip"
+        data-auth-open
+    >
+        <span class="spartrak-header__account-name"><?= $block->escapeHtml(__('Sign in')) ?></span>
+        <span class="spartrak-header__account-chevron" aria-hidden="true"></span>
+    </button>
+</div>
+
+<div class="spartrak-header__account-customer" data-account-customer<?= $isLoggedIn ? '' : ' hidden' ?>>
+    <button
+        type="button"
+        class="spartrak-header__account-chip"
+        data-account-toggle
+        aria-expanded="false"
+        aria-controls="spartrak-account-menu"
+    >
+        <?php /* Node 693:45429. The initial and the name are written by the
+                 widget from the customerData `customer` section. The name
+                 falls back to a neutral label rather than a guessed one, and
+                 the initial starts EMPTY so the plate can never flash the
+                 wrong letter before the section resolves. */ ?>
+        <span class="spartrak-header__avatar" aria-hidden="true" data-account-initial></span>
+        <span class="spartrak-header__account-name" data-account-name><?= $block->escapeHtml(__('My account')) ?></span>
+        <span class="spartrak-header__account-chevron" aria-hidden="true"></span>
+    </button>
+
+    <?php
+    /**
+     * ======================================================================
+     * THE SIGNED-IN MENU — REBUILT FROM FIGMA 2026-08-27
+     * ======================================================================
+     * FIGMA SSOT: node 562:11000 ("Sidebar") on the My Account page — its
+     * "Menu Container" (562:11002) is the design system's account-navigation
+     * pattern, and this dropdown is now an instance of it rather than an
+     * un-designed list. Rows are 48px, `px-12 py-8`, gap 12, label
+     * Body/Small Medium (14px/500) in text/secondary with a 20px icon at the
+     * inline end, 8px between rows; the active row takes bg/field with its
+     * label in text/primary; sign-out is separated and rendered in
+     * text/price-sale. Every one of those values is read from that node.
+     *
+     * WHY IT NO LONGER RENDERS `header.links`.
+     * It used to emit Magento's own header-links block, and on the live site
+     * that produced "Compare (0 items) / Sign In / تواصل معنا / Create an
+     * Account" INSIDE the menu of a shopper who was already signed in. Two
+     * separate faults:
+     *
+     *   1. WRONG STATE. Magento\Customer\Block\Account\AuthorizationLink and
+     *      RegisterLink decide guest-vs-signed-in from HttpContext — the same
+     *      server-side branch that the chip itself had to stop trusting (see
+     *      the note at the top of this file). Cached upstream, they render the
+     *      guest pair to a signed-in shopper. Offering "Sign In" and "Create
+     *      an Account" inside the account menu is the visible symptom.
+     *
+     *   2. WRONG CONTENT. This menu is only reachable FROM the signed-in chip
+     *      — a guest gets the auth modal instead — so guest links are
+     *      unreachable-by-design, and a compare-list link is not account
+     *      navigation at all.
+     *
+     * The links below are all STATE-INDEPENDENT routes: they are the same URL
+     * for every visitor, so nothing here can be wrong in a cached page. That
+     * is the property that makes this menu immune to the bug above, not just
+     * patched against it.
+     *
+     * The block declaration was removed from Smartwave_Porto/layout/default.xml
+     * in the same change, so no block is left rendered-but-unused.
+     *
+     * NOT IMPLEMENTED, DELIBERATELY: Figma draws a count badge on "طلباتي"
+     * (node 562:11010). Magento ships no order-count customer-data section, and
+     * CLAUDE.md §5/§9 forbid inventing or hardcoding the number, so the badge
+     * is omitted rather than faked. It needs a real section to exist first.
+     */
+    $accountLinks = [
+        ['route' => 'customer/account',    'label' => __('My account'),      'icon' => 'account-user.svg',      'mod' => 'user'],
+        ['route' => 'sales/order/history', 'label' => __('My orders'),       'icon' => 'account-orders.svg',    'mod' => 'orders'],
+        ['route' => 'customer/address',    'label' => __('My addresses'),    'icon' => 'account-addresses.svg', 'mod' => 'addresses'],
+        ['route' => 'wishlist',            'label' => __('My wishlist'),     'icon' => 'heart.svg',             'mod' => 'wishlist'],
+        ['route' => 'contact',             'label' => __('Help and support'),'icon' => 'account-support.svg',   'mod' => 'support'],
+    ];
+    ?>
+    <div class="spartrak-header__account-menu" id="spartrak-account-menu" hidden>
+        <ul class="spartrak-header__account-links">
+            <?php foreach ($accountLinks as $link) : ?>
+                <li>
+                    <a class="spartrak-header__account-link" href="<?= $block->escapeUrl($block->getUrl($link['route'])) ?>">
+                        <span class="spartrak-header__account-link-label"><?= $block->escapeHtml($link['label']) ?></span>
+                        <span class="spartrak-header__account-link-icon spartrak-header__account-link-icon--<?= $block->escapeHtmlAttr($link['mod']) ?>" aria-hidden="true"></span>
+                    </a>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+
+        <?php /* Node 562:11021 — pinned below the list, its own group, and the
+                 only row that is not text/secondary. A plain GET link:
+                 Magento\Customer\Controller\Account\Logout implements
+                 HttpGetActionInterface (as well as POST), which is exactly how
+                 core's own AuthorizationLink renders it. */ ?>
+        <a class="spartrak-header__account-link spartrak-header__account-link--signout"
+           href="<?= $block->escapeUrl($block->getUrl('customer/account/logout')) ?>">
+            <span class="spartrak-header__account-link-label"><?= $block->escapeHtml(__('Sign out')) ?></span>
+            <span class="spartrak-header__account-link-icon spartrak-header__account-link-icon--signout" aria-hidden="true"></span>
+        </a>
+    </div>
+</div>

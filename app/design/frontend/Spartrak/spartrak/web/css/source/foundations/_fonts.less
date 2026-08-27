@@ -1,0 +1,77 @@
+// Spartrak design tokens — Layer 0: Web font faces.
+//
+// Thmanyah Sans, self-hosted. This closes 13-PERFORMANCE-ARCHITECTURE.md
+// risk #3 / the "files are not yet confirmed in-hand" note that
+// _typography.less has been carrying since 2026-08-23 — the real files are
+// now in web/fonts/thmanyah-sans/.
+//
+// SOURCE + LICENCE: published by Thmanyah at https://font.thmanyah.com/,
+// free for personal AND commercial use per that site's usage policy. The
+// .woff2 builds are taken from the community web package
+// @dawod/thmanyah-font-web (github.com/EngDawood/thmanyah-font-web), pinned
+// at commit 4266a9d.
+//
+// SELF-HOSTED, NOT CDN-LINKED, on purpose. The package ships a jsDelivr
+// stylesheet, but linking it would reintroduce exactly what this migration
+// removed: a third-party origin on the critical path (extra DNS + TLS +
+// request, on an origin still negotiating HTTP/1.1). Serving from
+// pub/static keeps third-party font requests at zero and lets these files
+// inherit Magento's own 1-year immutable cache headers.
+//
+// WEIGHTS: only the three the codebase actually references are shipped.
+// The family also publishes Light (300) and Black (900); they were
+// downloaded, found unused, and deleted rather than shipped dormant. Add
+// them back here if a component ever needs them.
+//
+// THE 600 PROBLEM: Spartrak components ask for font-weight 600 in six
+// places, and Thmanyah Sans has no 600 — its static weights are
+// 300/400/500/700/900. Left alone the browser would synthesise a faux-bold
+// from 500, which looks muddy in Arabic. Declaring the Bold face over the
+// range `600 700` maps both weights onto the real Bold outline instead, so
+// no component has to change and nothing is synthesised.
+//
+// unicode-range mirrors the upstream package: Arabic blocks plus Latin, so
+// one family serves both the ar and en stores.
+
+@spartrak-font-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF,
+    U+FE70-FEFF, U+0020-007F, U+00A0-00FF, U+0100-024F, U+0250-02AF;
+
+@font-face {
+    font-family: 'thmanyah sans';
+    src: url('../fonts/thmanyah-sans/thmanyah-sans-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: @spartrak-font-range;
+}
+
+@font-face {
+    font-family: 'thmanyah sans';
+    src: url('../fonts/thmanyah-sans/thmanyah-sans-Medium.woff2') format('woff2');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: @spartrak-font-range;
+}
+
+@font-face {
+    font-family: 'thmanyah sans';
+    // 600 700 — see "THE 600 PROBLEM" above.
+    font-weight: 600 700;
+    src: url('../fonts/thmanyah-sans/thmanyah-sans-Bold.woff2') format('woff2');
+    font-style: normal;
+    font-display: swap;
+    unicode-range: @spartrak-font-range;
+}
+
+// Applied at the root so every element inherits it — including Magento core
+// and Porto fallback markup this theme does not own. The LESS-variable side
+// of the same decision lives in source/_spartrak-magento-bindings.less,
+// which rebinds @font-family__base so core's generated CSS agrees.
+:root {
+    font-family: var(--font-arabic);
+}
+
+body {
+    font-family: var(--font-arabic);
+}

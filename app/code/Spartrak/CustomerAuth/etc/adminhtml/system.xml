@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <section id="spartrak_auth" translate="label" sortOrder="500" showInDefault="1" showInWebsite="1" showInStore="1">
+            <class>separator-top</class>
+            <label>Phone Authentication</label>
+            <tab>customer</tab>
+            <resource>Spartrak_CustomerAuth::config</resource>
+
+            <group id="otp" translate="label" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>One-Time Password</label>
+                <field id="code_length" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" canRestore="1">
+                    <label>Code Length</label>
+                    <source_model>Spartrak\CustomerAuth\Model\Config\Source\CodeLength</source_model>
+                    <comment>Number of digits in the OTP. Lower this only together with Max Verify Attempts — a short code with a generous attempt cap is brute-forceable.</comment>
+                </field>
+                <field id="ttl_seconds" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" canRestore="1">
+                    <label>Code Lifetime (seconds)</label>
+                    <validate>required-entry validate-digits validate-digits-range digits-range-60-1800</validate>
+                    <comment>How long an issued code stays valid. Default 300 (5 minutes).</comment>
+                </field>
+                <field id="max_verify_attempts" translate="label comment" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" canRestore="1">
+                    <label>Max Verify Attempts Per Code</label>
+                    <validate>required-entry validate-digits validate-digits-range digits-range-1-10</validate>
+                    <comment>After this many wrong entries the code is revoked and the shopper must request a new one.</comment>
+                </field>
+                <field id="resend_cooldown_seconds" translate="label comment" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" canRestore="1">
+                    <label>Resend Cooldown (seconds)</label>
+                    <validate>required-entry validate-digits validate-digits-range digits-range-0-600</validate>
+                    <comment>Minimum gap between two sends to the same number. Also drives the countdown on the Resend button.</comment>
+                </field>
+                <field id="max_sends_per_phone" translate="label comment" type="text" sortOrder="50" showInDefault="1" showInWebsite="1" canRestore="1">
+                    <label>Max Sends Per Phone Per Window</label>
+                    <validate>required-entry validate-digits validate-digits-range digits-range-1-100</validate>
+                </field>
+                <field id="max_sends_per_ip" translate="label comment" type="text" sortOrder="60" showInDefault="1" showInWebsite="1" canRestore="1">
+                    <label>Max Sends Per IP Per Window</label>
+                    <validate>required-entry validate-digits validate-digits-range digits-range-1-1000</validate>
+                    <comment>Guards against one host farming SMS sends across many numbers. Keep this well above the per-phone limit — Egyptian mobile carriers put many genuine shoppers behind a single shared address.</comment>
+                </field>
+                <field id="rate_window_seconds" translate="label comment" type="text" sortOrder="70" showInDefault="1" showInWebsite="1" canRestore="1">
+                    <label>Rate Limit Window (seconds)</label>
+                    <validate>required-entry validate-digits validate-digits-range digits-range-60-86400</validate>
+                    <comment>The rolling window both limits above are counted over. Default 3600 (1 hour).</comment>
+                </field>
+                <field id="proof_token_ttl_seconds" translate="label comment" type="text" sortOrder="80" showInDefault="1" showInWebsite="1" canRestore="1">
+                    <label>Verification Proof Lifetime (seconds)</label>
+                    <validate>required-entry validate-digits validate-digits-range digits-range-60-3600</validate>
+                    <comment>How long after a successful OTP the shopper has to finish registration or set a new password. Default 900 (15 minutes).</comment>
+                </field>
+                <field id="purge_after_days" translate="label comment" type="text" sortOrder="90" showInDefault="1" canRestore="1">
+                    <label>Purge OTP Records After (days)</label>
+                    <validate>required-entry validate-digits validate-digits-range digits-range-1-365</validate>
+                    <comment>A daily cron deletes spent OTP rows older than this. Every row holds a phone number, so a short ledger is a data-retention requirement, not housekeeping.</comment>
+                </field>
+            </group>
+
+            <group id="sms" translate="label" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>SMS Delivery</label>
+                <field id="gateway" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1">
+                    <label>Gateway</label>
+                    <source_model>Spartrak\CustomerAuth\Model\Config\Source\Gateway</source_model>
+                    <comment><![CDATA[<strong>Log (no delivery)</strong> writes the code to <code>var/log/spartrak_otp.log</code> and sends nothing — correct for staging, never for production. Add a provider by implementing <code>Spartrak\CustomerAuth\Api\SmsGatewayInterface</code> and registering it in the <code>gateways</code> argument of <code>Spartrak\CustomerAuth\Model\Sms\GatewayResolver</code> in di.xml.]]></comment>
+                </field>
+                <field id="sender_name" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Sender ID</label>
+                    <comment>The alphanumeric sender the SMS appears to come from. Egyptian carriers require this to be pre-registered with the provider before it will deliver.</comment>
+                </field>
+            </group>
+
+            <group id="account" translate="label" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Account Creation</label>
+                <field id="default_country_code" translate="label comment" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Default Country Calling Code</label>
+                    <validate>required-entry validate-digits</validate>
+                    <comment>Applied when a shopper types a local number with no country code. 20 = Egypt.</comment>
+                </field>
+                <field id="placeholder_email_domain" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1">
+                    <label>Placeholder Email Domain</label>
+                    <comment><![CDATA[Used to synthesize the email address Magento requires when a shopper registers with a phone number only. <strong>Must be an undeliverable domain</strong> — keep it under <code>.invalid</code> (RFC 2606) so it can never belong to a real recipient.]]></comment>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>

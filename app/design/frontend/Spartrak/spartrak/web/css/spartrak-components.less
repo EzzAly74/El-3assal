@@ -1,0 +1,46 @@
+// Spartrak Phase 4 — global component styles, entry point.
+//
+// One file per component (10-THEME-ARCHITECTURE.md's proposed
+// web/css/source/components/ convention), imported here and compiled to
+// its own standalone CSS file, enqueued after spartrak-foundations.css so
+// every component can safely assume the token layer is already loaded.
+// Additive to Porto, same non-!important discipline as the foundations
+// entry point.
+
+// @breakpoint-* are plain LESS variables (not CSS custom properties, per
+// _breakpoints.less's own comment — media-query conditions can't consume
+// custom properties), so they don't carry over from spartrak-foundations's
+// separately-compiled CSS output. Re-import just the LESS-variable file
+// here so every component below can use @breakpoint-mobile/@breakpoint-desktop.
+@import 'source/foundations/_breakpoints.less';
+// Icon mixin — must be imported before any component that calls .spartrak-icon().
+@import 'source/foundations/_icons.less';
+// Spinner mixin + its @keyframes — same rationale as _icons.less above. Must
+// be imported before any component that calls .spartrak-spinner().
+@import 'source/foundations/_spinner.less';
+
+// Porto chrome that is still load-bearing, migrated out of the DB-stored
+// porto_settings/custom_settings/custom_style blob. Imported FIRST so it can
+// never outrank a Spartrak component on equal specificity.
+@import 'source/components/_porto-chrome.less';
+
+@import 'source/components/_top-banner.less';
+@import 'source/components/_utility-header.less';
+@import 'source/components/_support-strip.less';
+@import 'source/components/_mega-nav.less';
+@import 'source/components/_mobile-drawer.less';
+@import 'source/components/_login-modal.less';
+@import 'source/components/_footer.less';
+@import 'source/components/_homepage-sections.less';
+@import 'source/components/_product-card.less';
+@import 'source/components/_plp.less';
+// Magento's own loader chrome, restyled onto the Spartrak spinner. Imported
+// last: it claims core/Porto loader classes rather than Spartrak ones, so it
+// must not sit ahead of a Spartrak component on equal specificity.
+@import 'source/components/_loader.less';
+
+// NOTE: the design-system ownership layer that used to be imported here has
+// MOVED to Magento_Theme/web/css/source/_extend.less. A rule in this bundle
+// (media="all") cannot outrank a desktop rule in styles-l.min.css
+// (media="screen and (min-width:768px)"), which is linked after it — see that
+// file's header for the full finding.

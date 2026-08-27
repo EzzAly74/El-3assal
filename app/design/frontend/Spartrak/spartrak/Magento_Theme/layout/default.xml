@@ -1,0 +1,178 @@
+<?xml version="1.0"?>
+<!--
+  Spartrak Phase 4 — Global components wiring.
+
+  ADDITIVE ONLY: this file is merged with (never replaces) Smartwave/porto's
+  own Smartwave_Porto/layout/default.xml, per 10-THEME-ARCHITECTURE.md's
+  Magento-overrides discipline ("prefer new templates/blocks in the child
+  theme's own namespace over copy-and-modify of Porto or core templates").
+  Porto's own default.xml is NOT touched by this file.
+
+  Support Strip has no Porto or core equivalent (04-COMPONENT-INVENTORY.md:
+  "Not a Porto feature — custom"), so it is added here as a new block inside
+  the same page.wrapper container Porto already uses for porto_header,
+  positioned immediately before it so it renders as a thin bar above the
+  main header row.
+
+  CONTENT IS IN CODE, NOT CMS BLOCKS (changed 2026-08-25).
+
+  The Top Banner and Support Strip previously declared seven
+  Magento\Cms\Block\Block children (spartrak_top_banner,
+  spartrak_top_banner_badge, spartrak_support_hotline, _shipping_copy,
+  _payment_copy, _whatsapp, _branches) to supply their text.
+
+  NONE of those static blocks existed in the database. So on the live site the
+  banner rendered nothing at all (its template bailed out on empty content)
+  and the utility strip lost its entire right-hand cluster — which is why the
+  header did not match Figma.
+
+  Both templates now use plain __() strings, per the explicit project
+  instruction that this content is handled in code. The copy remains
+  changeable without a deploy because __() strings are translatable per store
+  view (Arabic wording lives in this theme's i18n/ar_EG.csv), and this removes
+  seven block instantiations plus seven static-block lookups from every single
+  page render.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <html>
+        <!-- Explicit for robustness/symmetry with the RTL theme's own dir="rtl" — see that theme's Magento_Theme/layout/default.xml for the full finding. Browsers default to ltr anyway, but this documents the decision instead of relying on an implicit default. -->
+        <attribute name="dir" value="ltr"/>
+    </html>
+    <head>
+        <!--
+          Mageplaza_Search frontend teardown (performance).
+
+          MEASURED: Mageplaza_Search::search.phtml emitted
+          <script src="/media/mageplaza/search/ar_0.js"> on EVERY page — a
+          3,524,661-byte client-side dump of the product/category index. That
+          single file was 98% of the storefront's entire JS payload
+          (3,577,639 bytes total; Magento's own merged bundle is 52,863).
+
+          IT IS NOT USED. This theme re-declares `top.search` in its own
+          Smartwave_Porto/layout/default.xml as a plain Template on
+          Magento_Search::form.mini.phtml, so the header search box that
+          actually renders is Magento core's, driven by core's `quickSearch`
+          widget against /search/ajax/suggest/ — verified in the rendered
+          HTML. Mageplaza's instant-search dropdown never appears; only its
+          index payload was being downloaded.
+
+          SAFE TO UNHOOK: Mageplaza_Search ships no frontend controllers
+          (Controller/ contains only Adminhtml) and registers no DI plugins
+          or observers, so it contributes nothing to /catalogsearch/result
+          or to the search backend. Removing these four frontend nodes
+          removes the payload and leaves search working on Magento core.
+
+          The module stays INSTALLED and ENABLED (mpsearch/general/enabled=1)
+          — this is a theme-level teardown, not a module change, so admin
+          config and the generated index file are untouched and re-enabling
+          is a one-line revert.
+
+          NOT TOUCHED: Mageplaza_LayeredNavigation and Mageplaza_AjaxLayer,
+          which do render the live PLP filter sidebar (#layered-filter-block).
+        -->
+        <remove src="Mageplaza_Search::css/algoliasearch.css"/>
+    </head>
+    <body>
+        <!-- NOTE: <remove name="..."/> is head-asset syntax only; body blocks
+             must be removed with remove="true" on a reference. -->
+        <referenceBlock name="mageplaza.top.search" remove="true"/>
+        <referenceBlock name="mp.instant.hit" remove="true"/>
+        <referenceBlock name="mpsearch.algolia.configuration" remove="true"/>
+        <!--
+          Top Promo Banner (node 595:14466), sits above the Support Strip in
+          the same page.wrapper container. Its copy, badge, icon and dismiss
+          control are all owned by the template — see the file header above on
+          why this no longer has CMS-block children.
+        -->
+        <referenceContainer name="page.wrapper">
+            <block class="Magento\Framework\View\Element\Template" name="spartrak.top_banner" template="Magento_Theme::html/top-banner.phtml" before="spartrak.support_strip"/>
+        </referenceContainer>
+
+        <referenceContainer name="page.wrapper">
+            <block class="Magento\Framework\View\Element\Template" name="spartrak.support_strip" template="Magento_Theme::html/support-strip.phtml" before="porto_header"/>
+        </referenceContainer>
+
+        <!--
+          Mobile Hamburger Drawer (CONFIRMED component, 16-ARCHITECTURE-DECISIONS.md
+          2026-08-23 pass: 3 states, 4 top-level accordion groups). Declared as its
+          own block rather than folded into header.phtml so it can be lazily
+          rendered/hydrated independently of the header on the performance side
+          later (13-PERFORMANCE-ARCHITECTURE.md) without touching the header template.
+          Re-uses the SAME native catalog.topnav Topmenu instance's category data
+          indirectly by reading the store's category tree itself — see
+          mobile-nav-drawer.phtml for the ASSUMPTION notes on its exact grouping.
+        -->
+        <referenceContainer name="page.wrapper">
+            <block class="Magento\Theme\Block\Html\Topmenu" name="spartrak.mobile_nav_drawer" template="Magento_Theme::html/mobile-nav-drawer.phtml" ttl="3600" after="porto_header">
+                <!--
+                  Same admin-managed brand source the desktop mega panel uses,
+                  so the mobile "البراندات" row lists real brands instead of an
+                  empty-state link. One ViewModel, two consumers.
+                -->
+                <arguments>
+                    <argument name="brand_navigation" xsi:type="object">Spartrak\Catalog\ViewModel\BrandNavigation</argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+
+        <!--
+          NOTE: the Primary Mega Navigation (spartrak.primary_nav) and the
+          footer link columns both live in this theme's
+          Smartwave_Porto/layout/default.xml, NOT here — see that file's
+          comment for why (module-sequence ordering: a reference's target
+          must already exist, and both porto_header and footer_block are
+          declared in Porto's own Smartwave_Porto bucket, which processes
+          AFTER this Magento_Theme bucket. A first attempt placed both here;
+          confirmed broken via a live bootstrap-script layout dump).
+        -->
+
+        <!--
+          QA FIX (2026-08-23, live browser pass): the Login/Register Modal was
+          originally built as a template override of Porto's own
+          header_customer_form_login block (Smartwave\Porto\Block\Form\Login),
+          which is gated by ifconfig="porto_settings/header/login_popup". Live
+          testing confirmed that config is off by default, so the block never
+          instantiates and the modal never renders — regardless of which
+          template backs it. Rather than depend on an unrelated Porto admin
+          toggle this project doesn't control, the modal is now its own
+          independent block, unconditional. The old Porto-block-based override
+          at Smartwave_Porto/templates/html/login.phtml is superseded by this
+          and has been removed (dead file — Porto's own header_customer_form_login
+          stays off/unused, untouched, per rule 12).
+        -->
+        <!--
+          Backend wiring (2026-08-24): the modal was a step-switching shell whose
+          forms posted to "#spartrak-auth-pending-module-1" — the placeholder
+          left when Module 1 did not yet exist. Spartrak_CustomerAuth now ships
+          the whole phone+OTP backend, so the modal is connected to it.
+
+          The auth_config ViewModel supplies the OTP box count, resend cooldown
+          and code lifetime from that module's store configuration, so the
+          template renders whatever admin has set instead of hardcoding the 4
+          boxes the Figma component draws (shipped default is 6 — see the module
+          README's note that code_length and max_verify_attempts must be chosen
+          as a pair).
+
+          Deliberately a ViewModel argument rather than a custom block class:
+          the block stays a plain Template with no theme-side PHP, which is the
+          seam 10-THEME-ARCHITECTURE.md asks for between theme presentation and
+          module business logic.
+
+          The block remains cacheable. Everything the ViewModel exposes is
+          store-scoped configuration, and full-page cache is already keyed by
+          store; nothing customer-specific is rendered here. The form key is
+          NOT rendered into this markup for that reason — a cached form key is a
+          stale form key. The widget reads it from the form_key cookie instead
+          and rewrites that cookie from each auth response, because signing in,
+          registering and resetting all regenerate the session id.
+        -->
+        <referenceContainer name="page.wrapper">
+            <block class="Magento\Framework\View\Element\Template" name="spartrak.auth_modal" template="Magento_Theme::html/login-modal.phtml" after="spartrak.mobile_nav_drawer">
+                <arguments>
+                    <argument name="auth_config" xsi:type="object">Spartrak\CustomerAuth\ViewModel\AuthConfig</argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+
+    </body>
+</page>

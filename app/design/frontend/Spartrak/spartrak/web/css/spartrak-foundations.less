@@ -1,0 +1,24 @@
+// Spartrak design-token foundation — entry point.
+//
+// This file is ADDITIVE to Porto: it does not override Porto's own
+// _theme.less or any Porto/Magento-core LESS file (per CLAUDE.md's rule
+// against fighting Porto with cascading overrides, and to avoid shadowing
+// Porto's existing grid-variable declarations via Magento's file-fallback
+// resolution). It compiles as its own standalone CSS file and is enqueued
+// via Magento_Theme/layout/default_head_blocks.xml.
+
+@import 'source/foundations/_fonts.less';
+@import 'source/foundations/_tokens.less';
+@import 'source/foundations/_semantic.less';
+@import 'source/foundations/_typography.less';
+@import 'source/foundations/_radii.less';
+// Effect tokens. Safe to import in this bundle only (unlike the mixin files
+// noted below): these are CSS custom properties, which resolve at runtime and
+// therefore DO carry across a compiled-CSS boundary into the components bundle.
+@import 'source/foundations/_shadows.less';
+@import 'source/foundations/_breakpoints.less';
+// NOTE: foundations/_spinner.less is deliberately NOT imported here. It is a
+// mixin + @keyframes file whose only consumers are in the components bundle,
+// and LESS mixins do not survive a compiled-CSS boundary — so it is imported
+// from spartrak-components.less instead, exactly like foundations/_icons.less.
+// Importing it in both entry points would emit the @keyframes twice.

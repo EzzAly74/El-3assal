@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <!--
+      SMS gateway registry.
+
+      This argument IS the extension point. To add a provider:
+        1. Write a class implementing Spartrak\CustomerAuth\Api\SmsGatewayInterface.
+        2. Add one <item> here whose key matches the class's getCode().
+        3. Select it in Stores > Configuration > Customers > Phone Authentication.
+
+      Nothing else changes — the admin dropdown is generated from this same pool,
+      so the config options and the resolver can never disagree about what exists.
+    -->
+    <type name="Spartrak\CustomerAuth\Model\Sms\GatewayResolver">
+        <arguments>
+            <argument name="gateways" xsi:type="array">
+                <item name="log" xsi:type="object">Spartrak\CustomerAuth\Model\Sms\Gateway\LogGateway</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!--
+      Dedicated log file for the log gateway.
+
+      Keeps OTP codes and full phone numbers out of system.log and debug.log.
+      Those files get tailed on shared screens, shipped to log aggregators and
+      pasted into tickets; a live verification code has no business travelling
+      with them. Separating the stream also makes the file trivially easy to
+      exclude from log shipping and to delete.
+    -->
+    <virtualType name="spartrakOtpLogHandler" type="Magento\Framework\Logger\Handler\Base">
+        <arguments>
+            <argument name="fileName" xsi:type="string">/var/log/spartrak_otp.log</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="spartrakOtpLogger" type="Magento\Framework\Logger\Monolog">
+        <arguments>
+            <argument name="name" xsi:type="string">spartrakOtp</argument>
+            <argument name="handlers" xsi:type="array">
+                <item name="system" xsi:type="object">spartrakOtpLogHandler</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <type name="Spartrak\CustomerAuth\Model\Sms\Gateway\LogGateway">
+        <arguments>
+            <argument name="logger" xsi:type="object">spartrakOtpLogger</argument>
+        </arguments>
+    </type>
+
+    <!--
+      TEMPORARY: static "1111" OTP while no real SMS provider exists.
+
+      Gated inside the plugin to the `log` SMS driver, so configuring any real
+      provider restores cryptographically random codes automatically — there is
+      no flag to remember to unset. It changes only which code is ISSUED;
+      Otp\Service's verification, expiry, attempt cap and rate limits are
+      untouched, so this is not an authentication bypass. Read the class comment
+      before changing any of it.
+
+      TO REMOVE: delete this <type> block and the plugin class. Nothing else
+      references either.
+    -->
+    <type name="Spartrak\CustomerAuth\Model\Otp\CodeGenerator">
+        <plugin name="spartrak_static_development_otp"
+                type="Spartrak\CustomerAuth\Plugin\Otp\UseStaticCodeForDevelopmentGateway"
+                sortOrder="10"/>
+    </type>
+
+    <!--
+      Suppress every EmailNotificationInterface send that would target a
+      synthesized, undeliverable placeholder address — welcome email, the
+      email/password-changed notification, and the native password-reminder /
+      reset-confirmation emails. See the plugin class for why this is damage
+      control (bounces, sender-reputation harm) rather than an optimization,
+      and why it intercepts these public methods rather than the mail
+      transport layer.
+    -->
+    <type name="Magento\Customer\Model\EmailNotification">
+        <plugin name="spartrak_suppress_placeholder_transactional_email"
+                type="Spartrak\CustomerAuth\Plugin\Customer\SuppressPlaceholderTransactionalEmail"
+                sortOrder="10"/>
+    </type>
+</config>

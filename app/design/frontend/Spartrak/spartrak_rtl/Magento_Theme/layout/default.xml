@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<!--
+  Spartrak RTL — direction-specific layout deltas ONLY.
+
+  Layout XML MERGES down the theme chain rather than replacing, so this file
+  now contains only what genuinely differs for RTL. Everything else (Top
+  Promo Banner, Support Strip, Mobile Drawer, Login/Register Modal wiring,
+  etc.) is inherited from Spartrak/spartrak's own Magento_Theme/layout/
+  default.xml — one source of truth, no duplication, no drift.
+
+  1. dir="rtl" on <html>: Magento core sets <html lang="..."> from the active
+     locale but never sets `dir` — confirmed by grepping every core
+     Magento_Theme layout file and Porto's own themes. Every Spartrak
+     component's CSS uses logical properties (margin-inline-start,
+     text-align: start, inset-inline-start, ...) which only mirror when the
+     document's real direction is rtl. Without this attribute RTL silently
+     never applies, regardless of which theme or CSS bundle is served.
+     Spartrak/spartrak sets dir="ltr" in its own copy; this overrides it.
+
+  2. class="rtl" on <body>: absorbed from Smartwave/porto_rtl's own
+     Magento_Theme/layout/default.xml when porto_rtl left the theme chain
+     (see this theme's theme.xml). Porto's stylesheets and its JS
+     (js_porto_vars.rtl) key off this class, so dropping it would regress
+     Porto's own RTL behaviour on every page.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <html>
+        <attribute name="dir" value="rtl"/>
+    </html>
+    <body>
+        <attribute name="class" value="rtl"/>
+    </body>
+</page>

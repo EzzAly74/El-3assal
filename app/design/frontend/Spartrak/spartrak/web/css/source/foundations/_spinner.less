@@ -1,0 +1,93 @@
+// Spartrak design tokens — Layer 6: Spinner
+//
+// The design system's single busy-indicator primitive. It lives in the
+// FOUNDATIONS layer, not in components/, because it is consumed by two
+// unrelated surfaces — Magento's own loader chrome (components/_loader.less)
+// and any future Spartrak component that needs an inline busy state — and
+// neither should own it.
+//
+// NO FIGMA SOURCE, AND THAT IS DELIBERATE. There is no loader/spinner
+// component anywhere in the Figma file (57 component sets, checked) and no
+// Production frame draws one. So this is not "implementing a design" — it is
+// a functional primitive that the brief specifies in words instead:
+//   - primary/main colour token, not a hardcoded hex  -> --color-action-primary
+//   - CSS-only, no library                            -> border + @keyframes
+//   - works in LTR and RTL                            -> see ROTATION below
+// Nothing visual is invented beyond a plain ring, which is the most neutral
+// possible shape; when a spinner does land in Figma, replace the mixin body
+// and every consumer updates.
+//
+// REVERTED 2026-08-26. A real Figma spinner asset (the 8-dot rotating mark,
+// web/images/icons/spinner.svg) was supplied and this mixin was briefly
+// rewritten to use it project-wide. That was explicitly reversed — the
+// project's global loader stays exactly as it was, this border-ring, used
+// everywhere it already was used. The real asset is consumed ONLY by the auth
+// modal's own terminal step, which renders it as a genuine <img> and spins it
+// with .spartrak-spin-animation() below — a second, narrowly-scoped mixin
+// that adds nothing to this one's callers and changes nothing about them.
+//
+// ROTATION AND RTL: a spinner must NOT mirror. `transform: rotate()` is
+// unaffected by `direction: rtl`, so the same declaration spins clockwise in
+// both store views — which is correct, because rotation direction carries no
+// reading direction. The only thing that would break RTL here is positioning
+// the ring with physical left/right; every consumer centres it with
+// `inset: 0; margin: auto` instead, which is direction-agnostic.
+//
+// The coloured segment uses `border-block-start-color` (logical) purely for
+// consistency with the rest of this codebase — on a rotating ring the
+// starting segment is not observable, so no behaviour depends on it.
+
+// One keyframe set for the whole storefront. Declared here rather than inside
+// the mixin so it is emitted exactly once no matter how many callers there
+// are (a @keyframes block inside a LESS mixin is duplicated per call site).
+@keyframes spartrak-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes spartrak-spin-pulse {
+    50% {
+        opacity: 0.35;
+    }
+}
+
+// Motion timing. 720ms/linear is one full turn just under a second — fast
+// enough to read as "working", slow enough not to strobe.
+@spartrak-spinner-duration: 720ms;
+
+// @size      — outer diameter
+// @thickness — ring stroke width
+// @color     — the moving segment. Defaults to the design system's PRIMARY
+//              action token, per the brief; never pass a literal.
+// @track     — the static remainder of the ring.
+.spartrak-spinner(@size: 40px; @thickness: 3px; @color: var(--color-action-primary); @track: var(--color-border-default)) {
+    box-sizing: border-box;
+    width: @size;
+    height: @size;
+    border: @thickness solid @track;
+    border-block-start-color: @color;
+    border-radius: var(--radius-pill);
+    animation: spartrak-spin @spartrak-spinner-duration linear infinite;
+
+    // Respect the OS-level motion preference: keep an *observable* busy state
+    // (a slow opacity pulse) rather than freezing the ring into something
+    // indistinguishable from a static decorative circle.
+    @media (prefers-reduced-motion: reduce) {
+        animation: spartrak-spin-pulse 1.4s ease-in-out infinite;
+        border-color: @color;
+    }
+}
+
+// AUTH MODAL ONLY. For the real Figma spinner asset
+// (web/images/icons/spinner.svg), rendered as a genuine <img src="…"> in the
+// auth modal's terminal step — sizing and the src live on the <img> tag
+// itself, in ordinary HTML; this mixin adds only the rotation. Not consumed
+// anywhere else, and .spartrak-spinner() above is unaffected by it.
+.spartrak-spin-animation() {
+    animation: spartrak-spin @spartrak-spinner-duration linear infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: spartrak-spin-pulse 1.4s ease-in-out infinite;
+    }
+}

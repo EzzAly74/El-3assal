@@ -1,0 +1,141 @@
+// Spartrak component — Product Card (Phase 6).
+//
+// The single card used by the PLP/category grid, search results grid,
+// and the Homepage Featured Products rail (see spartrak-card.phtml's own
+// header comment) - one definition here, never duplicated per page.
+// Semantic tokens + logical properties only, same discipline as every
+// other Phase 4/5 component - no [dir] override needed.
+//
+// ASSUMPTION — REQUIRES FIGMA VERIFICATION: exact spacing/sizing below is
+// a documented default (04-COMPONENT-INVENTORY.md's "Card - Product" is
+// CONFIRMED to exist but its own detailed spec was never pixel-audited).
+
+.spartrak-card {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-6);
+    background: var(--color-bg-surface);
+    overflow: hidden;
+    height: 100%;
+
+    &:hover {
+        border-color: var(--color-action-primary);
+    }
+}
+
+.spartrak-card__media {
+    position: relative;
+    background: var(--color-bg-surface-subtle);
+}
+
+.spartrak-card__image-link {
+    display: block;
+}
+
+.spartrak-card__image {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    object-fit: contain;
+}
+
+// 17-FIGMA-CODE-AUDIT.md §2 fix (2026-08-24): wishlist heart button (node
+// 734:26587) — restyles Magento's own native "action towishlist" link
+// (Magento_Wishlist::catalog/product/list/addto/wishlist.phtml) into the
+// white-circle icon-button Figma specifies, text hidden but kept for
+// screen readers, same convention as the header wishlist/cart buttons.
+.spartrak-card__wishlist {
+    position: absolute;
+    inset-inline-start: 8px;
+    inset-block-start: 8px;
+
+    .action.towishlist {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-pill);
+        background: var(--color-bg-surface);
+        box-shadow: 0 2px 6px var(--color-scrim);
+        // Icon system CONFIRMED still open (16-ARCHITECTURE-DECISIONS.md risk #8).
+
+        span {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+    }
+}
+
+.spartrak-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px;
+    flex: 1 1 auto;
+}
+
+.spartrak-card__brand {
+    font-size: var(--text-12);
+    color: var(--color-text-secondary);
+}
+
+.spartrak-card__name {
+    font-size: var(--text-14);
+    color: var(--color-text-primary);
+    text-decoration: none;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+
+    &:hover {
+        color: var(--color-action-primary);
+    }
+}
+
+.spartrak-card__price {
+    margin-block-start: auto;
+    padding-block-start: 4px;
+    font-size: var(--text-16);
+    color: var(--color-text-primary);
+    font-weight: 600;
+}
+
+// DATA REQUIRED fallback (real price not yet available) - deliberately
+// styled as muted/secondary, never presented as if it were a real price
+// figure, per this project's no-fabricated-pricing rule.
+.spartrak-price-unavailable__label {
+    font-size: var(--text-14);
+    font-weight: 400;
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+.spartrak-card__form {
+    margin-block-start: 8px;
+}
+
+.spartrak-card__add-to-cart {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--color-action-primary);
+    color: var(--color-action-primary-text);
+    border: 0;
+    border-radius: var(--radius-6);
+    font-size: var(--text-14);
+    cursor: pointer;
+
+    &:hover {
+        background: var(--color-action-primary-hover);
+    }
+}

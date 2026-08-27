@@ -1,0 +1,29 @@
+<?php
+/**
+ * Spartrak RTL override of Smartwave_Porto's html/head.phtml.
+ *
+ * Identical in intent to Spartrak/spartrak's copy — read the rationale and
+ * the measured coverage numbers there. This variant exists only to keep
+ * js_porto_vars.rtl = "1", which Porto JS modules still read to pick their
+ * direction-aware behaviour (see this theme's theme.xml decision record).
+ *
+ * The .rtl CSS variants Porto loaded here (bootstrap.rtl.optimized.min.css,
+ * css/header/type1.rtl.css, css/custom.rtl.css, configed_css/design_ar.css,
+ * configed_css/settings_ar.css) are dropped for the same reason as the LTR
+ * ones: they style Porto markup this theme no longer renders. RTL layout for
+ * the markup this theme DOES render comes from the logical properties used
+ * throughout web/css/source/components/ (margin-block/inline, border-block-
+ * start, etc.), which need no direction-specific stylesheet.
+ *
+ * Previous version preserved at var/head.phtml.rtl.bak.
+ *
+ * @var \Smartwave\Porto\Block\Template $block
+ */
+$porto_helper = $this->helper('Smartwave\Porto\Helper\Data');
+$_redirect_cart = $porto_helper->getConfig('checkout/cart/redirect_to_cart');
+?>
+<script type="text/javascript">
+window.theme = {};
+var js_porto_vars = {"rtl":"1"};
+var redirect_cart = <?= $_redirect_cart ? 'true' : 'false' ?>;
+</script>

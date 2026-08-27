@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!--
+  Same pattern as customer_account_index.xml: the template override at
+  Magento_Customer/templates/form/edit.phtml is picked up by theme fallback on
+  its own. This file exists only to inject the CustomerEmail view model.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="customer_edit">
+            <arguments>
+                <argument name="customer_email" xsi:type="object">Spartrak\CustomerAuth\ViewModel\CustomerEmail</argument>
+            </arguments>
+        </referenceBlock>
+    </body>
+</page>

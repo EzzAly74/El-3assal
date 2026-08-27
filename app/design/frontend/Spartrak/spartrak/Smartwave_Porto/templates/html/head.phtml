@@ -1,0 +1,64 @@
+<?php
+/**
+ * Spartrak (LTR) override of Smartwave_Porto's html/head.phtml.
+ *
+ * WHY THIS FILE EXISTS: Porto's own head.phtml renders 11 render-blocking
+ * <link> tags — 4 Google Fonts requests, bootstrap, animate.css, a
+ * header-type stylesheet, custom.css, and the two DB-generated
+ * configed_css files. It is injected into the `head.additional` container
+ * (Smartwave/porto's Smartwave_Porto/layout/default.xml), i.e. AFTER every
+ * layout-declared <css src>, so those files also outranked this theme's own
+ * stylesheets on load order.
+ *
+ * Measured against the live site (homepage, PDP, category, search), none of
+ * it earns its place — this theme replaces Porto's markup wholesale with
+ * .spartrak-* BEM (header.phtml / footer.phtml / product/list.phtml), so
+ * Porto's CSS is styling elements that are no longer rendered:
+ *
+ *   css/header/type1.css      1.7KB    0.0% of selectors match live markup
+ *   configed_css/design_*     19.4KB  11.7%   (Porto theme_color #ff6840)
+ *   custom.css              109.3KB  13.8%
+ *   bootstrap.min.css        52.9KB   1.7%   (15 utility classes, and the
+ *                                             only live consumer is Porto's
+ *                                             display:none newsletter popup)
+ *   configed_css/settings_*  10.8KB  26.8%   (see var/porto-custom-style.bak.css)
+ *   4x fonts.googleapis.com           Open Sans (requested TWICE by Porto),
+ *                                     Oswald, Poppins — none of which appear
+ *                                     in _typography.less's font stack
+ *                                     (thmanyah sans / Inter / Inter Tight).
+ *
+ * Total removed: ~194KB uncompressed of render-blocking CSS plus 4 extra
+ * DNS+TLS+request round-trips to a third-party host, on a connection the
+ * origin currently serves over HTTP/1.1 (so those requests contend for the
+ * ~6-connection-per-host budget rather than multiplexing).
+ *
+ * The colour/typography that Porto was supplying is the design system's job
+ * — see web/css/spartrak-foundations.less. The handful of Porto rules that
+ * were still load-bearing were migrated to
+ * web/css/source/components/_porto-chrome.less.
+ *
+ * ALSO DROPPED: Porto's sticky-header script. It bound an unthrottled
+ * scroll+resize handler that queried and mutated `.page-header` — an element
+ * this theme does not render (`.page-header` survives in the live HTML only
+ * inside that script's own jQuery selector strings). It was pure scroll-time
+ * cost for no effect. Sticky behaviour, if wanted, belongs in this theme's
+ * own header JS.
+ *
+ * ALSO DROPPED: the `pt_animate` bootstrap and its [data-plugin-animate] /
+ * [data-appear-animation] sweep, together with animate.css (19.4KB). Only 4
+ * elements on the sampled pages carry those attributes, all inside Porto
+ * furniture, and `.animated` never appears in the rendered output.
+ *
+ * KEPT: js_porto_vars / window.theme / redirect_cart — these are read by
+ * Porto JS modules that are still in the bundle and cost nothing.
+ *
+ * @var \Smartwave\Porto\Block\Template $block
+ */
+$porto_helper = $this->helper('Smartwave\Porto\Helper\Data');
+$_redirect_cart = $porto_helper->getConfig('checkout/cart/redirect_to_cart');
+?>
+<script type="text/javascript">
+window.theme = {};
+var js_porto_vars = {};
+var redirect_cart = <?= $_redirect_cart ? 'true' : 'false' ?>;
+</script>

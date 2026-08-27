@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/module.xsd">
+    <module name="Spartrak_CustomerAuth" setup_version="1.0.0">
+        <sequence>
+            <!-- Customer: this module adds attributes to its entity and delegates
+                 authentication to its AccountManagement service.
+                 Checkout: so the customer_login event this module dispatches on a
+                 successful sign-in is observed by the guest-quote merge observer
+                 (Magento\Checkout\Observer\LoadCustomerQuoteObserver) that is
+                 already registered against it. Without this ordering the shopper
+                 can lose a guest cart by logging in mid-funnel. -->
+            <module name="Magento_Customer"/>
+            <module name="Magento_Checkout"/>
+        </sequence>
+    </module>
+</config>

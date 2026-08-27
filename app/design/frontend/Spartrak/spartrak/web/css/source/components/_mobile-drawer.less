@@ -1,0 +1,304 @@
+// Spartrak component — Mobile Menu
+//
+// FIGMA SSOT: node 645:39265 ("Homepage/menu view"). READ FROM FIGMA FOR THE
+// FIRST TIME 2026-08-25 — every earlier version of this file carried
+// "STILL PENDING FIGMA ... the Figma MCP connector is not authorized in this
+// session", and the values below replace those functional placeholders.
+//
+//   panel    full viewport width on bg/page, opening BELOW the header — not a
+//            slide-in overlay. No scrim, no in-panel close button: Figma has
+//            neither, and the header's own hamburger becomes the X.
+//   menus    node 645:39267 — bg/surface, padding 16, 8px between rows
+//   row      node 645:39268 — 52px tall, py 16, gap 6, 20px chevron +
+//            Body/Base Medium label (16px / 500 / lh 1.5) in text/primary
+//   profile  node 645:39280 — bg/surface, 1px top border/default,
+//            padding-inline 24/16, py 16, gap 16
+//   avatar   node 645:39284 — 48px, radius 120px, bg/brand-subtle #f4f7fd,
+//            1.2px solid icon/default #1a144f, initials 16px in
+//            text/link #063196
+//   name     node 645:39283 — Heading/H4: 18px / 500 / lh 1.3
+//
+// NOT IMPLEMENTED, on purpose: the frame's bottom "sparetrak.com" bar between
+// two frosted pill buttons. That is the designer's iOS Safari chrome mockup
+// (SF Pro, Apple "Symbol 1" glyphs, backdrop-blur glass, page dots, wrapped in
+// a ToolbarBottomIPhone component) — the device frame around the design, not
+// storefront UI. A page cannot draw the browser's own address bar.
+
+// QA FIX (2026-08-25): this was an in-flow block, which PUSHED the homepage
+// down instead of covering it — so the menu appeared with the hero, "Shop by
+// Brand" and the rest of the page visible underneath it. Figma's menu view
+// (645:39265) shows the menu occupying the whole area below the header, on
+// bg/page, with no page content behind.
+//
+// It is now fixed to the viewport, offset from the top by the header's real
+// height. The offset comes from a custom property the widget measures on open
+// (--spartrak-drawer-top) rather than a hardcoded number, because the header's
+// height genuinely varies — the promo banner, the utility strip and the
+// two-row mobile navbar all wrap differently by viewport and locale. The
+// fallback keeps it usable if the property is ever missing.
+.spartrak-mobile-drawer {
+    display: none;
+    position: fixed;
+    inset-inline: 0;
+    inset-block-start: var(--spartrak-drawer-top, 0px);
+    inset-block-end: 0;
+    z-index: 90;
+    background: var(--color-bg-page);
+    overflow-y: auto;
+    // Momentum scrolling inside the panel on iOS without the page behind it
+    // scrolling too.
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+
+    &[data-open] {
+        display: block;
+    }
+}
+
+// Freezes the page behind the fixed panel. `position: fixed` on the body would
+// scroll-jump to the top on close; `overflow: hidden` keeps the scroll offset,
+// which is what a shopper expects when they dismiss a menu.
+body.spartrak-drawer-open {
+    overflow: hidden;
+}
+
+.spartrak-mobile-drawer__panel {
+    display: flex;
+    flex-direction: column;
+    // Figma's Main Content frame gaps its two groups (the row panel and the
+    // profile row) by 26px.
+    gap: 26px;
+    width: 100%;
+    // The profile row sits at the BOTTOM of the menu area in Figma, not
+    // directly under the last row.
+    min-height: 100%;
+}
+
+// Node 645:39267 "Menus".
+.spartrak-mobile-drawer__menus {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    background: var(--color-bg-surface);
+}
+
+.spartrak-mobile-drawer__group {
+    display: block;
+}
+
+// Node 645:39268 "Menu" — one row. Shared by <button> (accordion) and <a>
+// (direct link, e.g. Offers) so the two cannot drift apart visually.
+.spartrak-mobile-drawer__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 52px;
+    padding: 16px 0;
+    border: 0;
+    background: none;
+    text-align: start;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.spartrak-mobile-drawer__row-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    // Body/Base Medium
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: var(--letter-spacing-normal);
+    color: var(--color-text-primary);
+}
+
+// Node 724:44915 — a 20px tabler chevron-right, which Figma rotates 180° so it
+// points toward the inline END (the left, in RTL).
+//
+// A DIRECTIONAL icon is the one legitimate exception to this codebase's
+// logical-properties-only rule: CSS has no direction-aware `rotate`, and
+// CLAUDE.md §16 explicitly requires directional UI to flip in RTL. The base
+// asset points inline-end for LTR; the [dir="rtl"] rule below flips it. This
+// is a genuine mirror, not a physical-property shortcut.
+.spartrak-mobile-drawer__row-chevron {
+    flex: 0 0 auto;
+    .spartrak-icon('chevron-right.svg'; 20px; var(--color-text-primary));
+    transition: transform 120ms ease;
+}
+
+[dir='rtl'] .spartrak-mobile-drawer__row-chevron {
+    transform: rotate(180deg);
+}
+
+// Expanded state: the chevron turns to point down, the standard disclosure
+// affordance. Figma does not draw the open state, so this is the conventional
+// reading rather than a measured value.
+.spartrak-mobile-drawer__row[aria-expanded='true'] .spartrak-mobile-drawer__row-chevron,
+.spartrak-mobile-drawer__l1-expand[aria-expanded='true'] .spartrak-mobile-drawer__row-chevron {
+    transform: rotate(90deg);
+}
+
+[dir='rtl'] .spartrak-mobile-drawer__row[aria-expanded='true'] .spartrak-mobile-drawer__row-chevron,
+[dir='rtl'] .spartrak-mobile-drawer__l1-expand[aria-expanded='true'] .spartrak-mobile-drawer__row-chevron {
+    transform: rotate(90deg);
+}
+
+// Author-level [hidden], required because the author `display` declarations in
+// this file would otherwise beat the UA stylesheet's `[hidden]` rule — the
+// same trap documented on the account chip in _utility-header.less.
+.spartrak-mobile-drawer__group-panel[hidden] {
+    display: none;
+}
+
+.spartrak-mobile-drawer__group-panel {
+    padding-block-end: 8px;
+}
+
+.spartrak-mobile-drawer__l1-list,
+.spartrak-mobile-drawer__l2-list,
+.spartrak-mobile-drawer__l3-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.spartrak-mobile-drawer__l1 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    padding: 8px 0;
+
+    > a {
+        flex: 1 1 auto;
+        color: var(--color-text-primary);
+        text-decoration: none;
+        font-family: var(--font-arabic);
+        font-size: var(--text-14);
+    }
+}
+
+.spartrak-mobile-drawer__l1-expand {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    background: none;
+    border: 0;
+    padding: 4px 8px;
+    cursor: pointer;
+}
+
+.spartrak-mobile-drawer__l2-list {
+    flex: 0 0 100%;
+    padding-inline-start: 12px;
+
+    &[hidden] {
+        display: none;
+    }
+
+    a {
+        display: block;
+        padding: 6px 0;
+        font-family: var(--font-arabic);
+        font-size: var(--text-14);
+        color: var(--color-text-secondary);
+        text-decoration: none;
+    }
+}
+
+.spartrak-mobile-drawer__l3-list {
+    padding-inline-start: 12px;
+
+    a {
+        display: block;
+        padding: 4px 0;
+        font-size: var(--text-12);
+        color: var(--color-text-muted);
+        text-decoration: none;
+    }
+}
+
+.spartrak-mobile-drawer__view-all {
+    color: var(--color-action-primary);
+}
+
+// ---------------------------------------------------------------------------
+// Profile row — node 645:39280
+// ---------------------------------------------------------------------------
+.spartrak-mobile-drawer__profile {
+    // Pushed to the bottom of the panel per node 645:39280's placement, rather
+    // than sitting directly under the last menu row. Works with the panel's
+    // `min-height: 100%` above and needs no fixed height on the row panel.
+    margin-block-start: auto;
+    background: var(--color-bg-surface);
+    border-block-start: 1px solid var(--color-border-default);
+}
+
+.spartrak-mobile-drawer__profile-guest[hidden],
+.spartrak-mobile-drawer__profile-customer[hidden] {
+    display: none;
+}
+
+.spartrak-mobile-drawer__profile-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-sizing: border-box;
+    width: 100%;
+    // Figma pl-16 pr-24; the avatar sits at the inline start, so in RTL terms
+    // that is 24 at the start and 16 at the end.
+    padding: 16px;
+    padding-inline-start: 24px;
+    border: 0;
+    background: none;
+    text-align: start;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+// Node 645:39284. Same no-photograph decision as the desktop account chip:
+// Magento has no customer-avatar feature, and Figma's placeholder is initials
+// ("KK") on a tinted plate — which is exactly what is rendered.
+.spartrak-mobile-drawer__avatar {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border: 1.2px solid var(--color-icon-default);
+    border-radius: var(--radius-pill);
+    background: var(--color-bg-avatar);
+    color: var(--color-action-primary);
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    text-transform: uppercase;
+    overflow: hidden;
+}
+
+.spartrak-mobile-drawer__profile-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    // Heading/H4
+    font-family: var(--font-arabic);
+    font-size: var(--text-18);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+}
+
+// Desktop: this whole component is mobile-only — the desktop header has the
+// nav-row card and the account chip instead.
+@media (min-width: (@breakpoint-header-collapse + 1)) {
+    .spartrak-mobile-drawer {
+        display: none;
+    }
+}
