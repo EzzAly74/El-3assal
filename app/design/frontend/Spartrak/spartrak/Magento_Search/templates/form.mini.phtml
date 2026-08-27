@@ -90,7 +90,25 @@
  * @var \Magento\Framework\View\Element\Template $block
  */
 $helper = $this->helper('Magento\Search\Helper\Data');
-$suggestUrl = $block->getUrl('search/ajax/suggest', ['_secure' => $block->getRequest()->isSecure()]);
+
+/**
+ * SUGGESTIONS ENDPOINT (2026-08-27) — Spartrak_Search, not core's.
+ *
+ * Figma's suggestions panel (desktop node 864:8879, mobile 647:53929) leads
+ * with a result count and a rail of PRODUCT cards. Magento's own
+ * `search/ajax/suggest` returns Autocomplete items only — {title,
+ * num_results} — with no product behind them, so that endpoint cannot answer
+ * this design without the products being invented (CLAUDE.md §5 forbids it).
+ *
+ * Spartrak_Search runs a real catalogsearch query and returns the count, the
+ * products and core's own autocomplete terms together, already rendered.
+ * See that module's README for why it returns HTML rather than JSON.
+ */
+$suggestUrl = $block->getUrl('spartrak_search/ajax/suggest', ['_secure' => $block->getRequest()->isSecure()]);
+
+// The store's own minimum. Passed to the widget so the client stops short of
+// a request the endpoint would refuse anyway — the endpoint re-checks it.
+$minQueryLength = (int) $helper->getMinQueryLength();
 ?>
 <div class="spartrak-search">
     <?php
@@ -130,11 +148,29 @@ $suggestUrl = $block->getUrl('search/ajax/suggest', ['_secure' => $block->getReq
         <span class="spartrak-search__icon" aria-hidden="true"></span>
 
         <div class="spartrak-search__field">
+            <?php
+            /**
+             * `spartrakSearchSuggest` REPLACES core's `quickSearch` here.
+             *
+             * Both render into #search_autocomplete, so running the two
+             * together would put competing renderers in one container. The
+             * Spartrak widget owns suggestions; SUBMISSION is untouched and
+             * stays native — this is a real <form action> with a real submit
+             * button, so Enter and the Search button work exactly as before,
+             * and still work with JavaScript off, which quickSearch never
+             * offered.
+             *
+             * What quickSearch also did and is deliberately not replaced:
+             * enabling/disabling the submit button as the query changes. Figma
+             * (node 595:14521) draws the button in one state only, so there is
+             * nothing to reproduce.
+             */
+            ?>
             <input id="search"
-                   data-mage-init='{"quickSearch":{
-                        "formSelector":".spartrak-search__form",
+                   data-mage-init='{"spartrakSearchSuggest":{
                         "url":"<?= $block->escapeHtmlAttr($suggestUrl) ?>",
-                        "destinationSelector":"#search_autocomplete"}
+                        "minLength":<?= /* @noEscape */ $minQueryLength ?>,
+                        "panelSelector":"#search_autocomplete"}
                    }'
                    type="text"
                    name="<?= $block->escapeHtmlAttr($helper->getQueryParamName()) ?>"
@@ -149,7 +185,10 @@ $suggestUrl = $block->getUrl('search/ajax/suggest', ['_secure' => $block->getReq
                    aria-autocomplete="both"
                    aria-expanded="false"
                    autocomplete="off"/>
-            <div id="search_autocomplete" class="spartrak-search__autocomplete"></div>
+            <?php /* Starts `hidden` so an un-hydrated page can never show an
+                     empty bordered box; the widget clears the attribute when it
+                     has something to put in it. */ ?>
+            <div id="search_autocomplete" class="spartrak-search__autocomplete" hidden></div>
             <?php
             /**
              * $block->getChildHtml() is deliberately NOT called here.

@@ -1,0 +1,128 @@
+<?php
+/**
+ * Spartrak Search Suggestions panel.
+ *
+ * FIGMA SSOT: desktop node 864:8879 ("Forms and Content"), mobile node
+ * 647:53929 — structurally IDENTICAL, differing only in the width they are
+ * poured into (1012px inside the desktop search column, 408px full-bleed with
+ * 16px side margins on mobile). One template therefore serves both, and
+ * _search-suggest.less carries the single breakpoint difference.
+ *
+ * Three sections, in Figma's own order:
+ *
+ *   HEAD   node 864:8880 — padding 12, gap 10. Result summary on one side,
+ *          "view all" on the other.
+ *   RAIL   node 864:8883 — padding 16/8, gap 12, 1px border/default beneath.
+ *          Product cards 157px wide, horizontally scrollable past the panel.
+ *   TERMS  node 864:8947 — padding 16, gap 16. One row per suggested term:
+ *          loupe, label, and the "insert this term" arrow.
+ *
+ * ---------------------------------------------------------------------------
+ * CHILD ORDER IS REVERSED FROM FIGMA — the same rule every Spartrak component
+ * follows (see Smartwave_Porto/templates/html/header.phtml for the full
+ * explanation). Figma composes these frames right-to-left but serialises their
+ * children left-to-right, so emitting the reverse and letting `direction: rtl`
+ * do the work reproduces the design exactly on the Arabic store and mirrors it
+ * correctly on the English one, with no [dir] overrides.
+ *
+ * Figma's term row nests [Arrow, [ [label], loupe ]]; flattened here to three
+ * flex children at one 12px gap, which lays out identically (the inner gap of
+ * 6 sits beside a single child and never applies) with four fewer nodes per
+ * row — CLAUDE.md §13.
+ * ---------------------------------------------------------------------------
+ *
+ * NO BUSINESS LOGIC HERE (CLAUDE.md §8): every value comes from the block,
+ * which owns price formatting and image resizing. This file is markup and
+ * escaping.
+ *
+ * @var \Spartrak\Search\Block\Suggest\Panel $block
+ */
+
+$total = $block->getTotal();
+$products = $block->getProducts();
+$terms = $block->getTerms();
+?>
+<div class="spartrak-suggest" data-suggest-panel>
+    <?php if ($total > 0) : ?>
+        <?php /* Node 864:8880. Summary first so RTL puts it at the inline
+                 start; the "view all" link trails at the inline end. */ ?>
+        <div class="spartrak-suggest__head">
+            <p class="spartrak-suggest__summary">
+                <span class="spartrak-suggest__summary-label"><?= $block->escapeHtml(__('Search results')) ?></span>
+                <span class="spartrak-suggest__summary-count"><?= $block->escapeHtml(__('%1 products', $total)) ?></span>
+            </p>
+
+            <a class="spartrak-suggest__view-all" href="<?= $block->escapeUrl($block->getResultUrl()) ?>">
+                <?= $block->escapeHtml(__('View all (%1)', $total)) ?>
+            </a>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($products) : ?>
+        <?php
+        /**
+         * Node 864:8883. A horizontally scrolling rail: Figma draws six cards
+         * in the desktop panel with the row clipped, and three on mobile, so
+         * the overflow is the design's own and not a fallback.
+         *
+         * role="list" restores the semantics the flex container's
+         * `display: flex` removes from a <ul>; the cards are the list items.
+         */
+        ?>
+        <div class="spartrak-suggest__rail" role="list">
+            <?php foreach ($products as $product) : ?>
+                <?php $image = $block->getImage($product); ?>
+                <a class="spartrak-suggest__card"
+                   role="listitem"
+                   href="<?= $block->escapeUrl($product->getProductUrl()) ?>">
+                    <?php /* Node 864:8906 — 1:1, bg/field, clipped. width/height
+                             are the resized file's real dimensions, so the box is
+                             reserved before the raster arrives (CLAUDE.md §11's
+                             CLS guard). Lazy + async because the panel only ever
+                             exists after a keystroke: it is never the LCP element,
+                             and the off-screen end of the rail should not be
+                             fetched until scrolled to. */ ?>
+                    <span class="spartrak-suggest__card-media">
+                        <img class="spartrak-suggest__card-image"
+                             src="<?= $block->escapeUrl($image->getUrl()) ?>"
+                             width="<?= $block->escapeHtmlAttr($image->getWidth()) ?>"
+                             height="<?= $block->escapeHtmlAttr($image->getHeight()) ?>"
+                             alt=""
+                             loading="lazy"
+                             decoding="async"/>
+                    </span>
+
+                    <span class="spartrak-suggest__card-body">
+                        <span class="spartrak-suggest__card-name"><?= $block->escapeHtml($product->getName()) ?></span>
+                        <span class="spartrak-suggest__card-price"><?= $block->escapeHtml($block->getPriceHtml($product)) ?></span>
+                    </span>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($terms) : ?>
+        <?php /* Node 864:8947. A real <ul>: this is a list of alternative
+                 searches, and screen readers should be told how many. */ ?>
+        <ul class="spartrak-suggest__terms">
+            <?php foreach ($terms as $term) : ?>
+                <li class="spartrak-suggest__term-item">
+                    <?php
+                    /**
+                     * data-suggest-term carries the raw term so the widget can
+                     * put it in the input on keyboard selection without having
+                     * to scrape it back out of the translated label.
+                     */
+                    ?>
+                    <a class="spartrak-suggest__term"
+                       href="<?= $block->escapeUrl($term['url']) ?>"
+                       data-suggest-term="<?= $block->escapeHtmlAttr($term['title']) ?>">
+                        <span class="spartrak-suggest__term-loupe" aria-hidden="true"></span>
+                        <span class="spartrak-suggest__term-label"><?= $block->escapeHtml(__('All “%1” products', $term['title'])) ?></span>
+                        <span class="spartrak-suggest__term-arrow" aria-hidden="true"></span>
+                    </a>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    <?php endif; ?>
+</div>

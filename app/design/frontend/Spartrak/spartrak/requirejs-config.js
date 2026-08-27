@@ -14,7 +14,8 @@ var config = {
             spartrakMobileDrawer: 'js/spartrak-mobile-drawer',
             spartrakAuth: 'js/spartrak-auth',
             spartrakForkRow: 'js/spartrak-fork-row',
-            spartrakPlpFilterToggle: 'js/spartrak-plp-filter-toggle'
+            spartrakPlpFilterToggle: 'js/spartrak-plp-filter-toggle',
+            spartrakSearchSuggest: 'js/spartrak-search-suggest'
         }
     }
 };

@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <!--
+          Filed under the native Catalog tab rather than a new top-level one:
+          this is a search setting, and an admin looking for it will look where
+          Magento already puts "Search Engine" and "Autocomplete Limit".
+        -->
+        <section id="spartrak_search" translate="label" type="text" sortOrder="500" showInDefault="1" showInWebsite="1" showInStore="1">
+            <class>separator-top</class>
+            <label>Search Suggestions</label>
+            <tab>catalog</tab>
+            <resource>Spartrak_Search::config</resource>
+            <group id="suggestions" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Suggestions Panel</label>
+                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Enable Suggestions Panel</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>When disabled the endpoint returns nothing and the storefront search box falls back to plain form submission.</comment>
+                </field>
+                <field id="product_limit" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Products In Rail</label>
+                    <validate>validate-digits</validate>
+                    <comment>How many product cards the panel shows. 0 hides the rail.</comment>
+                    <depends><field id="enabled">1</field></depends>
+                </field>
+                <field id="term_limit" translate="label comment" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Search Terms Listed</label>
+                    <validate>validate-digits</validate>
+                    <comment>How many suggested search terms the panel lists below the rail. 0 hides the list.</comment>
+                    <depends><field id="enabled">1</field></depends>
+                </field>
+                <field id="cache_lifetime" translate="label comment" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Response Cache Lifetime (seconds)</label>
+                    <validate>validate-digits</validate>
+                    <comment>Search-as-you-type is a hot path; caching each rendered panel avoids re-running the query for a repeated term. Set 0 to disable. The cache is tagged with the catalog, so a product save clears it regardless of this value.</comment>
+                    <depends><field id="enabled">1</field></depends>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>

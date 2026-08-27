@@ -35,6 +35,14 @@
 
     --color-border-default: var(--primitive-border);
     --color-border-strong: var(--primitive-border-strong);
+    // Figma: border.subtle = #f3f3f4 — the SAME hex the file also publishes as
+    // bg.field, but a distinct semantic name with a distinct job: the hairline
+    // that separates a card from the surface behind it, where border.default
+    // would read as a hard edge. Added 2026-08-27 for the search-suggestion
+    // card (node 864:8905), which is the first component to consume it.
+    // Aliased to the shared primitive rather than re-declaring the literal, so
+    // the two names cannot drift apart if the palette moves.
+    --color-border-subtle: var(--primitive-field-bg);
     --color-border-on-media: var(--primitive-alpha-white-10); // Figma: border.on-media = alpha.white-10
 
     --color-bg-field: var(--primitive-field-bg);

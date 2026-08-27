@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:App/etc/routes.xsd">
+    <router id="standard">
+        <!--
+          frontName is the URL segment. It is deliberately NOT the route id:
+          Spartrak_CustomerAuth's own sections.xml bug (route id vs URL path)
+          is documented at length in that module and cost a release, so the
+          two are kept visibly distinct here to make the difference obvious.
+        -->
+        <route id="spartrak_search" frontName="search-suggest">
+            <module name="Spartrak_Search"/>
+        </route>
+    </router>
+</config>

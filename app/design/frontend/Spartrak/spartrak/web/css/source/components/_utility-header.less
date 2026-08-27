@@ -270,46 +270,37 @@ button.spartrak-search__submit {
     }
 }
 
-// quickSearch's suggestion list. Not drawn on any Figma header frame, so this
-// is deliberately minimal: a surface, the design system's border and radius,
-// and nothing invented. It exists so the native autocomplete is legible
-// rather than unstyled.
+// The suggestions panel's ANCHOR — nothing more.
+//
+// REWRITTEN 2026-08-27. This used to carry panel chrome of its own (a surface,
+// a 6px radius, a shadow) plus a ul/li treatment for quickSearch's markup, all
+// of it prefaced "not drawn on any Figma header frame, so this is deliberately
+// minimal". Figma now specifies the panel — desktop node 864:8879, mobile
+// 647:53929 — and _search-suggest.less implements it, chrome included. Leaving
+// the old chrome here would have double-drawn the border and shadow and
+// rounded a panel Figma draws square.
+//
+// The ul/li rules went with it: quickSearch no longer renders here (see
+// Magento_Search/templates/form.mini.phtml), so they matched nothing. Removed
+// rather than kept "in case" — CLAUDE.md §18.
+//
+// What remains is placement only: pinned to the search field's own box, which
+// is what makes the panel exactly the field's width at BOTH breakpoints —
+// 1017px inside the desktop search column, and 408px on mobile, where the
+// header row's 16px padding leaves 440 - 32. Figma's own panel widths, with no
+// width declared anywhere.
 .spartrak-search__autocomplete {
     position: absolute;
     inset-inline: 0;
     top: calc(100% + 4px);
     z-index: 30;
-    background: var(--color-bg-surface);
-    border: 1px solid var(--color-border-default);
-    border-radius: var(--radius-6);
-    box-shadow: 0 8px 16px var(--color-scrim);
-    overflow: hidden;
 
-    &:empty {
+    // `hidden` is set in the markup and cleared by the widget. Stated
+    // explicitly because this element carries an author `position`, and the
+    // codebase has been bitten before by an author declaration silently
+    // defeating the UA's `[hidden] { display: none }` — see the account chip.
+    &[hidden] {
         display: none;
-    }
-
-    ul {
-        margin: 0;
-        padding: 0;
-        list-style: none;
-    }
-
-    li {
-        padding: 8px 16px;
-        font-size: var(--text-14);
-        color: var(--color-text-primary);
-        cursor: pointer;
-
-        &:hover,
-        &.selected {
-            background: var(--color-bg-surface-subtle);
-        }
-
-        .amount {
-            color: var(--color-text-muted);
-            float: inline-end;
-        }
     }
 }
 

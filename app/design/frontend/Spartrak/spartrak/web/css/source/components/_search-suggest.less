@@ -1,0 +1,373 @@
+// Spartrak component — Search Suggestions panel
+//
+// FIGMA SSOT: desktop node 864:8879 ("Forms and Content") inside the overlay
+// 864:8878; mobile node 647:53929 inside 647:53927.
+//
+// The two frames are the SAME component. Every value below — padding, gap,
+// card size, type, colour — is byte-identical between them; the only thing
+// that differs is the width they are poured into (1012px anchored under the
+// desktop search column, 408px full-bleed with 16px side margins on mobile)
+// and how many cards therefore fit before the rail scrolls (six vs three).
+// That is one media query at the bottom of this file, not a second component.
+//
+//   PANEL  bg/surface, 1px border/default, shadow 0 8px 12px rgba(0,0,0,.05),
+//          NO corner radius (Figma draws none)
+//   HEAD   node 864:8880 — padding 12, gap 10, whitespace nowrap
+//          summary  "نتائج البحث" 12px Regular text/muted
+//                   + "N منتجات" 16px Medium text/primary
+//          view all 12px Medium text/brand (#063196)
+//   RAIL   node 864:8883 — padding 16 inline / 8 block, gap 12,
+//          1px border/default on the block end
+//   CARD   node 864:8905 — 157px wide, 1px border/subtle, clipped, gap 4
+//          media  1:1, bg/field
+//          body   padding 0 4 12, gap 2 between name and price
+//          name   12px Regular / lh 1.5, text/primary, clamped to 2 lines
+//          price  14px Medium / lh 1.3, text/brand
+//   TERMS  node 864:8947 — padding 16, gap 16
+//          row    gap 12: [loupe 16] [label 14px Medium text/primary] [arrow 16]
+//          rule   1px dashed border/strong, 2px dash / 2px gap
+//
+// PERFORMANCE NOTE (CLAUDE.md §4/§12): none of this is in the initial HTML.
+// The panel is fetched and injected only after a debounced keystroke, so it
+// contributes nothing to LCP, adds no render-blocking bytes to first paint,
+// and its images are lazy. The one cost it does add to the critical path is
+// this stylesheet's own bytes in the components bundle — kept down by reusing
+// the existing tokens and the .spartrak-icon() mixin rather than shipping new
+// primitives.
+
+// ---------------------------------------------------------------------------
+// Panel
+// ---------------------------------------------------------------------------
+// Positioned by .spartrak-search__autocomplete (see _utility-header.less),
+// which is the element core's markup already anchors under the search field.
+// This file styles the fragment the endpoint returns INSIDE it.
+.spartrak-suggest {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border-default);
+    // Figma draws no radius on this panel — unlike the search pill above it.
+    border-radius: 0;
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.05);
+}
+
+// ---------------------------------------------------------------------------
+// Head — node 864:8880
+// ---------------------------------------------------------------------------
+.spartrak-suggest__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    white-space: nowrap;
+}
+
+// flex-1 + min-width 0 is what lets the count line ellipsis instead of pushing
+// the "view all" link out of the panel on a narrow phone.
+// FLAGGED DEVIATION, ~5px: Figma's head (node 864:8880) is 40px tall — 12
+// padding either side of a 16px content box. It gets a 16px box out of a 16px
+// font because the frame is authored with `text-box-trim: trim-both` /
+// `text-box-edge: cap alphabetic` (Figma emits those exact property names for
+// this node), which crops the line box to the cap height.
+//
+// Not reproduced. `text-box` is Chrome-133+ only, so it would be an
+// experimental property carried in a shipped bundle for five pixels; and the
+// alternative — forcing `line-height: 1` — clips Arabic diacritics, which is a
+// correctness bug rather than a styling preference. The line-height used
+// instead is 1.3, which is the design system's OWN Label line-height (Figma
+// binds Label/Base to it on the 12px run in this very row), so the value is
+// read from the design rather than picked. Head renders ~45px.
+.spartrak-suggest__summary {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: start;
+    line-height: 1.3;
+}
+
+.spartrak-suggest__summary-label {
+    font-family: var(--font-arabic);
+    font-size: var(--text-12);
+    font-weight: 400;
+    color: var(--color-text-muted);
+}
+
+// Figma sets this run at 16px Medium in text/primary against the 12px muted
+// label beside it — the count is the line's subject, not its caption.
+.spartrak-suggest__summary-count {
+    margin-inline-start: 4px;
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 500;
+    color: var(--color-text-primary);
+}
+
+.spartrak-suggest__view-all {
+    flex: 0 0 auto;
+    font-family: var(--font-arabic);
+    font-size: var(--text-12);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-action-primary);
+    text-decoration: none;
+
+    // Magento blank's `a:visited { color: #063196 }` happens to be this exact
+    // colour, but it is pinned anyway so the link cannot drift if that global
+    // ever changes — same treatment as the mega nav's links.
+    &:visited {
+        color: var(--color-action-primary);
+    }
+
+    &:hover,
+    &:focus-visible {
+        text-decoration: underline;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Product rail — node 864:8883
+// ---------------------------------------------------------------------------
+// Horizontally scrollable, which is Figma's own behaviour: the desktop frame
+// draws six 157px cards in a 1012px panel with the row clipped at both ends,
+// and the mobile frame three in 408px. Nothing here is clipped that matters —
+// unlike the mega nav, these cards have no flyout to escape the scroll
+// container, so a plain scroller is the correct and cheapest answer.
+.spartrak-suggest__rail {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    padding: 8px 16px;
+    border-block-end: 1px solid var(--color-border-default);
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    // The panel is 66px of chrome around a 245px rail; a native horizontal
+    // scrollbar inside it reads as a rendering fault. Cards being visibly cut
+    // at the edge is the affordance, and wheel, drag, touch and keyboard all
+    // still scroll it — tabbing to an off-screen card scrolls it into view.
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+    }
+}
+
+// Node 864:8905.
+.spartrak-suggest__card {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 157px;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 0;
+    background: var(--color-bg-surface);
+    overflow: hidden;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        border-color: var(--color-border-default);
+    }
+}
+
+// Node 864:8906 — a 1:1 plate in bg/field. aspect-ratio reserves the box
+// before the raster decodes, which is the CLS guard the width/height attrs on
+// the <img> reinforce.
+.spartrak-suggest__card-media {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: var(--color-bg-field);
+    overflow: hidden;
+}
+
+// `contain`, not `cover`: a spare part photographed on white must not be
+// cropped to fill a square — the same rule the mega nav's brand plates follow.
+.spartrak-suggest__card-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+// Node 864:8908 — padding 0 4 12. The 2px inline padding Figma puts on the
+// name and price rows individually is folded in here as 6 total, so the two
+// runs share one declaration instead of each carrying its own wrapper.
+.spartrak-suggest__card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 6px 12px;
+    background: var(--color-bg-surface);
+}
+
+// Node 864:8922 — Body/XSmall, two lines, then clipped. Figma's own text node
+// is 36px tall at a 12px/1.5 line box, i.e. exactly two lines.
+.spartrak-suggest__card-name {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-family: var(--font-arabic);
+    font-size: var(--text-12);
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: var(--letter-spacing-normal);
+    color: var(--color-text-primary);
+    text-align: start;
+}
+
+// Node 864:8925 — Price/Small in text/brand. Figma shows ONE price here; the
+// block resolves it from the final price's minimal amount so a configurable
+// shows its "from" figure rather than nothing.
+.spartrak-suggest__card-price {
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: var(--letter-spacing-normal);
+    color: var(--color-action-primary);
+    text-align: start;
+    // A price is Latin digits inside an Arabic run; isolate it so the bidi
+    // algorithm cannot reorder the currency against the number. Same fix the
+    // footer hotline and the auth modal's "+20" already carry.
+    unicode-bidi: isolate;
+}
+
+// ---------------------------------------------------------------------------
+// Suggested terms — node 864:8947
+// ---------------------------------------------------------------------------
+.spartrak-suggest__terms {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 0;
+    padding: 16px;
+    list-style: none;
+}
+
+// Figma's divider (node 864:8964) is a 1px rule in border/strong with
+// `stroke-dasharray="2 2"`. Reproduced as a repeating gradient rather than
+// `border-block-start: 1px dashed`, because CSS `dashed` leaves the dash and
+// gap lengths to the UA and every engine picks differently — the gradient is
+// exactly 2 on, 2 off, which is what the export specifies. It is a geometric
+// rule, not a glyph, so drawing it in CSS costs one fewer request than
+// shipping the SVG and is pixel-identical.
+//
+// `margin: 0` is load-bearing, not tidying. Porto ships `ul > li { margin-top:
+// 0; margin-bottom: 0.05rem }` un-scoped, at (0,0,2) — enough to beat a bare
+// element selector but not this class — and that stray 0.8px would be added to
+// every gap in the list, so the 16px rhythm Figma specifies would render as
+// 16.8. Caught by measuring the live DOM, not by reading the file.
+//
+// The rule sits under EVERY row, including the last. That is measured, not
+// assumed: Figma's terms container (node 864:8947) is 66px tall around a
+// single 18px row — 16 padding + 18 row + 16 to the rule + 16 padding — so the
+// one row it draws has a rule beneath it. An earlier draft used
+// `:not(:last-child)` on the usual "separators go between things" instinct and
+// came out 16px short of the frame.
+.spartrak-suggest__term-item {
+    margin: 0;
+    padding-block-end: 16px;
+    background-image: repeating-linear-gradient(
+        to right,
+        var(--color-border-strong) 0,
+        var(--color-border-strong) 2px,
+        transparent 2px,
+        transparent 4px
+    );
+    background-repeat: no-repeat;
+    background-size: 100% 1px;
+    background-position: bottom;
+}
+
+// Node 864:8948. Figma nests this three levels deep; flattened to three flex
+// children at the one 12px gap that actually applies — see panel.phtml.
+.spartrak-suggest__term {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: var(--color-text-primary);
+
+    &:visited {
+        color: var(--color-text-primary);
+    }
+
+    &:hover .spartrak-suggest__term-label,
+    &:focus-visible .spartrak-suggest__term-label {
+        color: var(--color-action-primary);
+    }
+}
+
+// Node 864:8957 — Label/Large, single line, ellipsised. flex-1 + min-width 0
+// is what pushes the arrow to the inline end and lets a long part number clip
+// instead of wrapping the row.
+.spartrak-suggest__term-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: var(--letter-spacing-normal);
+    color: inherit;
+    text-align: start;
+}
+
+// Node 864:8959. A real background-image, NOT the .spartrak-icon() mask: this
+// glyph is TWO-TONE in Figma's export — the lens ring is border/strong
+// #CECED2 and the handle is text/muted #6D6C79 — and a mask reads only the
+// alpha channel, which would flatten both to one colour and lose the faded
+// lens the design draws. The mixin's own docblock explains why masks are the
+// default; this is the documented exception, not a deviation from it.
+.spartrak-suggest__term-loupe {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    background-image: url('../images/icons/search-loupe-16.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 16px 16px;
+}
+
+// Node 864:8949 — the "put this term in the box" arrow. Monochrome, so it
+// takes the mask mixin and follows the row's colour on hover for free.
+.spartrak-suggest__term-arrow {
+    .spartrak-icon('arrow-up-right.svg'; 16px; var(--color-text-muted));
+}
+
+.spartrak-suggest__term:hover .spartrak-suggest__term-arrow,
+.spartrak-suggest__term:focus-visible .spartrak-suggest__term-arrow {
+    background-color: var(--color-action-primary);
+}
+
+// ---------------------------------------------------------------------------
+// Mobile — Figma node 647:53927 — NEEDS NO OVERRIDE, and that is a finding,
+// not an omission.
+// ---------------------------------------------------------------------------
+// The mobile frame is 440 wide with the panel's content at x=16, i.e. 408px
+// between 16px gutters. This theme's header row is already `padding: 16px` at
+// @breakpoint-header-collapse, so the search field — and therefore the panel
+// absolutely positioned to it — measures exactly 440 - 32 = 408 with no rule
+// here at all.
+//
+// Every other value in the mobile frame (panel chrome, head padding 12, rail
+// padding 16/8, gap 12, the 157px card, all type) is byte-identical to the
+// desktop frame. The only visible difference is how many cards fit before the
+// rail scrolls — six at 1012, three at 408 — which falls out of the fixed card
+// width and the scroller above.
+//
+// An earlier draft carried a @media block restating `padding: 12px` and
+// `padding-inline: 16px`; both were already the declared defaults, so it was
+// dead weight in the bundle and has been removed rather than left "for
+// clarity" (CLAUDE.md §18).

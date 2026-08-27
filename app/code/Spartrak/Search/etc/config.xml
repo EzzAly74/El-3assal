@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<!--
+  Defaults for the suggestions panel. Every one of these is an admin-editable
+  merchandising decision (how many products the rail shows, how long a
+  suggestion response may be reused), not a constant — CLAUDE.md §8 requires
+  the dashboard to own content decisions rather than the code.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <spartrak_search>
+            <suggestions>
+                <enabled>1</enabled>
+                <!--
+                  Figma's desktop rail (node 864:8883) draws six cards in the
+                  1012px panel and scrolls horizontally beyond that, so six is
+                  the design's own visible count and the default here.
+                -->
+                <product_limit>6</product_limit>
+                <term_limit>5</term_limit>
+                <!--
+                  0 disables the response cache. 300s is short enough that a
+                  price or stock change is reflected quickly even before the
+                  catalog cache tag invalidates it.
+                -->
+                <cache_lifetime>300</cache_lifetime>
+            </suggestions>
+        </spartrak_search>
+    </default>
+</config>

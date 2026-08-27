@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<!--
+  The suggestions panel must search the way the SEARCH RESULTS PAGE searches.
+
+  Magento\CatalogSearch\Model\ResourceModel\Fulltext\Collection takes a
+  `searchRequestName` and its constructor DEFAULTS it to
+  'catalog_view_container' — the category-browse request. Its
+  _renderFiltersBefore() then branches on that name, so a keyword query run
+  through the default would not be the query the results page runs.
+
+  Core solves this with two virtual types in
+  module-catalog-search/etc/di.xml:
+
+      Fulltext\CollectionFactory        -> Collection (catalog_view_container)
+      Fulltext\SearchCollectionFactory  -> SearchCollection (quick_search_container)
+
+  and gives the SECOND one to Layer\Search\ItemCollectionProvider, which is
+  what backs /catalogsearch/result. This module takes the same one, so the
+  panel's product rail, its result count and the page behind its "view all"
+  link are all answers from one search request.
+
+  The argument is wired here rather than type-hinted in the constructor
+  because both of those names are VIRTUAL TYPES: they have no class file, so
+  PHP reflection cannot resolve them and `setup:di:compile` aborts with
+  "Class ... does not exist". SuggestionProvider therefore hints the real base
+  class, Catalog\Model\ResourceModel\Product\CollectionFactory, exactly as
+  core's own Layer\Category\ItemCollectionProvider does.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Spartrak\Search\Model\SuggestionProvider">
+        <arguments>
+            <argument name="collectionFactory" xsi:type="object">Magento\CatalogSearch\Model\ResourceModel\Fulltext\SearchCollectionFactory</argument>
+        </arguments>
+    </type>
+</config>
