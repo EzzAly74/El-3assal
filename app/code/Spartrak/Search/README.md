@@ -45,13 +45,33 @@ worth knowing before anyone touches `SuggestionProvider`'s constructor:
 2. **The plain factory searches the wrong index request.** `Collection`'s
    constructor defaults `$searchRequestName` to `catalog_view_container` — the
    *category browse* request — and `_renderFiltersBefore()` branches on that
-   name. A keyword search needs `quick_search_container`, which core wires
-   through a second virtual type, `Fulltext\SearchCollectionFactory`; that is
-   the one `Layer\Search\ItemCollectionProvider` (the results page) receives,
-   and the one this module receives. Injecting the plain factory would have
-   compiled and then quietly searched differently from the page behind "view
-   all" — the failure mode this README's first paragraph promises does not
-   happen.
+   name. A keyword search needs `quick_search_container`.
+
+3. **And the generic quick-search factory under-counts.**
+   `Fulltext\SearchCollectionFactory` fixes the request name but keeps the
+   default `TotalRecordsResolver`, which returns `null` by design ("For Mysql
+   search engine we can't resolve total record count before full load").
+   `AbstractDb::getSize()` then falls through to a `COUNT` over a select that
+   `SearchResultApplier` has already narrowed to the current page's ids — so it
+   reports the **page size** as the total. Observed live: a term with 909
+   results rendered *"6 products / View all (6)"*, 6 being the configured rail
+   size.
+
+   The engine modules replace that resolver with one returning
+   `$searchResult->getTotalCount()`, and `getSize()` keeps it — line 437 is
+   `$this->_totalRecords = $this->_totalRecords ?? fetchOne($sql)`, and the
+   `getSelectCountSql()` call above it is what runs `_renderFiltersBefore()`
+   and populates `_totalRecords` in the first place.
+
+   So the injected factory is `elasticsearchFulltextSearchCollectionFactory`.
+   Despite the name that is not "the Elasticsearch one" but *the quick-search
+   one*: `Magento_Elasticsearch8` and `Magento_OpenSearch` both point their own
+   engine key at this same shared virtual type, and MySQL search was removed in
+   2.4 — so on 2.4.8 it is the collection quick search uses under every
+   supported engine, and the one behind `/catalogsearch/result`.
+
+   **If the panel's count ever equals the configured rail size again, this
+   wiring is the first thing to check.**
 
 ## Endpoint
 

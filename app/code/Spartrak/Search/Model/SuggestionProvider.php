@@ -54,18 +54,24 @@ use Magento\Store\Model\StoreManagerInterface;
  *      the virtual type as the argument. That is exactly the pattern core uses
  *      for its own consumer, Layer\Category\ItemCollectionProvider.
  *
- *   2. THE PLAIN FACTORY WOULD RUN THE WRONG SEARCH. Collection's constructor
- *      defaults `$searchRequestName` to 'catalog_view_container' — the CATEGORY
- *      BROWSE request. _renderFiltersBefore() branches on that name, and a
- *      keyword search needs 'quick_search_container'. Core wires that through a
- *      second virtual type, `Fulltext\SearchCollectionFactory`, which is what
- *      Layer\Search\ItemCollectionProvider — the search results page — is given.
- *      So SearchCollectionFactory is the one injected here; the plain
- *      CollectionFactory would have compiled (had trap 1 not bitten first) and
- *      quietly searched with the wrong request, making the panel's results and
- *      count disagree with the results page this file claims to match.
+ *   2. THE PLAIN FACTORY RUNS THE WRONG SEARCH REQUEST. Collection's
+ *      constructor defaults `$searchRequestName` to 'catalog_view_container' —
+ *      the CATEGORY BROWSE request. _renderFiltersBefore() branches on that
+ *      name, and a keyword search needs 'quick_search_container'.
  *
- * See etc/di.xml, which is where both of those decisions actually live.
+ *   3. AND EVEN THE RIGHT REQUEST UNDER-COUNTS. `Fulltext\SearchCollectionFactory`
+ *      fixes the request name but keeps the DEFAULT TotalRecordsResolver, which
+ *      returns null by design ("For Mysql search engine we can't resolve total
+ *      record count before full load"). getSize() then falls through to a COUNT
+ *      over a select SearchResultApplier has already narrowed to this page's
+ *      ids — so it reports the PAGE SIZE as the total. Observed live: a term
+ *      with 909 results rendered "6 products / View all (6)", 6 being the
+ *      configured rail size. The engine's own collection replaces that resolver
+ *      with one that reads $searchResult->getTotalCount(), and that is what is
+ *      injected.
+ *
+ * See etc/di.xml, which is where all three of those decisions actually live
+ * and which spells out the getSize() mechanics.
  *
  * ===========================================================================
  * WHAT THIS DELIBERATELY DOES NOT DO
@@ -79,9 +85,11 @@ class SuggestionProvider
     public function __construct(
         /**
          * Hinted as the base factory, injected as
-         * Fulltext\SearchCollectionFactory by etc/di.xml — see the class note.
-         * At runtime create() returns a Fulltext\Collection bound to
-         * 'quick_search_container'.
+         * elasticsearchFulltextSearchCollectionFactory by etc/di.xml — see the
+         * class note. At runtime create() returns a Fulltext\Collection bound to
+         * 'quick_search_container' AND carrying the engine's own
+         * TotalRecordsResolver, which is what makes getSize() the real hit
+         * count rather than the page size.
          */
         private readonly ProductCollectionFactory $collectionFactory,
         private readonly AutocompleteInterface $autocomplete,
@@ -157,10 +165,15 @@ class SuggestionProvider
         $collection->setPageSize($this->config->getProductLimit());
         $collection->setCurPage(1);
 
-        // getSize() is the TOTAL match count from the search engine, not the
-        // page size — it is what the panel's "N products" heading and the
-        // "view all (N)" link report, and it costs no extra query because the
-        // engine returns it with the same response.
+        // The TOTAL match count from the search engine, not the page size. It
+        // costs no extra query — the engine returns it with the same response
+        // and the collection's TotalRecordsResolver reads it off that result.
+        //
+        // This is only true because etc/di.xml injects the ENGINE's collection.
+        // With the generic one it silently returns the page size instead (a
+        // 909-result term reported "6 products"); the full mechanism is
+        // documented there. If this number ever equals the configured rail
+        // size again, that wiring is the first thing to check.
         $total = (int) $collection->getSize();
 
         return [$total, array_values($collection->getItems())];

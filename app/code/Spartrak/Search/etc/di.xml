@@ -8,28 +8,65 @@
   _renderFiltersBefore() then branches on that name, so a keyword query run
   through the default would not be the query the results page runs.
 
-  Core solves this with two virtual types in
-  module-catalog-search/etc/di.xml:
+  Core solves this with virtual types in module-catalog-search/etc/di.xml:
 
       Fulltext\CollectionFactory        -> Collection (catalog_view_container)
       Fulltext\SearchCollectionFactory  -> SearchCollection (quick_search_container)
 
-  and gives the SECOND one to Layer\Search\ItemCollectionProvider, which is
-  what backs /catalogsearch/result. This module takes the same one, so the
-  panel's product rail, its result count and the page behind its "view all"
-  link are all answers from one search request.
+  ...but SearchCollectionFactory ALONE IS STILL NOT ENOUGH, and picking it was
+  a real bug here: the panel reported "6 products" for a term whose results
+  page reported 909.
 
-  The argument is wired here rather than type-hinted in the constructor
-  because both of those names are VIRTUAL TYPES: they have no class file, so
-  PHP reflection cannot resolve them and `setup:di:compile` aborts with
-  "Class ... does not exist". SuggestionProvider therefore hints the real base
-  class, Catalog\Model\ResourceModel\Product\CollectionFactory, exactly as
-  core's own Layer\Category\ItemCollectionProvider does.
+  ===========================================================================
+  WHY THE COUNT COLLAPSED TO THE PAGE SIZE
+  ===========================================================================
+  Fulltext\Collection resolves its total through a TotalRecordsResolver, and
+  the DEFAULT one (module-catalog-search) returns null — its own docblock says
+  "For Mysql search engine we can't resolve total record count before full
+  load of collection". Framework\Data\Collection\AbstractDb::getSize() then
+  falls through to a COUNT over the select... which SearchResultApplier has
+  already narrowed to `entity_id IN (<this page's ids>)`. So getSize() returns
+  the page size. Ask for 6 cards, get told there are 6 products.
+
+  The engine modules replace that resolver. elasticsearchTotalRecordsResolver
+  returns $searchResult->getTotalCount() — the engine's real hit count — and
+  AbstractDb::getSize() keeps it, because line 437 reads
+  `$this->_totalRecords = $this->_totalRecords ?? fetchOne($sql)`: calling
+  getSelectCountSql() on the line above runs _renderFiltersBefore(), which is
+  where the resolver populates _totalRecords, and the null-coalesce then
+  preserves it instead of the COUNT.
+
+  ===========================================================================
+  WHAT IS INJECTED, AND WHY THIS EXACT NAME
+  ===========================================================================
+  elasticsearchFulltextSearchCollectionFactory (defined once, in
+  module-elasticsearch) builds elasticsearchFulltextSearchCollection:
+
+      searchRequestName          quick_search_container
+      totalRecordsResolverFactory elasticsearchTotalRecordsResolver\Factory
+
+  It is not "the Elasticsearch one" so much as "the quick-search one": both
+  Magento_Elasticsearch8 and Magento_OpenSearch point their own engine key at
+  this same shared virtual type (see their
+  elasticsearchLayerSearchItemCollectionProvider), and MySQL search was
+  removed in 2.4 — so on 2.4.8 this is the collection quick search uses under
+  every supported engine, and it is the one behind /catalogsearch/result.
+  Panel rail, panel count and the "view all" page are now one search.
+
+  ===========================================================================
+  WHY WIRED HERE INSTEAD OF TYPE-HINTED
+  ===========================================================================
+  Every name above is a VIRTUAL TYPE: no class file, so PHP reflection cannot
+  resolve it and `setup:di:compile` aborts with "Class ... does not exist".
+  SuggestionProvider therefore hints the real base class,
+  Catalog\Model\ResourceModel\Product\CollectionFactory — which is what this
+  whole virtual-type chain ultimately extends — exactly as core's own
+  Layer\Category\ItemCollectionProvider does.
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
     <type name="Spartrak\Search\Model\SuggestionProvider">
         <arguments>
-            <argument name="collectionFactory" xsi:type="object">Magento\CatalogSearch\Model\ResourceModel\Fulltext\SearchCollectionFactory</argument>
+            <argument name="collectionFactory" xsi:type="object">elasticsearchFulltextSearchCollectionFactory</argument>
         </arguments>
     </type>
 </config>
