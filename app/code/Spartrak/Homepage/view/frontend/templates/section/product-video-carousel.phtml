@@ -98,37 +98,42 @@ if ($hasAnyVideo) {
                              decoding="async">
                     <?php endif; ?>
 
+                    <?php /*
+                      The overlay is a dark gradient carrying the controls, the
+                      timecode and the handle. With no video there is none of
+                      that, and it rendered as an empty black band across every
+                      card — reported as corruption, correctly. It is now only
+                      emitted when it has something to hold.
+                    */ ?>
+                    <?php if ($video) : ?>
                     <div class="spartrak-home-showcase__overlay">
                         <div class="spartrak-home-showcase__controls">
-                            <?php if ($video) : ?>
-                                <button type="button"
-                                        class="spartrak-home-showcase__control spartrak-home-showcase__control--play"
-                                        data-video-play
-                                        aria-label="<?= $block->escapeHtmlAttr(__('Play video')) ?>"></button>
-                                <button type="button"
-                                        class="spartrak-home-showcase__control spartrak-home-showcase__control--mute"
-                                        data-video-mute
-                                        aria-pressed="true"
-                                        aria-label="<?= $block->escapeHtmlAttr(__('Unmute')) ?>"></button>
-                                <button type="button"
-                                        class="spartrak-home-showcase__control spartrak-home-showcase__control--captions"
-                                        data-video-captions
-                                        aria-pressed="false"
-                                        aria-label="<?= $block->escapeHtmlAttr(__('Captions')) ?>"></button>
-                            <?php endif; ?>
+                            <button type="button"
+                                    class="spartrak-home-showcase__control spartrak-home-showcase__control--play"
+                                    data-video-play
+                                    aria-label="<?= $block->escapeHtmlAttr(__('Play video')) ?>"></button>
+                            <button type="button"
+                                    class="spartrak-home-showcase__control spartrak-home-showcase__control--mute"
+                                    data-video-mute
+                                    aria-pressed="true"
+                                    aria-label="<?= $block->escapeHtmlAttr(__('Unmute')) ?>"></button>
+                            <button type="button"
+                                    class="spartrak-home-showcase__control spartrak-home-showcase__control--captions"
+                                    data-video-captions
+                                    aria-pressed="false"
+                                    aria-label="<?= $block->escapeHtmlAttr(__('Captions')) ?>"></button>
                         </div>
 
                         <div class="spartrak-home-showcase__meta">
-                            <?php if ($video) : ?>
-                                <p class="spartrak-home-showcase__time" data-video-time dir="ltr"></p>
-                            <?php endif; ?>
-                            <?php if ($video && $video['title'] !== '') : ?>
+                            <p class="spartrak-home-showcase__time" data-video-time dir="ltr"></p>
+                            <?php if ($video['title'] !== '') : ?>
                                 <p class="spartrak-home-showcase__handle">
                                     <?= $block->escapeHtml($video['title']) ?>
                                 </p>
                             <?php endif; ?>
                         </div>
                     </div>
+                    <?php endif; ?>
                 </div>
 
                 <div class="spartrak-home-showcase__product">

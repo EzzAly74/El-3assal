@@ -758,16 +758,18 @@
 }
 
 .spartrak-home-showcase__item {
-    // Figma 595:14830 draws a 557px card, three across in a 1440 frame - a
-    // row 1703px wide that deliberately overflows, so the design itself only
-    // ever reveals about two and a half.
+    // SIX across the measure, by request.
     //
-    // Held to a THIRD of the measure instead. Figma's intent is three cards
-    // visible; 557px against this page's 1344px measure delivered barely two,
-    // and each one read as enormous. A fraction keeps the design's three-up
-    // rhythm at every width, and the remaining items still scroll.
-    flex: 0 0 calc((100% - 32px) / 3);
-    width: calc((100% - 32px) / 3);
+    // Figma 595:14830 draws a 557px card three-up in a 1440 frame. That is a
+    // documented deviation: at six the card is ~210px, so the media frame and
+    // the product card inside it are both scaled down to suit (see the
+    // showcase-scoped card overrides further down). Six is what the brief for
+    // this section asked for; the layout is otherwise unchanged.
+    //
+    // Expressed as a fraction of the row, not a pixel width, so it stays
+    // exactly six across at any measure: five 16px gaps between six items.
+    flex: 0 0 calc((100% - (16px * 5)) / 6);
+    width: calc((100% - (16px * 5)) / 6);
     min-width: 0;
     max-width: calc(100vw - (@home-gutter-mobile * 2));
     margin: 0;
@@ -897,6 +899,46 @@
     padding: 4px;
 }
 
+// The horizontal Card - Product variant is sized for Figma's 533px column.
+// At six-across it sits in roughly 210px, where a 140px image would leave
+// about 50px for the name — unreadable. These overrides scale the card to the
+// narrower column WITHOUT forking the component: same template, same classes,
+// just this section's own measurements.
+//
+// Scoped through .spartrak-home-showcase__product so nothing outside this
+// section is affected, and at (0,2,0) so it clears the card's own (0,1,0)
+// rules without an !important.
+.spartrak-home-showcase__product .spartrak-card--horizontal {
+    gap: 8px;
+
+    .spartrak-card__media {
+        flex: 0 0 64px;
+        width: 64px;
+        height: 64px;
+    }
+
+    .spartrak-card__content {
+        gap: 8px;
+    }
+
+    .spartrak-card__name {
+        font-size: var(--text-14);
+        line-height: 1.3;
+    }
+
+    .spartrak-card__price {
+        font-size: var(--text-14);
+    }
+
+    // The rating row does not survive this width legibly; the name and price
+    // are what a shopper needs at a glance here, and both remain on the
+    // product page. Hidden rather than shrunk to an unreadable size.
+    .spartrak-card__rating,
+    .spartrak-card__wishlist {
+        display: none;
+    }
+}
+
 // ===========================================================================
 // MOBILE (Figma mobile frames 647:57253 / 645:38346)
 // ===========================================================================
@@ -1012,8 +1054,23 @@
     }
 
     .spartrak-home-showcase__item {
-        flex-basis: 300px;
-        width: 300px;
+        // Six across is a desktop decision; on a phone that would be ~55px a
+        // card. Back to a readable width that signals the rail scrolls.
+        flex-basis: 240px;
+        width: 240px;
+    }
+
+    // The card has room again at 240px, so the desktop shrink is undone.
+    .spartrak-home-showcase__product .spartrak-card--horizontal {
+        .spartrak-card__media {
+            flex-basis: 88px;
+            width: 88px;
+            height: 88px;
+        }
+
+        .spartrak-card__rating {
+            display: flex;
+        }
     }
 
     .spartrak-home-showcase__control {
