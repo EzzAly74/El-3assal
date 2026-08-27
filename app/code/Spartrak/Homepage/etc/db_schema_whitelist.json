@@ -12,7 +12,15 @@
             "is_active": true,
             "sort_order": true,
             "created_at": true,
-            "updated_at": true
+            "updated_at": true,
+            "promo_badge_en": true,
+            "promo_badge_ar": true,
+            "promo_heading_en": true,
+            "promo_heading_ar": true,
+            "promo_text_en": true,
+            "promo_text_ar": true,
+            "promo_image_en": true,
+            "promo_image_ar": true
         },
         "index": {
             "SPARTRAK_HOMEPAGE_SECTION_IS_ACTIVE_SORT_ORDER": true

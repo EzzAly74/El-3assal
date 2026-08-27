@@ -26,7 +26,11 @@ abstract class AbstractSection extends Template
 {
     public function __construct(
         Context $context,
-        private readonly LocaleContext $localeContext,
+        // protected, not private: ProductPromoCarousel resolves its own
+        // per-locale promo fields through the same resolver, and injecting a
+        // second copy of it would be two constructor args of one type for one
+        // shared instance.
+        protected readonly LocaleContext $localeContext,
         array $data = []
     ) {
         parent::__construct($context, $data);

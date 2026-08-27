@@ -82,11 +82,118 @@ define(['jquery', 'jquery-ui-modules/widget'], function ($) {
             this._on(this.dots, { click: this._onDot });
             this._on(this.track, { scroll: this._queueUpdate });
 
+            this._enableDrag();
+
             // Also on resize: the step size and the maximum scroll both depend
             // on the container width.
             this._on($(window), { resize: this._queueUpdate });
 
             this._update();
+        },
+
+        /**
+         * Click-and-drag with a mouse.
+         *
+         * ===================================================================
+         * WHY THIS NEEDS JS WHEN THE REST OF THE RAIL DOES NOT
+         * ===================================================================
+         * `overflow-x: auto` already gives touch swipe, trackpad scroll, the
+         * keyboard and momentum for free — that is why the rails work with no
+         * JS at all. The one gesture browsers do NOT provide is dragging with
+         * a held mouse button; on desktop a shopper expects to grab a carousel
+         * and pull it. That gesture, and only that gesture, is added here.
+         *
+         * Deliberately limited to a real mouse. Touch and pen already scroll
+         * natively, and intercepting them would replace a smooth, momentum-
+         * carrying native gesture with a worse hand-rolled one.
+         *
+         * THREE THINGS THAT WOULD OTHERWISE BREAK, HANDLED:
+         *   1. scroll-snap fights a drag — it keeps yanking the rail back to
+         *      the nearest snap point mid-gesture. Snapping is switched off for
+         *      the duration and restored on release, so the rail still settles
+         *      onto a card afterwards.
+         *   2. a drag that ends over a card would otherwise FOLLOW that card's
+         *      link. A click is suppressed once, and only if the pointer
+         *      actually travelled past a small threshold, so an ordinary click
+         *      still works.
+         *   3. the browser's own image/text drag would take over. Suppressed
+         *      on the track only.
+         */
+        _enableDrag: function () {
+            var el = this.trackEl;
+            var self = this;
+            var down = false;
+            var moved = 0;
+            var startX = 0;
+            var startScroll = 0;
+            var snap = '';
+
+            // Anything below this is a click, not a drag. Roughly the slop a
+            // mouse picks up between button-down and button-up on a click.
+            var THRESHOLD = 5;
+
+            el.addEventListener('pointerdown', function (event) {
+                if (event.pointerType !== 'mouse' || event.button !== 0) {
+                    return;
+                }
+
+                down = true;
+                moved = 0;
+                startX = event.clientX;
+                startScroll = el.scrollLeft;
+
+                snap = el.style.scrollSnapType;
+                el.style.scrollSnapType = 'none';
+                el.classList.add('is-dragging');
+            });
+
+            el.addEventListener('pointermove', function (event) {
+                if (!down) {
+                    return;
+                }
+
+                var delta = event.clientX - startX;
+
+                moved = Math.max(moved, Math.abs(delta));
+
+                // Physical movement, so it reads correctly in both directions
+                // without a sign flip: the content follows the hand.
+                el.scrollLeft = startScroll - delta;
+            });
+
+            ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (type) {
+                el.addEventListener(type, function () {
+                    if (!down) {
+                        return;
+                    }
+
+                    down = false;
+                    el.style.scrollSnapType = snap;
+                    el.classList.remove('is-dragging');
+
+                    if (moved > THRESHOLD) {
+                        self.suppressClick = true;
+                    }
+                });
+            });
+
+            // Capture phase: the suppression has to run before the link's own
+            // handler, not after it has already navigated.
+            el.addEventListener('click', function (event) {
+                if (!self.suppressClick) {
+                    return;
+                }
+
+                self.suppressClick = false;
+                event.preventDefault();
+                event.stopPropagation();
+            }, true);
+
+            el.addEventListener('dragstart', function (event) {
+                if (down) {
+                    event.preventDefault();
+                }
+            });
         },
 
         /**

@@ -116,7 +116,7 @@ class DataProvider extends AbstractDataProvider
     {
         try {
             $media = $this->filesystem->getDirectoryRead(DirectoryList::MEDIA);
-            $relative = Storage::BASE_PATH . '/' . ltrim($file, '/');
+            $relative = $this->storage->getRelativePath($file);
 
             return $media->isExist($relative) ? (int) $media->stat($relative)['size'] : 0;
         } catch (\Exception $exception) {

@@ -16,6 +16,7 @@ use Spartrak\Homepage\Block\Section\BrandCarousel as BrandCarouselSection;
 use Spartrak\Homepage\Block\Section\CascadeSearch as CascadeSearchSection;
 use Spartrak\Homepage\Block\Section\CategoryTiles as CategoryTilesSection;
 use Spartrak\Homepage\Block\Section\ProductCarousel as ProductCarouselSection;
+use Spartrak\Homepage\Block\Section\ProductPromoCarousel as ProductPromoCarouselSection;
 use Spartrak\Homepage\Model\Section;
 use Spartrak\Homepage\Model\SectionList;
 use Spartrak\Homepage\Model\SectionType;
@@ -95,6 +96,10 @@ class Sections extends Template implements IdentityInterface
         SectionType::PRODUCT_VIDEO_CAROUSEL => [
             ProductCarouselSection::class,
             'Spartrak_Homepage::section/product-video-carousel.phtml',
+        ],
+        SectionType::PRODUCT_PROMO_CAROUSEL => [
+            ProductPromoCarouselSection::class,
+            'Spartrak_Homepage::section/product-promo-carousel.phtml',
         ],
         SectionType::BRAND_CAROUSEL => [
             BrandCarouselSection::class,

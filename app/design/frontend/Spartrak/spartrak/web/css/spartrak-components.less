@@ -40,6 +40,10 @@
 // Magento's own loader chrome, restyled onto the Spartrak spinner. Imported
 // last: it claims core/Porto loader classes rather than Spartrak ones, so it
 // must not sit ahead of a Spartrak component on equal specificity.
+// Page messages as toasts. Imported before the loader for the same reason
+// the loader is last: both claim core/Porto classes rather than Spartrak
+// ones, and the loader must stay the final word on its own.
+@import 'source/components/_toast.less';
 @import 'source/components/_loader.less';
 
 // NOTE: the design-system ownership layer that used to be imported here has

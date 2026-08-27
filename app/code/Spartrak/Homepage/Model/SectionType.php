@@ -47,6 +47,19 @@ final class SectionType
     public const PRODUCT_VIDEO_CAROUSEL = 'product_video_carousel';
 
     /**
+     * The SPLIT form of a product section (Figma 595:15329): the same
+     * category-driven rail, narrowed to sit beside a promo panel carrying a
+     * badge, headline, body text, artwork and a CTA.
+     *
+     * Figma draws "عروض مميزه" BOTH ways - as a plain full-width rail
+     * (595:14586) and like this. They are one component with two layouts, so
+     * this is a second TYPE over the same product source, not a second
+     * product section: switching a section between the two is a dropdown in
+     * the dashboard and keeps its category, limit and headings.
+     */
+    public const PRODUCT_PROMO_CAROUSEL = 'product_promo_carousel';
+
+    /**
      * The brand rail, "تصفح جميع الماركات" (Figma 695:46254).
      *
      * Reads the SAME admin-managed source as the header's brand pane, so a
@@ -69,7 +82,7 @@ final class SectionType
      */
     public static function productTypes(): array
     {
-        return [self::PRODUCT_CAROUSEL, self::PRODUCT_VIDEO_CAROUSEL];
+        return [self::PRODUCT_CAROUSEL, self::PRODUCT_VIDEO_CAROUSEL, self::PRODUCT_PROMO_CAROUSEL];
     }
 
     /**
@@ -82,6 +95,7 @@ final class SectionType
             self::CATEGORY_TILES,
             self::PRODUCT_CAROUSEL,
             self::PRODUCT_VIDEO_CAROUSEL,
+            self::PRODUCT_PROMO_CAROUSEL,
             self::BRAND_CAROUSEL,
             self::CASCADE_SEARCH,
         ];

@@ -9,6 +9,7 @@ namespace Spartrak\Homepage\Controller\Adminhtml\Section;
 
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
+use Magento\Catalog\Model\ImageUploader;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\Controller\Result\Redirect;
@@ -34,7 +35,8 @@ class Save extends Action implements HttpPostActionInterface
         private readonly SectionRepository $sectionRepository,
         private readonly SectionFactory $sectionFactory,
         private readonly CategoryItemManager $categoryItemManager,
-        private readonly DataPersistorInterface $dataPersistor
+        private readonly DataPersistorInterface $dataPersistor,
+        private readonly ImageUploader $imageUploader
     ) {
         parent::__construct($context);
     }
@@ -66,6 +68,7 @@ class Save extends Action implements HttpPostActionInterface
             }
 
             $this->validate($data);
+            $data = $this->normalisePromoImages($data);
 
             $section->addData($data);
             $this->sectionRepository->save($section);
@@ -101,6 +104,50 @@ class Save extends Action implements HttpPostActionInterface
         return $sectionId > 0
             ? $redirect->setPath('*/*/edit', ['section_id' => $sectionId])
             : $redirect->setPath('*/*/new');
+    }
+
+    /**
+     * Flattens the promo uploaders' array values to stored filenames, and
+     * promotes anything still sitting in the staging directory.
+     *
+     * Identical in shape to Banner\Save::normaliseImages(), and for the same
+     * reason: the imageUploader form element posts a LIST of file descriptors,
+     * not a string. Three shapes arrive here —
+     *   a NEW upload     ['name' => …, 'tmp_name' => …]  : move it
+     *   an UNCHANGED one ['name' => …] with no tmp_name   : keep it
+     *   a CLEARED field  [] or absent                     : store ''
+     *
+     * Runs for every section type, not just the promo one. That is deliberate:
+     * switching a section away from the promo layout and back must not lose
+     * the artwork, and an unconditional pass keeps the stored value intact
+     * either way.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function normalisePromoImages(array $data): array
+    {
+        foreach (['promo_image_en', 'promo_image_ar'] as $field) {
+            $value = $data[$field] ?? null;
+
+            if (is_array($value)) {
+                $value = $value[0] ?? [];
+            }
+
+            if (!is_array($value) || empty($value['name'])) {
+                $data[$field] = '';
+                continue;
+            }
+
+            if (!empty($value['tmp_name'])) {
+                $data[$field] = $this->imageUploader->moveFileFromTmp((string) $value['name'], true);
+                continue;
+            }
+
+            $data[$field] = (string) $value['name'];
+        }
+
+        return $data;
     }
 
     /**

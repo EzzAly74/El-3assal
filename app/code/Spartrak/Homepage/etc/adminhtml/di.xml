@@ -54,4 +54,25 @@
         </arguments>
     </type>
 
+    <!--
+      The section form's promo-panel artwork goes through the SAME uploader
+      and lands in the same media folder as a banner. It gets its own
+      controller rather than reusing the banner route purely for
+      AUTHORISATION: the two screens carry different ACL resources
+      (Spartrak_Homepage::section vs ::banner), and pointing the section form
+      at the banner endpoint would let anyone who can edit a section upload
+      through the banner permission.
+    -->
+    <type name="Spartrak\Homepage\Controller\Adminhtml\Section\Upload">
+        <arguments>
+            <argument name="imageUploader" xsi:type="object">Spartrak\Homepage\BannerImageUpload</argument>
+        </arguments>
+    </type>
+
+    <type name="Spartrak\Homepage\Controller\Adminhtml\Section\Save">
+        <arguments>
+            <argument name="imageUploader" xsi:type="object">Spartrak\Homepage\BannerImageUpload</argument>
+        </arguments>
+    </type>
+
 </config>

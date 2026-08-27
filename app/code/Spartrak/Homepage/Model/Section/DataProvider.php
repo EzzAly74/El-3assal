@@ -7,9 +7,12 @@ declare(strict_types=1);
 
 namespace Spartrak\Homepage\Model\Section;
 
+use Magento\Framework\App\Filesystem\DirectoryList;
 use Magento\Framework\App\Request\DataPersistorInterface;
+use Magento\Framework\Filesystem;
 use Magento\Ui\DataProvider\AbstractDataProvider;
 use Spartrak\Homepage\Model\CategoryItem;
+use Spartrak\Homepage\Model\Image\Storage;
 use Spartrak\Homepage\Model\ResourceModel\CategoryItem\CollectionFactory as CategoryItemCollectionFactory;
 use Spartrak\Homepage\Model\ResourceModel\Section\Collection;
 use Spartrak\Homepage\Model\ResourceModel\Section\CollectionFactory;
@@ -36,6 +39,8 @@ class DataProvider extends AbstractDataProvider
         CollectionFactory $collectionFactory,
         private readonly CategoryItemCollectionFactory $categoryItemCollectionFactory,
         private readonly DataPersistorInterface $dataPersistor,
+        private readonly Storage $storage,
+        private readonly Filesystem $filesystem,
         array $meta = [],
         array $data = []
     ) {
@@ -63,6 +68,16 @@ class DataProvider extends AbstractDataProvider
             $data = $section->getData();
             $data['category_items'] = $this->getCategoryItems((int) $section->getId());
 
+            // The same round trip the banner form performs: the column stores
+            // a bare filename, the imageUploader element reads a list of file
+            // descriptors. Without this the promo image renders empty on every
+            // edit and an admin would have to re-upload it just to change a
+            // headline. Save does the mirror-image conversion — the two are a
+            // matched pair, change one and you must change the other.
+            foreach (['promo_image_en', 'promo_image_ar'] as $field) {
+                $data[$field] = $this->toUploaderValue((string) ($data[$field] ?? ''));
+            }
+
             $this->loadedData[(int) $section->getId()] = $data;
         }
 
@@ -77,6 +92,38 @@ class DataProvider extends AbstractDataProvider
         }
 
         return $this->loadedData;
+    }
+
+    /**
+     * Stored filename -> the descriptor list the uploader element expects.
+     *
+     * `size` is read from disk because the uploader's preview prints it; a
+     * file removed from the media directory behind Magento's back degrades to
+     * a missing preview rather than a fatal error.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function toUploaderValue(string $file): array
+    {
+        if (trim($file) === '') {
+            return [];
+        }
+
+        $size = 0;
+
+        try {
+            $media = $this->filesystem->getDirectoryRead(DirectoryList::MEDIA);
+            $relative = $this->storage->getRelativePath($file);
+            $size = $media->isExist($relative) ? (int) $media->stat($relative)['size'] : 0;
+        } catch (\Exception $exception) {
+            $size = 0;
+        }
+
+        return [[
+            'name' => $file,
+            'url' => $this->storage->getUrl($file),
+            'size' => $size,
+        ]];
     }
 
     /**

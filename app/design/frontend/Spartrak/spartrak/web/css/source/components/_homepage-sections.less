@@ -498,11 +498,30 @@
     }
 }
 
+// Holds the stage's CONTENT to the page measure while the stage itself stays
+// edge-to-edge. Added after releasing .page-main's 1140px cap: without it every
+// absolutely-positioned child below anchored to the viewport edge instead of
+// the measure, throwing the rail and the headline apart on a wide screen.
+.spartrak-home-tiles__inner {
+    position: relative;
+    width: 100%;
+    max-width: ~"min(100% - (@{home-gutter} * 2), @{home-measure})";
+    height: 100%;
+    margin-inline: auto;
+}
+
 // Figma 595:15076 — "فئآت العســـال" eyebrow chip.
+//
+// SIDES, ONCE, FOR THIS WHOLE SECTION: Figma composes RTL but exports absolute
+// coordinates on an LTR canvas, so a child at "left: 1211" of a 1441 frame is
+// physically on the RIGHT of the rendered design. Everything the design puts on
+// the right - badge, headline, artwork - is therefore inline-START here (RTL
+// start IS right), and the card rail, which the design puts on the left, is
+// inline-END. Having this backwards mirrored the entire section.
 .spartrak-home-tiles__eyebrow {
     position: absolute;
     inset-block-start: 0;
-    inset-inline-start: 124px;
+    inset-inline-start: 0;
     z-index: 3;
 
     display: inline-flex;
@@ -524,7 +543,7 @@
 .spartrak-home-tiles__visuals {
     position: absolute;
     inset-block-end: -70px;
-    inset-inline-end: -48px;
+    inset-inline-start: -48px;
     z-index: 1;
     width: 788px;
     height: 535px;
@@ -553,7 +572,7 @@
 .spartrak-home-tiles__name {
     position: absolute;
     inset-block-start: 82px;
-    inset-inline-end: 83px;
+    inset-inline-start: 0;
     z-index: 2;
 
     width: 322px;
@@ -579,10 +598,10 @@
 .spartrak-home-tiles__rail-wrap {
     position: absolute;
     inset-block-start: 209px;
-    inset-inline-start: 40px;
+    inset-inline-end: 0;
     z-index: 2;
     width: 716px;
-    max-width: calc(100% - 80px);
+    max-width: calc(100% - 360px);
 }
 
 .spartrak-home-tiles__rail {
@@ -718,8 +737,14 @@
 .spartrak-home-showcase__track {
     display: flex;
     gap: 16px;
-    margin: 0;
-    padding-inline: @home-gutter;
+    // Held to the same measure as every other rail. It previously relied on
+    // .page-main's 1140px cap and carried only a padding, so when that cap was
+    // released for the full-bleed hero this section stretched to the whole
+    // viewport and its cards read as enormous.
+    width: 100%;
+    max-width: ~"min(100% - (@{home-gutter} * 2), @{home-measure})";
+    margin-inline: auto;
+    padding-inline: 0;
     list-style: none;
 
     overflow-x: auto;
@@ -1408,5 +1433,292 @@
     .spartrak-home-brands__nav,
     .spartrak-home-finder__cta {
         transition: none;
+    }
+}
+
+// ===========================================================================
+// SPLIT PRODUCT SECTION (Figma 595:15329) — rail beside a promo panel
+// ===========================================================================
+// Figma: a 1360-wide container holding a 760px rail item (595:15332) and a
+// 600px promo item (595:15463), both 600 tall. Expressed as a grid in those
+// proportions rather than fixed pixels, so the pair scales with the measure
+// instead of breaking out of it.
+
+.spartrak-home-split {
+    background-color: var(--color-bg-surface);
+}
+
+.spartrak-home-split__inner {
+    display: grid;
+    // 760 : 600 from the Figma frame, as fractions so the split holds at any
+    // width the content measure resolves to.
+    grid-template-columns: minmax(0, 760fr) minmax(0, 600fr);
+    align-items: stretch;
+    width: 100%;
+    max-width: ~"min(100% - (@{home-gutter} * 2), @{home-measure})";
+    margin-inline: auto;
+}
+
+// Without a promo panel the section IS the plain rail, so the grid collapses
+// to a single column and nothing about the layout hints at a missing half.
+.spartrak-home-split:not(.spartrak-home-split--has-promo) .spartrak-home-split__inner {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.spartrak-home-split__rail-side {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding-block: 48px;
+}
+
+// The header inside this layout belongs to the RAIL half, not the page, so it
+// drops the shared header's own centring and measure.
+.spartrak-home-split__rail-side .spartrak-home-section__head {
+    max-width: none;
+    margin-inline: 0;
+    padding-inline: 32px;
+}
+
+// Figma 595:15340 — three cards, gap 20.
+.spartrak-home-split__track {
+    display: flex;
+    gap: 20px;
+    margin: 0;
+    padding-inline: 32px;
+    list-style: none;
+
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.spartrak-home-split__item {
+    flex: 0 0 260px;
+    width: 260px;
+    min-width: 0;
+    // Porto's `ul > li { margin-bottom: .05rem }` — pinned, as on every rail.
+    margin: 0;
+    scroll-snap-align: start;
+}
+
+// --- The promo panel (Figma 595:15463) -------------------------------------
+// Figma stacks two large rings behind the artwork (595:15464 / 595:15465).
+// They are drawn as radial-gradient backgrounds rather than shipped as an
+// asset: they are two flat concentric circles in one flat tint, which a
+// gradient reproduces exactly at zero bytes and zero requests.
+.spartrak-home-split__promo {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    min-width: 0;
+    padding: 24px 32px 32px;
+    overflow: hidden;
+    background-color: var(--color-bg-surface-subtle);
+    isolation: isolate;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset-block-start: 34%;
+        inset-inline-start: -18%;
+        z-index: -1;
+        width: 711px;
+        height: 711px;
+        border-radius: var(--radius-pill);
+        background-color: var(--color-bg-surface);
+        pointer-events: none;
+    }
+}
+
+// Figma 595:15467 — the dark chip, pinned to the panel's inline-end top
+// corner, matching the eyebrow on the tiles section.
+.spartrak-home-split__badge {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+    padding-inline: 20px;
+    background-color: var(--color-neutral-900);
+    color: var(--color-text-inverse);
+    font-size: var(--text-12);
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.spartrak-home-split__copy {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 322px;
+    margin-block-start: 32px;
+    text-align: end;
+}
+
+// Figma 595:15470 — the headline runs to three lines at this width in the
+// design's own render, which is why the copy column is capped at 322px.
+.spartrak-home-split__heading {
+    margin: 0;
+    font-size: var(--text-40);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+    color: var(--color-text-primary);
+}
+
+.spartrak-home-split__text {
+    margin: 0;
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+}
+
+// Figma 595:15472 — the artwork overhangs the panel's inline-start edge and
+// its bottom; `overflow: hidden` on the panel does the cropping, exactly as
+// the design frame does.
+.spartrak-home-split__image {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 604px;
+    height: auto;
+    margin-block-start: auto;
+    margin-inline-start: -17%;
+    object-fit: contain;
+}
+
+// Figma 595:15473 — the CTA sits at the panel's inline-end bottom corner.
+.spartrak-home-split__cta {
+    position: absolute;
+    inset-block-end: 32px;
+    inset-inline-end: 32px;
+    z-index: 2;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 48px;
+    padding-inline: 24px;
+    background-color: var(--color-action-primary);
+    color: var(--color-action-primary-text);
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.3;
+    text-decoration: none;
+    transition: background-color .15s ease;
+
+    // Porto's global `a:visited` again — pinned with the component's token.
+    &:visited {
+        color: var(--color-action-primary-text);
+    }
+
+    &:hover {
+        background-color: var(--color-action-primary-hover);
+    }
+}
+
+.spartrak-home-split__cta-arrow {
+    .spartrak-icon('arrow-next.svg'; 20px; var(--color-action-primary-text));
+}
+
+[dir='ltr'] .spartrak-home-split__cta-arrow {
+    transform: scaleX(-1);
+}
+
+@media (max-width: @breakpoint-header-collapse) {
+    .spartrak-home-split__inner {
+        // The panel stacks UNDER the rail on a phone. Figma ships no mobile
+        // frame for this section; stacking keeps both halves at full width
+        // rather than squeezing a 322px copy column into half a screen.
+        grid-template-columns: minmax(0, 1fr);
+        max-width: 100%;
+    }
+
+    .spartrak-home-split__rail-side {
+        padding-block: 24px;
+    }
+
+    .spartrak-home-split__rail-side .spartrak-home-section__head,
+    .spartrak-home-split__track {
+        padding-inline: @home-gutter-mobile;
+    }
+
+    .spartrak-home-split__track {
+        gap: 12px;
+    }
+
+    .spartrak-home-split__item {
+        flex-basis: 200px;
+        width: 200px;
+    }
+
+    .spartrak-home-split__promo {
+        padding: 16px @home-gutter-mobile 24px;
+    }
+
+    .spartrak-home-split__heading {
+        font-size: var(--text-28);
+    }
+
+    .spartrak-home-split__copy {
+        max-width: none;
+        margin-block-start: 16px;
+    }
+
+    .spartrak-home-split__image {
+        margin-inline-start: 0;
+    }
+
+    // Static rather than pinned to a corner: absolute placement over a
+    // stacked panel would land the CTA on top of the artwork.
+    .spartrak-home-split__cta {
+        position: static;
+        align-self: flex-end;
+        margin-block-start: 16px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spartrak-home-split__cta {
+        transition: none;
+    }
+}
+
+// ===========================================================================
+// DRAG AFFORDANCE
+// ===========================================================================
+// The rails are click-and-draggable with a mouse (spartrak-home-carousel.js
+// adds the one gesture the browser does not provide natively). The cursor is
+// what tells a shopper that before they try it.
+//
+// Pointer-only: a touch device has no cursor and already scrolls natively, and
+// `pointer: fine` keeps the grab cursor off hybrid devices being used by
+// finger.
+@media (pointer: fine) {
+    .spartrak-home-banner__track,
+    .spartrak-home-rail__track,
+    .spartrak-home-tiles__rail,
+    .spartrak-home-brands__rail,
+    .spartrak-home-showcase__track,
+    .spartrak-home-split__track {
+        cursor: grab;
+
+        &.is-dragging {
+            cursor: grabbing;
+            // Stops the browser turning a drag into a text selection halfway
+            // through the gesture.
+            user-select: none;
+        }
     }
 }

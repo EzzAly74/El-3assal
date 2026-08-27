@@ -92,7 +92,31 @@
 // pinning it to the unmodified resting background makes the whole hover
 // state a no-op, matching the primary variant's already-intentional (and
 // therefore untouched) hover treatment above.
-@button__hover__background: @button__background;
+//  SUPERSEDED 2026-08-28 — pinning the VALUE was not enough.
+//
+//  `@button__hover__background: @button__background` still made .lib-button()
+//  EMIT a declaration (`background: #eee`), and `@button__hover__color` was
+//  never rebound at all, so core's own `@color-gray-darken3` reached the page
+//  as `color: #0c0a20`. Both land in `button:hover`, which is (0,1,1) — one
+//  step above any single-class component selector. The result, reported live:
+//  the mega-nav's "تسوق حسب الفئات" button lost BOTH its navy hover background
+//  and its white label on hover, and every other Spartrak button on a coloured
+//  ground had the same defect waiting.
+//
+//  `false` is the fix, not another value: .lib-css() skips a property whose
+//  variable is false (lib/_utilities.less:277/293), so the baseline emits NO
+//  hover declarations and every component keeps the hover IT declares. That
+//  removes the element-level reach entirely rather than fighting it — the same
+//  reasoning that removed Porto's button block in source/_buttons.less.
+//
+//  The trade-off, stated: a <button> with no component styling now has no
+//  hover feedback from the baseline. That is acceptable here because this
+//  theme styles its buttons as components (see _buttons.less's header) and a
+//  component that wants a hover simply declares one — which is the correct
+//  place for that decision anyway.
+@button__hover__background: false;
+@button__hover__color: false;
+@button__hover__border: false;
 
 //  Forms ------------------------------------------------------------------
 @form-element-input__border-color: #e4e3e5;     // --primitive-border

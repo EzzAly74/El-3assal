@@ -66,6 +66,16 @@ $hasTitle = $block->getTitle() !== '';
              data-mage-init='{"spartrakHomeCarousel":{"mode":"rail"},"spartrakHomeTiles":{}}'
          <?php endif; ?>>
 
+        <?php /*
+          The stage's BACKDROP is full-bleed (Figma 595:15074 reaches both
+          frame edges) but its CONTENT is not — the rail, the name and the
+          artwork all sit inside the page's content measure. This wrapper is
+          what separates the two: the stage stays edge-to-edge, everything
+          positioned against this stays on the measure however wide the
+          viewport gets.
+        */ ?>
+        <div class="spartrak-home-tiles__inner">
+
         <?php /* Figma 595:15076 — the small dark eyebrow chip over the stage. */ ?>
         <span class="spartrak-home-tiles__eyebrow"><?= $block->escapeHtml(__('ElAssal categories')) ?></span>
 
@@ -145,6 +155,7 @@ $hasTitle = $block->getTitle() !== '';
                             aria-label="<?= $block->escapeHtmlAttr(__('Next')) ?>"></button>
                 </div>
             <?php endif; ?>
+        </div>
         </div>
     </div>
 </section>

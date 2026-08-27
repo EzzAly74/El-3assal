@@ -1,0 +1,145 @@
+// ===========================================================================
+// Spartrak — page messages as toasts
+// ===========================================================================
+// Magento's page-level message area becomes a fixed, self-dismissing stack in
+// the top inline-end corner. Applied PROJECT-WIDE: the widget is bound on
+// <body> in Magento_Theme/layout/default.xml, so every page that renders
+// `page.messages` — cart, checkout, account, catalogue, homepage — gets the
+// same treatment from one definition.
+//
+// Scoped to `.page.messages` deliberately. Magento also renders message blocks
+// INSIDE components (checkout's own error areas, form validation summaries),
+// and those must stay in the flow next to the thing they describe. Only the
+// page-level container is lifted out.
+
+.page.messages {
+    position: fixed;
+    // Below the header's own layers, above page content. The mega-nav flyout
+    // sits at 30; a toast has to clear it.
+    z-index: 60;
+    inset-block-start: 24px;
+    inset-inline-end: 24px;
+    // The container must not swallow clicks across the whole viewport — only
+    // the toasts themselves are interactive.
+    inline-size: min(380px, calc(100% - 32px));
+    pointer-events: none;
+
+    // The wrapper Magento emits twice (cookie messages + live messages).
+    .messages {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin: 0;
+    }
+
+    // Consecutive stacks must not double the gap between groups.
+    .messages:empty {
+        display: none;
+    }
+}
+
+// --- One toast -------------------------------------------------------------
+.page.messages .message {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 0;
+    padding: 16px 16px 16px 48px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-12);
+    background-color: var(--color-bg-surface);
+    box-shadow: 0 4px 16px rgba(13, 10, 33, .12);
+    pointer-events: auto;
+    cursor: pointer;
+
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+
+    // Entry/exit are opacity + transform only, so a toast appearing can never
+    // reflow the page underneath it.
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity .22s ease, transform .22s ease;
+
+    &.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    &.is-leaving {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    // The status stripe down the inline-start edge carries the type.
+    &::before {
+        content: '';
+        position: absolute;
+        inset-block: 0;
+        inset-inline-start: 0;
+        inline-size: 4px;
+        border-start-start-radius: var(--radius-12);
+        border-end-start-radius: var(--radius-12);
+        background-color: var(--color-text-muted);
+    }
+
+    // Magento wraps the text in a bare <div>; give it the room.
+    > div {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    a {
+        color: var(--color-action-primary);
+        text-decoration: underline;
+    }
+}
+
+// Type colours, from the real feedback tokens.
+.page.messages .message-success::before { background-color: var(--color-feedback-success); }
+.page.messages .message-error::before,
+.page.messages .message-warning::before { background-color: var(--color-feedback-danger); }
+.page.messages .message-notice::before,
+.page.messages .message-info::before { background-color: var(--color-action-primary); }
+
+// --- Close control ---------------------------------------------------------
+.spartrak-toast__close {
+    flex: 0 0 auto;
+    inline-size: 20px;
+    block-size: 20px;
+    padding: 0;
+    border: 0;
+    background-color: transparent;
+    cursor: pointer;
+
+    &::before {
+        content: '';
+        .spartrak-icon('close.svg'; 12px; var(--color-text-muted));
+    }
+
+    &:hover::before {
+        background-color: var(--color-text-primary);
+    }
+}
+
+@media (max-width: @breakpoint-header-collapse) {
+    .page.messages {
+        inset-block-start: 12px;
+        inset-inline: 12px;
+        inline-size: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .page.messages .message {
+        transition: none;
+        // Without the transition the entry state would never resolve, so the
+        // resting state is the visible one and the widget's own removal timer
+        // still clears the node.
+        opacity: 1;
+        transform: none;
+    }
+}

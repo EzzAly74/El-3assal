@@ -310,7 +310,20 @@ try {
             <div class="spartrak-card__price-row">
                 <div class="spartrak-card__price"><?= /* @noEscape */ $priceHtml ?></div>
                 <?php if ($listBlock) : ?>
-                    <form class="spartrak-card__form" data-role="tocart-form" action="<?= $block->escapeUrl($listBlock->getAddToCartUrl($product)) ?>" method="post">
+                    <?php /*
+                      data-mage-init is what makes this an AJAX add-to-cart.
+                      Without it the form does a plain POST and the whole page
+                      reloads — which is exactly what happened on the homepage,
+                      where (unlike the PLP) nothing else was initialising the
+                      widget. Core puts the same attribute on the same form in
+                      Magento_Catalog::product/list.phtml, so this is its own
+                      mechanism, not a workaround.
+                    */ ?>
+                    <form class="spartrak-card__form"
+                          data-role="tocart-form"
+                          data-mage-init='{"catalogAddToCart": {}}'
+                          action="<?= $block->escapeUrl($listBlock->getAddToCartUrl($product)) ?>"
+                          method="post">
                         <?= /* @noEscape */ $block->getBlockHtml('formkey') ?>
                         <input type="hidden" name="product" value="<?= (int) $product->getId() ?>" />
                         <input type="hidden" name="qty" value="1" />

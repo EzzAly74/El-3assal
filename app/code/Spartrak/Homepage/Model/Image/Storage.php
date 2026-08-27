@@ -120,6 +120,25 @@ class Storage
     }
 
     /**
+     * The media-relative path of a stored file, base path included exactly
+     * once.
+     *
+     * Exposed because the stored column value is NOT a bare filename: the
+     * admin save promotes an upload with moveFileFromTmp($name, true), whose
+     * `true` returns the path WITH the base path already on it. Callers that
+     * built their own "BASE_PATH . '/' . $value" therefore produced
+     * `spartrak/homepage/spartrak/homepage/x.png` and silently found nothing.
+     * Both admin data providers now ask this instead, so the assumption lives
+     * in one place next to the normaliser that resolves it.
+     */
+    public function getRelativePath(string $file): string
+    {
+        $file = $this->normalise($file);
+
+        return $file === '' ? '' : self::BASE_PATH . '/' . $file;
+    }
+
+    /**
      * Strips any leading slash and any copy of the base path the stored value
      * already carries.
      */

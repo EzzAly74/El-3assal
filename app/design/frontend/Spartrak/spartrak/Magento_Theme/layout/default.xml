@@ -73,6 +73,21 @@
         <remove src="Mageplaza_Search::css/algoliasearch.css"/>
     </head>
     <body>
+        <!--
+          Page messages as self-dismissing toasts, PROJECT-WIDE.
+
+          Bound on <body> in the DEFAULT handle so it covers every page that
+          renders the `page.messages` container - catalogue, cart, checkout,
+          customer account, CMS - from one declaration, rather than being
+          added per handle and drifting.
+
+          The widget only observes that container and schedules dismissal; it
+          never creates, filters or suppresses a message, so both of Magento's
+          message pipelines (server-rendered and the Knockout/AJAX one) keep
+          working exactly as they did. See web/js/spartrak-toast.js.
+        -->
+        <attribute name="data-mage-init" value="{&quot;spartrakToast&quot;:{}}"/>
+
         <!-- NOTE: <remove name="..."/> is head-asset syntax only; body blocks
              must be removed with remove="true" on a reference. -->
         <referenceBlock name="mageplaza.top.search" remove="true"/>

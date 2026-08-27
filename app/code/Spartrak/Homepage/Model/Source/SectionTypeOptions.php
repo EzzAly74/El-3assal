@@ -42,6 +42,10 @@ class SectionTypeOptions implements OptionSourceInterface
                 'label' => __('Product showcase — products from a category, with video'),
             ],
             [
+                'value' => SectionType::PRODUCT_PROMO_CAROUSEL,
+                'label' => __('Product carousel with promo panel — rail beside a promotional block'),
+            ],
+            [
                 'value' => SectionType::BRAND_CAROUSEL,
                 'label' => __('Brand rail — every brand, same source as the header'),
             ],

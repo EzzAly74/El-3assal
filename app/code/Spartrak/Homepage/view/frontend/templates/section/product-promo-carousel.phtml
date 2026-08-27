@@ -1,0 +1,99 @@
+<?php
+/**
+ * Spartrak Homepage — split product section (Figma 595:15329).
+ *
+ * A 760px product rail beside a 600px promo panel:
+ *   rail   595:15332  header (arrows + title) + 3 cards, fade at the outer edge
+ *   panel  595:15463  badge 595:15467, headline + body 595:15466,
+ *                     artwork 595:15472, CTA 595:15473, decorative rings
+ *
+ * The rail half is IDENTICAL to the plain carousel — same block, same
+ * provider, same shared Card - Product — so a section switched between the two
+ * layouts keeps its category, limit and headings. Only the panel is new.
+ *
+ * ===========================================================================
+ * EVERY WORD AND PIXEL OF THE PANEL COMES FROM THE DASHBOARD
+ * ===========================================================================
+ * badge / headline / body / artwork are per-locale columns on the section, and
+ * the CTA reuses the section's own "view all" destination. Nothing here is
+ * hardcoded — the Figma copy ("عروض مميزه علي طلمبات المايه متفوتهاش!") is
+ * sample content an admin types in, not a string baked into this file.
+ *
+ * If the panel is empty the section still renders, as the plain full-width
+ * rail — see the block's hasPromo(). An admin who switches type before filling
+ * the panel in sees the rail they already had, not a broken half-layout.
+ *
+ * @var \Spartrak\Homepage\Block\Section\ProductPromoCarousel $block
+ */
+
+$products = $block->getProducts();
+$hasPromo = $block->hasPromo();
+$hasTitle = $block->getTitle() !== '';
+$isCarousel = $block->isCarousel();
+
+$badge = $block->getPromoBadge();
+$heading = $block->getPromoHeading();
+$text = $block->getPromoText();
+$image = $block->getPromoImage();
+$ctaUrl = $block->getViewAllUrl();
+?>
+<section class="spartrak-home-section spartrak-home-split<?= $hasPromo ? ' spartrak-home-split--has-promo' : '' ?>"
+    <?php if ($hasTitle) : ?>aria-labelledby="<?= $block->escapeHtmlAttr($block->getHeadingId()) ?>"<?php endif; ?>
+    <?php if ($isCarousel) : ?>data-mage-init='{"spartrakHomeCarousel":{"mode":"rail"}}'<?php endif; ?>>
+
+    <div class="spartrak-home-split__inner">
+        <div class="spartrak-home-split__rail-side">
+            <?= /* @noEscape */ $block->getHeadHtml() ?>
+
+            <ul class="spartrak-home-split__track" data-carousel-track>
+                <?php foreach ($products as $index => $product) : ?>
+                    <li class="spartrak-home-split__item" data-carousel-slide>
+                        <?= /* @noEscape */ $block->renderCard($product, $block->getCardIndex((int) $index)) ?>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+
+        <?php if ($hasPromo) : ?>
+            <aside class="spartrak-home-split__promo">
+                <?php if ($badge !== '') : ?>
+                    <span class="spartrak-home-split__badge"><?= $block->escapeHtml($badge) ?></span>
+                <?php endif; ?>
+
+                <div class="spartrak-home-split__copy">
+                    <?php if ($heading !== '') : ?>
+                        <p class="spartrak-home-split__heading"><?= $block->escapeHtml($heading) ?></p>
+                    <?php endif; ?>
+                    <?php if ($text !== '') : ?>
+                        <p class="spartrak-home-split__text"><?= $block->escapeHtml($text) ?></p>
+                    <?php endif; ?>
+                </div>
+
+                <?php if ($image) : ?>
+                    <img class="spartrak-home-split__image"
+                         src="<?= $block->escapeUrl($image['url']) ?>"
+                         alt=""
+                         <?php if ($image['width'] && $image['height']) : ?>
+                             width="<?= (int) $image['width'] ?>"
+                             height="<?= (int) $image['height'] ?>"
+                         <?php endif; ?>
+                         <?php /*
+                           Decorative: the panel's meaning is carried by the
+                           headline beside it, so alt="" is correct rather than
+                           repeating that text to a screen reader. Always lazy —
+                           this section is never the page's first.
+                         */ ?>
+                         loading="lazy"
+                         decoding="async">
+                <?php endif; ?>
+
+                <?php if ($ctaUrl !== '') : ?>
+                    <a class="spartrak-home-split__cta" href="<?= $block->escapeUrl($ctaUrl) ?>">
+                        <span class="spartrak-home-split__cta-arrow" aria-hidden="true"></span>
+                        <span><?= $block->escapeHtml(__('View all')) ?></span>
+                    </a>
+                <?php endif; ?>
+            </aside>
+        <?php endif; ?>
+    </div>
+</section>
