@@ -41,6 +41,14 @@ class SectionTypeOptions implements OptionSourceInterface
                 'value' => SectionType::PRODUCT_VIDEO_CAROUSEL,
                 'label' => __('Product showcase — products from a category, with video'),
             ],
+            [
+                'value' => SectionType::BRAND_CAROUSEL,
+                'label' => __('Brand rail — every brand, same source as the header'),
+            ],
+            [
+                'value' => SectionType::CASCADE_SEARCH,
+                'label' => __('Cascading finder — brand and category drill-down'),
+            ],
         ];
     }
 }

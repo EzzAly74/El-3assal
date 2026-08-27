@@ -13,12 +13,12 @@ var config = {
             spartrakMegaNav: 'js/spartrak-mega-nav',
             spartrakMobileDrawer: 'js/spartrak-mobile-drawer',
             spartrakAuth: 'js/spartrak-auth',
-            spartrakForkRow: 'js/spartrak-fork-row',
             spartrakPlpFilterToggle: 'js/spartrak-plp-filter-toggle',
             spartrakSearchSuggest: 'js/spartrak-search-suggest',
             spartrakHomeCarousel: 'js/spartrak-home-carousel',
             spartrakHomeTiles: 'js/spartrak-home-tiles',
-            spartrakHomeVideo: 'js/spartrak-home-video'
+            spartrakHomeVideo: 'js/spartrak-home-video',
+            spartrakCascadeSearch: 'js/spartrak-cascade-search'
         }
     }
 };

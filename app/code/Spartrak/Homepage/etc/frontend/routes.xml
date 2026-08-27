@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!--
+  One read-only frontend route, used by the cascading finder to fetch the next
+  level of categories. See Controller/Ajax/CascadeOptions.php for why the tree
+  is fetched on demand rather than serialised into the homepage.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:App/etc/routes.xsd">
+    <router id="standard">
+        <route id="spartrak_homepage" frontName="spartrak-homepage">
+            <module name="Spartrak_Homepage"/>
+        </route>
+    </router>
+</config>

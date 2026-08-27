@@ -178,3 +178,65 @@
         }
     }
 }
+
+//  Homepage: release the page container ------------------------------------
+//  Magento/blank ships ONE grouped rule that caps the whole page shell:
+//
+//      @media (min-width: 992px) {
+//          .navigation, .header.content, .footer.content,
+//          .page-wrapper > .widget, .page-wrapper > .page-bottom,
+//          .block.category.event, .top-container, .page-main {
+//              padding-left: 10px; padding-right: 10px;
+//              margin-left: auto;  margin-right: auto;
+//              max-width: 1140px;  box-sizing: border-box;
+//          }
+//      }
+//
+//  ...so <main class="page-main"> is 1140px wide no matter what is inside it.
+//  Measured live: on a 1280px viewport the hero banner resolved to 1072px with
+//  24px "margins" that were not a design decision at all — they were `auto`
+//  margins resolving to (1120 - 1072) / 2 inside that capped shell.
+//
+//  Figma's homepage is not a 1140 column. The hero runs the full frame width
+//  with a ~24px gutter (595:14562 inside Frame 2147235961 at x=24), and the
+//  category-tiles stage (595:15074) is a full-bleed band that reaches both
+//  edges. Neither is reachable while this cap applies, and no rule on the
+//  banner itself can escape an ancestor's max-width.
+//
+//  WHY RELEASE THE CONTAINER RATHER THAN BREAK OUT OF IT
+//  The usual escape is `width: 100vw; margin-inline: calc(50% - 50vw)`. It was
+//  rejected: 100vw INCLUDES the scrollbar (measured here: viewport 1280 vs
+//  document 1265), so every full-bleed element would overhang by 15px and
+//  reintroduce the horizontal scroll this theme already fought once on the
+//  mega-nav. Releasing the container has no such side effect.
+//
+//  This is safe because every homepage section constrains ITSELF — each
+//  section header, product rail, brand rail and finder card carries its own
+//  `max-width: min(100% - gutters, 1344px); margin-inline: auto`. The page
+//  shell was never what held them to the measure, so removing it changes
+//  nothing for them and frees the two sections that are meant to be wider.
+//
+//  Scoped to the homepage body class, so every other page keeps blank's
+//  shell exactly as it is. Specificity (0,2,0) beats the grouped rule's
+//  (0,1,0) — but this lives in _extend.less rather than the component bundle
+//  for the reason given at the top of this file: the rule being overridden is
+//  in styles-l.min.css, which is linked AFTER the merged bundle, and only
+//  _extend.less is collected into styles-l as well as styles-m.
+.cms-index-index {
+    .page-main {
+        max-width: none;
+        //  The 10px shell padding would otherwise add to each section's own
+        //  gutter, making Figma's 24px hero gutter render as 34px.
+        padding-inline: 0;
+    }
+
+    //  Porto nests its own wrapper inside page-main; it carries no cap today,
+    //  but pinning it here means a future Porto update cannot quietly
+    //  reintroduce one and re-break the full-bleed sections.
+    .page-main-inner,
+    .columns,
+    .column.main {
+        max-width: none;
+        padding-inline: 0;
+    }
+}

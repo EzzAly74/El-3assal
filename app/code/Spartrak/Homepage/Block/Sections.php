@@ -12,6 +12,8 @@ use Magento\Framework\View\Element\Template;
 use Magento\Framework\View\Element\Template\Context;
 use Spartrak\Homepage\Block\Section\AbstractSection;
 use Spartrak\Homepage\Block\Section\Banner as BannerSection;
+use Spartrak\Homepage\Block\Section\BrandCarousel as BrandCarouselSection;
+use Spartrak\Homepage\Block\Section\CascadeSearch as CascadeSearchSection;
 use Spartrak\Homepage\Block\Section\CategoryTiles as CategoryTilesSection;
 use Spartrak\Homepage\Block\Section\ProductCarousel as ProductCarouselSection;
 use Spartrak\Homepage\Model\Section;
@@ -93,6 +95,14 @@ class Sections extends Template implements IdentityInterface
         SectionType::PRODUCT_VIDEO_CAROUSEL => [
             ProductCarouselSection::class,
             'Spartrak_Homepage::section/product-video-carousel.phtml',
+        ],
+        SectionType::BRAND_CAROUSEL => [
+            BrandCarouselSection::class,
+            'Spartrak_Homepage::section/brand-carousel.phtml',
+        ],
+        SectionType::CASCADE_SEARCH => [
+            CascadeSearchSection::class,
+            'Spartrak_Homepage::section/cascade-search.phtml',
         ],
     ];
 

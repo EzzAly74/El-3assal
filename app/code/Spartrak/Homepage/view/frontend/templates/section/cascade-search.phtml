@@ -1,0 +1,136 @@
+<?php
+/**
+ * Spartrak Homepage — "بتدور علي ايه؟" cascading finder (Figma 595:15843).
+ *
+ * Figma measurements applied verbatim (node ids inline):
+ *   card       595:15844  bg/surface, 1px border/default, radius 16,
+ *                         shadow 0 4px 16px rgba(13,10,33,.06),
+ *                         pt 12 / px 16 / pb 32, gap 12
+ *   header     595:15845  gap 6; title Price/Large 24px bold 1.3;
+ *                         subtitle Body/Small 14px regular 1.5 text/muted
+ *   rows       595:15940 / 595:15941   two rows of two, gap 12
+ *   field      595:15921  column, gap 6
+ *   label      595:15922  14px medium + a danger-red asterisk
+ *   input      595:15923  h48, 1px border/default, shadow/input,
+ *                         padding-inline 16/12, gap 8, 16px chevron
+ *   CTA        595:15851  action/primary, radius 12, py 16, 20px arrow
+ *
+ * ===========================================================================
+ * REAL SELECTS, NOT STYLED DIVS
+ * ===========================================================================
+ * Figma draws each control as a bordered box with a chevron. That is rendered
+ * here as a NATIVE <select> with the chevron painted as a background image:
+ * a native control brings keyboard support, screen-reader semantics, the
+ * platform's own picker on touch, and correct RTL — none of which a div would
+ * have without a pile of JS re-implementing it (CLAUDE.md §15 puts semantic
+ * HTML ahead of ARIA, and §4 puts native behaviour ahead of script).
+ *
+ * The three category levels are a genuine cascade: levels 3 and 4 are fetched
+ * from this module's own endpoint when the level above changes. Before JS
+ * loads, level 1 and 2 are already populated server-side and the form still
+ * submits — the finder degrades to a working two-level chooser rather than to
+ * a dead card.
+ *
+ * @var \Spartrak\Homepage\Block\Section\CascadeSearch $block
+ */
+
+$brands = $block->getBrands();
+$topCategories = $block->getTopCategories();
+
+$config = [
+    'spartrakCascadeSearch' => [
+        'optionsUrl' => $block->getOptionsUrl(),
+        'brandUrls' => json_decode($block->getBrandUrlMap(), true) ?: new stdClass(),
+    ],
+];
+?>
+<section class="spartrak-home-section spartrak-home-finder"
+         data-mage-init='<?= /* @noEscape */ json_encode($config, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>'>
+
+    <form class="spartrak-home-finder__card" data-finder-form>
+        <div class="spartrak-home-finder__head">
+            <h2 class="spartrak-home-finder__title"><?= $block->escapeHtml(__('What are you looking for?')) ?></h2>
+            <p class="spartrak-home-finder__subtitle">
+                <?= $block->escapeHtml(__('Choose the brand and model to reach the right parts for your tractor')) ?>
+            </p>
+        </div>
+
+        <div class="spartrak-home-finder__grid">
+            <?php if ($brands) : ?>
+                <div class="spartrak-home-finder__field">
+                    <label class="spartrak-home-finder__label" for="spartrak-finder-brand">
+                        <?= $block->escapeHtml(__('Brand')) ?>
+                    </label>
+                    <select class="spartrak-home-finder__select"
+                            id="spartrak-finder-brand"
+                            name="brand"
+                            data-finder-brand>
+                        <option value=""><?= $block->escapeHtml(__('Choose the brand')) ?></option>
+                        <?php foreach ($brands as $brand) : ?>
+                            <option value="<?= $block->escapeHtmlAttr($brand['value']) ?>">
+                                <?= $block->escapeHtml($brand['label']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($topCategories) : ?>
+                <div class="spartrak-home-finder__field">
+                    <label class="spartrak-home-finder__label" for="spartrak-finder-level-1">
+                        <?= $block->escapeHtml(__('Type')) ?>
+                    </label>
+                    <select class="spartrak-home-finder__select"
+                            id="spartrak-finder-level-1"
+                            name="level_1"
+                            data-finder-level="1">
+                        <option value=""><?= $block->escapeHtml(__('Choose the type')) ?></option>
+                        <?php foreach ($topCategories as $category) : ?>
+                            <option value="<?= (int) $category['value'] ?>"
+                                    data-url="<?= $block->escapeUrl($category['url']) ?>">
+                                <?= $block->escapeHtml($category['label']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <?php /*
+                  Levels 2 and 3 start empty and disabled. The widget fills and
+                  enables each one only when the level above it is chosen AND
+                  actually has children, so a shopper is never handed an empty
+                  dropdown to click into.
+                */ ?>
+                <div class="spartrak-home-finder__field" data-finder-field="2" hidden>
+                    <label class="spartrak-home-finder__label" for="spartrak-finder-level-2">
+                        <?= $block->escapeHtml(__('Assembly')) ?>
+                    </label>
+                    <select class="spartrak-home-finder__select"
+                            id="spartrak-finder-level-2"
+                            name="level_2"
+                            data-finder-level="2"
+                            disabled>
+                        <option value=""><?= $block->escapeHtml(__('Choose the assembly')) ?></option>
+                    </select>
+                </div>
+
+                <div class="spartrak-home-finder__field" data-finder-field="3" hidden>
+                    <label class="spartrak-home-finder__label" for="spartrak-finder-level-3">
+                        <?= $block->escapeHtml(__('Model')) ?>
+                    </label>
+                    <select class="spartrak-home-finder__select"
+                            id="spartrak-finder-level-3"
+                            name="level_3"
+                            data-finder-level="3"
+                            disabled>
+                        <option value=""><?= $block->escapeHtml(__('Choose the right model')) ?></option>
+                    </select>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <button type="submit" class="spartrak-home-finder__cta">
+            <span class="spartrak-home-finder__cta-arrow" aria-hidden="true"></span>
+            <span class="spartrak-home-finder__cta-label"><?= $block->escapeHtml(__('Show results')) ?></span>
+        </button>
+    </form>
+</section>

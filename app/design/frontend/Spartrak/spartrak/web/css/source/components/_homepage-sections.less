@@ -39,6 +39,13 @@
 @home-gutter: 48px;
 @home-gutter-mobile: 16px;
 
+// The hero banner is NOT held to the content measure. In Figma it runs the
+// full width of the 1440 frame with only a ~24px gutter either side
+// (Frame 2147235961 sits at x=24, w=1403), so it is a full-bleed-with-padding
+// band rather than a column — and it must stay that way on a wider viewport
+// instead of capping at 1403 and stranding the artwork in the middle.
+@home-banner-gutter: 24px;
+
 .spartrak-home {
     display: flex;
     flex-direction: column;
@@ -203,9 +210,13 @@
 
 .spartrak-home-banner__frame {
     position: relative;
-    width: 100%;
-    max-width: ~"min(100% - 48px, 1403px)";
-    margin-inline: auto;
+    // Deliberately NOT capped at Figma's 1403px pixel width: that number is
+    // "1440 minus its gutters", i.e. a proportion, not a maximum. Auto width
+    // plus an inline margin reproduces the proportion at every viewport and
+    // keeps the banner edge-to-edge on a wide screen.
+    width: auto;
+    max-width: none;
+    margin-inline: @home-banner-gutter;
     overflow: hidden;
 
     // CLS INSURANCE. The template writes real width/height from the uploaded
@@ -876,7 +887,8 @@
     }
 
     .spartrak-home-banner__frame {
-        max-width: 100%;
+        margin-inline: @home-gutter-mobile;
+        max-width: none;
         // The MOBILE artwork is a different crop, so the desktop hero ratio
         // would letterbox it. 4:3 matches the mobile frame's own banner box;
         // as on desktop this is only the fallback — real dimensions from the
@@ -1012,5 +1024,389 @@
     .spartrak-home-tiles__rail,
     .spartrak-home-showcase__track {
         scroll-behavior: auto;
+    }
+}
+
+// ===========================================================================
+// BRAND RAIL (Figma 695:46254) — "تصفح جميع الماركات"
+// ===========================================================================
+// Every measurement below is read straight off the Figma node, ids inline.
+// The tiles link exactly where the header's brand pane links, because both
+// render from Spartrak_Catalog's BrandNavigation.
+
+.spartrak-home-brands {
+    background-color: var(--color-bg-surface);
+    padding-block: 24px;
+}
+
+// Figma 695:46266 — this rail's title is Heading/H1 at 28px, one step DOWN
+// from the 32px Display/Medium the product rails use. Not a slip in the
+// design: the brand rail sits directly under the hero, and the smaller
+// heading is what keeps it subordinate to it.
+.spartrak-home-brands .spartrak-home-section__title {
+    font-size: var(--text-28);
+    line-height: 1.3;
+    letter-spacing: 0;
+}
+
+.spartrak-home-brands__rail-wrap {
+    position: relative;
+    width: 100%;
+    max-width: ~"min(100% - (@{home-gutter} * 2), @{home-measure})";
+    margin-inline: auto;
+}
+
+// Figma 695:46267 — gap 16.
+.spartrak-home-brands__rail {
+    display: flex;
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+// Porto's `ul > li { margin-bottom: .05rem }` again — pinned, the same finding
+// as every other rail in this file.
+.spartrak-home-brands__item {
+    flex: 0 0 auto;
+    margin: 0;
+    scroll-snap-align: start;
+}
+
+// Figma 695:46268 — column, gap 9.189, centred.
+.spartrak-home-brands__link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 9.189px;
+    text-decoration: none;
+
+    &:visited {
+        color: inherit;
+    }
+}
+
+// Figma 695:46269 — a 134.779px square on bg/surface-subtle. The fraction is
+// Figma's own and is kept rather than rounded: across ten tiles a 0.2px
+// rounding error would accumulate to a visible ~2px drift in the rail.
+.spartrak-home-brands__plate {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 134.779px;
+    height: 134.779px;
+    background-color: var(--color-bg-surface-subtle);
+    overflow: hidden;
+    transition: background-color .15s ease;
+}
+
+.spartrak-home-brands__link:hover .spartrak-home-brands__plate {
+    background-color: var(--color-bg-field);
+}
+
+// object-fit: contain — a brand mark must never be cropped or stretched to
+// fill the plate, and the marks Figma shows have wildly different aspect
+// ratios (a wide FIAT wordmark beside a square John Deere).
+.spartrak-home-brands__logo {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+// Shown when an option has no swatch uploaded yet — see the template.
+.spartrak-home-brands__initial {
+    font-size: var(--text-32);
+    font-weight: 700;
+    line-height: 1;
+    color: var(--color-text-disabled);
+}
+
+// Figma 695:46270 — Body/Base Medium 16px/1.5 on text/muted.
+.spartrak-home-brands__name {
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
+
+// Figma 695:46298 / 695:46299 — 40px circles on bg/field, sitting OVER the
+// rail at the plate's vertical centre rather than in the section header.
+.spartrak-home-brands__nav {
+    position: absolute;
+    inset-block-start: 67px;
+    transform: translateY(-50%);
+    z-index: 2;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-field);
+    cursor: pointer;
+    transition: background-color .15s ease;
+
+    &::before {
+        content: '';
+        .spartrak-icon('chevron-right.svg'; 20px; var(--color-icon-default));
+    }
+
+    &:hover {
+        background-color: var(--color-border-default);
+    }
+
+    &[disabled] {
+        opacity: .4;
+        cursor: default;
+    }
+}
+
+.spartrak-home-brands__nav--prev {
+    inset-inline-start: -14px;
+
+    &::before {
+        transform: scaleX(-1);
+    }
+}
+
+.spartrak-home-brands__nav--next {
+    inset-inline-end: -14px;
+}
+
+[dir='rtl'] {
+    .spartrak-home-brands__nav--prev::before {
+        transform: none;
+    }
+
+    .spartrak-home-brands__nav--next::before {
+        transform: scaleX(-1);
+    }
+}
+
+// ===========================================================================
+// CASCADING FINDER (Figma 595:15843) — "بتدور علي ايه؟"
+// ===========================================================================
+
+.spartrak-home-finder {
+    display: flex;
+    justify-content: center;
+}
+
+// Figma 595:15844 — 1px border/default, radius 16, pt 12 / px 16 / pb 32,
+// gap 12, plus a shadow this theme has not needed before.
+.spartrak-home-finder__card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: ~"min(100% - (@{home-gutter} * 2), @{home-measure})";
+    padding: 12px 16px 32px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-16);
+    background-color: var(--color-bg-surface);
+    // Figma effect on this node: DROP_SHADOW #0D0A21 at 6%, offset (0,4),
+    // radius 16. Deliberately NOT --shadow-container (0 3px 8px black 5%) —
+    // this one is deeper and tinted with the ink primitive rather than pure
+    // black, which is what lifts the card off the band it floats over.
+    box-shadow: 0 4px 16px rgba(13, 10, 33, .06);
+}
+
+// Figma 595:15845 — gap 6.
+.spartrak-home-finder__head {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+// Figma 595:15846 — Price/Large: 24px bold, line-height 1.3.
+.spartrak-home-finder__title {
+    margin: 0;
+    font-size: var(--text-24);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+}
+
+// Figma 595:15847 — Body/Small: 14px regular, line-height 1.5, text/muted.
+.spartrak-home-finder__subtitle {
+    margin: 0;
+    font-size: var(--text-14);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+}
+
+// Figma 595:15940 / 595:15941 — two rows of two, gap 12 both ways.
+// A two-column GRID rather than two flex rows: it collapses to one column on a
+// phone with a single line, and a field that is absent (no brands configured,
+// say) does not leave a hole in its row.
+.spartrak-home-finder__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+// Figma 595:15921 — column, gap 6.
+.spartrak-home-finder__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+// Figma 595:15922 — 14px medium with a danger-red required asterisk. The
+// asterisk is GENERATED, not typed into the label text, so it never ends up
+// inside a translation string or read aloud as part of the field name.
+.spartrak-home-finder__label {
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+
+    &::after {
+        content: ' *';
+        color: var(--color-feedback-danger);
+    }
+}
+
+// Figma 595:15923 — h48, 1px border/default, shadow/input, padding-inline
+// 16 (text side) / 12 (chevron side), 16px chevron.
+//
+// A NATIVE <select>, restyled — see the template for why that matters.
+// `appearance: none` removes the platform's own arrow so there are not two.
+.spartrak-home-finder__select {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    height: 48px;
+    padding-inline: 16px 12px;
+    border: 1px solid var(--color-border-default);
+    border-radius: 0;
+    background-color: var(--color-bg-surface);
+    box-shadow: var(--shadow-input);
+
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+
+    background-image: url('../images/icons/chevron-down-16.svg');
+    background-repeat: no-repeat;
+    // `background-position` has no logical form, so the chevron's side is the
+    // one place in this file that needs a direction rule. RTL is the default
+    // here because Arabic is this storefront's primary locale.
+    background-position: left 12px center;
+    background-size: 16px 16px;
+    cursor: pointer;
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
+    }
+
+    &:disabled {
+        color: var(--color-text-disabled);
+        cursor: default;
+    }
+}
+
+[dir='ltr'] .spartrak-home-finder__select {
+    background-position: right 12px center;
+}
+
+// Figma 595:15851 — action/primary, radius 12, py 16, gap 8, 20px arrow, and
+// an 18px medium label on action/primary-text.
+.spartrak-home-finder__cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding-block: 16px;
+    border: 0;
+    border-radius: var(--radius-12);
+    background-color: var(--color-action-primary);
+    cursor: pointer;
+    transition: background-color .15s ease;
+
+    &:hover {
+        background-color: var(--color-action-primary-hover);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
+    }
+}
+
+.spartrak-home-finder__cta-arrow {
+    .spartrak-icon('arrow-next.svg'; 20px; var(--color-action-primary-text));
+}
+
+[dir='ltr'] .spartrak-home-finder__cta-arrow {
+    transform: scaleX(-1);
+}
+
+.spartrak-home-finder__cta-label {
+    font-size: var(--text-18);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-action-primary-text);
+}
+
+@media (max-width: @breakpoint-header-collapse) {
+    .spartrak-home-brands__rail-wrap,
+    .spartrak-home-finder__card {
+        max-width: ~"min(100% - (@{home-gutter-mobile} * 2), @{home-measure})";
+    }
+
+    .spartrak-home-brands .spartrak-home-section__title {
+        font-size: var(--text-20);
+    }
+
+    // A 134.779px plate is most of a phone's width. Figma ships no mobile
+    // frame for this rail, so the tile is scaled to show two-and-a-bit
+    // across — the same "this scrolls" cue the other mobile rails use.
+    .spartrak-home-brands__plate {
+        width: 104px;
+        height: 104px;
+    }
+
+    .spartrak-home-brands__name {
+        font-size: var(--text-14);
+    }
+
+    .spartrak-home-brands__nav {
+        display: none;
+    }
+
+    // Four dropdowns side by side do not fit a phone; one column, same gap.
+    .spartrak-home-finder__grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spartrak-home-brands__plate,
+    .spartrak-home-brands__nav,
+    .spartrak-home-finder__cta {
+        transition: none;
     }
 }

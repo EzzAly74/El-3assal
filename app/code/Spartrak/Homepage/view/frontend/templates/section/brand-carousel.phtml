@@ -1,0 +1,75 @@
+<?php
+/**
+ * Spartrak Homepage — "تصفح جميع الماركات" (Figma 695:46254).
+ *
+ * A rail of brand plates, each linking exactly where the header's brand pane
+ * links, because both read Spartrak_Catalog's BrandNavigation.
+ *
+ * Figma measurements applied verbatim (node ids inline):
+ *   section   695:46254  bg/surface, px 48, gap 24
+ *   header    695:46255  space-between; title Heading/H1 28px/1.3
+ *   list      695:46267  gap 16
+ *   item      695:46268  column, gap 9.189, centred
+ *   plate     695:46269  134.779px square, bg/surface-subtle
+ *   name      695:46270  Body/Base Medium 16px/1.5, text/muted
+ *   arrows    695:46298  40px circles, bg/field, 20px glyph, over the rail
+ *
+ * The plate is a fixed square whether or not a logo exists, so a brand
+ * awaiting its swatch upload occupies the same box as one that has it and the
+ * rail's rhythm never breaks.
+ *
+ * @var \Spartrak\Homepage\Block\Section\BrandCarousel $block
+ */
+
+$brands = $block->getBrands();
+$isCarousel = $block->isCarousel();
+$hasTitle = $block->getTitle() !== '';
+?>
+<section class="spartrak-home-section spartrak-home-brands"
+    <?php if ($hasTitle) : ?>aria-labelledby="<?= $block->escapeHtmlAttr($block->getHeadingId()) ?>"<?php endif; ?>
+    <?php if ($isCarousel) : ?>data-mage-init='{"spartrakHomeCarousel":{"mode":"rail"}}'<?php endif; ?>>
+
+    <?= /* @noEscape */ $block->getHeadHtml() ?>
+
+    <div class="spartrak-home-brands__rail-wrap">
+        <ul class="spartrak-home-brands__rail" data-carousel-track>
+            <?php foreach ($brands as $brand) : ?>
+                <li class="spartrak-home-brands__item" data-carousel-slide>
+                    <a class="spartrak-home-brands__link" href="<?= $block->escapeUrl($brand['url']) ?>">
+                        <span class="spartrak-home-brands__plate">
+                            <?php if (!empty($brand['logo'])) : ?>
+                                <img class="spartrak-home-brands__logo"
+                                     src="<?= $block->escapeUrl($brand['logo']) ?>"
+                                     alt=""
+                                     loading="lazy"
+                                     decoding="async">
+                            <?php else : ?>
+                                <?php /*
+                                  No swatch uploaded for this option yet. The
+                                  initial keeps the tile legible and the rail
+                                  complete — see BrandNavigation's header for
+                                  the one-off admin step that replaces it.
+                                */ ?>
+                                <span class="spartrak-home-brands__initial" aria-hidden="true">
+                                    <?= $block->escapeHtml($block->getInitial($brand['label'])) ?>
+                                </span>
+                            <?php endif; ?>
+                        </span>
+                        <span class="spartrak-home-brands__name"><?= $block->escapeHtml($brand['label']) ?></span>
+                    </a>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+
+        <?php if ($isCarousel) : ?>
+            <button type="button"
+                    class="spartrak-home-brands__nav spartrak-home-brands__nav--prev"
+                    data-carousel-prev
+                    aria-label="<?= $block->escapeHtmlAttr(__('Previous')) ?>"></button>
+            <button type="button"
+                    class="spartrak-home-brands__nav spartrak-home-brands__nav--next"
+                    data-carousel-next
+                    aria-label="<?= $block->escapeHtmlAttr(__('Next')) ?>"></button>
+        <?php endif; ?>
+    </div>
+</section>

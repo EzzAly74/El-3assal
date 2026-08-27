@@ -47,6 +47,22 @@ final class SectionType
     public const PRODUCT_VIDEO_CAROUSEL = 'product_video_carousel';
 
     /**
+     * The brand rail, "تصفح جميع الماركات" (Figma 695:46254).
+     *
+     * Reads the SAME admin-managed source as the header's brand pane, so a
+     * brand added in Stores > Attributes appears in both places at once and a
+     * tile here navigates exactly where the header navigates.
+     */
+    public const BRAND_CAROUSEL = 'brand_carousel';
+
+    /**
+     * The cascading "بتدور علي ايه؟" finder (Figma 595:15843): brand plus a
+     * three-level category drill-down, each level populated from the one
+     * above.
+     */
+    public const CASCADE_SEARCH = 'cascade_search';
+
+    /**
      * Types whose content comes from a category product query.
      *
      * @return string[]
@@ -66,6 +82,8 @@ final class SectionType
             self::CATEGORY_TILES,
             self::PRODUCT_CAROUSEL,
             self::PRODUCT_VIDEO_CAROUSEL,
+            self::BRAND_CAROUSEL,
+            self::CASCADE_SEARCH,
         ];
     }
 }

@@ -14,7 +14,15 @@ use Spartrak\Homepage\Model\SectionRepository;
 use Spartrak\Homepage\Model\SectionType;
 
 /**
- * Creates the five homepage sections the Figma design defines.
+ * Creates the homepage sections the Figma design defines.
+ *
+ * NOTE: two of them (the brand rail and the cascading finder) were added
+ * after this patch had already run on live installs. They are listed here so
+ * a FRESH install gets the whole set in one pass, and are ALSO created by
+ * AddBrandAndFinderSections for installs where this patch is already
+ * recorded as applied — Magento never re-runs a patch, so extending this
+ * array alone would have been a no-op there. Both patches skip codes that
+ * already exist.
  *
  * ===========================================================================
  * WHAT THIS DOES AND DOES NOT SEED
@@ -77,6 +85,22 @@ class CreateDefaultSections implements DataPatchInterface
             'title_ar' => 'الفئات الأكثر بحثا',
             'title_en' => 'Most searched categories',
             'sort_order' => 10,
+        ],
+        [
+            'code' => 'home_brands',
+            'type' => SectionType::BRAND_CAROUSEL,
+            'title_ar' => 'تصفح جميع الماركات',
+            'title_en' => 'Browse all brands',
+            'sort_order' => 15,
+        ],
+        [
+            'code' => 'home_finder',
+            'type' => SectionType::CASCADE_SEARCH,
+            // The finder card carries its own heading (Figma 595:15845), so
+            // the shared section header is deliberately left empty here.
+            'title_ar' => '',
+            'title_en' => '',
+            'sort_order' => 18,
         ],
         [
             'code' => 'home_best_sellers',
