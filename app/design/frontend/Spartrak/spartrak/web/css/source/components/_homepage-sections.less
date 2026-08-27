@@ -758,9 +758,17 @@
 }
 
 .spartrak-home-showcase__item {
-    // Figma 595:14830: a 557-wide card, three across.
-    flex: 0 0 557px;
-    width: 557px;
+    // Figma 595:14830 draws a 557px card, three across in a 1440 frame - a
+    // row 1703px wide that deliberately overflows, so the design itself only
+    // ever reveals about two and a half.
+    //
+    // Held to a THIRD of the measure instead. Figma's intent is three cards
+    // visible; 557px against this page's 1344px measure delivered barely two,
+    // and each one read as enormous. A fraction keeps the design's three-up
+    // rhythm at every width, and the remaining items still scroll.
+    flex: 0 0 calc((100% - 32px) / 3);
+    width: calc((100% - 32px) / 3);
+    min-width: 0;
     max-width: calc(100vw - (@home-gutter-mobile * 2));
     margin: 0;
     padding: 12px;

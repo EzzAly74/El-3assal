@@ -559,3 +559,33 @@
         line-height: 1.5;
     }
 }
+
+// ---------------------------------------------------------------------------
+// Add-to-cart busy state
+// ---------------------------------------------------------------------------
+// Magento's own catalogAddToCart widget adds `.disabled` to the button while
+// the request is in flight and removes it on completion — so the busy state
+// costs no JS of ours, only the styling of a class core already toggles. The
+// card passes `addToCartButtonSelector` so the widget can find this button;
+// see card.phtml for why that is an option rather than an extra class.
+//
+// The plus glyph is swapped for the design system's spinner primitive rather
+// than a second asset. `background-image: none` removes the plus, and the
+// ring is drawn on a pseudo-element so the button keeps its own navy fill.
+.spartrak-card .spartrak-card__add-to-cart.disabled {
+    background-image: none;
+    // Not `cursor: not-allowed` — the action is in progress, not forbidden.
+    cursor: progress;
+    // Core keeps the button clickable; blocking pointer events here stops a
+    // double submit without needing to disable the element (which would move
+    // focus and lose the screen-reader announcement core just made).
+    pointer-events: none;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        margin: auto;
+        .spartrak-spinner(18px; 2px; var(--color-action-primary-text); rgba(255, 255, 255, .35));
+    }
+}

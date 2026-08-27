@@ -321,7 +321,19 @@ try {
                     */ ?>
                     <form class="spartrak-card__form"
                           data-role="tocart-form"
-                          data-mage-init='{"catalogAddToCart": {}}'
+                          <?php /*
+                            addToCartButtonSelector is passed because the
+                            widget's default is `.action.tocart` and this card's
+                            button does not carry that class. Without it core
+                            finds no button, never marks it busy, and a shopper
+                            gets no feedback at all between click and minicart.
+                            Passing the selector is better than adding
+                            `.action.tocart` to the markup: that class is
+                            styled by Porto at the same specificity as this
+                            component, which would start a fight this card
+                            would lose on desktop.
+                          */ ?>
+                          data-mage-init='{"catalogAddToCart": {"addToCartButtonSelector": ".spartrak-card__add-to-cart"}}'
                           action="<?= $block->escapeUrl($listBlock->getAddToCartUrl($product)) ?>"
                           method="post">
                         <?= /* @noEscape */ $block->getBlockHtml('formkey') ?>

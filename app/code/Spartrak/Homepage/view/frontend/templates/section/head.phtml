@@ -29,6 +29,28 @@ $viewAllUrl = $block->getViewAllUrl();
 $showsNav = $block->showsCarouselNav();
 ?>
 <div class="spartrak-home-section__head">
+    <?php /*
+      DOM ORDER IS THE LAYOUT. The row is `justify-content: space-between`, so
+      the FIRST child lands on the inline-start edge — the RIGHT in Arabic.
+      Figma puts the section title on the right and the "view all" link and
+      carousel arrows on the left (headers 595:14822, 595:15117, 595:14587,
+      695:46255 all place the title at the far x and the controls at x=0), so
+      the TITLE MUST COME FIRST here.
+
+      Having these the other way round mirrored every section header on the
+      site. There is no CSS fix for it — swapping sides with `order` or
+      physical properties would break the LTR store instead, because the whole
+      point of this order is that it mirrors correctly on its own.
+    */ ?>
+    <?php if ($title !== '') : ?>
+        <h2 class="spartrak-home-section__title" id="<?= $block->escapeHtmlAttr($block->getHeadingId()) ?>">
+            <?= $block->escapeHtml($title) ?>
+        </h2>
+    <?php else : ?>
+        <?php /* Keeps the controls on their Figma side when there is no title. */ ?>
+        <span class="spartrak-home-section__head-spacer" aria-hidden="true"></span>
+    <?php endif; ?>
+
     <?php if ($showsNav || $viewAllUrl !== '') : ?>
         <div class="spartrak-home-section__head-lead">
             <?php if ($showsNav) : ?>
@@ -51,14 +73,5 @@ $showsNav = $block->showsCarouselNav();
                 </a>
             <?php endif; ?>
         </div>
-    <?php else : ?>
-        <?php /* Keeps the title on its Figma side when there is nothing to balance it against. */ ?>
-        <span class="spartrak-home-section__head-spacer" aria-hidden="true"></span>
-    <?php endif; ?>
-
-    <?php if ($title !== '') : ?>
-        <h2 class="spartrak-home-section__title" id="<?= $block->escapeHtmlAttr($block->getHeadingId()) ?>">
-            <?= $block->escapeHtml($title) ?>
-        </h2>
     <?php endif; ?>
 </div>

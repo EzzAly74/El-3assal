@@ -76,17 +76,22 @@
         <!--
           Page messages as self-dismissing toasts, PROJECT-WIDE.
 
-          Bound on <body> in the DEFAULT handle so it covers every page that
-          renders the `page.messages` container - catalogue, cart, checkout,
-          customer account, CMS - from one declaration, rather than being
-          added per handle and drifting.
+          Started from a template rather than a body attribute: this theme
+          already sets data-mage-init on <body> from the category and search
+          handles, and <attribute> overwrites rather than merges, so a body
+          binding here was silently dropped on exactly those pages. See
+          templates/html/toast-init.phtml for the full note.
 
-          The widget only observes that container and schedules dismissal; it
-          never creates, filters or suppresses a message, so both of Magento's
-          message pipelines (server-rendered and the Knockout/AJAX one) keep
-          working exactly as they did. See web/js/spartrak-toast.js.
+          The widget only observes the message container and schedules
+          dismissal; it never creates, filters or suppresses a message, so both
+          of Magento's message pipelines (server-rendered and the Knockout/AJAX
+          one) keep working exactly as they did.
         -->
-        <attribute name="data-mage-init" value="{&quot;spartrakToast&quot;:{}}"/>
+        <referenceContainer name="before.body.end">
+            <block class="Magento\Framework\View\Element\Template"
+                   name="spartrak.toast.init"
+                   template="Magento_Theme::html/toast-init.phtml"/>
+        </referenceContainer>
 
         <!-- NOTE: <remove name="..."/> is head-asset syntax only; body blocks
              must be removed with remove="true" on a reference. -->

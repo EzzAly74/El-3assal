@@ -1,0 +1,40 @@
+<?php
+/**
+ * Spartrak — starts the page-message toast widget.
+ *
+ * ===========================================================================
+ * WHY THIS EXISTS INSTEAD OF A data-mage-init ON <body>
+ * ===========================================================================
+ * The first attempt bound the widget with
+ * `<attribute name="data-mage-init" value='{"spartrakToast":{}}'/>` on <body>
+ * in the default handle. That silently did not work on the two busiest page
+ * types on the site.
+ *
+ * `<attribute>` SETS an attribute, it does not merge into it — and this theme
+ * already sets the same attribute on <body> from two more specific handles:
+ *
+ *     Magento_Catalog/layout/catalog_category_view.xml      -> spartrakPlpFilterToggle
+ *     Magento_CatalogSearch/layout/catalogsearch_result_index.xml -> spartrakPlpFilterToggle
+ *
+ * Those handles are merged AFTER `default`, so on every category page and
+ * every search-results page the toast binding was overwritten and the widget
+ * never started. Two widgets can never share one body attribute this way, and
+ * the next one added would have broken it again.
+ *
+ * `x-magento-init` with a `*` target has no such collision: each script
+ * contributes its own component independently, so this widget starts on every
+ * page regardless of what else is bound to the body.
+ *
+ * Rendered into `before.body.end`, after the message markup exists, so the
+ * widget's first pass already sees any server-rendered message.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ */
+?>
+<script type="text/x-magento-init">
+{
+    "*": {
+        "js/spartrak-toast": {}
+    }
+}
+</script>
