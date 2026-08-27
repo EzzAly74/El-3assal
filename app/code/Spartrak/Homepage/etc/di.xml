@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<!--
+  Grid data sources for the two admin listings.
+
+  Magento's generic UI DataProvider resolves a listing's data source by NAME
+  through Framework\View\Element\UiComponent\DataProvider\CollectionFactory.
+  Registering the two grid collections here is what lets both listings use
+  that GENERIC provider — so neither listing needs a data-provider class of
+  its own, and filtering, sorting, paging and bookmarks all come from core.
+
+  The Grid collections extend SearchResult (not the plain entity collection)
+  because that is the contract the generic provider expects: it applies the
+  UI's filters as SearchCriteria against it.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
+        <arguments>
+            <argument name="collections" xsi:type="array">
+                <item name="spartrak_homepage_section_listing_data_source" xsi:type="string">
+                    Spartrak\Homepage\Model\ResourceModel\Section\Grid\Collection
+                </item>
+                <item name="spartrak_homepage_banner_listing_data_source" xsi:type="string">
+                    Spartrak\Homepage\Model\ResourceModel\Banner\Grid\Collection
+                </item>
+            </argument>
+        </arguments>
+    </type>
+
+    <virtualType name="Spartrak\Homepage\Model\ResourceModel\Section\Grid\Collection"
+                 type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">spartrak_homepage_section</argument>
+            <argument name="resourceModel" xsi:type="string">Spartrak\Homepage\Model\ResourceModel\Section</argument>
+        </arguments>
+    </virtualType>
+
+    <virtualType name="Spartrak\Homepage\Model\ResourceModel\Banner\Grid\Collection"
+                 type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">spartrak_homepage_banner</argument>
+            <argument name="resourceModel" xsi:type="string">Spartrak\Homepage\Model\ResourceModel\Banner</argument>
+        </arguments>
+    </virtualType>
+
+</config>

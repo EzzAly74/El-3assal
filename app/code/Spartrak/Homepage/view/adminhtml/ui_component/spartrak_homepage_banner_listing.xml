@@ -1,0 +1,133 @@
+<?xml version="1.0"?>
+<!--
+  The banner grid.
+
+  Banners get their OWN listing rather than living as image-upload rows inside
+  the section form, for two reasons that both bite in practice: four uploaders
+  per row makes a section form with a handful of banners unusable, and a
+  section can accumulate many banners over a year of campaigns — a grid with
+  filtering and paging is the right control for that, an inline row set is not.
+-->
+<listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">spartrak_homepage_banner_listing.spartrak_homepage_banner_listing_data_source</item>
+        </item>
+    </argument>
+    <settings>
+        <spinner>spartrak_homepage_banner_columns</spinner>
+        <deps>
+            <dep>spartrak_homepage_banner_listing.spartrak_homepage_banner_listing_data_source</dep>
+        </deps>
+        <buttons>
+            <button name="add">
+                <url path="*/*/new"/>
+                <class>primary</class>
+                <label translate="true">Add Banner</label>
+            </button>
+        </buttons>
+    </settings>
+
+    <dataSource name="spartrak_homepage_banner_listing_data_source" component="Magento_Ui/js/grid/provider">
+        <settings>
+            <storageConfig>
+                <param name="indexField" xsi:type="string">banner_id</param>
+            </storageConfig>
+            <updateUrl path="mui/index/render"/>
+        </settings>
+        <aclResource>Spartrak_Homepage::banner</aclResource>
+        <dataProvider class="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider"
+                      name="spartrak_homepage_banner_listing_data_source">
+            <settings>
+                <requestFieldName>banner_id</requestFieldName>
+                <primaryFieldName>banner_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+
+    <listingToolbar name="listing_top">
+        <settings>
+            <sticky>true</sticky>
+        </settings>
+        <bookmark name="bookmarks"/>
+        <columnsControls name="columns_controls"/>
+        <filters name="listing_filters"/>
+        <paging name="listing_paging"/>
+    </listingToolbar>
+
+    <columns name="spartrak_homepage_banner_columns">
+        <settings>
+            <childDefaults>
+                <param name="fieldAction" xsi:type="array">
+                    <item name="provider" xsi:type="string">spartrak_homepage_banner_listing.spartrak_homepage_banner_listing.spartrak_homepage_banner_columns.actions</item>
+                    <item name="target" xsi:type="string">applyAction</item>
+                    <item name="params" xsi:type="array">
+                        <item name="0" xsi:type="string">edit</item>
+                        <item name="1" xsi:type="string">${ $.$data.rowIndex }</item>
+                    </item>
+                </param>
+            </childDefaults>
+        </settings>
+
+        <column name="banner_id" sortOrder="10">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">ID</label>
+                <sorting>asc</sorting>
+            </settings>
+        </column>
+
+        <column name="section_id" component="Magento_Ui/js/grid/columns/select" sortOrder="20">
+            <settings>
+                <options class="Spartrak\Homepage\Model\Source\SectionOptions"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <label translate="true">Section</label>
+            </settings>
+        </column>
+
+        <column name="sort_order" sortOrder="30">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">Position</label>
+            </settings>
+        </column>
+
+        <column name="title_ar" sortOrder="40">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Title (Arabic)</label>
+            </settings>
+        </column>
+
+        <column name="title_en" sortOrder="50">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Title (English)</label>
+            </settings>
+        </column>
+
+        <column name="url" sortOrder="60">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Destination</label>
+            </settings>
+        </column>
+
+        <column name="is_active" component="Magento_Ui/js/grid/columns/select" sortOrder="70">
+            <settings>
+                <options class="Magento\Config\Model\Config\Source\Enabledisable"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <label translate="true">Status</label>
+            </settings>
+        </column>
+
+        <actionsColumn name="actions" class="Spartrak\Homepage\Ui\Component\Listing\Column\BannerActions" sortOrder="80">
+            <settings>
+                <indexField>banner_id</indexField>
+                <resizeEnabled>false</resizeEnabled>
+            </settings>
+        </actionsColumn>
+    </columns>
+</listing>

@@ -1,0 +1,67 @@
+{
+    "spartrak_homepage_section": {
+        "column": {
+            "section_id": true,
+            "code": true,
+            "type": true,
+            "title_en": true,
+            "title_ar": true,
+            "category_id": true,
+            "product_limit": true,
+            "link_url": true,
+            "is_active": true,
+            "sort_order": true,
+            "created_at": true,
+            "updated_at": true
+        },
+        "index": {
+            "SPARTRAK_HOMEPAGE_SECTION_IS_ACTIVE_SORT_ORDER": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "SPARTRAK_HOMEPAGE_SECTION_CODE": true
+        }
+    },
+    "spartrak_homepage_banner": {
+        "column": {
+            "banner_id": true,
+            "section_id": true,
+            "title_en": true,
+            "title_ar": true,
+            "image_desktop_en": true,
+            "image_desktop_ar": true,
+            "image_mobile_en": true,
+            "image_mobile_ar": true,
+            "url": true,
+            "is_active": true,
+            "sort_order": true,
+            "created_at": true,
+            "updated_at": true
+        },
+        "index": {
+            "SPARTRAK_HOMEPAGE_BANNER_SECTION_ID_IS_ACTIVE_SORT_ORDER": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "SPARTRAK_HOMEPAGE_BANNER_SECTION_ID_SECTION_SECTION_ID": true
+        }
+    },
+    "spartrak_homepage_category_item": {
+        "column": {
+            "item_id": true,
+            "section_id": true,
+            "category_id": true,
+            "is_active": true,
+            "sort_order": true
+        },
+        "index": {
+            "SPARTRAK_HOMEPAGE_CTGR_ITEM_SECTION_ID_IS_ACTIVE_SORT_ORDER": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "SPARTRAK_HOMEPAGE_CTGR_ITEM_SECTION_ID_SECTION_SECTION_ID": true,
+            "SPARTRAK_HOMEPAGE_CTGR_ITEM_CTGR_ID_CAT_CTGR_ENTT_ENTT_ID": true,
+            "SPARTRAK_HOMEPAGE_CTGR_ITEM_SECTION_ID_CATEGORY_ID": true
+        }
+    }
+}

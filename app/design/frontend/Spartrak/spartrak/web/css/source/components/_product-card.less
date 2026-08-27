@@ -139,3 +139,98 @@
         background: var(--color-action-primary-hover);
     }
 }
+
+// ===========================================================================
+// HORIZONTAL VARIANT — Figma 746:37718 (added by the HOMEPAGE PASS 2026-08-27)
+// ===========================================================================
+// The same Card - Product component, laid out sideways: a 140px square image
+// on the inline-start edge, a single-line name, rating and price stacked
+// beside it, and the wishlist heart promoted out of the image overlay into
+// the content row. Used by the homepage showcase section (595:14852).
+//
+// SPECIFICITY NOTE — this matters here. The grid variant's base rules are
+// currently emitted from an inline <style> block inside card.phtml, which
+// sits AFTER this stylesheet in the document. Every selector below is
+// therefore scoped through `.spartrak-card--horizontal`, giving (0,2,0)
+// against the base rules' (0,1,0) — so these win on specificity and do not
+// depend on source order. That stays true when the inline block eventually
+// moves into this file.
+
+.spartrak-card--horizontal {
+    // Figma 746:37718: 532x140, gap 16, no border and no card chrome — the
+    // showcase item it sits inside supplies the surface.
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    height: auto;
+    border: 0;
+    background: transparent;
+
+    &:hover {
+        border-color: transparent;
+    }
+
+    .spartrak-card__media {
+        flex: 0 0 140px;
+        width: 140px;
+        height: 140px;
+        aspect-ratio: auto;
+        background: var(--color-bg-field);
+    }
+
+    // The grid variant deliberately over-scales its photo to bleed past the
+    // frame (see the base rule). The horizontal card's Figma instance does
+    // not — it is a plain contained cover.
+    .spartrak-card__image {
+        position: absolute;
+        inset: 0;
+        left: auto;
+        top: auto;
+        width: 100%;
+        height: 100%;
+        transform: none;
+        object-fit: cover;
+    }
+
+    .spartrak-card__content {
+        display: flex;
+        flex: 1 1 auto;
+        align-items: flex-start;
+        gap: 24px;
+        min-width: 0;
+    }
+
+    .spartrak-card__heading {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        gap: 12px;
+        min-width: 0;
+    }
+
+    // Figma 746:37718 truncates the name to ONE line here, where the grid
+    // card clamps to two. A product name in this catalogue routinely runs to
+    // a full sentence, so the ellipsis is load-bearing, not cosmetic.
+    .spartrak-card__name {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        -webkit-line-clamp: none;
+    }
+
+    // The heart is a sibling of the text block in this variant, not an
+    // overlay on the image, so the base rule's absolute positioning has to be
+    // explicitly stood down.
+    .spartrak-card__wishlist {
+        position: static;
+        flex: 0 0 auto;
+        order: -1;
+    }
+
+    .spartrak-card__price {
+        font-size: var(--text-16);
+        font-weight: 500;
+        line-height: 1.5;
+    }
+}

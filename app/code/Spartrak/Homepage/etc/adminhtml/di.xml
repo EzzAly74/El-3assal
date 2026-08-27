@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<!--
+  The banner image uploader.
+
+  A virtualType of Magento\Catalog\Model\ImageUploader, wired exactly the way
+  core wires its own category-image uploader (Magento\Catalog\CategoryImageUpload
+  in module-catalog/etc/di.xml). Reusing that class means the whole upload path
+  — tmp staging, filename collision handling, MIME validation, moving the file
+  on save, and the media-storage-database hook a clustered install needs —
+  comes from Magento and is not reimplemented here.
+
+  The two paths are read from Model\Image\Storage's constants at the one place
+  they are declared, so the write side (here) and the read side (the storefront
+  URL builder) can never drift apart.
+
+  ALLOWED TYPES: raster formats plus WebP. SVG is deliberately NOT allowed.
+  An SVG is an executable document — a banner is admin-uploaded, but an admin
+  account is exactly what an attacker escalates to, and a stored SVG served
+  from the media domain is a stored-XSS primitive. WebP covers the "small file"
+  case that would otherwise tempt someone to reach for SVG.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <virtualType name="Spartrak\Homepage\BannerImageUpload" type="Magento\Catalog\Model\ImageUploader">
+        <arguments>
+            <argument name="baseTmpPath" xsi:type="string">spartrak/homepage/tmp</argument>
+            <argument name="basePath" xsi:type="string">spartrak/homepage</argument>
+            <argument name="allowedExtensions" xsi:type="array">
+                <item name="jpg" xsi:type="string">jpg</item>
+                <item name="jpeg" xsi:type="string">jpeg</item>
+                <item name="png" xsi:type="string">png</item>
+                <item name="gif" xsi:type="string">gif</item>
+                <item name="webp" xsi:type="string">webp</item>
+            </argument>
+            <argument name="allowedMimeTypes" xsi:type="array">
+                <item name="jpg" xsi:type="string">image/jpg</item>
+                <item name="jpeg" xsi:type="string">image/jpeg</item>
+                <item name="png" xsi:type="string">image/png</item>
+                <item name="gif" xsi:type="string">image/gif</item>
+                <item name="webp" xsi:type="string">image/webp</item>
+            </argument>
+        </arguments>
+    </virtualType>
+
+    <type name="Spartrak\Homepage\Controller\Adminhtml\Banner\Upload">
+        <arguments>
+            <argument name="imageUploader" xsi:type="object">Spartrak\Homepage\BannerImageUpload</argument>
+        </arguments>
+    </type>
+
+    <type name="Spartrak\Homepage\Controller\Adminhtml\Banner\Save">
+        <arguments>
+            <argument name="imageUploader" xsi:type="object">Spartrak\Homepage\BannerImageUpload</argument>
+        </arguments>
+    </type>
+
+</config>

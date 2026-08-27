@@ -1,0 +1,29 @@
+<?php
+/**
+ * Spartrak Homepage — the whole page.
+ *
+ * NO CMS BLOCKS. NO CMS CONTENT. Every section below comes from this module's
+ * own dashboard tables, in the order an admin set, with the title an admin
+ * typed. There is no getChildHtml() call to a CMS block anywhere on this page
+ * and no hardcoded section, title, category, product or URL.
+ *
+ * The loop is deliberately dumb — ordering, typing and rendering all belong
+ * to Block\Sections, which is where a new section type gets added. Keeping
+ * that decision out of the template is what lets the RTL theme (and any
+ * future theme) override ONE section's markup without inheriting a copy of
+ * the page's assembly logic.
+ *
+ * @var \Spartrak\Homepage\Block\Sections $block
+ */
+
+$sections = $block->getSections();
+
+if (!$sections) {
+    return;
+}
+?>
+<div class="spartrak-home">
+    <?php foreach ($sections as $position => $section) : ?>
+        <?= /* @noEscape */ $block->renderSection($section, (int) $position) ?>
+    <?php endforeach; ?>
+</div>

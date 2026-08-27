@@ -1,0 +1,255 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  THE BANNER FORM
+  ===========================================================================
+  Every field the brief lists for a banner item, on one screen:
+  desktop/mobile x English/Arabic artwork, an optional destination URL,
+  per-language titles, an enabled switch and a position.
+
+  The four uploaders all post to the SAME controller
+  (spartrak_homepage/banner/upload) — the field's own name travels with the
+  request as `param_name`, so a fifth image field would need no new endpoint.
+-->
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">spartrak_homepage_banner_form.spartrak_homepage_banner_form_data_source</item>
+        </item>
+        <item name="label" xsi:type="string" translate="true">Banner</item>
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
+    </argument>
+
+    <settings>
+        <buttons>
+            <button name="back" class="Magento\Backend\Block\Widget\Button">
+                <label translate="true">Back</label>
+                <class>back</class>
+                <url path="*/*/"/>
+            </button>
+            <button name="save" class="Magento\Backend\Block\Widget\Button">
+                <label translate="true">Save Banner</label>
+                <class>primary</class>
+                <data_attribute>
+                    <item name="mage-init" xsi:type="array">
+                        <item name="buttonAdapter" xsi:type="array">
+                            <item name="actions" xsi:type="array">
+                                <item name="0" xsi:type="array">
+                                    <item name="targetName" xsi:type="string">${ $.name }</item>
+                                    <item name="actionName" xsi:type="string">save</item>
+                                </item>
+                            </item>
+                        </item>
+                    </item>
+                </data_attribute>
+            </button>
+        </buttons>
+        <namespace>spartrak_homepage_banner_form</namespace>
+        <dataScope>data</dataScope>
+        <deps>
+            <dep>spartrak_homepage_banner_form.spartrak_homepage_banner_form_data_source</dep>
+        </deps>
+    </settings>
+
+    <dataSource name="spartrak_homepage_banner_form_data_source">
+        <argument name="data" xsi:type="array">
+            <item name="js_config" xsi:type="array">
+                <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
+            </item>
+        </argument>
+        <settings>
+            <submitUrl path="spartrak_homepage/banner/save"/>
+        </settings>
+        <aclResource>Spartrak_Homepage::banner</aclResource>
+        <dataProvider class="Spartrak\Homepage\Model\Banner\DataProvider" name="spartrak_homepage_banner_form_data_source">
+            <settings>
+                <requestFieldName>banner_id</requestFieldName>
+                <primaryFieldName>banner_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+
+    <fieldset name="general">
+        <settings>
+            <label translate="true">Banner Settings</label>
+        </settings>
+
+        <field name="banner_id" formElement="hidden">
+            <settings>
+                <dataType>number</dataType>
+            </settings>
+        </field>
+
+        <field name="section_id" formElement="select" sortOrder="10">
+            <settings>
+                <dataType>number</dataType>
+                <label translate="true">Section</label>
+                <notice translate="true">Only banner-type sections are listed. A section showing one enabled banner renders it as a static image; two or more turn it into a carousel automatically.</notice>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Spartrak\Homepage\Model\Source\SectionOptions"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+
+        <field name="title_ar" formElement="input" sortOrder="20">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Title (Arabic)</label>
+                <notice translate="true">Used as the image's alt text on Arabic store views. Leave empty for a purely decorative banner — that is the correct choice for artwork whose text is already inside the image.</notice>
+            </settings>
+        </field>
+
+        <field name="title_en" formElement="input" sortOrder="30">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Title (English)</label>
+                <notice translate="true">Used as the image's alt text on English store views.</notice>
+            </settings>
+        </field>
+
+        <field name="url" formElement="input" sortOrder="40">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Destination URL</label>
+                <notice translate="true">Optional. A relative path such as "gear/pumps", or a full https:// address. Leave empty and the banner renders as a plain image with no link.</notice>
+            </settings>
+        </field>
+
+        <field name="is_active" formElement="checkbox" sortOrder="50">
+            <settings>
+                <dataType>boolean</dataType>
+                <label translate="true">Enabled</label>
+                <notice translate="true">Disabled banners do not render and do not count towards the single-image-versus-carousel decision.</notice>
+            </settings>
+            <formElements>
+                <checkbox>
+                    <settings>
+                        <valueMap>
+                            <map name="false" xsi:type="number">0</map>
+                            <map name="true" xsi:type="number">1</map>
+                        </valueMap>
+                        <prefer>toggle</prefer>
+                    </settings>
+                </checkbox>
+            </formElements>
+        </field>
+
+        <field name="sort_order" formElement="input" sortOrder="60">
+            <settings>
+                <dataType>number</dataType>
+                <label translate="true">Position</label>
+                <notice translate="true">Order within the section. Lower numbers come first.</notice>
+                <validation>
+                    <rule name="validate-number" xsi:type="boolean">true</rule>
+                </validation>
+            </settings>
+        </field>
+    </fieldset>
+
+    <fieldset name="artwork" sortOrder="20">
+        <settings>
+            <label translate="true">Artwork</label>
+        </settings>
+
+        <container name="artwork_hint" sortOrder="5">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="component" xsi:type="string">Magento_Ui/js/form/components/html</item>
+                    <item name="additionalClasses" xsi:type="string">message message-notice</item>
+                    <item name="content" xsi:type="string" translate="true">Desktop and mobile are separate uploads — the storefront serves exactly one of them per visitor and never downloads the other. If a language is left empty, the other language's image is used rather than showing a gap.</item>
+                </item>
+            </argument>
+        </container>
+
+        <field name="image_desktop_ar" sortOrder="10" formElement="imageUploader">
+            <settings>
+                <elementTmpl>ui/form/element/uploader/image</elementTmpl>
+                <dataType>string</dataType>
+                <label translate="true">Desktop image (Arabic)</label>
+                <required>false</required>
+            </settings>
+            <formElements>
+                <imageUploader>
+                    <settings>
+                        <required>false</required>
+                        <uploaderConfig>
+                            <param xsi:type="url" name="url" path="spartrak_homepage/banner/upload"/>
+                        </uploaderConfig>
+                        <allowedExtensions>jpg jpeg png gif webp</allowedExtensions>
+                        <maxFileSize>4194304</maxFileSize>
+                    </settings>
+                </imageUploader>
+            </formElements>
+        </field>
+
+        <field name="image_desktop_en" sortOrder="20" formElement="imageUploader">
+            <settings>
+                <elementTmpl>ui/form/element/uploader/image</elementTmpl>
+                <dataType>string</dataType>
+                <label translate="true">Desktop image (English)</label>
+                <required>false</required>
+            </settings>
+            <formElements>
+                <imageUploader>
+                    <settings>
+                        <required>false</required>
+                        <uploaderConfig>
+                            <param xsi:type="url" name="url" path="spartrak_homepage/banner/upload"/>
+                        </uploaderConfig>
+                        <allowedExtensions>jpg jpeg png gif webp</allowedExtensions>
+                        <maxFileSize>4194304</maxFileSize>
+                    </settings>
+                </imageUploader>
+            </formElements>
+        </field>
+
+        <field name="image_mobile_ar" sortOrder="30" formElement="imageUploader">
+            <settings>
+                <elementTmpl>ui/form/element/uploader/image</elementTmpl>
+                <dataType>string</dataType>
+                <label translate="true">Mobile image (Arabic)</label>
+                <required>false</required>
+            </settings>
+            <formElements>
+                <imageUploader>
+                    <settings>
+                        <required>false</required>
+                        <uploaderConfig>
+                            <param xsi:type="url" name="url" path="spartrak_homepage/banner/upload"/>
+                        </uploaderConfig>
+                        <allowedExtensions>jpg jpeg png gif webp</allowedExtensions>
+                        <maxFileSize>4194304</maxFileSize>
+                    </settings>
+                </imageUploader>
+            </formElements>
+        </field>
+
+        <field name="image_mobile_en" sortOrder="40" formElement="imageUploader">
+            <settings>
+                <elementTmpl>ui/form/element/uploader/image</elementTmpl>
+                <dataType>string</dataType>
+                <label translate="true">Mobile image (English)</label>
+                <required>false</required>
+            </settings>
+            <formElements>
+                <imageUploader>
+                    <settings>
+                        <required>false</required>
+                        <uploaderConfig>
+                            <param xsi:type="url" name="url" path="spartrak_homepage/banner/upload"/>
+                        </uploaderConfig>
+                        <allowedExtensions>jpg jpeg png gif webp</allowedExtensions>
+                        <maxFileSize>4194304</maxFileSize>
+                    </settings>
+                </imageUploader>
+            </formElements>
+        </field>
+    </fieldset>
+</form>

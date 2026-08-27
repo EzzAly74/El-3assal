@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  THE HOMEPAGE MOUNTS ONE BLOCK. THAT IS THE WHOLE FILE.
+  ===========================================================================
+  cms_index_index is Magento's handle for the homepage, but nothing on this
+  page is CMS content: no Magento\Cms\Block\Block, no CMS page content, no
+  widget. Every section, its title, its order, its images and the categories
+  it reads from come from this module's own dashboard tables.
+
+  The layout's only job is to MOUNT the custom implementation — it makes no
+  decision about what renders or in what order, because those are dashboard
+  data, not deploy-time facts. Adding a homepage section must never mean
+  editing this file.
+
+  WHY THIS LIVES IN THE MODULE, NOT THE THEME
+  ===========================================================================
+  The homepage's composition is application behaviour, not presentation. Put
+  here, both Spartrak themes (and any future one) inherit it automatically,
+  and a theme that wants to restyle a section overrides that section's
+  TEMPLATE rather than re-declaring the page.
+
+  `cacheable` is deliberately left at its default (true): every section is
+  identical for every visitor, so the whole page is served from the full-page
+  cache. Invalidation is by tag, not by lifetime — Block\Sections returns an
+  identity per section, so saving one in the dashboard drops exactly the
+  cached pages that showed it.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="content">
+            <block class="Spartrak\Homepage\Block\Sections"
+                   name="spartrak.homepage"
+                   template="Spartrak_Homepage::sections.phtml"
+                   before="-"/>
+        </referenceContainer>
+    </body>
+</page>

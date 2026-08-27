@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/module.xsd">
+    <!--
+      Sequence, not a hard dependency list: these modules must be LOADED
+      before this one so their layout/di/template fallbacks are already in
+      place when the homepage renders.
+
+      Magento_Cms  — cms_index_index is the homepage handle and it is owned
+                     by Magento_Cms. Our layout file has to come after
+                     theirs so `content` exists to reference.
+      Magento_Catalog / Magento_CatalogInventory — the product sections
+                     read catalogue collections and stock status.
+      Spartrak_Catalog — supplies the shared Card - Product template that
+                     every product section renders through.
+    -->
+    <module name="Spartrak_Homepage">
+        <sequence>
+            <module name="Magento_Cms"/>
+            <module name="Magento_Catalog"/>
+            <module name="Magento_CatalogInventory"/>
+            <module name="Spartrak_Catalog"/>
+        </sequence>
+    </module>
+</config>

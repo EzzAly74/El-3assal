@@ -1,0 +1,64 @@
+<?php
+/**
+ * Spartrak Homepage — the shared section header.
+ *
+ * Figma nodes 595:15068 / 595:15117 / 595:14587 / 595:14822 are the same
+ * component: a 32px bold title on the inline-END side and, on the inline-
+ * START side, either a "مشاهدة الكل" link (title 18px, --color-action-primary,
+ * with a 24px circular arrow chip) or the carousel's own prev/next buttons.
+ *
+ * ===========================================================================
+ * WHY THERE ARE NO left/right RULES ANYWHERE IN THIS COMPONENT
+ * ===========================================================================
+ * The markup order is [view-all] then [title], and the flexbox does the rest
+ * with `justify-content: space-between`. Under `dir="rtl"` — the primary
+ * storefront — the title lands on the right and the link on the left, exactly
+ * as Figma composes it; under an English store view the whole row mirrors
+ * itself with no second stylesheet and no RTL override. The arrow glyph is
+ * flipped by a logical `scaleX` bound to the writing direction, not by a
+ * separate asset.
+ *
+ * Rendered through AbstractSection::getHeadHtml(), so `$block` is the SECTION
+ * block itself, not a wrapper — see that method for why.
+ *
+ * @var \Spartrak\Homepage\Block\Section\AbstractSection $block
+ */
+
+$title = $block->getTitle();
+$viewAllUrl = $block->getViewAllUrl();
+$showsNav = $block->showsCarouselNav();
+?>
+<div class="spartrak-home-section__head">
+    <?php if ($showsNav || $viewAllUrl !== '') : ?>
+        <div class="spartrak-home-section__head-lead">
+            <?php if ($showsNav) : ?>
+                <div class="spartrak-home-section__nav">
+                    <button type="button"
+                            class="spartrak-home-section__nav-button spartrak-home-section__nav-button--prev"
+                            data-carousel-prev
+                            aria-label="<?= $block->escapeHtmlAttr(__('Previous')) ?>"></button>
+                    <button type="button"
+                            class="spartrak-home-section__nav-button spartrak-home-section__nav-button--next"
+                            data-carousel-next
+                            aria-label="<?= $block->escapeHtmlAttr(__('Next')) ?>"></button>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($viewAllUrl !== '') : ?>
+                <a class="spartrak-home-section__view-all" href="<?= $block->escapeUrl($viewAllUrl) ?>">
+                    <span class="spartrak-home-section__view-all-arrow" aria-hidden="true"></span>
+                    <span class="spartrak-home-section__view-all-text"><?= $block->escapeHtml(__('View all')) ?></span>
+                </a>
+            <?php endif; ?>
+        </div>
+    <?php else : ?>
+        <?php /* Keeps the title on its Figma side when there is nothing to balance it against. */ ?>
+        <span class="spartrak-home-section__head-spacer" aria-hidden="true"></span>
+    <?php endif; ?>
+
+    <?php if ($title !== '') : ?>
+        <h2 class="spartrak-home-section__title" id="<?= $block->escapeHtmlAttr($block->getHeadingId()) ?>">
+            <?= $block->escapeHtml($title) ?>
+        </h2>
+    <?php endif; ?>
+</div>

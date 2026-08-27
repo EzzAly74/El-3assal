@@ -1,0 +1,111 @@
+<?php
+/**
+ * Spartrak Homepage — Banner section.
+ *
+ * Figma: hero "Featured Product Section" 595:14562 — a full-bleed image, a
+ * 44x74 arrow pinned to each edge, and a rounded white pill of pagination
+ * dots (3px wide; 8px tall inactive, 12px tall active) overhanging the bottom
+ * edge by 14px.
+ *
+ * ===========================================================================
+ * ONE ITEM = STATIC BANNER. TWO OR MORE = CAROUSEL.
+ * ===========================================================================
+ * The whole rule is visible in this file:
+ *   - `data-mage-init` is emitted ONLY inside the isCarousel() branch, so a
+ *     single-banner section never requires, downloads or parses the carousel
+ *     module at all;
+ *   - arrows and dots exist only in that branch, so a static banner has no
+ *     dead controls in its DOM and nothing for a screen reader to announce.
+ *
+ * ===========================================================================
+ * WHICH IMAGE THE BROWSER ACTUALLY DOWNLOADS
+ * ===========================================================================
+ * Exactly one, always. LANGUAGE was already resolved server-side (the store
+ * view is known before the response is written), and VIEWPORT is resolved by
+ * <picture>: the browser evaluates the <source media> condition BEFORE the
+ * preload scanner fetches anything, so a phone never pulls the desktop file
+ * and a desktop never pulls the mobile one. No user-agent sniffing, no CSS
+ * background swap, no JS src rewrite — all three of which would fetch both.
+ *
+ * width/height come from the real file header (Model\Image\Storage), so the
+ * box is reserved at the true aspect ratio and the section contributes
+ * nothing to CLS. When they cannot be read — an SVG, say — the CSS
+ * aspect-ratio fallback on .spartrak-home-banner__frame reserves it instead.
+ *
+ * @var \Spartrak\Homepage\Block\Section\Banner $block
+ */
+
+$banners = $block->getBanners();
+$isCarousel = $block->isCarousel();
+$hasTitle = $block->getTitle() !== '';
+?>
+<section class="spartrak-home-section spartrak-home-banner<?= $isCarousel ? ' spartrak-home-banner--carousel' : '' ?>"
+    <?php if ($hasTitle) : ?>aria-labelledby="<?= $block->escapeHtmlAttr($block->getHeadingId()) ?>"<?php endif; ?>>
+
+    <?= /* @noEscape */ $block->getHeadHtml() ?>
+
+    <div class="spartrak-home-banner__frame"
+        <?php if ($isCarousel) : ?>
+            data-mage-init='{"spartrakHomeCarousel":{"mode":"banner"}}'
+            role="group"
+            aria-roledescription="<?= $block->escapeHtmlAttr(__('Carousel')) ?>"
+        <?php endif; ?>>
+
+        <div class="spartrak-home-banner__track" data-carousel-track>
+            <?php foreach ($banners as $index => $banner) : ?>
+                <?php
+                $loading = $block->getImageLoading((int) $index);
+                $hasLink = $banner['url'] !== '';
+                $tag = $hasLink ? 'a' : 'div';
+                ?>
+                <<?= /* @noEscape */ $tag ?> class="spartrak-home-banner__slide"
+                    data-carousel-slide
+                    <?php if ($hasLink) : ?>href="<?= $block->escapeUrl($banner['url']) ?>"<?php endif; ?>
+                    <?php if ($isCarousel && $index > 0) : ?>aria-hidden="true"<?php endif; ?>>
+                    <picture class="spartrak-home-banner__picture">
+                        <?php if ($banner['mobile_url'] !== $banner['desktop_url']) : ?>
+                            <source media="<?= $block->escapeHtmlAttr($banner['media']) ?>"
+                                    srcset="<?= $block->escapeUrl($banner['mobile_url']) ?>">
+                        <?php endif; ?>
+                        <img class="spartrak-home-banner__image"
+                             src="<?= $block->escapeUrl($banner['desktop_url']) ?>"
+                             alt="<?= $block->escapeHtmlAttr($banner['alt']) ?>"
+                             <?php if ($banner['width'] && $banner['height']) : ?>
+                                 width="<?= (int) $banner['width'] ?>"
+                                 height="<?= (int) $banner['height'] ?>"
+                             <?php endif; ?>
+                             loading="<?= $block->escapeHtmlAttr($loading['loading']) ?>"
+                             decoding="<?= $block->escapeHtmlAttr($loading['decoding']) ?>"
+                             <?php if ($loading['fetchpriority']) : ?>
+                                 fetchpriority="<?= $block->escapeHtmlAttr($loading['fetchpriority']) ?>"
+                             <?php endif; ?>>
+                    </picture>
+                </<?= /* @noEscape */ $tag ?>>
+            <?php endforeach; ?>
+        </div>
+
+        <?php if ($isCarousel) : ?>
+            <button type="button"
+                    class="spartrak-home-banner__arrow spartrak-home-banner__arrow--prev"
+                    data-carousel-prev
+                    aria-label="<?= $block->escapeHtmlAttr(__('Previous slide')) ?>"></button>
+            <button type="button"
+                    class="spartrak-home-banner__arrow spartrak-home-banner__arrow--next"
+                    data-carousel-next
+                    aria-label="<?= $block->escapeHtmlAttr(__('Next slide')) ?>"></button>
+
+            <div class="spartrak-home-banner__dots" data-carousel-dots role="tablist"
+                 aria-label="<?= $block->escapeHtmlAttr(__('Slides')) ?>">
+                <?php foreach ($banners as $index => $banner) : ?>
+                    <button type="button"
+                            class="spartrak-home-banner__dot"
+                            data-carousel-dot
+                            data-index="<?= (int) $index ?>"
+                            role="tab"
+                            aria-selected="<?= $index === 0 ? 'true' : 'false' ?>"
+                            aria-label="<?= $block->escapeHtmlAttr(__('Slide %1', (int) $index + 1)) ?>"></button>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
+</section>

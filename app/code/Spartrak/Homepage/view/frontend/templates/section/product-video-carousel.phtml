@@ -1,0 +1,140 @@
+<?php
+/**
+ * Spartrak Homepage — "شاهد المنتج، وأحكم بنفسك" (Figma 595:14821).
+ *
+ * Same block, same provider, same dashboard fields and the same shared
+ * Card - Product as the plain rails — this file differs only in layout. Each
+ * item is a tall media frame (Figma 595:14831: gradient-to-black footer,
+ * backdrop-blurred 48px control buttons, timecode and handle) with the
+ * product's own compact card underneath (595:14852).
+ *
+ * ===========================================================================
+ * THE VIDEO IS A FACADE, AND THAT IS DELIBERATE
+ * ===========================================================================
+ * Magento stores product video as an `external-video` media-gallery entry —
+ * a YouTube/Vimeo URL. Embedding three third-party iframes on the homepage
+ * would put ~1MB of third-party JS in front of the page's own LCP, which
+ * CLAUDE.md section 4 forbids outright ("third-party scripts/tags loading
+ * before it").
+ *
+ * So the card paints the product's real image and the real play control, and
+ * the iframe is created on the FIRST CLICK. Nothing third-party is requested
+ * until a shopper actually asks for a video. This is the standard facade
+ * pattern, not a mock: the control is wired to a real video URL from real
+ * Magento data, or it is not rendered at all.
+ *
+ * ===========================================================================
+ * TWO HONEST GAPS, NOT PAPERED OVER
+ * ===========================================================================
+ *  1. TIMECODE. Figma shows "00:00 / 05.40". Magento's media gallery stores
+ *     no duration for an external video, and the real one is not knowable
+ *     without calling the provider's API at render time. Rather than print a
+ *     fabricated runtime, the elapsed side is rendered live by the player
+ *     once a video is playing, and the slot stays empty before then.
+ *  2. HANDLE. Figma shows "@العسال لقطع غيار الجرارات والمحركات". That is the
+ *     video's own title in Magento's gallery (`video_title`) when the admin
+ *     set one; there is no separate channel-handle field to invent, and no
+ *     hardcoded fallback string is emitted.
+ *
+ * @var \Spartrak\Homepage\Block\Section\ProductCarousel $block
+ */
+
+$products = $block->getProducts();
+$isCarousel = $block->isCarousel();
+$hasTitle = $block->getTitle() !== '';
+
+/*
+ * Widget wiring is built rather than hardcoded so each widget is requested
+ * ONLY when this section actually needs it:
+ *   - the carousel widget only when there is more than one item to page
+ *     between (a one-item showcase downloads no carousel code at all);
+ *   - the video widget only when at least one product really has a video in
+ *     its Magento media gallery. A rail of products with no video ships no
+ *     video JS.
+ */
+$mageInit = [];
+
+if ($isCarousel) {
+    $mageInit['spartrakHomeCarousel'] = ['mode' => 'rail'];
+}
+
+$hasAnyVideo = false;
+foreach ($products as $product) {
+    if ($block->getVideo($product) !== null) {
+        $hasAnyVideo = true;
+        break;
+    }
+}
+
+if ($hasAnyVideo) {
+    $mageInit['spartrakHomeVideo'] = new stdClass();
+}
+?>
+<section class="spartrak-home-section spartrak-home-showcase"
+    <?php if ($hasTitle) : ?>aria-labelledby="<?= $block->escapeHtmlAttr($block->getHeadingId()) ?>"<?php endif; ?>
+    <?php if ($mageInit) : ?>data-mage-init='<?= /* @noEscape */ json_encode($mageInit, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES) ?>'<?php endif; ?>>
+
+    <?= /* @noEscape */ $block->getHeadHtml() ?>
+
+    <ul class="spartrak-home-showcase__track" data-carousel-track>
+        <?php foreach ($products as $index => $product) : ?>
+            <?php
+            $media = $block->getMediaImage($product);
+            $video = $block->getVideo($product);
+            ?>
+            <li class="spartrak-home-showcase__item" data-carousel-slide>
+                <div class="spartrak-home-showcase__media"
+                    <?php if ($video) : ?>
+                        data-video-url="<?= $block->escapeHtmlAttr($video['url']) ?>"
+                    <?php endif; ?>>
+
+                    <?php if ($media) : ?>
+                        <img class="spartrak-home-showcase__poster"
+                             src="<?= $block->escapeUrl($media['url']) ?>"
+                             alt="<?= $block->escapeHtmlAttr($product->getName()) ?>"
+                             width="<?= (int) $media['width'] ?>"
+                             height="<?= (int) $media['height'] ?>"
+                             loading="lazy"
+                             decoding="async">
+                    <?php endif; ?>
+
+                    <div class="spartrak-home-showcase__overlay">
+                        <div class="spartrak-home-showcase__controls">
+                            <?php if ($video) : ?>
+                                <button type="button"
+                                        class="spartrak-home-showcase__control spartrak-home-showcase__control--play"
+                                        data-video-play
+                                        aria-label="<?= $block->escapeHtmlAttr(__('Play video')) ?>"></button>
+                                <button type="button"
+                                        class="spartrak-home-showcase__control spartrak-home-showcase__control--mute"
+                                        data-video-mute
+                                        aria-pressed="true"
+                                        aria-label="<?= $block->escapeHtmlAttr(__('Unmute')) ?>"></button>
+                                <button type="button"
+                                        class="spartrak-home-showcase__control spartrak-home-showcase__control--captions"
+                                        data-video-captions
+                                        aria-pressed="false"
+                                        aria-label="<?= $block->escapeHtmlAttr(__('Captions')) ?>"></button>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="spartrak-home-showcase__meta">
+                            <?php if ($video) : ?>
+                                <p class="spartrak-home-showcase__time" data-video-time dir="ltr"></p>
+                            <?php endif; ?>
+                            <?php if ($video && $video['title'] !== '') : ?>
+                                <p class="spartrak-home-showcase__handle">
+                                    <?= $block->escapeHtml($video['title']) ?>
+                                </p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="spartrak-home-showcase__product">
+                    <?= /* @noEscape */ $block->renderCard($product, $block->getCardIndex((int) $index), 'horizontal') ?>
+                </div>
+            </li>
+        <?php endforeach; ?>
+    </ul>
+</section>

@@ -1,0 +1,382 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  THE SECTION FORM — ONE FORM FOR EVERY SECTION TYPE
+  ===========================================================================
+  Rather than four forms that drift apart, there is one, and the `type` select
+  switches which fieldsets apply. That is what the brief means by not
+  duplicating the admin UI per section: adding a second banner section, or a
+  fourth product carousel, reuses this exact screen.
+
+  HOW THE SWITCHING WORKS, AND WHY IT IS DECLARATIVE
+  ===========================================================================
+  `switcherConfig` on the type select is Magento's OWN mechanism (the same one
+  Sales Rules and Bundle options use). Every rule below is data — there is no
+  custom JS component, no jQuery listener, and nothing to maintain when a type
+  is added. The rules read: "when type is X, show these fieldsets and hide
+  those."
+-->
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form_data_source</item>
+        </item>
+        <item name="label" xsi:type="string" translate="true">Section</item>
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
+    </argument>
+
+    <settings>
+        <buttons>
+            <button name="back" class="Magento\Backend\Block\Widget\Button">
+                <label translate="true">Back</label>
+                <class>back</class>
+                <url path="*/*/"/>
+            </button>
+            <button name="save" class="Magento\Backend\Block\Widget\Button">
+                <label translate="true">Save Section</label>
+                <class>primary</class>
+                <data_attribute>
+                    <item name="mage-init" xsi:type="array">
+                        <item name="buttonAdapter" xsi:type="array">
+                            <item name="actions" xsi:type="array">
+                                <item name="0" xsi:type="array">
+                                    <item name="targetName" xsi:type="string">${ $.name }</item>
+                                    <item name="actionName" xsi:type="string">save</item>
+                                </item>
+                            </item>
+                        </item>
+                    </item>
+                </data_attribute>
+            </button>
+        </buttons>
+        <namespace>spartrak_homepage_section_form</namespace>
+        <dataScope>data</dataScope>
+        <deps>
+            <dep>spartrak_homepage_section_form.spartrak_homepage_section_form_data_source</dep>
+        </deps>
+    </settings>
+
+    <dataSource name="spartrak_homepage_section_form_data_source">
+        <argument name="data" xsi:type="array">
+            <item name="js_config" xsi:type="array">
+                <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
+            </item>
+        </argument>
+        <settings>
+            <submitUrl path="spartrak_homepage/section/save"/>
+        </settings>
+        <aclResource>Spartrak_Homepage::section</aclResource>
+        <dataProvider class="Spartrak\Homepage\Model\Section\DataProvider" name="spartrak_homepage_section_form_data_source">
+            <settings>
+                <requestFieldName>section_id</requestFieldName>
+                <primaryFieldName>section_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+
+    <fieldset name="general">
+        <settings>
+            <label translate="true">Section Settings</label>
+        </settings>
+
+        <field name="section_id" formElement="hidden">
+            <settings>
+                <dataType>number</dataType>
+            </settings>
+        </field>
+
+        <field name="type" formElement="select" sortOrder="10">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="switcherConfig" xsi:type="array">
+                        <item name="enabled" xsi:type="boolean">true</item>
+                        <item name="rules" xsi:type="array">
+                            <item name="0" xsi:type="array">
+                                <item name="value" xsi:type="string">banner</item>
+                                <item name="actions" xsi:type="array">
+                                    <item name="0" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.product_settings</item>
+                                        <item name="callback" xsi:type="string">hide</item>
+                                    </item>
+                                    <item name="1" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.category_picks</item>
+                                        <item name="callback" xsi:type="string">hide</item>
+                                    </item>
+                                    <item name="2" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.banner_hint</item>
+                                        <item name="callback" xsi:type="string">show</item>
+                                    </item>
+                                </item>
+                            </item>
+                            <item name="1" xsi:type="array">
+                                <item name="value" xsi:type="string">category_tiles</item>
+                                <item name="actions" xsi:type="array">
+                                    <item name="0" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.product_settings</item>
+                                        <item name="callback" xsi:type="string">hide</item>
+                                    </item>
+                                    <item name="1" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.category_picks</item>
+                                        <item name="callback" xsi:type="string">show</item>
+                                    </item>
+                                    <item name="2" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.banner_hint</item>
+                                        <item name="callback" xsi:type="string">hide</item>
+                                    </item>
+                                </item>
+                            </item>
+                            <item name="2" xsi:type="array">
+                                <item name="value" xsi:type="string">product_carousel</item>
+                                <item name="actions" xsi:type="array">
+                                    <item name="0" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.product_settings</item>
+                                        <item name="callback" xsi:type="string">show</item>
+                                    </item>
+                                    <item name="1" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.category_picks</item>
+                                        <item name="callback" xsi:type="string">hide</item>
+                                    </item>
+                                    <item name="2" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.banner_hint</item>
+                                        <item name="callback" xsi:type="string">hide</item>
+                                    </item>
+                                </item>
+                            </item>
+                            <item name="3" xsi:type="array">
+                                <item name="value" xsi:type="string">product_video_carousel</item>
+                                <item name="actions" xsi:type="array">
+                                    <item name="0" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.product_settings</item>
+                                        <item name="callback" xsi:type="string">show</item>
+                                    </item>
+                                    <item name="1" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.category_picks</item>
+                                        <item name="callback" xsi:type="string">hide</item>
+                                    </item>
+                                    <item name="2" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.banner_hint</item>
+                                        <item name="callback" xsi:type="string">hide</item>
+                                    </item>
+                                </item>
+                            </item>
+                        </item>
+                    </item>
+                </item>
+            </argument>
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Section Type</label>
+                <notice translate="true">Decides how the section renders. It can be changed later without losing the section's content.</notice>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Spartrak\Homepage\Model\Source\SectionTypeOptions"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+
+        <field name="code" formElement="input" sortOrder="20">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Identifier</label>
+                <notice translate="true">Lowercase letters, numbers and underscores. Used internally and in the section's HTML id — it is not shown to shoppers.</notice>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                    <rule name="validate-identifier" xsi:type="boolean">true</rule>
+                </validation>
+            </settings>
+        </field>
+
+        <field name="title_ar" formElement="input" sortOrder="30">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Title (Arabic)</label>
+                <notice translate="true">Shown as the section heading on Arabic store views.</notice>
+            </settings>
+        </field>
+
+        <field name="title_en" formElement="input" sortOrder="40">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Title (English)</label>
+                <notice translate="true">Shown as the section heading on English store views.</notice>
+            </settings>
+        </field>
+
+        <field name="is_active" formElement="checkbox" sortOrder="50">
+            <settings>
+                <dataType>boolean</dataType>
+                <label translate="true">Enabled</label>
+                <notice translate="true">A disabled section does not render on the homepage at all.</notice>
+            </settings>
+            <formElements>
+                <checkbox>
+                    <settings>
+                        <valueMap>
+                            <map name="false" xsi:type="number">0</map>
+                            <map name="true" xsi:type="number">1</map>
+                        </valueMap>
+                        <prefer>toggle</prefer>
+                    </settings>
+                </checkbox>
+            </formElements>
+        </field>
+
+        <field name="sort_order" formElement="input" sortOrder="60">
+            <settings>
+                <dataType>number</dataType>
+                <label translate="true">Position</label>
+                <notice translate="true">Lower numbers appear higher on the page. The section in position 0 is treated as the page's above-the-fold content and loads its first image at high priority.</notice>
+                <validation>
+                    <rule name="validate-number" xsi:type="boolean">true</rule>
+                </validation>
+            </settings>
+        </field>
+
+        <field name="link_url" formElement="input" sortOrder="70">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">"View all" URL</label>
+                <notice translate="true">Optional. Leave empty and a product section links to its own category; leave empty on other types and no link is shown.</notice>
+            </settings>
+        </field>
+
+        <container name="banner_hint" sortOrder="80">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="component" xsi:type="string">Magento_Ui/js/form/components/html</item>
+                    <item name="additionalClasses" xsi:type="string">message message-notice</item>
+                    <item name="content" xsi:type="string" translate="true">Add the images for this section under Content &gt; Homepage &gt; Homepage Banners. One enabled image renders as a static banner; two or more render as a carousel.</item>
+                </item>
+            </argument>
+        </container>
+    </fieldset>
+
+    <fieldset name="product_settings" sortOrder="20">
+        <settings>
+            <label translate="true">Product Source</label>
+        </settings>
+
+        <field name="category_id" formElement="select" sortOrder="10">
+            <settings>
+                <dataType>number</dataType>
+                <label translate="true">Category</label>
+                <notice translate="true">Products are read live from this category, respecting store, status, visibility and stock. Product IDs are never fixed here.</notice>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Spartrak\Homepage\Model\Source\CategoryOptions"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+
+        <field name="product_limit" formElement="input" sortOrder="20">
+            <settings>
+                <dataType>number</dataType>
+                <label translate="true">Products to show</label>
+                <notice translate="true">How many products the carousel loads. Kept deliberately small — this is a homepage rail, not a listing page.</notice>
+                <validation>
+                    <rule name="validate-digits" xsi:type="boolean">true</rule>
+                    <rule name="validate-digits-range" xsi:type="string">1-50</rule>
+                </validation>
+            </settings>
+        </field>
+    </fieldset>
+
+    <fieldset name="category_picks" sortOrder="30">
+        <settings>
+            <label translate="true">Categories</label>
+        </settings>
+
+        <container name="category_picks_hint" sortOrder="5">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="component" xsi:type="string">Magento_Ui/js/form/components/html</item>
+                    <item name="additionalClasses" xsi:type="string">message message-notice</item>
+                    <item name="content" xsi:type="string" translate="true">Drag rows to set the order shoppers see. Each category's artwork is a fixed theme asset and is not uploaded here.</item>
+                </item>
+            </argument>
+        </container>
+
+        <dynamicRows name="category_items" sortOrder="10">
+            <settings>
+                <addButtonLabel translate="true">Add Category</addButtonLabel>
+                <componentType>dynamicRows</componentType>
+                <!-- Drag handles: the row's visual order IS its sort order,
+                     which the Save controller reads from the row index. -->
+                <dndConfig>
+                    <param name="enabled" xsi:type="boolean">true</param>
+                </dndConfig>
+                <deleteProperty>false</deleteProperty>
+            </settings>
+
+            <container name="record">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="componentType" xsi:type="string">container</item>
+                        <item name="isTemplate" xsi:type="boolean">true</item>
+                        <item name="is_collection" xsi:type="boolean">true</item>
+                        <item name="component" xsi:type="string">Magento_Ui/js/dynamic-rows/record</item>
+                        <item name="dataScope" xsi:type="string"/>
+                    </item>
+                </argument>
+
+                <field name="item_id" formElement="hidden">
+                    <settings>
+                        <dataType>number</dataType>
+                    </settings>
+                </field>
+
+                <field name="category_id" formElement="select" sortOrder="10">
+                    <settings>
+                        <dataType>number</dataType>
+                        <label translate="true">Category</label>
+                        <validation>
+                            <rule name="required-entry" xsi:type="boolean">true</rule>
+                        </validation>
+                    </settings>
+                    <formElements>
+                        <select>
+                            <settings>
+                                <options class="Spartrak\Homepage\Model\Source\CategoryOptions"/>
+                            </settings>
+                        </select>
+                    </formElements>
+                </field>
+
+                <field name="is_active" formElement="checkbox" sortOrder="20">
+                    <settings>
+                        <dataType>boolean</dataType>
+                        <label translate="true">Enabled</label>
+                    </settings>
+                    <formElements>
+                        <checkbox>
+                            <settings>
+                                <valueMap>
+                                    <map name="false" xsi:type="number">0</map>
+                                    <map name="true" xsi:type="number">1</map>
+                                </valueMap>
+                                <prefer>toggle</prefer>
+                            </settings>
+                        </checkbox>
+                    </formElements>
+                </field>
+
+                <actionDelete name="delete" sortOrder="30">
+                    <settings>
+                        <dataType>text</dataType>
+                        <label translate="true">Remove</label>
+                        <componentType>actionDelete</componentType>
+                    </settings>
+                </actionDelete>
+            </container>
+        </dynamicRows>
+    </fieldset>
+</form>

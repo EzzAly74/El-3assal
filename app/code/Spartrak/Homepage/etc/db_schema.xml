@@ -1,0 +1,132 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  SPARTRAK HOMEPAGE — SCHEMA
+  ===========================================================================
+  Three tables, one per entity, all owned by the dashboard. Nothing the
+  homepage renders is hardcoded in a template or authored as a CMS block.
+
+      spartrak_homepage_section        the section registry (WHAT renders,
+                                       in WHAT ORDER, under WHAT TITLE)
+      spartrak_homepage_banner         banner items belonging to a section
+      spartrak_homepage_category_item  category picks belonging to a section
+
+  WHY A SECTION REGISTRY RATHER THAN system.xml CONFIG
+  ===========================================================================
+  Config paths are fine for a fixed set of switches, but the brief requires
+  sections to carry a sort order, an enabled state and per-locale titles, and
+  requires the SAME banner architecture to be reusable by more than one
+  section without duplicating models, tables, admin UI or frontend logic. A
+  registry gives all of that: a new banner or product section is a ROW, not a
+  deploy. `type` selects the renderer; every other column is shared.
+
+  WHY EXPLICIT _en / _ar COLUMNS RATHER THAN A STORE-VALUE TABLE
+  ===========================================================================
+  The brief specifies the fields literally — "English desktop image, Arabic
+  desktop image, English mobile image, Arabic mobile image, English title,
+  Arabic title". Two flat columns per field resolve in ZERO joins on a page
+  whose first requirement is LCP, and keep the admin form a single row rather
+  than a store-switcher round trip.
+
+  The trade-off is recorded here rather than hidden: a THIRD storefront
+  language would need a schema change. If that becomes real, the migration is
+  a `spartrak_homepage_banner_store` value table plus a resolver change in
+  Model\LocaleContext — the frontend already asks that one class "which
+  locale am I?" and never reads a language column directly, precisely so this
+  stays a one-place change.
+-->
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+
+    <table name="spartrak_homepage_section" resource="default" engine="innodb" comment="Spartrak Homepage Sections">
+        <column xsi:type="int" name="section_id" unsigned="true" nullable="false" identity="true" comment="Section ID"/>
+        <column xsi:type="varchar" name="code" nullable="false" length="64" comment="Stable identifier used by layout/tests"/>
+        <column xsi:type="varchar" name="type" nullable="false" length="32" comment="Renderer type: banner|category_tiles|product_carousel|product_video_carousel"/>
+        <column xsi:type="varchar" name="title_en" nullable="true" length="255" comment="Section title (English store views)"/>
+        <column xsi:type="varchar" name="title_ar" nullable="true" length="255" comment="Section title (Arabic store views)"/>
+        <column xsi:type="int" name="category_id" unsigned="true" nullable="true" comment="Source category for product sections"/>
+        <column xsi:type="smallint" name="product_limit" unsigned="true" nullable="false" default="10" comment="Max products fetched for product sections"/>
+        <column xsi:type="varchar" name="link_url" nullable="true" length="255" comment="Optional View All override; falls back to the category URL"/>
+        <column xsi:type="smallint" name="is_active" unsigned="true" nullable="false" default="1" comment="Enabled"/>
+        <column xsi:type="int" name="sort_order" nullable="false" default="0" comment="Position on the homepage"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="section_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="SPARTRAK_HOMEPAGE_SECTION_CODE">
+            <column name="code"/>
+        </constraint>
+        <!--
+          The frontend's ONLY query against this table is
+          "active sections, in order" — this index answers it outright.
+        -->
+        <index referenceId="SPARTRAK_HOMEPAGE_SECTION_IS_ACTIVE_SORT_ORDER" indexType="btree">
+            <column name="is_active"/>
+            <column name="sort_order"/>
+        </index>
+    </table>
+
+    <table name="spartrak_homepage_banner" resource="default" engine="innodb" comment="Spartrak Homepage Banner Items">
+        <column xsi:type="int" name="banner_id" unsigned="true" nullable="false" identity="true" comment="Banner ID"/>
+        <column xsi:type="int" name="section_id" unsigned="true" nullable="false" comment="Owning section"/>
+        <column xsi:type="varchar" name="title_en" nullable="true" length="255" comment="Title / alt text (English store views)"/>
+        <column xsi:type="varchar" name="title_ar" nullable="true" length="255" comment="Title / alt text (Arabic store views)"/>
+        <column xsi:type="varchar" name="image_desktop_en" nullable="true" length="255" comment="Desktop image, English"/>
+        <column xsi:type="varchar" name="image_desktop_ar" nullable="true" length="255" comment="Desktop image, Arabic"/>
+        <column xsi:type="varchar" name="image_mobile_en" nullable="true" length="255" comment="Mobile image, English"/>
+        <column xsi:type="varchar" name="image_mobile_ar" nullable="true" length="255" comment="Mobile image, Arabic"/>
+        <column xsi:type="varchar" name="url" nullable="true" length="255" comment="Optional destination URL"/>
+        <column xsi:type="smallint" name="is_active" unsigned="true" nullable="false" default="1" comment="Enabled"/>
+        <column xsi:type="int" name="sort_order" nullable="false" default="0" comment="Position within the section"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="banner_id"/>
+        </constraint>
+        <!--
+          CASCADE, not RESTRICT: a banner has no meaning without its section,
+          so deleting the section must not leave orphan rows behind for the
+          frontend to skip over on every render.
+        -->
+        <constraint xsi:type="foreign" referenceId="SPARTRAK_HOMEPAGE_BANNER_SECTION_ID_SECTION_SECTION_ID"
+                    table="spartrak_homepage_banner" column="section_id"
+                    referenceTable="spartrak_homepage_section" referenceColumn="section_id" onDelete="CASCADE"/>
+        <index referenceId="SPARTRAK_HOMEPAGE_BANNER_SECTION_ID_IS_ACTIVE_SORT_ORDER" indexType="btree">
+            <column name="section_id"/>
+            <column name="is_active"/>
+            <column name="sort_order"/>
+        </index>
+    </table>
+
+    <table name="spartrak_homepage_category_item" resource="default" engine="innodb" comment="Spartrak Homepage Category Picks">
+        <column xsi:type="int" name="item_id" unsigned="true" nullable="false" identity="true" comment="Item ID"/>
+        <column xsi:type="int" name="section_id" unsigned="true" nullable="false" comment="Owning section"/>
+        <column xsi:type="int" name="category_id" unsigned="true" nullable="false" comment="Magento category"/>
+        <column xsi:type="smallint" name="is_active" unsigned="true" nullable="false" default="1" comment="Enabled"/>
+        <column xsi:type="int" name="sort_order" nullable="false" default="0" comment="Position within the section"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="item_id"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="SPARTRAK_HOMEPAGE_CTGR_ITEM_SECTION_ID_SECTION_SECTION_ID"
+                    table="spartrak_homepage_category_item" column="section_id"
+                    referenceTable="spartrak_homepage_section" referenceColumn="section_id" onDelete="CASCADE"/>
+        <!--
+          The category row goes too when the category itself is deleted —
+          otherwise the tile section renders a gap the admin cannot see or
+          fix from the dashboard.
+        -->
+        <constraint xsi:type="foreign" referenceId="SPARTRAK_HOMEPAGE_CTGR_ITEM_CTGR_ID_CAT_CTGR_ENTT_ENTT_ID"
+                    table="spartrak_homepage_category_item" column="category_id"
+                    referenceTable="catalog_category_entity" referenceColumn="entity_id" onDelete="CASCADE"/>
+        <constraint xsi:type="unique" referenceId="SPARTRAK_HOMEPAGE_CTGR_ITEM_SECTION_ID_CATEGORY_ID">
+            <column name="section_id"/>
+            <column name="category_id"/>
+        </constraint>
+        <index referenceId="SPARTRAK_HOMEPAGE_CTGR_ITEM_SECTION_ID_IS_ACTIVE_SORT_ORDER" indexType="btree">
+            <column name="section_id"/>
+            <column name="is_active"/>
+            <column name="sort_order"/>
+        </index>
+    </table>
+
+</schema>

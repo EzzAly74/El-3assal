@@ -1,0 +1,137 @@
+<?xml version="1.0"?>
+<!--
+  The section grid. Uses Magento's GENERIC UI data provider against the
+  SearchResult virtual type registered in etc/di.xml, so filtering, sorting,
+  paging, column control and bookmarks all come from core rather than from a
+  data-provider class of our own.
+-->
+<listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">spartrak_homepage_section_listing.spartrak_homepage_section_listing_data_source</item>
+        </item>
+    </argument>
+    <settings>
+        <spinner>spartrak_homepage_section_columns</spinner>
+        <deps>
+            <dep>spartrak_homepage_section_listing.spartrak_homepage_section_listing_data_source</dep>
+        </deps>
+        <buttons>
+            <button name="add">
+                <url path="*/*/new"/>
+                <class>primary</class>
+                <label translate="true">Add Section</label>
+            </button>
+        </buttons>
+    </settings>
+
+    <dataSource name="spartrak_homepage_section_listing_data_source" component="Magento_Ui/js/grid/provider">
+        <settings>
+            <storageConfig>
+                <param name="indexField" xsi:type="string">section_id</param>
+            </storageConfig>
+            <updateUrl path="mui/index/render"/>
+        </settings>
+        <aclResource>Spartrak_Homepage::section</aclResource>
+        <dataProvider class="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider"
+                      name="spartrak_homepage_section_listing_data_source">
+            <settings>
+                <requestFieldName>section_id</requestFieldName>
+                <primaryFieldName>section_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+
+    <listingToolbar name="listing_top">
+        <settings>
+            <sticky>true</sticky>
+        </settings>
+        <bookmark name="bookmarks"/>
+        <columnsControls name="columns_controls"/>
+        <filters name="listing_filters"/>
+        <paging name="listing_paging"/>
+    </listingToolbar>
+
+    <columns name="spartrak_homepage_section_columns">
+        <settings>
+            <childDefaults>
+                <param name="fieldAction" xsi:type="array">
+                    <item name="provider" xsi:type="string">spartrak_homepage_section_listing.spartrak_homepage_section_listing.spartrak_homepage_section_columns.actions</item>
+                    <item name="target" xsi:type="string">applyAction</item>
+                    <item name="params" xsi:type="array">
+                        <item name="0" xsi:type="string">edit</item>
+                        <item name="1" xsi:type="string">${ $.$data.rowIndex }</item>
+                    </item>
+                </param>
+            </childDefaults>
+        </settings>
+
+        <column name="section_id" sortOrder="10">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">ID</label>
+                <sorting>asc</sorting>
+            </settings>
+        </column>
+
+        <column name="sort_order" sortOrder="20">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">Position</label>
+            </settings>
+        </column>
+
+        <column name="code" sortOrder="30">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Identifier</label>
+            </settings>
+        </column>
+
+        <column name="type" component="Magento_Ui/js/grid/columns/select" sortOrder="40">
+            <settings>
+                <options class="Spartrak\Homepage\Model\Source\SectionTypeOptions"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <label translate="true">Type</label>
+            </settings>
+        </column>
+
+        <column name="title_ar" sortOrder="50">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Title (Arabic)</label>
+            </settings>
+        </column>
+
+        <column name="title_en" sortOrder="60">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Title (English)</label>
+            </settings>
+        </column>
+
+        <column name="category_id" sortOrder="70">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">Category ID</label>
+            </settings>
+        </column>
+
+        <column name="is_active" component="Magento_Ui/js/grid/columns/select" sortOrder="80">
+            <settings>
+                <options class="Magento\Config\Model\Config\Source\Enabledisable"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <label translate="true">Status</label>
+            </settings>
+        </column>
+
+        <actionsColumn name="actions" class="Spartrak\Homepage\Ui\Component\Listing\Column\SectionActions" sortOrder="90">
+            <settings>
+                <indexField>section_id</indexField>
+                <resizeEnabled>false</resizeEnabled>
+            </settings>
+        </actionsColumn>
+    </columns>
+</listing>

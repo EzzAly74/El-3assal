@@ -1,0 +1,150 @@
+<?php
+/**
+ * Spartrak Homepage — "الفئات الأكثر بحثا" (Figma 595:15067).
+ *
+ * A navy stage carrying a blueprint backdrop, a large per-category visual and
+ * the category's name at 70px, with a rail of category cards scrolling across
+ * the front. Scrolling the rail — or focusing a card — reveals that
+ * category's visual.
+ *
+ * ===========================================================================
+ * WHAT COMES FROM WHERE (the brief's rule for THIS section, exactly)
+ * ===========================================================================
+ *   dashboard -> which categories, their order, the section title
+ *   Magento   -> each category's name, URL and blurb
+ *   theme     -> ALL artwork. The tile photo and the big reveal visual are
+ *                static theme assets keyed by the category's url_key. There
+ *                is deliberately no image field on the dashboard row and the
+ *                category's own Magento image is deliberately not read.
+ *
+ * ===========================================================================
+ * THE REVEAL: WHY IT CANNOT SHIFT LAYOUT OR JANK
+ * ===========================================================================
+ * Every visual is rendered ONCE, up front, absolutely positioned in the same
+ * stage box and stacked. Switching category changes ONE attribute on the
+ * stage; CSS crossfades via `opacity` and a small `translate`, both of which
+ * the compositor animates off the main thread. Consequences:
+ *
+ *   - no element enters or leaves the flow, so CLS is structurally zero
+ *     rather than merely small;
+ *   - no DOM node is created, moved or destroyed while scrolling, so there is
+ *     nothing to trigger layout or paint;
+ *   - the JS does not animate anything — it only reports which card is
+ *     centred, throttled through IntersectionObserver rather than a scroll
+ *     handler, so no work happens per scroll event.
+ *
+ * The first visual is already correct in the server-rendered HTML, so the
+ * section is right before any JS runs, and `prefers-reduced-motion` turns the
+ * crossfade into a plain swap in CSS.
+ *
+ * @var \Spartrak\Homepage\Block\Section\CategoryTiles $block
+ */
+
+$tiles = $block->getTiles();
+$initial = $block->getInitialTile();
+$hasVisuals = $block->hasVisuals();
+$hasTitle = $block->getTitle() !== '';
+?>
+<section class="spartrak-home-section spartrak-home-tiles"
+    <?php if ($hasTitle) : ?>aria-labelledby="<?= $block->escapeHtmlAttr($block->getHeadingId()) ?>"<?php endif; ?>>
+
+    <?= /* @noEscape */ $block->getHeadHtml() ?>
+
+    <div class="spartrak-home-tiles__stage"
+         data-active-index="0"
+         <?php if (count($tiles) > 1) : ?>
+             <?php /*
+               TWO widgets on one element, and both are needed:
+                 spartrakHomeCarousel drives the prev/next buttons below (they
+                 use the same data-carousel-* contract as every other rail on
+                 the page, so they get the same implementation);
+                 spartrakHomeTiles watches which card is centred and reveals
+                 the matching visual.
+               Neither is requested at all when there is only one tile —
+               there is then nothing to page between and nothing to reveal.
+             */ ?>
+             data-mage-init='{"spartrakHomeCarousel":{"mode":"rail"},"spartrakHomeTiles":{}}'
+         <?php endif; ?>>
+
+        <?php /* Figma 595:15076 — the small dark eyebrow chip over the stage. */ ?>
+        <span class="spartrak-home-tiles__eyebrow"><?= $block->escapeHtml(__('ElAssal categories')) ?></span>
+
+        <?php if ($hasVisuals) : ?>
+            <div class="spartrak-home-tiles__visuals" aria-hidden="true">
+                <?php foreach ($tiles as $index => $tile) : ?>
+                    <?php if (empty($tile['visual_image'])) : ?>
+                        <?php continue; ?>
+                    <?php endif; ?>
+                    <img class="spartrak-home-tiles__visual"
+                         data-visual-index="<?= (int) $index ?>"
+                         src="<?= $block->escapeUrl($tile['visual_image']) ?>"
+                         alt=""
+                         <?php /*
+                           Only the first visual is eager: it is the one
+                           painted on load. The rest are lazy AND
+                           off-screen-by-opacity, so the browser fetches them
+                           as the shopper approaches the section rather than
+                           competing with the page's real LCP.
+                         */ ?>
+                         loading="<?= $index === 0 ? 'eager' : 'lazy' ?>"
+                         decoding="async">
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+
+        <?php /*
+          The 70px category name (Figma 595:15088). Server-rendered with the
+          FIRST category's name so the stage is correct before JS; the widget
+          swaps only this node's text when the active card changes.
+        */ ?>
+        <p class="spartrak-home-tiles__name" data-tiles-name aria-live="off">
+            <?= $block->escapeHtml($initial['name'] ?? '') ?>
+        </p>
+
+        <div class="spartrak-home-tiles__rail-wrap">
+            <ul class="spartrak-home-tiles__rail" data-carousel-track>
+                <?php foreach ($tiles as $index => $tile) : ?>
+                    <li class="spartrak-home-tiles__item" data-carousel-slide data-index="<?= (int) $index ?>">
+                        <a class="spartrak-home-tiles__card" href="<?= $block->escapeUrl($tile['url']) ?>">
+                            <span class="spartrak-home-tiles__card-media">
+                                <?php if (!empty($tile['tile_image'])) : ?>
+                                    <img class="spartrak-home-tiles__card-image"
+                                         src="<?= $block->escapeUrl($tile['tile_image']) ?>"
+                                         alt=""
+                                         loading="lazy"
+                                         decoding="async">
+                                <?php endif; ?>
+                            </span>
+                            <span class="spartrak-home-tiles__card-body">
+                                <span class="spartrak-home-tiles__card-name">
+                                    <?= $block->escapeHtml($tile['name']) ?>
+                                </span>
+                                <?php if ($tile['description'] !== '') : ?>
+                                    <span class="spartrak-home-tiles__card-desc">
+                                        <?= $block->escapeHtml($tile['description']) ?>
+                                    </span>
+                                <?php endif; ?>
+                                <span class="spartrak-home-tiles__card-cta">
+                                    <?= $block->escapeHtml(__('Browse all')) ?>
+                                </span>
+                            </span>
+                        </a>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+
+            <?php if (count($tiles) > 1) : ?>
+                <div class="spartrak-home-tiles__nav">
+                    <button type="button"
+                            class="spartrak-home-tiles__nav-button spartrak-home-tiles__nav-button--prev"
+                            data-carousel-prev
+                            aria-label="<?= $block->escapeHtmlAttr(__('Previous')) ?>"></button>
+                    <button type="button"
+                            class="spartrak-home-tiles__nav-button spartrak-home-tiles__nav-button--next"
+                            data-carousel-next
+                            aria-label="<?= $block->escapeHtmlAttr(__('Next')) ?>"></button>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</section>

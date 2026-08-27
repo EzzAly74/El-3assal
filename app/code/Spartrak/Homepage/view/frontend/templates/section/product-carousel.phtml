@@ -1,0 +1,57 @@
+<?php
+/**
+ * Spartrak Homepage — category-driven product carousel.
+ *
+ * ONE template for BOTH "الأكثر مبيعا" (Figma 595:15115) and "عروض مميزه"
+ * (595:14586). The two sections are the same component pointed at different
+ * categories from the dashboard — different data, not different code.
+ *
+ * ===========================================================================
+ * WHY THE RAIL IS A SCROLL CONTAINER, NOT A JS-TRANSFORMED TRACK
+ * ===========================================================================
+ * `overflow-x: auto` + `scroll-snap-type` gives native momentum scrolling,
+ * native touch, native keyboard, native RTL and native accessibility, at zero
+ * JS cost — and it WORKS BEFORE THE JS LOADS, which a transform-driven track
+ * does not. The optional widget only teaches the header arrows to call
+ * scrollBy(); if it never loads, the rail still scrolls and only the arrows
+ * are inert. That is the brief's "avoid unnecessary JavaScript" and
+ * CLAUDE.md's "native browser/CSS behaviour over JS" applied literally.
+ *
+ * Every card is the SHARED Spartrak_Catalog::product/card.phtml — the same
+ * component the PLP and the search grid render. No homepage-specific card.
+ *
+ * @var \Spartrak\Homepage\Block\Section\ProductCarousel $block
+ */
+
+$products = $block->getProducts();
+$isCarousel = $block->isCarousel();
+$hasTitle = $block->getTitle() !== '';
+?>
+<section class="spartrak-home-section spartrak-home-rail"
+    <?php if ($hasTitle) : ?>aria-labelledby="<?= $block->escapeHtmlAttr($block->getHeadingId()) ?>"<?php endif; ?>
+    <?php if ($isCarousel) : ?>data-mage-init='{"spartrakHomeCarousel":{"mode":"rail"}}'<?php endif; ?>>
+
+    <?= /* @noEscape */ $block->getHeadHtml() ?>
+
+    <div class="spartrak-home-rail__panel">
+        <ul class="spartrak-home-rail__track" data-carousel-track>
+            <?php foreach ($products as $index => $product) : ?>
+                <li class="spartrak-home-rail__item" data-carousel-slide>
+                    <?= /* @noEscape */ $block->renderCard($product, $block->getCardIndex((int) $index)) ?>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+
+        <?php if ($isCarousel) : ?>
+            <?php /*
+              Figma 595:15326 — a 4px progress bar under the rail. Driven by
+              the scroll position through a single CSS custom property the
+              widget writes on rAF, so scrolling repaints one transform and
+              touches no other DOM node.
+            */ ?>
+            <div class="spartrak-home-rail__progress" aria-hidden="true">
+                <span class="spartrak-home-rail__progress-bar" data-carousel-progress></span>
+            </div>
+        <?php endif; ?>
+    </div>
+</section>

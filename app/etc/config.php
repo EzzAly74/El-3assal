@@ -377,6 +377,7 @@ return [
         'Smartwave_Socialfeeds' => 1,
         'Spartrak_Catalog' => 1,
         'Spartrak_CustomerAuth' => 1,
+        'Spartrak_Homepage' => 1,
         'Spartrak_Search' => 1
     ]
 ];

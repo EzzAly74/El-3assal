@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!--
+  Two separate resources, not one.
+
+  Banner artwork is day-to-day marketing work; section structure (which
+  sections exist, their type, their source category, their order) is closer to
+  site configuration. Splitting them lets a merchandiser be given the banner
+  role without also being able to delete a section or repoint it at another
+  category — least privilege, and it costs one extra node.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
+    <acl>
+        <resources>
+            <resource id="Magento_Backend::admin">
+                <resource id="Magento_Backend::content">
+                    <resource id="Spartrak_Homepage::homepage" title="Spartrak Homepage" sortOrder="20">
+                        <resource id="Spartrak_Homepage::section" title="Homepage Sections" sortOrder="10"/>
+                        <resource id="Spartrak_Homepage::banner" title="Homepage Banners" sortOrder="20"/>
+                    </resource>
+                </resource>
+            </resource>
+        </resources>
+    </acl>
+</config>

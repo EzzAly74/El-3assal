@@ -6,11 +6,12 @@
  * grid and search-results grid (each Spartrak theme's own
  * Magento_Catalog/templates/product/list.phtml, which passes the page's
  * real Magento\Catalog\Block\Product\ListProduct instance as `list_block`
- * so this template can use its native getAddToCartUrl()) and the
- * Homepage's Featured Products rail (Magento_Cms/templates/homepage/
- * sections.phtml). Never build a page-specific card template — extend
- * this file instead, per 04-COMPONENT-INVENTORY.md's "Card - Product"
- * single-component rule.
+ * so this template can use its native getAddToCartUrl()) and every
+ * dashboard-driven homepage product section (Spartrak_Homepage's
+ * Block\Section\ProductCarousel::renderCard — the CMS-block homepage that
+ * used to call this template was removed in the 2026-08-27 homepage pass).
+ * Never build a page-specific card template — extend this file instead, per
+ * 04-COMPONENT-INVENTORY.md's "Card - Product" single-component rule.
  *
  * --- FIGMA PASS 2026-08-26 -------------------------------------------
  * Rebuilt against the real Figma nodes, read live via the Figma MCP
@@ -99,6 +100,29 @@ if (!$product) {
 // (e.g. the homepage rail) keeps the safe, lazy behaviour.
 $index = $block->hasData('index') ? (int) $block->getData('index') : 99;
 $aboveFold = $index < 4;
+
+/**
+ * VARIANT — one component, two layouts (added by the HOMEPAGE PASS 2026-08-27).
+ *
+ * Figma's `Card - Product` is a single component with a horizontal instance:
+ * node 746:37718, used inside the homepage showcase item (595:14852) at
+ * 532x140 — image on the inline-start side, name on one line, no add-to-cart
+ * button, and the wishlist heart moved out of the image overlay and into the
+ * content row.
+ *
+ * That is a VARIANT of this component in the design file, so it is a variant
+ * here too, not a second template. 04-COMPONENT-INVENTORY.md's single
+ * "Card - Product" rule is about not forking the card per page — a variant the
+ * design itself defines is the opposite of a fork.
+ *
+ *   'grid'       (default) — the PLP / search / homepage-rail card
+ *   'horizontal'           — the showcase card
+ *
+ * Everything upstream of this line (price, rating, discount, wishlist) is
+ * computed identically for both; only the markup below branches.
+ */
+$variant = (string) ($block->getData('variant') ?: 'grid');
+$isHorizontal = $variant === 'horizontal';
 
 $imageHelper = $this->helper(\Magento\Catalog\Helper\Image::class);
 $image = $imageHelper->init($product, 'category_page_grid');
@@ -614,6 +638,60 @@ $iconPlus = $svgUri('<svg width="12.9167" height="12.9167" viewBox="0 0 12.9167 
 }
 </style>
 <?php endif; ?>
+<?php if ($isHorizontal) : ?>
+    <?php /*
+      HORIZONTAL VARIANT — Figma 746:37718.
+      DOM order is [content, media] so that under dir="rtl" the 140px image
+      lands on the inline-start (right) edge exactly as the design composes
+      it, and mirrors correctly on an English store view — same technique as
+      the grid variant's overlay row, no RTL stylesheet involved.
+      No add-to-cart form and no promo badge: neither exists on this variant
+      in Figma, and the whole card is a link to the product.
+    */ ?>
+    <div class="spartrak-card spartrak-card--horizontal">
+        <div class="spartrak-card__content">
+            <?php if (trim($wishlistHtml)) : ?>
+                <div class="spartrak-card__wishlist"><?= /* @noEscape */ $wishlistHtml ?></div>
+            <?php endif; ?>
+            <div class="spartrak-card__heading">
+                <div class="spartrak-card__name-wrap">
+                    <a class="spartrak-card__name" href="<?= $block->escapeUrl($product->getProductUrl()) ?>">
+                        <?= $block->escapeHtml($product->getName()) ?>
+                    </a>
+                </div>
+                <?php if ($ratingPercent > 0) : ?>
+                    <div class="spartrak-card__rating">
+                        <span class="spartrak-card__stars"
+                              style="--spartrak-rating-fill: <?= (int) $ratingPercent ?>%"
+                              role="img"
+                              aria-label="<?= $block->escapeHtmlAttr(__('Rated %1 out of 5', $ratingValue)) ?>"></span>
+                        <span class="spartrak-card__rating-value"><?= $block->escapeHtml($ratingValue) ?></span>
+                        <?php if ($reviewsCount > 0) : ?>
+                            <span class="spartrak-card__rating-count" dir="auto"><?= $block->escapeHtml(__('(%1 reviews)', $reviewsCount)) ?></span>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+                <div class="spartrak-card__price"><?= /* @noEscape */ $priceHtml ?></div>
+            </div>
+        </div>
+        <div class="spartrak-card__media">
+            <a class="spartrak-card__image-link"
+               href="<?= $block->escapeUrl($product->getProductUrl()) ?>"
+               tabindex="-1"
+               aria-hidden="true">
+                <img
+                    class="spartrak-card__image"
+                    src="<?= $block->escapeUrl($image->getUrl()) ?>"
+                    alt=""
+                    width="<?= $block->escapeHtmlAttr($image->getWidth()) ?>"
+                    height="<?= $block->escapeHtmlAttr($image->getHeight()) ?>"
+                    loading="<?= $aboveFold ? 'eager' : 'lazy' ?>"
+                    decoding="async"
+                />
+            </a>
+        </div>
+    </div>
+<?php else : ?>
 <div class="spartrak-card">
     <div class="spartrak-card__media">
         <!--
@@ -688,3 +766,4 @@ $iconPlus = $svgUri('<svg width="12.9167" height="12.9167" viewBox="0 0 12.9167 
         </div>
     </div>
 </div>
+<?php endif; ?>

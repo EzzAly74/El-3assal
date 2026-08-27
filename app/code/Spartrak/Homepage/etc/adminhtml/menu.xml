@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<!--
+  Under Content, not a new top-level menu: this IS content management, and
+  Magento already trains admins to look under Content for anything that
+  changes what a page says. A bespoke top-level entry would be a second place
+  to learn for no functional gain.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/menu.xsd">
+    <menu>
+        <add id="Spartrak_Homepage::homepage"
+             title="Homepage"
+             module="Spartrak_Homepage"
+             sortOrder="15"
+             parent="Magento_Backend::content"
+             resource="Spartrak_Homepage::homepage"/>
+        <add id="Spartrak_Homepage::section"
+             title="Homepage Sections"
+             module="Spartrak_Homepage"
+             sortOrder="10"
+             parent="Spartrak_Homepage::homepage"
+             action="spartrak_homepage/section/index"
+             resource="Spartrak_Homepage::section"/>
+        <add id="Spartrak_Homepage::banner"
+             title="Homepage Banners"
+             module="Spartrak_Homepage"
+             sortOrder="20"
+             parent="Spartrak_Homepage::homepage"
+             action="spartrak_homepage/banner/index"
+             resource="Spartrak_Homepage::banner"/>
+    </menu>
+</config>

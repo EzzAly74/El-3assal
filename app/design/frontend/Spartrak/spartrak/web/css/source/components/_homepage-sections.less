@@ -1,250 +1,1016 @@
-// Spartrak component — Homepage sections (Phase 5).
-// Semantic tokens only, logical properties for RTL (no [dir] override
-// needed — nothing here required a genuine flip beyond what logical
-// properties give for free, same as every Phase 4 component).
+// ===========================================================================
+// Spartrak — Homepage sections
+// ===========================================================================
+// Rebuilt against the real Figma homepage (file 6FRlQfPIncVUvNiJLn2kbT,
+// frame 595:14462) for the dashboard-driven Spartrak_Homepage module. The
+// CMS-block homepage this replaced is gone — no rule here targets CMS markup.
 //
-// ASSUMPTION — REQUIRES FIGMA VERIFICATION: every visual detail below
-// (spacing, card sizing, rail behavior, colors beyond the token set) is a
-// documented default, not a Figma-confirmed value — 01-FIGMA-AUDIT.md's
-// homepage pass confirmed section ORDER and the Fork Row's structural
-// existence, not exact chrome for any of these modules.
+// Node map, so every number below is traceable:
+//   Banner section          595:14562  (arrows 595:14564, dots 595:14568)
+//   Section header          595:15068 / 595:15117 / 595:14587 / 595:14822
+//   Category tiles          595:15067  (stage 595:15074, card 595:15090)
+//   Product rail            595:15115  (panel 595:15124, progress 595:15326)
+//   Product showcase        595:14821  (item 595:14830, overlay 595:14833)
+//
+// -------------------------------------------------------------------------
+// BIDIRECTIONALITY
+// -------------------------------------------------------------------------
+// There is not one `left:` or `right:` in this file that carries layout
+// meaning, and there is no RTL companion stylesheet. Everything uses logical
+// properties (`inset-inline-*`, `margin-inline-*`, `padding-inline-*`) or
+// flexbox order, so Arabic — this storefront's primary locale — and English
+// are the same code path. Figma composes these frames RTL, so the DOM order
+// in the templates is the RTL reading order and the LTR store mirrors it for
+// free.
+//
+// -------------------------------------------------------------------------
+// MOTION
+// -------------------------------------------------------------------------
+// Only `opacity` and `transform` are ever transitioned — both composite off
+// the main thread, so no animation here can cause layout or a scroll stall.
+// Every transition is switched off under `prefers-reduced-motion` at the foot
+// of this file, in one block rather than per component.
+
+// The homepage content measure. Figma's header sits at x=48 with a matching
+// 48 on the far side of a 1440 frame, so the measure is 1344 and the gutter
+// is 48. Expressed as min() so narrow viewports keep the gutter and wide ones
+// stop growing.
+@home-measure: 1344px;
+@home-gutter: 48px;
+@home-gutter-mobile: 16px;
 
 .spartrak-home {
-    max-width: @breakpoint-desktop;
-    margin-inline: auto;
-    padding-inline: 16px;
-}
-
-.spartrak-home__promo-strip {
-    background: var(--color-bg-page);
-    text-align: center;
-    padding: 8px 16px;
-    font-size: var(--text-12);
-}
-
-.spartrak-home__hero {
-    margin-block: 16px;
-}
-
-// 17-FIGMA-CODE-AUDIT.md §2/§3 fix (2026-08-24): Hero converted from a
-// single static image/block into a real carousel (node 595:14562 —
-// confirmed 5-dot pagination + arrows). Each slide's own content
-// (image/headline/CTA) is CMS-authored HTML — this file only owns the
-// carousel mechanics' chrome (track, arrows, dots), not slide internals.
-.spartrak-home__hero-carousel {
-    position: relative;
-    overflow: hidden;
-    border-radius: var(--radius-10);
-}
-
-.spartrak-home__hero-track {
     display: flex;
-    transition: transform 0.3s ease;
-
-    img {
-        max-width: 100%;
-        height: auto;
-        display: block;
-    }
+    flex-direction: column;
+    // Figma stacks the sections with roughly 48px of air between them; the
+    // sections that carry their own full-bleed background supply their own.
+    gap: 48px;
+    padding-block: 24px 64px;
 }
 
-.spartrak-home__hero-slide {
-    flex: 0 0 100%;
+// ===========================================================================
+// SHARED SECTION SHELL + HEADER
+// ===========================================================================
+
+.spartrak-home-section {
+    position: relative;
+    width: 100%;
     min-width: 0;
 }
 
-.spartrak-home__hero-arrow {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 2;
-    width: 40px;
-    height: 40px;
-    border: 0;
-    border-radius: var(--radius-pill);
-    background: var(--color-bg-surface);
-    box-shadow: 0 4px 8px var(--color-scrim);
-    cursor: pointer;
-
-    &--prev {
-        inset-inline-start: 16px;
-    }
-
-    &--next {
-        inset-inline-end: 16px;
-    }
-}
-
-.spartrak-home__hero-dots {
-    position: absolute;
-    bottom: 16px;
-    inset-inline: 0;
-    z-index: 2;
+.spartrak-home-section__head {
     display: flex;
-    justify-content: center;
-    gap: 8px;
-}
-
-.spartrak-home__hero-dot {
-    width: 8px;
-    height: 8px;
-    border: 0;
-    border-radius: var(--radius-pill);
-    background: var(--color-bg-surface);
-    opacity: 0.6;
-    padding: 0;
-    cursor: pointer;
-
-    &[aria-selected="true"] {
-        opacity: 1;
-        background: var(--color-action-primary);
-    }
-}
-
-.spartrak-home__trust-strip {
-    display: flex;
+    align-items: center;
     justify-content: space-between;
     gap: 16px;
-    padding: 16px 0;
-    border-block: 1px solid var(--color-border-default);
-    font-size: var(--text-12);
-    color: var(--color-text-secondary);
-    flex-wrap: wrap;
+    width: 100%;
+    max-width: ~"min(100% - (@{home-gutter} * 2), @{home-measure})";
+    // Centring by auto margins rather than a wrapper element keeps the
+    // full-bleed sections' backgrounds able to escape the measure while their
+    // headers stay inside it.
+    margin-inline: auto;
+    margin-block-end: 24px;
+    min-height: 40px;
 }
 
-.spartrak-home__section-title {
-    font-size: var(--text-20);
-    color: var(--color-text-primary);
-    margin-block: 24px 12px;
-}
-
-// --- Fork Row (Shop by Machine/Brand) ---
-.spartrak-home__fork-row {
-    background: var(--color-bg-surface-subtle);
-    border-radius: var(--radius-10);
-    padding: 24px;
-    margin-block: 24px;
-    text-align: center;
-}
-
-.spartrak-home__fork-title {
-    font-size: var(--text-24);
-    color: var(--color-text-primary);
-    margin-block-end: 4px;
-}
-
-.spartrak-home__fork-subtitle {
-    font-size: var(--text-14);
-    color: var(--color-text-secondary);
-    margin-block-end: 16px;
-}
-
-.spartrak-home__fork-form {
+.spartrak-home-section__head-lead {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 12px;
-}
-
-.spartrak-home__fork-row-fields {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-
-.spartrak-home__fork-select {
-    padding: 10px 12px;
-    border-radius: var(--radius-6);
-    border: 1px solid var(--color-border-default);
-    background: var(--color-bg-field);
-    font-size: var(--text-14);
-    min-width: 180px;
-
-    &:disabled {
-        color: var(--color-text-disabled);
-    }
-}
-
-.spartrak-home__fork-submit {
-    background: var(--color-action-primary);
-    color: var(--color-action-primary-text);
-    border: 0;
-    border-radius: var(--radius-6);
-    padding: 10px 24px;
-    font-size: var(--text-14);
-    cursor: pointer;
-
-    &:hover {
-        background: var(--color-action-primary-hover);
-    }
-}
-
-// --- Shop by Part Type / Featured Products rails ---
-.spartrak-home__part-types-rail,
-.spartrak-home__featured-rail,
-.spartrak-home__brand-rail-strip {
-    display: flex;
-    gap: 12px;
-    overflow-x: auto;
-    padding-block-end: 8px;
-    scroll-snap-type: x proximity;
-}
-
-.spartrak-home__part-type-tile {
+    align-items: center;
+    gap: 16px;
     flex: 0 0 auto;
-    scroll-snap-align: start;
-    min-width: 140px;
-    padding: 16px;
-    border: 1px solid var(--color-border-default);
-    border-radius: var(--radius-6);
-    text-align: center;
+}
+
+// Occupies the lead slot when there is neither a link nor carousel arrows, so
+// `space-between` still parks the title on its Figma side.
+.spartrak-home-section__head-spacer {
+    flex: 0 0 auto;
+}
+
+// Figma 595:15073 — Display/Medium: 32px, weight 700, line-height 1.2,
+// letter-spacing tight (-0.5px).
+.spartrak-home-section__title {
+    margin: 0;
+    font-size: var(--text-32);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+    color: var(--color-text-primary);
+}
+
+// --- "View all" (Figma 595:15069) ------------------------------------------
+.spartrak-home-section__view-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-size: var(--text-18);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-action-primary);
     text-decoration: none;
-    color: var(--color-text-primary);
-    font-size: var(--text-14);
 
-    &:hover {
-        border-color: var(--color-action-primary);
-    }
-}
-
-// Featured Products rail: sizes the shared .spartrak-card (see
-// _product-card.less) for this horizontal-scroll context. The card's own
-// look (image/brand/name/price/add-to-cart) is defined once, centrally,
-// in _product-card.less — same rules the PLP grid uses.
-.spartrak-home__featured-rail .spartrak-card {
-    flex: 0 0 auto;
-    scroll-snap-align: start;
-    width: 200px;
-}
-
-.spartrak-home__brand-chip {
-    flex: 0 0 auto;
-    padding: 10px 16px;
-    border: 1px solid var(--color-border-default);
-    border-radius: var(--radius-pill);
-    font-size: var(--text-12);
-    color: var(--color-text-secondary);
-    white-space: nowrap;
-    text-decoration: none; // now a real link to the brand's filtered results (17-FIGMA-CODE-AUDIT.md fix)
-
-    &:hover {
-        border-color: var(--color-action-primary);
+    // The mega-nav pass established that Porto's global `a:visited` rule
+    // (0,1,1) outranks a bare class, and it repaints links a different navy.
+    // Pinned here for the same reason and with the same token.
+    &:visited {
         color: var(--color-action-primary);
     }
+
+    &:hover,
+    &:focus-visible {
+        text-decoration: underline;
+    }
 }
 
-@media (max-width: @breakpoint-mobile) {
-    .spartrak-home__trust-strip {
-        flex-direction: column;
-        gap: 8px;
+// Figma 595:15070 — a 24px circular chip in bg/brand-subtle holding a 16px
+// arrow. Two elements, not one: `.spartrak-icon()` paints its glyph with
+// `background-color`, so the chip's own fill and the glyph's ink would be the
+// same property fighting over one box. The span is the chip; its ::before is
+// the glyph. (Flex on the span is what blockifies that pseudo-element so its
+// width/height apply — the same reason the icon mixin works inside the
+// inline-flex buttons elsewhere in this file.)
+.spartrak-home-section__view-all-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-avatar);
+
+    &::before {
+        content: '';
+        .spartrak-icon('home-view-all-arrow.svg'; 16px; var(--color-action-primary));
+    }
+}
+
+// The arrow points "forward" in the reading direction. One asset, flipped by
+// direction rather than shipped twice.
+[dir='rtl'] .spartrak-home-section__view-all-arrow {
+    transform: scaleX(-1);
+}
+
+// --- Carousel prev/next in the header (Figma 595:15118) --------------------
+.spartrak-home-section__nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.spartrak-home-section__nav-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-field);
+    cursor: pointer;
+    transition: background-color .15s ease;
+
+    &::before {
+        content: '';
+        .spartrak-icon('chevron-right.svg'; 20px; var(--color-icon-default));
     }
 
-    .spartrak-home__fork-row-fields {
-        flex-direction: column;
+    &:hover {
+        background-color: var(--color-border-default);
     }
 
-    .spartrak-home__fork-select {
-        min-width: 100%;
+    // A control that cannot move any further is disabled by the widget rather
+    // than hidden, so the row does not reflow as a shopper scrolls.
+    &[disabled] {
+        opacity: .4;
+        cursor: default;
+    }
+}
+
+// Direction-aware chevrons: "prev" always points against the reading
+// direction and "next" with it, in both locales, from one asset.
+.spartrak-home-section__nav-button--prev::before { transform: scaleX(-1); }
+.spartrak-home-section__nav-button--next::before { transform: none; }
+
+[dir='rtl'] {
+    .spartrak-home-section__nav-button--prev::before { transform: none; }
+    .spartrak-home-section__nav-button--next::before { transform: scaleX(-1); }
+}
+
+// ===========================================================================
+// BANNER SECTION (Figma 595:14562)
+// ===========================================================================
+
+.spartrak-home-banner__frame {
+    position: relative;
+    width: 100%;
+    max-width: ~"min(100% - 48px, 1403px)";
+    margin-inline: auto;
+    overflow: hidden;
+
+    // CLS INSURANCE. The template writes real width/height from the uploaded
+    // file, which is what actually reserves the box. This aspect-ratio is the
+    // fallback for the one case where the intrinsic size cannot be read (an
+    // SVG has no raster header) — Figma's own hero ratio, 1403:462.
+    aspect-ratio: 1403 / 462;
+}
+
+.spartrak-home-banner__track {
+    display: flex;
+    width: 100%;
+    height: 100%;
+
+    // Native scroll-snap: the rail is usable — swipeable, keyboard-scrollable,
+    // momentum-scrolled — before a single byte of JS arrives, and the widget
+    // only teaches the arrows and dots to drive it.
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.spartrak-home-banner__slide {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+}
+
+.spartrak-home-banner__picture,
+.spartrak-home-banner__image {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.spartrak-home-banner__image {
+    object-fit: cover;
+    // The intrinsic width/height attributes reserve the box; this stops them
+    // from also *constraining* the rendered size on a wide viewport.
+    max-width: none;
+}
+
+// --- Arrows (Figma 595:14564 / 595:15079) ---------------------------------
+// THE REAL EXPORTED ASSET, not a CSS reconstruction. The slab is not a plain
+// rectangle: it carries 6px radii on ONE side only (the inward-facing edge)
+// and its chevron is a 16px-tall glyph, not the 20px chevron used elsewhere in
+// the theme. Rebuilding that from a background-colour plus the theme's own
+// chevron mask was visibly wrong on both counts, so `.spartrak-arrow-slab()`
+// paints Figma's own two-tone SVG instead (CLAUDE.md section 3 — use the real
+// asset, never approximate it).
+//
+// TRADE-OFF, recorded rather than hidden: a two-tone SVG cannot be re-tinted
+// through a CSS mask, so the navy (#063196) is baked into the file. It is the
+// same value as --color-action-primary today; if the brand colour ever moves,
+// this asset has to be re-exported. A mask would have made it themeable and
+// would have lost the asymmetric corners — the pixel match wins here, and this
+// comment is the breadcrumb.
+//
+// ORIENTATION: the asset points inline-start-wards with its radii on the
+// inward edge, so the control on the PHYSICAL LEFT uses it as-is and the one
+// on the PHYSICAL RIGHT is mirrored. That flips with direction, which is why
+// each variant is declared per-direction rather than once.
+.spartrak-arrow-slab() {
+    display: block;
+    width: 44px;
+    height: 74px;
+    padding: 0;
+    border: 0;
+    background-color: transparent;
+    background-image: url('../images/homepage/arrow-slab.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 44px 74px;
+    cursor: pointer;
+    transition: opacity .15s ease;
+
+    &:hover {
+        opacity: .85;
+    }
+
+    &[disabled] {
+        opacity: .4;
+        cursor: default;
+    }
+}
+
+.spartrak-home-banner__arrow {
+    .spartrak-arrow-slab();
+
+    position: absolute;
+    inset-block-start: 50%;
+    z-index: 2;
+}
+
+.spartrak-home-banner__arrow--prev {
+    inset-inline-start: 0;
+    transform: translateY(-50%);
+}
+
+.spartrak-home-banner__arrow--next {
+    inset-inline-end: 0;
+    transform: translateY(-50%) scaleX(-1);
+}
+
+[dir='rtl'] {
+    .spartrak-home-banner__arrow--prev { transform: translateY(-50%) scaleX(-1); }
+    .spartrak-home-banner__arrow--next { transform: translateY(-50%); }
+}
+
+// --- Pagination dots (Figma 595:14568) -------------------------------------
+// A white pill overhanging the bottom edge by 14px; each dot is a 3px-wide
+// bar that GROWS from 8px to 12px tall when active.
+.spartrak-home-banner__dots {
+    position: absolute;
+    inset-block-end: -14px;
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 12px;
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-surface);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .1);
+}
+
+.spartrak-home-banner__dot {
+    width: 3px;
+    height: 8px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background-color: var(--color-text-disabled);
+    cursor: pointer;
+    // height, not scale: at 3px wide a scaled bar blurs on a non-retina
+    // screen. 8px -> 12px on a 4px gap cannot shift the pill's own box
+    // because the pill is centred on its own transform, not on flow.
+    transition: height .2s ease, background-color .2s ease;
+
+    &[aria-selected='true'] {
+        height: 12px;
+        background-color: var(--color-bg-inverse);
+    }
+}
+
+// A single-banner section carries no carousel markup at all — no arrows, no
+// dots, no widget. This rule only guards against a stale DOM.
+.spartrak-home-banner:not(.spartrak-home-banner--carousel) {
+    .spartrak-home-banner__arrow,
+    .spartrak-home-banner__dots {
+        display: none;
+    }
+}
+
+// ===========================================================================
+// PRODUCT RAIL (Figma 595:15115 / 595:14586)
+// ===========================================================================
+
+.spartrak-home-rail__panel {
+    position: relative;
+    width: 100%;
+    max-width: ~"min(100% - (@{home-gutter} * 2), @{home-measure})";
+    margin-inline: auto;
+    padding: 32px 0 24px;
+    background-color: var(--color-bg-surface);
+    box-shadow: var(--shadow-container);
+}
+
+.spartrak-home-rail__track {
+    display: flex;
+    gap: 20px;
+    margin: 0;
+    padding-inline: 32px;
+    list-style: none;
+
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.spartrak-home-rail__item {
+    // Figma card: 260 wide. Fixed basis so the rail's scroll geometry is
+    // deterministic — the widget pages by exactly one item width and does not
+    // have to measure anything per frame.
+    flex: 0 0 260px;
+    width: 260px;
+    min-width: 0;
+    // Porto's `ul > li { margin-bottom: .05rem }` adds a sub-pixel to every
+    // list row and knocks the rail off its rhythm. Pinned, same finding as
+    // the search-suggestions pass.
+    margin: 0;
+    scroll-snap-align: start;
+}
+
+// --- Scroll progress bar (Figma 595:15326) ---------------------------------
+.spartrak-home-rail__progress {
+    position: relative;
+    height: 4px;
+    margin: 24px 32px 0;
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-field);
+    overflow: hidden;
+}
+
+.spartrak-home-rail__progress-bar {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 25%;
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-inverse);
+
+    // The widget writes ONE custom property per frame and the compositor does
+    // the rest — no width recalculation, no layout, nothing else touched.
+    transform: translateX(var(--spartrak-rail-progress, 0));
+    will-change: transform;
+}
+
+// ===========================================================================
+// CATEGORY TILES (Figma 595:15067)
+// ===========================================================================
+
+.spartrak-home-tiles {
+    background-color: var(--color-bg-surface);
+    box-shadow: var(--shadow-container);
+    padding-block: 48px 0;
+}
+
+.spartrak-home-tiles__stage {
+    position: relative;
+    width: 100%;
+    // Figma 595:15074: a fixed 608px navy stage. Height is fixed rather than
+    // content-derived precisely so the reveal cannot resize it.
+    height: 608px;
+    overflow: hidden;
+    background-color: var(--color-action-primary);
+
+    // Figma 595:15075 — the blueprint texture, composited with
+    // mix-blend-lighten over the navy. A background-image rather than an <img>
+    // because it is decoration with no content value, and this way it costs no
+    // DOM node and no alt-text decision.
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: url('../images/homepage/tiles-backdrop.webp');
+        background-size: cover;
+        background-position: center;
+        mix-blend-mode: lighten;
+        pointer-events: none;
+    }
+
+    // Figma 595:15083 — the two decorative circles behind the product visual.
+    &::after {
+        content: '';
+        position: absolute;
+        inset-block-start: 50%;
+        inset-inline-end: -6%;
+        width: 792px;
+        height: 711px;
+        background-image: url('../images/homepage/tiles-glow.svg');
+        background-repeat: no-repeat;
+        background-size: contain;
+        pointer-events: none;
+    }
+}
+
+// Figma 595:15076 — "فئآت العســـال" eyebrow chip.
+.spartrak-home-tiles__eyebrow {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 124px;
+    z-index: 3;
+
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+    padding: 0 20px 8px;
+    background-color: var(--color-neutral-900);
+    color: var(--color-text-inverse);
+    font-size: var(--text-12);
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+// --- The reveal stack ------------------------------------------------------
+// Every visual is present from the first paint, absolutely positioned in the
+// same box. Only the active one is opaque. Nothing enters or leaves the flow,
+// so this cannot contribute to CLS, and the crossfade is opacity+transform
+// only, so it cannot cause layout or a scroll stall.
+.spartrak-home-tiles__visuals {
+    position: absolute;
+    inset-block-end: -70px;
+    inset-inline-end: -48px;
+    z-index: 1;
+    width: 788px;
+    height: 535px;
+    pointer-events: none;
+}
+
+.spartrak-home-tiles__visual {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+
+    opacity: 0;
+    transform: translate3d(0, 16px, 0) scale(.98);
+    transition: opacity .45s ease, transform .45s ease;
+}
+
+.spartrak-home-tiles__stage[data-active-index='0'] .spartrak-home-tiles__visual[data-visual-index='0'],
+.spartrak-home-tiles__visual[data-active] {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+}
+
+// Figma 595:15088 — the 70px category name.
+.spartrak-home-tiles__name {
+    position: absolute;
+    inset-block-start: 82px;
+    inset-inline-end: 83px;
+    z-index: 2;
+
+    width: 322px;
+    margin: 0;
+    font-size: 70px;
+    font-weight: 700;
+    line-height: 1;
+    text-align: end;
+    color: var(--color-text-primary);
+
+    // The name swaps at the same moment the visual does. Same two properties,
+    // same duration, so the two read as one movement.
+    opacity: 1;
+    transition: opacity .3s ease, transform .3s ease;
+}
+
+.spartrak-home-tiles__stage[data-swapping] .spartrak-home-tiles__name {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+}
+
+// --- The card rail ---------------------------------------------------------
+.spartrak-home-tiles__rail-wrap {
+    position: absolute;
+    inset-block-start: 209px;
+    inset-inline-start: 40px;
+    z-index: 2;
+    width: 716px;
+    max-width: calc(100% - 80px);
+}
+
+.spartrak-home-tiles__rail {
+    display: flex;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.spartrak-home-tiles__item {
+    flex: 0 0 324px;
+    width: 324px;
+    margin: 0;
+    scroll-snap-align: start;
+}
+
+// Figma 595:15090 — 324x369 white card, 1px border/default, shadow/input.
+.spartrak-home-tiles__card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 369px;
+    padding: 8px;
+    border: 1px solid var(--color-border-default);
+    background-color: var(--color-bg-surface);
+    box-shadow: var(--shadow-input);
+    text-decoration: none;
+    overflow: hidden;
+    transition: border-color .15s ease;
+
+    &:hover {
+        border-color: var(--color-action-primary);
+    }
+}
+
+.spartrak-home-tiles__card-media {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    // The Figma image box is 308x206 inside an 8px pad — declared as a fixed
+    // height so a category with NO artwork keeps exactly the same card
+    // geometry as one that has it.
+    height: 206px;
+    background-color: var(--color-bg-surface-subtle);
+    flex: 0 0 auto;
+}
+
+.spartrak-home-tiles__card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.spartrak-home-tiles__card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 4px 16px;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.spartrak-home-tiles__card-name {
+    font-size: var(--text-18);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+}
+
+.spartrak-home-tiles__card-desc {
+    // Figma 595:15096: 16px regular, secondary, truncated to one line.
+    margin-block-start: -16px;
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.spartrak-home-tiles__card-cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    margin-block-start: auto;
+    padding-inline: 20px;
+    background-color: var(--color-bg-field);
+    color: var(--color-text-primary);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+// --- Stage arrows (Figma 595:15078): the 44x74 slabs, centred over the rail
+.spartrak-home-tiles__nav {
+    position: absolute;
+    inset-block-start: -87px;
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    z-index: 3;
+}
+
+// Same 44x74 slab as the hero, same asset, same orientation rule.
+.spartrak-home-tiles__nav-button {
+    .spartrak-arrow-slab();
+}
+
+.spartrak-home-tiles__nav-button--next { transform: scaleX(-1); }
+
+[dir='rtl'] {
+    .spartrak-home-tiles__nav-button--prev { transform: scaleX(-1); }
+    .spartrak-home-tiles__nav-button--next { transform: none; }
+}
+
+// ===========================================================================
+// PRODUCT SHOWCASE (Figma 595:14821)
+// ===========================================================================
+
+.spartrak-home-showcase__track {
+    display: flex;
+    gap: 16px;
+    margin: 0;
+    padding-inline: @home-gutter;
+    list-style: none;
+
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.spartrak-home-showcase__item {
+    // Figma 595:14830: a 557-wide card, three across.
+    flex: 0 0 557px;
+    width: 557px;
+    max-width: calc(100vw - (@home-gutter-mobile * 2));
+    margin: 0;
+    padding: 12px;
+    background-color: var(--color-bg-surface);
+    box-shadow: var(--shadow-container);
+    scroll-snap-align: start;
+
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.spartrak-home-showcase__media {
+    position: relative;
+    // Figma's media frame is 533x692 — a 0.77 portrait. aspect-ratio rather
+    // than a fixed height so the card scales down cleanly on a phone without
+    // the poster letterboxing.
+    aspect-ratio: 533 / 692;
+    overflow: hidden;
+    background-color: var(--color-bg-field);
+}
+
+.spartrak-home-showcase__poster,
+.spartrak-home-showcase__frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    object-fit: cover;
+}
+
+// Figma 595:14833 — transparent-to-black gradient, blurred, 20px pad.
+.spartrak-home-showcase__overlay {
+    position: absolute;
+    inset-block-end: 0;
+    inset-inline: 0;
+    z-index: 2;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 20px;
+
+    background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0), rgba(0, 0, 0, .8));
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+}
+
+.spartrak-home-showcase__controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+// Figma 595:14836 — 48px circle, white at 20%, backdrop-blurred, 20px glyph.
+.spartrak-home-showcase__control {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background-color: rgba(255, 255, 255, .2);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    cursor: pointer;
+    transition: background-color .15s ease;
+
+    &::before {
+        content: '';
+    }
+
+    &:hover {
+        background-color: rgba(255, 255, 255, .32);
+    }
+}
+
+.spartrak-home-showcase__control--play::before {
+    .spartrak-icon('video-play.svg'; 20px; var(--color-text-inverse));
+}
+
+.spartrak-home-showcase__control--mute::before {
+    .spartrak-icon('video-mute.svg'; 20px; var(--color-text-inverse));
+}
+
+.spartrak-home-showcase__control--captions::before {
+    .spartrak-icon('video-captions.svg'; 20px; var(--color-text-inverse));
+}
+
+// An engaged toggle reads as filled rather than as a different glyph — one
+// asset, two states.
+.spartrak-home-showcase__control[aria-pressed='false'] {
+    background-color: rgba(255, 255, 255, .1);
+}
+
+.spartrak-home-showcase__meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    width: 179px;
+    color: var(--color-text-inverse);
+    text-align: end;
+}
+
+.spartrak-home-showcase__time {
+    margin: 0;
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+}
+
+.spartrak-home-showcase__handle {
+    margin: 0;
+    font-size: var(--text-18);
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.spartrak-home-showcase__product {
+    padding: 4px;
+}
+
+// ===========================================================================
+// MOBILE (Figma mobile frames 647:57253 / 645:38346)
+// ===========================================================================
+@media (max-width: @breakpoint-header-collapse) {
+    .spartrak-home {
+        gap: 32px;
+        padding-block: 16px 40px;
+    }
+
+    .spartrak-home-section__head {
+        max-width: ~"min(100% - (@{home-gutter-mobile} * 2), @{home-measure})";
+        margin-block-end: 16px;
+    }
+
+    .spartrak-home-section__title {
+        font-size: var(--text-24);
+    }
+
+    .spartrak-home-section__view-all {
+        font-size: var(--text-14);
+    }
+
+    .spartrak-home-banner__frame {
+        max-width: 100%;
+        // The MOBILE artwork is a different crop, so the desktop hero ratio
+        // would letterbox it. 4:3 matches the mobile frame's own banner box;
+        // as on desktop this is only the fallback — real dimensions from the
+        // uploaded file take precedence.
+        aspect-ratio: 4 / 3;
+    }
+
+    // Full-width edge-to-edge arrows would eat a third of a phone screen.
+    // The rail is swipeable, which is the native affordance on touch.
+    .spartrak-home-banner__arrow {
+        display: none;
+    }
+
+    .spartrak-home-rail__panel {
+        max-width: 100%;
+        padding-block: 20px 16px;
+        box-shadow: none;
+    }
+
+    .spartrak-home-rail__track {
+        gap: 12px;
+        padding-inline: @home-gutter-mobile;
+    }
+
+    .spartrak-home-rail__item {
+        // Two cards visible with the third peeking, which is what the mobile
+        // frame shows and what signals "this scrolls" without an arrow.
+        flex-basis: 200px;
+        width: 200px;
+    }
+
+    .spartrak-home-rail__progress {
+        margin-inline: @home-gutter-mobile;
+    }
+
+    // The tile stage's fixed 608px and absolutely-positioned rail are a
+    // desktop composition. On a phone the stage becomes a normal flow column:
+    // backdrop, name, then the rail underneath.
+    .spartrak-home-tiles__stage {
+        height: auto;
+        padding-block: 24px;
+    }
+
+    .spartrak-home-tiles__visuals {
+        position: relative;
+        inset: auto;
+        width: 100%;
+        height: 220px;
+        margin-block-end: 8px;
+    }
+
+    .spartrak-home-tiles__name {
+        position: relative;
+        inset: auto;
+        width: auto;
+        padding-inline: @home-gutter-mobile;
+        font-size: var(--text-32);
+    }
+
+    .spartrak-home-tiles__rail-wrap {
+        position: relative;
+        inset: auto;
+        width: 100%;
+        max-width: 100%;
+        margin-block-start: 16px;
+    }
+
+    .spartrak-home-tiles__rail {
+        padding-inline: @home-gutter-mobile;
+    }
+
+    .spartrak-home-tiles__item {
+        flex-basis: 264px;
+        width: 264px;
+    }
+
+    .spartrak-home-tiles__nav {
+        display: none;
+    }
+
+    .spartrak-home-tiles__eyebrow {
+        inset-inline-start: @home-gutter-mobile;
+    }
+
+    .spartrak-home-showcase__track {
+        gap: 12px;
+        padding-inline: @home-gutter-mobile;
+    }
+
+    .spartrak-home-showcase__item {
+        flex-basis: 300px;
+        width: 300px;
+    }
+
+    .spartrak-home-showcase__control {
+        width: 40px;
+        height: 40px;
+    }
+
+    .spartrak-home-showcase__meta {
+        width: auto;
+        max-width: 45%;
+    }
+
+    .spartrak-home-showcase__handle {
+        font-size: var(--text-14);
+    }
+}
+
+// ===========================================================================
+// REDUCED MOTION
+// ===========================================================================
+// One block for the whole file. The reveal still HAPPENS — the correct visual
+// is still shown — it just arrives instantly instead of sliding.
+@media (prefers-reduced-motion: reduce) {
+    .spartrak-home-section__nav-button,
+    .spartrak-home-banner__arrow,
+    .spartrak-home-banner__dot,
+    .spartrak-home-tiles__card,
+    .spartrak-home-tiles__visual,
+    .spartrak-home-tiles__name,
+    .spartrak-home-rail__progress-bar,
+    .spartrak-home-showcase__control {
+        transition: none;
+    }
+
+    .spartrak-home-tiles__visual {
+        transform: none;
+    }
+
+    .spartrak-home-banner__track,
+    .spartrak-home-rail__track,
+    .spartrak-home-tiles__rail,
+    .spartrak-home-showcase__track {
+        scroll-behavior: auto;
     }
 }
