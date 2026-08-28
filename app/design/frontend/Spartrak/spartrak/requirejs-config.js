@@ -21,5 +21,18 @@ var config = {
             spartrakCascadeSearch: 'js/spartrak-cascade-search',
             spartrakToast: 'js/spartrak-toast'
         }
+    },
+    /*
+     * Extends Magento's own minicart sidebar rather than replacing it: the
+     * cart drawer has no Update button (Figma has none), so the quantity has
+     * to commit on change instead. See web/js/spartrak-minicart-qty-mixin.js
+     * for why the button is hidden rather than removed.
+     */
+    config: {
+        mixins: {
+            'Magento_Checkout/js/sidebar': {
+                'js/spartrak-minicart-qty-mixin': true
+            }
+        }
     }
 };

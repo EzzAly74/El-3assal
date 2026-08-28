@@ -161,7 +161,16 @@
                                   'data-cart-item-id': product_sku
                                   }, value: qty">
 
+                    <!--
+                      Core's commit button, kept and kept INVISIBLE exactly as
+                      core ships it. Figma has no Update control, and it is not
+                      drawn: the quantity commits by itself when the field
+                      changes, and this button is only the element that carries
+                      out the commit. Removing it outright would take core's own
+                      update request with it.
+                    -->
                     <button class="update-cart-item spartrak-minicart-line__qty-apply"
+                            style="display: none"
                             data-bind="attr: {
                                    id: 'update-cart-item-' + item_id,
                                    'data-cart-item': item_id,

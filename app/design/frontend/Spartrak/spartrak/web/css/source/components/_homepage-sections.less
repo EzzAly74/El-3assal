@@ -1062,19 +1062,6 @@
 // Scoped through .spartrak-home-showcase__product so nothing outside this
 // section is affected, and at (0,2,0) so it clears the card's own (0,1,0)
 // rules without an !important.
-// The shared horizontal card truncates its name to ONE line, which is right at
-// Figma's 532px. Six across gives it ~128px of text column, where one line is a
-// couple of words and an ellipsis. Two lines is legible and still bounded — and
-// the mobile frame draws it over two lines too.
-.spartrak-home-showcase__product .spartrak-card__name {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    white-space: normal;
-    text-overflow: clip;
-    overflow: hidden;
-}
-
 .spartrak-home-showcase__product .spartrak-card--horizontal {
     gap: 8px;
 
@@ -1088,11 +1075,11 @@
         gap: 8px;
     }
 
-    .spartrak-card__name {
-        font-size: var(--text-14);
-        line-height: 1.3;
-    }
-
+    // The NAME keeps its design-system size. Heading/H4 is 18px, weight 500,
+    // line-height 130%, clamped to two lines — the same type as every other
+    // product name on the site, and shrinking it to 14px here to win back a few
+    // pixels was a change to the design rather than an implementation of it.
+    // The two-line clamp is what bounds it at this width, not a smaller face.
     .spartrak-card__price {
         font-size: var(--text-14);
     }
