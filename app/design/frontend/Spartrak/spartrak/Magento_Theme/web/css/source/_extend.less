@@ -239,4 +239,28 @@
         max-width: none;
         padding-inline: 0;
     }
+
+    //  ---------------------------------------------------------------------
+    //  MEASURED FIX: releasing the max-width above is only half the job.
+    //  ---------------------------------------------------------------------
+    //  `.columns` is a flex container and `.column.main` is a flex item, so
+    //  `.column.main` inherits `min-width: auto` — meaning it may never render
+    //  narrower than its own content's min-content size.
+    //
+    //  Lifting its max-width therefore uncapped it in BOTH directions. The
+    //  hero banner's <img> carries the uploaded file's real pixel width as an
+    //  attribute (2108px on the live mobile asset), that width became the
+    //  column's min-content size, and the column grew to fit it: at a 375px
+    //  viewport the whole page laid out 2140px wide and every section on the
+    //  homepage scrolled sideways off the screen.
+    //
+    //  Verified in the browser by toggling each candidate rule in isolation —
+    //  this single declaration is the one that fixes it (375px viewport went
+    //  from scrollWidth 2140 back to 375); the image and slide rules made no
+    //  difference on their own. It restores the shrink-below-content behaviour
+    //  the capped layout used to get for free, and changes nothing above the
+    //  content measure, where the sections size themselves anyway.
+    .column.main {
+        min-width: 0;
+    }
 }

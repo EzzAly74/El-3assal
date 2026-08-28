@@ -13,7 +13,12 @@ use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 
 /**
- * Edit / Delete controls on each banner row.
+ * Edit / Enable-Disable / Delete controls on each banner row.
+ *
+ * The status control is built per row from the row's OWN current state, so it
+ * always reads as the action it performs - "Disable" on something enabled and
+ * "Enable" on something disabled - and posts the state it intends rather than
+ * asking the server to invert whatever it finds. See Controller SetStatus.
  */
 class BannerActions extends Column
 {
@@ -44,10 +49,22 @@ class BannerActions extends Column
                 continue;
             }
 
+            $isActive = (int) ($item['is_active'] ?? 0) === 1;
+
             $item[$this->getData('name')] = [
                 'edit' => [
                     'href' => $this->urlBuilder->getUrl('spartrak_homepage/banner/edit', ['banner_id' => $bannerId]),
                     'label' => __('Edit'),
+                ],
+                'status' => [
+                    'href' => $this->urlBuilder->getUrl(
+                        'spartrak_homepage/banner/setStatus',
+                        ['banner_id' => $bannerId, 'is_active' => $isActive ? 0 : 1]
+                    ),
+                    'label' => $isActive ? __('Disable') : __('Enable'),
+                    // POST, like delete: this writes, so it must not be a GET
+                    // link. The grid adds the admin form key for us.
+                    'post' => true,
                 ],
                 'delete' => [
                     'href' => $this->urlBuilder->getUrl('spartrak_homepage/banner/delete', ['banner_id' => $bannerId]),

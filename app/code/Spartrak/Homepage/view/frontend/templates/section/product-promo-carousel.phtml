@@ -2,10 +2,26 @@
 /**
  * Spartrak Homepage — split product section (Figma 595:15329).
  *
- * A 760px product rail beside a 600px promo panel:
- *   rail   595:15332  header (arrows + title) + 3 cards, fade at the outer edge
+ * A 600px promo panel beside a 760px product rail:
  *   panel  595:15463  badge 595:15467, headline + body 595:15466,
  *                     artwork 595:15472, CTA 595:15473, decorative rings
+ *   rail   595:15332  header (arrows + title) + 3 cards, fade at the outer edge
+ *
+ * ===========================================================================
+ * THE PANEL IS FIRST IN THE SOURCE, AND THAT IS THE WHOLE LAYOUT
+ * ===========================================================================
+ * In Figma the panel occupies x 760-1360 of a 1360-wide frame — the RIGHT half
+ * of an Arabic (RTL) composition, which is the inline-START. The rail sits to
+ * its left, at the inline-end.
+ *
+ * So the panel is written FIRST here and the grid simply follows source order.
+ * No `order`, no `direction` override, no column swap per language: on the
+ * Arabic store the panel lands on the right, on the English store the same
+ * rule mirrors it to the left, and on a phone the single-column grid stacks
+ * the panel above the rail, which is exactly what the mobile frame draws.
+ *
+ * Source order is also the reading order in both directions, so the markup a
+ * screen reader walks matches what everyone else sees.
  *
  * The rail half is IDENTICAL to the plain carousel — same block, same
  * provider, same shared Card - Product — so a section switched between the two
@@ -42,17 +58,6 @@ $ctaUrl = $block->getViewAllUrl();
     <?php if ($isCarousel) : ?>data-mage-init='{"spartrakHomeCarousel":{"mode":"rail"}}'<?php endif; ?>>
 
     <div class="spartrak-home-split__inner">
-        <div class="spartrak-home-split__rail-side">
-            <?= /* @noEscape */ $block->getHeadHtml() ?>
-
-            <ul class="spartrak-home-split__track" data-carousel-track>
-                <?php foreach ($products as $index => $product) : ?>
-                    <li class="spartrak-home-split__item" data-carousel-slide>
-                        <?= /* @noEscape */ $block->renderCard($product, $block->getCardIndex((int) $index)) ?>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
-        </div>
 
         <?php if ($hasPromo) : ?>
             <aside class="spartrak-home-split__promo">
@@ -95,5 +100,30 @@ $ctaUrl = $block->getViewAllUrl();
                 <?php endif; ?>
             </aside>
         <?php endif; ?>
+
+        <div class="spartrak-home-split__rail-side">
+            <?= /* @noEscape */ $block->getHeadHtml() ?>
+
+            <ul class="spartrak-home-split__track" data-carousel-track>
+                <?php foreach ($products as $index => $product) : ?>
+                    <li class="spartrak-home-split__item" data-carousel-slide>
+                        <?= /* @noEscape */ $block->renderCard($product, $block->getCardIndex((int) $index)) ?>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+
+            <?php /*
+              Figma 595:15477 — the scroll indicator. Identical markup to the
+              plain rail's, because it is driven by the SAME widget through the
+              same [data-carousel-progress] hook: the widget writes a custom
+              property and CSS paints it. Only rendered when there is something
+              to scroll, so it is never a bar stuck at 100%.
+            */ ?>
+            <?php if ($isCarousel) : ?>
+                <div class="spartrak-home-split__progress" aria-hidden="true">
+                    <span class="spartrak-home-split__progress-bar" data-carousel-progress></span>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
 </section>

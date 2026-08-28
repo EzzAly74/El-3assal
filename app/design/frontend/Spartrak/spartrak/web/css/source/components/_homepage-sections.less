@@ -205,6 +205,36 @@
 }
 
 // ===========================================================================
+// FOCUS-RING HEADROOM INSIDE THE RAILS
+// ===========================================================================
+// Pinning `overflow-y: hidden` on the rails (see any track below) is what stops
+// them scrolling vertically — but `overflow` clips at the PADDING box, and
+// MEASURED on the live page every rail had its focusable children sitting flush
+// with that edge: 1px of clearance in the product rail, 0px in the tiles and
+// brand rails. Their keyboard focus rings — `outline: 2px` at
+// `outline-offset: 2px`, so 4px beyond the border box — would have been cut in
+// half. That is a straight accessibility regression (CLAUDE.md section 15
+// requires a VISIBLE focus state), traded for a scrolling fix. Not acceptable.
+//
+// 4px of block padding gives the ring exactly the room it needs, and an equal
+// negative block margin takes that space back out of the flow, so nothing on
+// the page moves by a pixel and no section grows. The banner track is
+// deliberately excluded: it holds no focusable children and its height is
+// driven by the frame's aspect-ratio, which padding would fight.
+//
+// Re-measured after the change: focus clearance 4-5px on every rail, and
+// scrollHeight still equal to clientHeight, so the rails remain unscrollable in
+// the block axis.
+.spartrak-home-rail__track,
+.spartrak-home-tiles__rail,
+.spartrak-home-brands__rail,
+.spartrak-home-showcase__track,
+.spartrak-home-split__track {
+    padding-block: 4px;
+    margin-block: -4px;
+}
+
+// ===========================================================================
 // BANNER SECTION (Figma 595:14562)
 // ===========================================================================
 
@@ -235,6 +265,18 @@
     // momentum-scrolled — before a single byte of JS arrives, and the widget
     // only teaches the arrows and dots to drive it.
     overflow-x: auto;
+    // The block axis is declared, never left to default. CSS does not allow a
+    // scroll container on one axis and `visible` on the other: `overflow-x:
+    // auto` silently promotes `overflow-y` to `auto` as well, so any stray
+    // sub-pixel of vertical overflow turns a horizontal rail into a
+    // two-axis scroller that catches a trackpad or a swipe. Pinning it to
+    // `hidden` makes that structurally impossible.
+    //
+    // Nothing is lost to the clip: the cards fit their track exactly (see the
+    // box-sizing note in _product-card.less), and the deepest focus ring —
+    // add-to-cart, 2px outline at 2px offset — sits 13px clear of the card's
+    // bottom edge and 7px clear of its inline edge.
+    overflow-y: hidden;
     overscroll-behavior-inline: contain;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
@@ -261,9 +303,19 @@
 
 .spartrak-home-banner__image {
     object-fit: cover;
-    // The intrinsic width/height attributes reserve the box; this stops them
-    // from also *constraining* the rendered size on a wide viewport.
-    max-width: none;
+    // NOT `max-width: none`. That was here to stop the intrinsic width/height
+    // attributes from constraining the rendered size on a wide viewport — but
+    // `width: 100%` above already governs that, and `max-width: 100%` resolves
+    // against the same box, so it can never bind tighter than the width does.
+    //
+    // What `none` DID do was make the image's min-content contribution its full
+    // intrinsic pixel width, which then propagated up the layout as a minimum
+    // size. Combined with a flex ancestor that could not shrink below content,
+    // that dragged the entire page wider than the viewport on mobile. The real
+    // fix for that is the `min-width: 0` in Magento_Theme/_extend.less; this is
+    // simply the safe default restored, so the same trap cannot be re-sprung by
+    // some other ancestor later.
+    max-width: 100%;
 }
 
 // --- Arrows (Figma 595:14564 / 595:15079) ---------------------------------
@@ -402,6 +454,18 @@
     list-style: none;
 
     overflow-x: auto;
+    // The block axis is declared, never left to default. CSS does not allow a
+    // scroll container on one axis and `visible` on the other: `overflow-x:
+    // auto` silently promotes `overflow-y` to `auto` as well, so any stray
+    // sub-pixel of vertical overflow turns a horizontal rail into a
+    // two-axis scroller that catches a trackpad or a swipe. Pinning it to
+    // `hidden` makes that structurally impossible.
+    //
+    // Nothing is lost to the clip: the cards fit their track exactly (see the
+    // box-sizing note in _product-card.less), and the deepest focus ring —
+    // add-to-cart, 2px outline at 2px offset — sits 13px clear of the card's
+    // bottom edge and 7px clear of its inline edge.
+    overflow-y: hidden;
     overscroll-behavior-inline: contain;
     scroll-snap-type: x proximity;
     scrollbar-width: none;
@@ -530,7 +594,8 @@
     padding: 0 20px 8px;
     background-color: var(--color-neutral-900);
     color: var(--color-text-inverse);
-    font-size: var(--text-12);
+    // Figma 595:15468 is Latin/Label — size/md, i.e. 14px, not 12.
+    font-size: var(--text-14);
     font-weight: 500;
     line-height: 1.3;
 }
@@ -612,6 +677,18 @@
     list-style: none;
 
     overflow-x: auto;
+    // The block axis is declared, never left to default. CSS does not allow a
+    // scroll container on one axis and `visible` on the other: `overflow-x:
+    // auto` silently promotes `overflow-y` to `auto` as well, so any stray
+    // sub-pixel of vertical overflow turns a horizontal rail into a
+    // two-axis scroller that catches a trackpad or a swipe. Pinning it to
+    // `hidden` makes that structurally impossible.
+    //
+    // Nothing is lost to the clip: the cards fit their track exactly (see the
+    // box-sizing note in _product-card.less), and the deepest focus ring —
+    // add-to-cart, 2px outline at 2px offset — sits 13px clear of the card's
+    // bottom edge and 7px clear of its inline edge.
+    overflow-y: hidden;
     overscroll-behavior-inline: contain;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
@@ -748,6 +825,18 @@
     list-style: none;
 
     overflow-x: auto;
+    // The block axis is declared, never left to default. CSS does not allow a
+    // scroll container on one axis and `visible` on the other: `overflow-x:
+    // auto` silently promotes `overflow-y` to `auto` as well, so any stray
+    // sub-pixel of vertical overflow turns a horizontal rail into a
+    // two-axis scroller that catches a trackpad or a swipe. Pinning it to
+    // `hidden` makes that structurally impossible.
+    //
+    // Nothing is lost to the clip: the cards fit their track exactly (see the
+    // box-sizing note in _product-card.less), and the deepest focus ring —
+    // add-to-cart, 2px outline at 2px offset — sits 13px clear of the card's
+    // bottom edge and 7px clear of its inline edge.
+    overflow-y: hidden;
     overscroll-behavior-inline: contain;
     scroll-snap-type: x proximity;
     scrollbar-width: none;
@@ -962,7 +1051,10 @@
     }
 
     .spartrak-home-banner__frame {
-        margin-inline: @home-gutter-mobile;
+        // Figma's mobile frame (647:57253) runs the hero the full 440 width
+        // with NO side gutter, unlike the 24px desktop inset. On a phone the
+        // artwork needs every pixel it can get.
+        margin-inline: 0;
         max-width: none;
         // The MOBILE artwork is a different crop, so the desktop hero ratio
         // would letterbox it. 4:3 matches the mobile frame's own banner box;
@@ -1055,9 +1147,15 @@
 
     .spartrak-home-showcase__item {
         // Six across is a desktop decision; on a phone that would be ~55px a
-        // card. Back to a readable width that signals the rail scrolls.
-        flex-basis: 240px;
-        width: 240px;
+        // card. Figma's mobile frame (647:57253) shows two items across a 440
+        // frame — 226 wide inside a 408 measure, i.e. ~56% — with the second
+        // clipped just enough to read as "this scrolls".
+        //
+        // Expressed as that proportion rather than a fixed 240px so it holds
+        // at 440 AND at 375, with a floor so a 320px phone does not squeeze the
+        // card past legibility.
+        flex-basis: ~"clamp(180px, 56%, 240px)";
+        width: ~"clamp(180px, 56%, 240px)";
     }
 
     // The card has room again at 240px, so the desktop shrink is undone.
@@ -1155,6 +1253,18 @@
     list-style: none;
 
     overflow-x: auto;
+    // The block axis is declared, never left to default. CSS does not allow a
+    // scroll container on one axis and `visible` on the other: `overflow-x:
+    // auto` silently promotes `overflow-y` to `auto` as well, so any stray
+    // sub-pixel of vertical overflow turns a horizontal rail into a
+    // two-axis scroller that catches a trackpad or a swipe. Pinning it to
+    // `hidden` makes that structurally impossible.
+    //
+    // Nothing is lost to the clip: the cards fit their track exactly (see the
+    // box-sizing note in _product-card.less), and the deepest focus ring —
+    // add-to-cart, 2px outline at 2px offset — sits 13px clear of the card's
+    // bottom edge and 7px clear of its inline edge.
+    overflow-y: hidden;
     overscroll-behavior-inline: contain;
     scroll-snap-type: x proximity;
     scrollbar-width: none;
@@ -1515,9 +1625,14 @@
 
 .spartrak-home-split__inner {
     display: grid;
-    // 760 : 600 from the Figma frame, as fractions so the split holds at any
-    // width the content measure resolves to.
-    grid-template-columns: minmax(0, 760fr) minmax(0, 600fr);
+    // 600 : 760 from the Figma frame (595:15463 then 595:15332), as fractions
+    // so the split holds at any width the content measure resolves to.
+    //
+    // PANEL FIRST. In the design the panel is the RIGHT half of an Arabic
+    // composition — the inline-START — and the template writes it first, so
+    // these columns just follow source order and mirror correctly on the
+    // English store without a second rule. See the template's header note.
+    grid-template-columns: minmax(0, 600fr) minmax(0, 760fr);
     align-items: stretch;
     width: 100%;
     max-width: ~"min(100% - (@{home-gutter} * 2), @{home-measure})";
@@ -1533,8 +1648,18 @@
 .spartrak-home-split__rail-side {
     display: flex;
     flex-direction: column;
+    justify-content: center;
+    gap: 32px;
     min-width: 0;
-    padding-block: 48px;
+    // Figma 595:15332 — p-32 all round, gap-32 between header and cards.
+    padding-block: 32px;
+}
+
+// The shared header and the track both carry the rail item's own 32px inline
+// padding; the flex gap above supplies the vertical rhythm, so neither needs a
+// bottom margin of its own.
+.spartrak-home-split__rail-side .spartrak-home-section__head {
+    margin-block-end: 0;
 }
 
 // The header inside this layout belongs to the RAIL half, not the page, so it
@@ -1554,6 +1679,18 @@
     list-style: none;
 
     overflow-x: auto;
+    // The block axis is declared, never left to default. CSS does not allow a
+    // scroll container on one axis and `visible` on the other: `overflow-x:
+    // auto` silently promotes `overflow-y` to `auto` as well, so any stray
+    // sub-pixel of vertical overflow turns a horizontal rail into a
+    // two-axis scroller that catches a trackpad or a swipe. Pinning it to
+    // `hidden` makes that structurally impossible.
+    //
+    // Nothing is lost to the clip: the cards fit their track exactly (see the
+    // box-sizing note in _product-card.less), and the deepest focus ring —
+    // add-to-cart, 2px outline at 2px offset — sits 13px clear of the card's
+    // bottom edge and 7px clear of its inline edge.
+    overflow-y: hidden;
     overscroll-behavior-inline: contain;
     scroll-snap-type: x proximity;
     scrollbar-width: none;
@@ -1572,6 +1709,30 @@
     scroll-snap-align: start;
 }
 
+// Figma 595:15477 — the split layout's scroll indicator. Same widget, same
+// [data-carousel-progress] hook and the same compositor-only transform as the
+// plain rail's; only the placement differs, because here it belongs to the
+// rail half rather than the page.
+.spartrak-home-split__progress {
+    position: relative;
+    height: 8px;
+    margin-inline: 32px;
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-field);
+    overflow: hidden;
+}
+
+.spartrak-home-split__progress-bar {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 25%;
+    border-radius: var(--radius-pill);
+    background-color: var(--color-action-primary-hover);
+    transform: translateX(var(--spartrak-rail-progress, 0));
+    will-change: transform;
+}
+
 // --- The promo panel (Figma 595:15463) -------------------------------------
 // Figma stacks two large rings behind the artwork (595:15464 / 595:15465).
 // They are drawn as radial-gradient backgrounds rather than shipped as an
@@ -1583,7 +1744,9 @@
     flex-direction: column;
     align-items: flex-end;
     min-width: 0;
-    padding: 24px 32px 32px;
+    // Figma 595:15463 — px-32 / pb-32 and NO top padding: the badge sits flush
+    // with the panel's top edge (595:15466 is at y=0).
+    padding: 0 32px 32px;
     overflow: hidden;
     background-color: var(--color-bg-surface-subtle);
     isolation: isolate;
@@ -1613,7 +1776,8 @@
     padding-inline: 20px;
     background-color: var(--color-neutral-900);
     color: var(--color-text-inverse);
-    font-size: var(--text-12);
+    // Figma 595:15468 is Latin/Label — size/md, i.e. 14px, not 12.
+    font-size: var(--text-14);
     font-weight: 500;
     line-height: 1.3;
 }
@@ -1623,7 +1787,8 @@
     z-index: 1;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    // Figma 595:15469 — gap 12 inside the copy, 32 between badge and copy.
+    gap: 12px;
     width: 100%;
     max-width: 322px;
     margin-block-start: 32px;
@@ -1643,7 +1808,11 @@
 
 .spartrak-home-split__text {
     margin: 0;
-    font-size: var(--text-16);
+    // Figma 595:15471 is Body/Large — size/lg, 18px — and is given its own
+    // narrower measure than the headline above it (241 against 322).
+    max-width: 241px;
+    margin-inline-start: auto;
+    font-size: var(--text-18);
     font-weight: 400;
     line-height: 1.5;
     color: var(--color-text-secondary);
@@ -1703,9 +1872,10 @@
 
 @media (max-width: @breakpoint-header-collapse) {
     .spartrak-home-split__inner {
-        // The panel stacks UNDER the rail on a phone. Figma ships no mobile
-        // frame for this section; stacking keeps both halves at full width
-        // rather than squeezing a 322px copy column into half a screen.
+        // Figma's mobile frame (647:57253) stacks the panel ABOVE the rail,
+        // full-bleed, with the cards underneath. Because the template already
+        // writes the panel first, collapsing to one column is the entire
+        // mobile layout — no reordering needed.
         grid-template-columns: minmax(0, 1fr);
         max-width: 100%;
     }
@@ -1728,8 +1898,12 @@
         width: 200px;
     }
 
+    .spartrak-home-split__progress {
+        margin-inline: @home-gutter-mobile;
+    }
+
     .spartrak-home-split__promo {
-        padding: 16px @home-gutter-mobile 24px;
+        padding: 0 @home-gutter-mobile 24px;
     }
 
     .spartrak-home-split__heading {
@@ -1741,15 +1915,23 @@
         margin-block-start: 16px;
     }
 
-    .spartrak-home-split__image {
-        margin-inline-start: 0;
-    }
-
     // Static rather than pinned to a corner: absolute placement over a
     // stacked panel would land the CTA on top of the artwork.
+    //
+    // The mobile frame runs badge -> headline -> body -> CTA -> artwork, so the
+    // artwork is pushed to the end of the flex order. Only the image moves, and
+    // it is decorative (alt=""), so the order a screen reader walks is
+    // unchanged for anything that carries meaning.
     .spartrak-home-split__cta {
         position: static;
+        order: 1;
         align-self: flex-end;
+        margin-block-start: 16px;
+    }
+
+    .spartrak-home-split__image {
+        order: 2;
+        margin-inline-start: 0;
         margin-block-start: 16px;
     }
 }

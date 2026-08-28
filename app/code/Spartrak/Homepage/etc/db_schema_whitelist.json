@@ -20,7 +20,9 @@
             "promo_text_en": true,
             "promo_text_ar": true,
             "promo_image_en": true,
-            "promo_image_ar": true
+            "promo_image_ar": true,
+            "subtitle_en": true,
+            "subtitle_ar": true
         },
         "index": {
             "SPARTRAK_HOMEPAGE_SECTION_IS_ACTIVE_SORT_ORDER": true

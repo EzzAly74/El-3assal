@@ -37,6 +37,34 @@
 $brands = $block->getBrands();
 $topCategories = $block->getTopCategories();
 
+/*
+ * ===========================================================================
+ * THE HEADING COMES FROM THE DASHBOARD, NOT FROM THIS FILE
+ * ===========================================================================
+ * Both lines used to be __() strings baked in here. That made this the one
+ * section on the homepage whose heading an admin could not change - and worse,
+ * the section form still OFFERED Title (Arabic) and Title (English) for it, so
+ * an editor could type a heading, save it, and watch the storefront ignore
+ * them. Section titles are dashboard-controlled in both languages, and this is
+ * a section like any other.
+ *
+ * The __() strings survive only as the DEFAULT for a section whose heading has
+ * not been filled in - a translatable default, not content. Dropping them
+ * entirely would leave the card with no <h2> at all, which is a real document
+ * structure defect, and an existing install would silently lose its heading on
+ * deploy.
+ */
+$title = $block->getTitle();
+$subtitle = $block->getSubtitle();
+
+if ($title === '') {
+    $title = (string) __('What are you looking for?');
+}
+
+if ($subtitle === '') {
+    $subtitle = (string) __('Choose the brand and model to reach the right parts for your tractor');
+}
+
 $config = [
     'spartrakCascadeSearch' => [
         'optionsUrl' => $block->getOptionsUrl(),
@@ -45,14 +73,17 @@ $config = [
 ];
 ?>
 <section class="spartrak-home-section spartrak-home-finder"
+         aria-labelledby="<?= $block->escapeHtmlAttr($block->getHeadingId()) ?>"
          data-mage-init='<?= /* @noEscape */ json_encode($config, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>'>
 
     <form class="spartrak-home-finder__card" data-finder-form>
         <div class="spartrak-home-finder__head">
-            <h2 class="spartrak-home-finder__title"><?= $block->escapeHtml(__('What are you looking for?')) ?></h2>
-            <p class="spartrak-home-finder__subtitle">
-                <?= $block->escapeHtml(__('Choose the brand and model to reach the right parts for your tractor')) ?>
-            </p>
+            <h2 class="spartrak-home-finder__title" id="<?= $block->escapeHtmlAttr($block->getHeadingId()) ?>">
+                <?= $block->escapeHtml($title) ?>
+            </h2>
+            <?php if ($subtitle !== '') : ?>
+                <p class="spartrak-home-finder__subtitle"><?= $block->escapeHtml($subtitle) ?></p>
+            <?php endif; ?>
         </div>
 
         <div class="spartrak-home-finder__grid">

@@ -8,8 +8,10 @@ declare(strict_types=1);
 namespace Spartrak\Homepage\Model\Product;
 
 use Magento\Catalog\Api\Data\ProductInterface;
+use Magento\Catalog\Model\Category;
 use Magento\Catalog\Model\Product\Attribute\Source\Status as ProductStatus;
 use Magento\Catalog\Model\Product\Visibility;
+use Magento\Catalog\Model\ResourceModel\Category\CollectionFactory as CategoryCollectionFactory;
 use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory;
 use Magento\CatalogInventory\Helper\Stock as StockHelper;
 use Magento\Framework\App\Config\ScopeConfigInterface;
@@ -31,7 +33,7 @@ use Psr\Log\LoggerInterface;
  * Magento\Catalog\Model\Layer is stateful: it resolves and MUTATES a shared
  * current-category context. Running it three times on one page to fetch three
  * unrelated rails would leave the last one's category as the page's context.
- * A plain product collection with addCategoriesFilter() gives the same rows
+ * A plain product collection with addCategoryFilter() gives the same rows
  * with none of that.
  *
  * ===========================================================================
@@ -41,10 +43,34 @@ use Psr\Log\LoggerInterface;
  *    LIMITs the row set rather than PHP slicing a full category load.
  *  - addAttributeToSelect() lists the attributes the card actually paints
  *    and nothing else. `*` on a large EAV catalogue is a join per attribute.
- *  - addCategoriesFilter() filters on catalog_category_product, which is
- *    indexed, instead of loading a category and asking it for products.
  *  - No getSize() call anywhere: nothing in these sections shows a total, and
  *    a COUNT over a large category is pure waste.
+ *
+ * ===========================================================================
+ * WHY addCategoryFilter() AND NOT addCategoriesFilter()
+ * ===========================================================================
+ * This shipped as addCategoriesFilter(['in' => [$categoryId]]) with a comment
+ * claiming it covered anchor categories. It does not, and that silently blanked
+ * a whole homepage section.
+ *
+ * addCategoriesFilter() builds `entity_id IN (SELECT product_id FROM
+ * catalog_category_product WHERE category_id IN (...))`. That table holds
+ * DIRECT assignments only. A top-level anchor category — the kind a merchant
+ * naturally picks in the dashboard — usually has no products assigned to it at
+ * all; its page is populated entirely from its subtree. So the query returned
+ * zero rows, hasContent() was false, and the section rendered nothing while
+ * that same category's own page showed twelve products.
+ *
+ * addCategoryFilter() is Magento's own category-listing path. It filters
+ * through catalog_category_product_index, which the indexer builds with the
+ * subtree already flattened for anchor categories and scoped per store. The
+ * rail therefore shows exactly what the chosen category's page shows, which is
+ * the only behaviour a merchant can predict.
+ *
+ * It also makes `position` sortable: with a category filter set, the
+ * collection resolves addAttributeToSort('position') to cat_index.position —
+ * the merchandising order an admin already dragged into place inside the
+ * category. Without the filter that sort silently did nothing.
  */
 class CategoryProductProvider
 {
@@ -68,6 +94,7 @@ class CategoryProductProvider
 
     public function __construct(
         private readonly CollectionFactory $collectionFactory,
+        private readonly CategoryCollectionFactory $categoryCollectionFactory,
         private readonly Visibility $visibility,
         private readonly ProductStatus $productStatus,
         private readonly StockHelper $stockHelper,
@@ -94,17 +121,29 @@ class CategoryProductProvider
             return $this->memo[$key];
         }
 
+        $category = $this->loadCategory($categoryId);
+
+        if ($category === null) {
+            // The dashboard points at a category that no longer exists, or one
+            // outside this store. An empty rail is the honest outcome; the
+            // section then skips itself entirely.
+            $this->logger->warning(
+                'Spartrak_Homepage: section category ' . $categoryId . ' was not found for this store.'
+            );
+
+            return $this->memo[$key] = [];
+        }
+
         try {
             $collection = $this->collectionFactory->create();
 
             $collection->addAttributeToSelect(self::CARD_ATTRIBUTES);
             $collection->addStoreFilter();
 
-            // Anchor categories included: a shopper picking a top-level
-            // category in the dashboard expects the rail to show what that
-            // category's PAGE shows, which on an anchor category is the whole
-            // subtree.
-            $collection->addCategoriesFilter(['in' => [$categoryId]]);
+            // Anchor-aware and index-backed — see the class note. A top-level
+            // category shows its whole subtree here exactly as it does on its
+            // own page.
+            $collection->addCategoryFilter($category);
 
             $collection->addAttributeToFilter(
                 'status',
@@ -184,6 +223,39 @@ class CategoryProductProvider
                 'Spartrak_Homepage: media gallery could not be loaded for the video section: '
                 . $exception->getMessage()
             );
+        }
+    }
+
+    /**
+     * The chosen category, loaded as cheaply as it can be loaded.
+     *
+     * addCategoryFilter() reads exactly two things off the model: the id, and
+     * whether it is an anchor. So this is a one-row collection selecting the
+     * single `is_anchor` attribute rather than a repository get(), which would
+     * hydrate every category attribute to answer one boolean.
+     *
+     * addIdFilter + setPageSize(1) keeps it to a primary-key lookup.
+     */
+    private function loadCategory(int $categoryId): ?Category
+    {
+        try {
+            $collection = $this->categoryCollectionFactory->create();
+            $collection->addAttributeToSelect('is_anchor');
+            $collection->addIdFilter([$categoryId]);
+            $collection->setPageSize(1);
+
+            /** @var Category $category */
+            $category = $collection->getFirstItem();
+
+            return $category->getId() ? $category : null;
+        } catch (\Exception $exception) {
+            $this->logger->error(
+                'Spartrak_Homepage: could not load category ' . $categoryId . ': '
+                . $exception->getMessage(),
+                ['exception' => $exception]
+            );
+
+            return null;
         }
     }
 

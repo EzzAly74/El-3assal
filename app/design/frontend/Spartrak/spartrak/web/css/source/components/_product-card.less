@@ -60,6 +60,17 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
+    // MEASURED FIX. `height: 100%` plus a 1px border under the inherited
+    // `content-box` made every card 2px TALLER than the box it was told to
+    // fill. Inside a horizontal rail that 2px was a real overflow, and because
+    // `overflow-x: auto` forces the block axis to compute as `auto` too, each
+    // product carousel became 2px vertically scrollable — enough for a
+    // trackpad or a swipe to catch on it mid-scroll.
+    //
+    // border-box makes `height: 100%` mean what it says. Verified live: the
+    // rails went from scrollHeight 317 / clientHeight 315 to an exact match on
+    // every one of them.
+    box-sizing: border-box;
     height: 100%;
     padding: 0;
     border: 1px solid var(--color-border-subtle);
@@ -67,6 +78,14 @@
     background: var(--color-bg-surface);
     overflow: visible;
     transition: border-color .15s ease;
+}
+
+// The card's own children inherit the same correction, so a border or padding
+// added to any of them later cannot re-open the same 2px gap.
+.spartrak-card *,
+.spartrak-card *::before,
+.spartrak-card *::after {
+    box-sizing: border-box;
 }
 
 // Hover is NOT in Figma (Card - Product has no hover variant). This keeps the

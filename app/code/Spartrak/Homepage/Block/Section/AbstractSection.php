@@ -70,13 +70,21 @@ abstract class AbstractSection extends Template
     }
 
     /**
-     * The section heading in the current store's language.
+     * The current store language's value of a per-locale section column.
      *
-     * Falls back to the other language rather than rendering an empty <h2>:
-     * a heading is a document-structure element, and an empty one is a real
-     * accessibility defect, not just a cosmetic gap.
+     * Every bilingual field on a section follows the same `<base>_ar` /
+     * `<base>_en` shape, so ONE resolver serves all of them: title, subtitle,
+     * and the promo panel's badge, headline, body and artwork. This used to be
+     * written out twice - once here for the title and once again inside
+     * ProductPromoCarousel - which is exactly the duplication the brief rules
+     * out.
+     *
+     * Falls back to the other language rather than returning nothing. A half
+     * translated dashboard should leave a section looking unfinished, not
+     * leave it with an empty <h2>, which is a genuine accessibility defect
+     * rather than a cosmetic gap.
      */
-    public function getTitle(): string
+    protected function localised(string $base): string
     {
         $section = $this->getSection();
 
@@ -84,16 +92,37 @@ abstract class AbstractSection extends Template
             return '';
         }
 
-        $suffix = $this->localeContext->getColumnSuffix();
-        $title = trim((string) $section->getData('title_' . $suffix));
+        $value = trim((string) $section->getData(
+            $base . '_' . $this->localeContext->getColumnSuffix()
+        ));
 
-        if ($title !== '') {
-            return $title;
+        if ($value !== '') {
+            return $value;
         }
 
         return trim((string) $section->getData(
-            'title_' . $this->localeContext->getFallbackColumnSuffix()
+            $base . '_' . $this->localeContext->getFallbackColumnSuffix()
         ));
+    }
+
+    /**
+     * The section heading in the current store's language.
+     */
+    public function getTitle(): string
+    {
+        return $this->localised('title');
+    }
+
+    /**
+     * The optional line under the heading, in the current store's language.
+     *
+     * Only the cascading finder draws one today (Figma 595:15847), but it is
+     * declared here rather than on that block because it is section data like
+     * any other - a second section that wants a standfirst gets it for free.
+     */
+    public function getSubtitle(): string
+    {
+        return $this->localised('subtitle');
     }
 
     /**

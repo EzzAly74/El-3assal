@@ -53,40 +53,25 @@ class ProductPromoCarousel extends ProductCarousel
         return $this->isCarousel();
     }
 
-    /**
-     * Current locale's value for a promo field, falling back to the other
-     * language rather than leaving a hole in the panel.
+    /*
+     * The per-locale resolver these four fields share lives on
+     * AbstractSection::localised() - the same one the title and subtitle use.
+     * It was duplicated here; it is not any more.
      */
-    private function promo(string $base): string
-    {
-        $section = $this->getSection();
-
-        if ($section === null) {
-            return '';
-        }
-
-        $value = trim((string) $section->getData($base . '_' . $this->localeContext->getColumnSuffix()));
-
-        if ($value !== '') {
-            return $value;
-        }
-
-        return trim((string) $section->getData($base . '_' . $this->localeContext->getFallbackColumnSuffix()));
-    }
 
     public function getPromoBadge(): string
     {
-        return $this->promo('promo_badge');
+        return $this->localised('promo_badge');
     }
 
     public function getPromoHeading(): string
     {
-        return $this->promo('promo_heading');
+        return $this->localised('promo_heading');
     }
 
     public function getPromoText(): string
     {
-        return $this->promo('promo_text');
+        return $this->localised('promo_text');
     }
 
     /**
@@ -99,7 +84,7 @@ class ProductPromoCarousel extends ProductCarousel
      */
     public function getPromoImage(): ?array
     {
-        $file = $this->promo('promo_image');
+        $file = $this->localised('promo_image');
 
         if ($file === '') {
             return null;

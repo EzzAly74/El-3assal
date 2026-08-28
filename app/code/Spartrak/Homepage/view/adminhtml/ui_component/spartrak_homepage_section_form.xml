@@ -11,10 +11,52 @@
   HOW THE SWITCHING WORKS, AND WHY IT IS DECLARATIVE
   ===========================================================================
   `switcherConfig` on the type select is Magento's OWN mechanism (the same one
-  Sales Rules and Bundle options use). Every rule below is data — there is no
-  custom JS component, no jQuery listener, and nothing to maintain when a type
-  is added. The rules read: "when type is X, show these fieldsets and hide
-  those."
+  Catalog Price Rules use). Every rule below is data - there is no custom JS
+  component, no jQuery listener, and nothing to maintain when a type is added.
+  Each rule reads: "when type is X, these targets are visible and those are
+  not."
+
+  WHY THE CALLBACK IS `set` AND NOT `show` / `hide`
+  ===========================================================================
+  This is the whole reason the form used to show EVERY fieldset for EVERY type,
+  and it fails silently, so it is worth writing down.
+
+  Magento_Ui/js/form/switcher runs an action as
+  `target[action.callback].apply(target, action.params)`. `show()` and `hide()`
+  are defined in exactly ONE place in the UI library -
+  Magento_Ui/js/form/element/abstract - which is the base for form FIELDS.
+  Fieldsets (Magento_Ui/js/form/components/fieldset) and notice containers
+  (Magento_Ui/js/form/components/html) do not extend it. They own a `visible`
+  observable and their templates bind to it, but they have no show/hide method
+  at all.
+
+  So `<callback>hide</callback>` aimed at a fieldset resolved to `undefined`
+  and threw a TypeError inside a uiRegistry callback: no rule after it ran, no
+  fieldset was ever hidden, and nothing surfaced except a console error. Every
+  section type showed the promo panel, the category picker and the banner
+  notice whether or not they meant anything for that type.
+
+  `set` is declared on uiElement itself, so every one of these targets has it.
+  `set('visible', false)` writes through utils.nested(), which calls a property
+  that is a function - i.e. it sets the Knockout observable the fieldset,
+  container and field templates are already bound to. One mechanism, valid for
+  all three component kinds, still entirely declarative.
+
+  THE MATRIX
+  ===========================================================================
+  Every rule lists EVERY switchable target explicitly, including the ones it
+  turns off. The switcher only applies the single rule whose value matches, so
+  a target left out of a rule would simply keep whatever the previously
+  selected type left it at.
+
+      type                     product  promo  picks  hint  link  subtitle
+      banner                      -       -      -     yes    -       -
+      category_tiles              -       -     yes     -    yes      -
+      product_carousel           yes      -      -      -    yes      -
+      product_video_carousel     yes      -      -      -    yes      -
+      product_promo_carousel     yes     yes     -      -    yes      -
+      brand_carousel              -       -      -      -    yes      -
+      cascade_search              -       -      -      -     -      yes
 -->
 <form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
     <argument name="data" xsi:type="array">
@@ -91,157 +133,437 @@
                     <item name="switcherConfig" xsi:type="array">
                         <item name="enabled" xsi:type="boolean">true</item>
                         <item name="rules" xsi:type="array">
-                        <item name="0" xsi:type="array">
-                            <item name="value" xsi:type="string">banner</item>
-                            <item name="actions" xsi:type="array">
-                                <item name="0" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.product_settings</item>
-                                    <item name="callback" xsi:type="string">hide</item>
+                            <item name="0" xsi:type="array">
+                                <item name="value" xsi:type="string">banner</item>
+                                <item name="actions" xsi:type="array">
+                                    <item name="0" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.product_settings</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="1" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.promo_panel</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="2" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.category_picks</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="3" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.banner_hint</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">true</item>
+                                        </item>
+                                    </item>
+                                    <item name="4" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.link_url</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="5" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.subtitle_ar</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="6" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.subtitle_en</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
                                 </item>
-                                <item name="1" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.category_picks</item>
-                                    <item name="callback" xsi:type="string">hide</item>
+                            </item>
+                            <item name="1" xsi:type="array">
+                                <item name="value" xsi:type="string">category_tiles</item>
+                                <item name="actions" xsi:type="array">
+                                    <item name="0" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.product_settings</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="1" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.promo_panel</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="2" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.category_picks</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">true</item>
+                                        </item>
+                                    </item>
+                                    <item name="3" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.banner_hint</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="4" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.link_url</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">true</item>
+                                        </item>
+                                    </item>
+                                    <item name="5" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.subtitle_ar</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="6" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.subtitle_en</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
                                 </item>
-                                <item name="2" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.promo_panel</item>
-                                    <item name="callback" xsi:type="string">hide</item>
+                            </item>
+                            <item name="2" xsi:type="array">
+                                <item name="value" xsi:type="string">product_carousel</item>
+                                <item name="actions" xsi:type="array">
+                                    <item name="0" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.product_settings</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">true</item>
+                                        </item>
+                                    </item>
+                                    <item name="1" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.promo_panel</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="2" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.category_picks</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="3" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.banner_hint</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="4" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.link_url</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">true</item>
+                                        </item>
+                                    </item>
+                                    <item name="5" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.subtitle_ar</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="6" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.subtitle_en</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
                                 </item>
-                                <item name="3" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.banner_hint</item>
-                                    <item name="callback" xsi:type="string">show</item>
+                            </item>
+                            <item name="3" xsi:type="array">
+                                <item name="value" xsi:type="string">product_video_carousel</item>
+                                <item name="actions" xsi:type="array">
+                                    <item name="0" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.product_settings</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">true</item>
+                                        </item>
+                                    </item>
+                                    <item name="1" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.promo_panel</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="2" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.category_picks</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="3" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.banner_hint</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="4" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.link_url</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">true</item>
+                                        </item>
+                                    </item>
+                                    <item name="5" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.subtitle_ar</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="6" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.subtitle_en</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                </item>
+                            </item>
+                            <item name="4" xsi:type="array">
+                                <item name="value" xsi:type="string">product_promo_carousel</item>
+                                <item name="actions" xsi:type="array">
+                                    <item name="0" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.product_settings</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">true</item>
+                                        </item>
+                                    </item>
+                                    <item name="1" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.promo_panel</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">true</item>
+                                        </item>
+                                    </item>
+                                    <item name="2" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.category_picks</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="3" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.banner_hint</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="4" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.link_url</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">true</item>
+                                        </item>
+                                    </item>
+                                    <item name="5" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.subtitle_ar</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="6" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.subtitle_en</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                </item>
+                            </item>
+                            <item name="5" xsi:type="array">
+                                <item name="value" xsi:type="string">brand_carousel</item>
+                                <item name="actions" xsi:type="array">
+                                    <item name="0" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.product_settings</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="1" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.promo_panel</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="2" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.category_picks</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="3" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.banner_hint</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="4" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.link_url</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">true</item>
+                                        </item>
+                                    </item>
+                                    <item name="5" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.subtitle_ar</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="6" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.subtitle_en</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                </item>
+                            </item>
+                            <item name="6" xsi:type="array">
+                                <item name="value" xsi:type="string">cascade_search</item>
+                                <item name="actions" xsi:type="array">
+                                    <item name="0" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.product_settings</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="1" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.promo_panel</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="2" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.category_picks</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="3" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.banner_hint</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="4" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.link_url</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">false</item>
+                                        </item>
+                                    </item>
+                                    <item name="5" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.subtitle_ar</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">true</item>
+                                        </item>
+                                    </item>
+                                    <item name="6" xsi:type="array">
+                                        <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.subtitle_en</item>
+                                        <item name="callback" xsi:type="string">set</item>
+                                        <item name="params" xsi:type="array">
+                                            <item name="0" xsi:type="string">visible</item>
+                                            <item name="1" xsi:type="boolean">true</item>
+                                        </item>
+                                    </item>
                                 </item>
                             </item>
                         </item>
-                        <item name="1" xsi:type="array">
-                            <item name="value" xsi:type="string">category_tiles</item>
-                            <item name="actions" xsi:type="array">
-                                <item name="0" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.product_settings</item>
-                                    <item name="callback" xsi:type="string">hide</item>
-                                </item>
-                                <item name="1" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.category_picks</item>
-                                    <item name="callback" xsi:type="string">show</item>
-                                </item>
-                                <item name="2" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.promo_panel</item>
-                                    <item name="callback" xsi:type="string">hide</item>
-                                </item>
-                                <item name="3" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.banner_hint</item>
-                                    <item name="callback" xsi:type="string">hide</item>
-                                </item>
-                            </item>
-                        </item>
-                        <item name="2" xsi:type="array">
-                            <item name="value" xsi:type="string">product_carousel</item>
-                            <item name="actions" xsi:type="array">
-                                <item name="0" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.product_settings</item>
-                                    <item name="callback" xsi:type="string">show</item>
-                                </item>
-                                <item name="1" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.category_picks</item>
-                                    <item name="callback" xsi:type="string">hide</item>
-                                </item>
-                                <item name="2" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.promo_panel</item>
-                                    <item name="callback" xsi:type="string">hide</item>
-                                </item>
-                                <item name="3" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.banner_hint</item>
-                                    <item name="callback" xsi:type="string">hide</item>
-                                </item>
-                            </item>
-                        </item>
-                        <item name="3" xsi:type="array">
-                            <item name="value" xsi:type="string">product_video_carousel</item>
-                            <item name="actions" xsi:type="array">
-                                <item name="0" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.product_settings</item>
-                                    <item name="callback" xsi:type="string">show</item>
-                                </item>
-                                <item name="1" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.category_picks</item>
-                                    <item name="callback" xsi:type="string">hide</item>
-                                </item>
-                                <item name="2" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.promo_panel</item>
-                                    <item name="callback" xsi:type="string">hide</item>
-                                </item>
-                                <item name="3" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.banner_hint</item>
-                                    <item name="callback" xsi:type="string">hide</item>
-                                </item>
-                            </item>
-                        </item>
-                        <item name="4" xsi:type="array">
-                            <item name="value" xsi:type="string">product_promo_carousel</item>
-                            <item name="actions" xsi:type="array">
-                                <item name="0" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.product_settings</item>
-                                    <item name="callback" xsi:type="string">show</item>
-                                </item>
-                                <item name="1" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.category_picks</item>
-                                    <item name="callback" xsi:type="string">hide</item>
-                                </item>
-                                <item name="2" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.promo_panel</item>
-                                    <item name="callback" xsi:type="string">show</item>
-                                </item>
-                                <item name="3" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.banner_hint</item>
-                                    <item name="callback" xsi:type="string">hide</item>
-                                </item>
-                            </item>
-                        </item>
-                        <item name="5" xsi:type="array">
-                            <item name="value" xsi:type="string">brand_carousel</item>
-                            <item name="actions" xsi:type="array">
-                                <item name="0" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.product_settings</item>
-                                    <item name="callback" xsi:type="string">hide</item>
-                                </item>
-                                <item name="1" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.category_picks</item>
-                                    <item name="callback" xsi:type="string">hide</item>
-                                </item>
-                                <item name="2" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.promo_panel</item>
-                                    <item name="callback" xsi:type="string">hide</item>
-                                </item>
-                                <item name="3" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.banner_hint</item>
-                                    <item name="callback" xsi:type="string">hide</item>
-                                </item>
-                            </item>
-                        </item>
-                        <item name="6" xsi:type="array">
-                            <item name="value" xsi:type="string">cascade_search</item>
-                            <item name="actions" xsi:type="array">
-                                <item name="0" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.product_settings</item>
-                                    <item name="callback" xsi:type="string">hide</item>
-                                </item>
-                                <item name="1" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.category_picks</item>
-                                    <item name="callback" xsi:type="string">hide</item>
-                                </item>
-                                <item name="2" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.promo_panel</item>
-                                    <item name="callback" xsi:type="string">hide</item>
-                                </item>
-                                <item name="3" xsi:type="array">
-                                    <item name="target" xsi:type="string">spartrak_homepage_section_form.spartrak_homepage_section_form.general.banner_hint</item>
-                                    <item name="callback" xsi:type="string">hide</item>
-                                </item>
-                            </item>
-                        </item>
-                        </item>
-                    </item>
                 </item>
-            </argument>
+            </item>
+        </argument>
             <settings>
                 <dataType>text</dataType>
                 <label translate="true">Section Type</label>
@@ -284,6 +606,21 @@
                 <dataType>text</dataType>
                 <label translate="true">Title (English)</label>
                 <notice translate="true">Shown as the section heading on English store views.</notice>
+            </settings>
+        </field>
+
+        <field name="subtitle_ar" formElement="input" sortOrder="42">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Subtitle (Arabic)</label>
+                <notice translate="true">The line under the heading. Only the cascading finder renders one.</notice>
+            </settings>
+        </field>
+
+        <field name="subtitle_en" formElement="input" sortOrder="44">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Subtitle (English)</label>
             </settings>
         </field>
 

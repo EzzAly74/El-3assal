@@ -40,9 +40,11 @@
     <table name="spartrak_homepage_section" resource="default" engine="innodb" comment="Spartrak Homepage Sections">
         <column xsi:type="int" name="section_id" unsigned="true" nullable="false" identity="true" comment="Section ID"/>
         <column xsi:type="varchar" name="code" nullable="false" length="64" comment="Stable identifier used by layout/tests"/>
-        <column xsi:type="varchar" name="type" nullable="false" length="32" comment="Renderer type: banner|category_tiles|product_carousel|product_video_carousel"/>
+        <column xsi:type="varchar" name="type" nullable="false" length="32" comment="Renderer type - see Model\SectionType"/>
         <column xsi:type="varchar" name="title_en" nullable="true" length="255" comment="Section title (English store views)"/>
         <column xsi:type="varchar" name="title_ar" nullable="true" length="255" comment="Section title (Arabic store views)"/>
+        <column xsi:type="varchar" name="subtitle_en" nullable="true" length="255" comment="Section subtitle (English store views)"/>
+        <column xsi:type="varchar" name="subtitle_ar" nullable="true" length="255" comment="Section subtitle (Arabic store views)"/>
         <column xsi:type="int" name="category_id" unsigned="true" nullable="true" comment="Source category for product sections"/>
         <column xsi:type="smallint" name="product_limit" unsigned="true" nullable="false" default="10" comment="Max products fetched for product sections"/>
         <column xsi:type="varchar" name="link_url" nullable="true" length="255" comment="Optional View All override; falls back to the category URL"/>
