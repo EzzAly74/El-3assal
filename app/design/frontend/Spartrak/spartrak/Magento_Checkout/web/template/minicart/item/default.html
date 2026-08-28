@@ -1,0 +1,180 @@
+<!--
+/**
+ * Spartrak Minicart — one cart line (Figma "Card - Cart Product", 819:19887).
+ *
+ * FIGMA SSOT
+ * ==========================================================================
+ * 1px border/default, 12px padding, no radius, 16px gap. Inside it:
+ *   image      96x96 on bg/field, 0.44px border, clipped   (819:19872)
+ *   name       18px medium, line-height 1.3, ellipsised at two lines
+ *   remove     24px trash glyph in a 4px-radius bordered box (819:19847)
+ *   qty        bordered "1 v" control, px24 py8, shadow/input (820:16477)
+ *   price      20px bold on text/brand                       (819:19871)
+ *
+ * SOURCE ORDER IS THE LAYOUT
+ * ==========================================================================
+ * Figma's canvas is left-to-right, so its own order reads image-last. This
+ * storefront is right-to-left, where the FIRST child renders on the right —
+ * so the image is written first here to land on the right as the design shows,
+ * and the whole card mirrors correctly on the English store with no second
+ * rule. Same reasoning for [name, remove] and [price, qty].
+ *
+ * EVERY MAGENTO HOOK IS PRESERVED — do not "tidy" these away
+ * ==========================================================================
+ *   data-role="product-item"      Magento_Checkout/js/sidebar keys on it
+ *   .product-item-name            core CSS/JS + Porto both reference it
+ *   .action.delete + data-cart-item
+ *                                 sidebar.js binds the confirm-and-remove flow
+ *                                 to exactly this selector
+ *   .cart-item-qty + id           sidebar.js reads the new quantity from
+ *                                 '#cart-item-<id>-qty'
+ *   .update-cart-item + data-cart-item
+ *                                 sidebar.js reveals this on change and commits
+ *                                 the new quantity when it is clicked
+ *   $parent.getRegion('itemImage' / 'priceSidebar')
+ *                                 the KO regions that render Magento's own
+ *                                 image and price components
+ *   afterRender initSidebar()     rebinds sidebar.js after each re-render
+ *
+ * DOCUMENTED DEVIATION: THE QUANTITY CONTROL IS A NUMBER INPUT, NOT A DROPDOWN
+ * ==========================================================================
+ * Figma 820:16477 draws the quantity as a dropdown — a value and a chevron.
+ * This renders core's <input type="number"> in that box instead, and here is
+ * why that is the correct call rather than a shortcut.
+ *
+ * A dropdown has to be populated from SOMETHING, and the minicart's data has
+ * no maximum quantity in it: `qty` is the only quantity field on a cart line.
+ * The real ceiling lives in inventory (max_sale_qty, salable quantity,
+ * backorder policy) and is not sent to this component. Picking a number to
+ * cap the list at would be an invented constraint that silently stops a
+ * customer ordering the eleventh unit of something we have a hundred of —
+ * a magic value standing in for real data, which CLAUDE.md section 9 rules out.
+ *
+ * The chevron is likewise not drawn as decoration: a chevron that opens
+ * nothing is a control that lies about what it does.
+ *
+ * So the box, its border, padding, shadow and typography are Figma's to the
+ * pixel; the control inside it is the native one that preserves real
+ * behaviour. If inventory data is later exposed to the minicart, this becomes
+ * a <select> with a real bound and no other change.
+ */
+-->
+<li class="item product product-item spartrak-minicart-line" data-role="product-item">
+    <div class="product spartrak-minicart-line__inner">
+
+        <!-- ko if: product_has_url -->
+        <a class="product-item-photo spartrak-minicart-line__media"
+           data-bind="attr: {href: product_url, title: product_name}" tabindex="-1">
+            <!-- ko foreach: $parent.getRegion('itemImage') -->
+                <!-- ko template: {name: getTemplate(), data: item.product_image} --><!-- /ko -->
+            <!-- /ko -->
+        </a>
+        <!-- /ko -->
+        <!-- ko ifnot: product_has_url -->
+        <span class="product-item-photo spartrak-minicart-line__media">
+            <!-- ko foreach: $parent.getRegion('itemImage') -->
+                <!-- ko template: {name: getTemplate(), data: item.product_image} --><!-- /ko -->
+            <!-- /ko -->
+        </span>
+        <!-- /ko -->
+
+        <div class="product-item-details spartrak-minicart-line__details">
+
+            <div class="spartrak-minicart-line__top">
+                <strong class="product-item-name spartrak-minicart-line__name">
+                    <!-- ko if: product_has_url -->
+                    <a data-bind="attr: {href: product_url}, html: $parent.getProductNameUnsanitizedHtml(product_name)"></a>
+                    <!-- /ko -->
+                    <!-- ko ifnot: product_has_url -->
+                    <span data-bind="html: $parent.getProductNameUnsanitizedHtml(product_name)"></span>
+                    <!-- /ko -->
+                </strong>
+
+                <!--
+                  Figma 819:19847. The glyph is the design's own trash asset,
+                  masked in CSS so it takes a design token for its colour.
+                  Still core's `.action.delete` anchor, so sidebar.js keeps
+                  owning the confirm dialog and the removal request.
+                -->
+                <a href="#"
+                   class="action delete spartrak-minicart-line__remove"
+                   data-bind="attr: {'data-cart-item': item_id, title: $t('Remove item'), 'aria-label': $t('Remove item')}">
+                    <span class="spartrak-minicart-line__remove-icon" aria-hidden="true"></span>
+                </a>
+            </div>
+
+            <!--
+              Options stay collapsible and stay core's markup. They are absent
+              from the design because the design's sample line has none — not
+              because a configurable product should hide what was configured.
+            -->
+            <!-- ko if: options.length -->
+            <div class="product options spartrak-minicart-line__options"
+                 data-mage-init='{"collapsible":{"openedState": "active", "saveState": false}}'>
+                <span data-role="title" class="toggle"><!-- ko i18n: 'See Details' --><!-- /ko --></span>
+                <div data-role="content" class="content">
+                    <dl class="product options list">
+                        <!-- ko foreach: { data: options, as: 'option' } -->
+                        <dt class="label"><!-- ko text: option.label --><!-- /ko --></dt>
+                        <dd class="values">
+                            <!-- ko if: Array.isArray(option.value) -->
+                                <span data-bind="html: $parents[1].getOptionValueUnsanitizedHtml(option.value.join('<br>'))"></span>
+                            <!-- /ko -->
+                            <!-- ko if: (!Array.isArray(option.value) && ['file', 'html'].includes(option.option_type)) -->
+                                <span data-bind="html: $parents[1].getOptionValueUnsanitizedHtml(option.value)"></span>
+                            <!-- /ko -->
+                            <!-- ko if: (!Array.isArray(option.value) && !['file', 'html'].includes(option.option_type)) -->
+                                <span data-bind="text: option.value"></span>
+                            <!-- /ko -->
+                        </dd>
+                        <!-- /ko -->
+                    </dl>
+                </div>
+            </div>
+            <!-- /ko -->
+
+            <div class="product-item-pricing spartrak-minicart-line__bottom">
+
+                <!-- ko if: canApplyMsrp -->
+                <span class="spartrak-minicart-line__price-msrp" data-bind="i18n: 'See price before order confirmation.'"></span>
+                <!-- /ko -->
+                <!-- ko ifnot: canApplyMsrp -->
+                <span class="spartrak-minicart-line__price">
+                    <!-- ko foreach: $parent.getRegion('priceSidebar') -->
+                        <!-- ko template: {name: getTemplate(), data: item.product_price, as: 'price'} --><!-- /ko -->
+                    <!-- /ko -->
+                </span>
+                <!-- /ko -->
+
+                <div class="details-qty qty spartrak-minicart-line__qty">
+                    <label class="label spartrak-minicart-line__qty-label"
+                           data-bind="i18n: 'Qty', attr: {for: 'cart-item-' + item_id + '-qty'}"></label>
+
+                    <input type="number"
+                           min="1"
+                           size="4"
+                           class="item-qty cart-item-qty spartrak-minicart-line__qty-input"
+                           data-bind="attr: {
+                                  id: 'cart-item-' + item_id + '-qty',
+                                  'data-cart-item': item_id,
+                                  'data-item-qty': qty,
+                                  'data-cart-item-id': product_sku
+                                  }, value: qty">
+
+                    <button class="update-cart-item spartrak-minicart-line__qty-apply"
+                            data-bind="attr: {
+                                   id: 'update-cart-item-' + item_id,
+                                   'data-cart-item': item_id,
+                                   title: $t('Update')
+                                   }">
+                        <span data-bind="i18n: 'Update'"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="message notice spartrak-minicart-line__message" if="$data.message">
+        <div data-bind="text: $data.message"></div>
+    </div>
+</li>

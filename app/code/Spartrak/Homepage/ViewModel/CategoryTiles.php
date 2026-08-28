@@ -9,7 +9,6 @@ namespace Spartrak\Homepage\ViewModel;
 
 use Magento\Catalog\Model\Category;
 use Magento\Catalog\Model\ResourceModel\Category\CollectionFactory as CategoryCollectionFactory;
-use Magento\Framework\View\Asset\Repository as AssetRepository;
 use Magento\Framework\View\Element\Block\ArgumentInterface;
 use Spartrak\Homepage\Model\CategoryItem;
 use Spartrak\Homepage\Model\Section;
@@ -59,31 +58,29 @@ use Psr\Log\LoggerInterface;
  * A category with no matching file renders with its artwork slot empty rather
  * than borrowing another category's photograph: CLAUDE.md section 3 forbids
  * substituting a visual asset, and a wrong photo is a worse failure than a
- * missing one. See this module's README for the current asset inventory and
- * what is still outstanding.
+ * missing one.
+ *
+ * ===========================================================================
+ * THE ARTWORK IS THE CATEGORY'S OWN IMAGE (changed 2026-08-28)
+ * ===========================================================================
+ * This used to read static, theme-owned files named after each category, and
+ * ignore Catalog's category image entirely. In practice the design file draws
+ * artwork for a handful of subjects, so every OTHER category an admin picked
+ * rendered an empty grey box - which is what the section was actually doing on
+ * the live site for all four of its categories.
+ *
+ * It now reads the category's own image, set in Catalog > Categories >
+ * Content. That is where a merchandiser already manages what a category looks
+ * like, it needs no deploy to change, and it makes picking the category the
+ * single act that chooses both the destination and the picture.
  */
 class CategoryTiles implements ArgumentInterface
 {
-    /** Where the theme keeps this section's artwork. */
-    private const ASSET_DIR = 'Spartrak_Homepage::images/categories/';
-
-    /**
-     * Tried in order. WebP first because it is materially smaller at the same
-     * quality and every browser this storefront supports reads it; the raster
-     * fallbacks exist so a designer dropping in a PNG still gets a rendered
-     * tile rather than silence.
-     */
-    private const ASSET_EXTENSIONS = ['webp', 'png', 'jpg'];
-
     /** @var array<int, array<int, array<string, mixed>>> keyed by section id */
     private array $resolved = [];
 
-    /** @var array<string, string|null> */
-    private array $assetUrls = [];
-
     public function __construct(
         private readonly CategoryCollectionFactory $categoryCollectionFactory,
-        private readonly AssetRepository $assetRepository,
         private readonly LoggerInterface $logger
     ) {
     }
@@ -140,15 +137,19 @@ class CategoryTiles implements ArgumentInterface
             }
 
             $category = $categories[$categoryId];
-            $urlKey = (string) $category->getUrlKey();
+
+            // One image serves both slots. The tile crops it to 308x206 and
+            // the reveal visual to 788x535, both with object-fit, so a single
+            // upload covers the pair rather than asking for two.
+            $image = $this->categoryImageUrl($category);
 
             $tiles[] = [
                 'id' => $categoryId,
                 'name' => (string) $category->getName(),
                 'url' => (string) $category->getUrl(),
                 'description' => $this->getBlurb($category),
-                'tile_image' => $this->findAsset($urlKey, $categoryId, 'tile'),
-                'visual_image' => $this->findAsset($urlKey, $categoryId, 'visual'),
+                'tile_image' => $image,
+                'visual_image' => $image,
             ];
         }
 
@@ -163,9 +164,9 @@ class CategoryTiles implements ArgumentInterface
     {
         $collection = $this->categoryCollectionFactory->create();
 
-        // Only what a tile paints. `description` is included because it is
-        // the tile's blurb; nothing else on a category is read.
-        $collection->addAttributeToSelect(['name', 'url_key', 'url_path', 'description']);
+        // Only what a tile paints. `description` is the tile's blurb and
+        // `image` is its artwork; nothing else on a category is read.
+        $collection->addAttributeToSelect(['name', 'url_key', 'url_path', 'description', 'image']);
         $collection->addFieldToFilter('entity_id', ['in' => $categoryIds]);
         $collection->addAttributeToFilter('is_active', 1);
 
@@ -209,66 +210,37 @@ class CategoryTiles implements ArgumentInterface
     }
 
     /**
-     * Static theme asset URL for one category slot, or null when none is
-     * shipped.
+     * The category's own image URL, or '' when it has none.
      *
-     * TWO NAMING KEYS ARE ACCEPTED, url_key first:
+     * getImageUrl() is Magento's own accessor: it prefixes the store's media
+     * base URL and the catalog/category/ path, so this stays correct behind a
+     * CDN and across store views without this class knowing about either.
      *
-     *     <url_key>-tile.webp        preferred — readable, and survives a
-     *     <url_key>-visual.webp      category being re-parented or renamed
-     *
-     *     category-<id>-tile.webp    fallback — for a category whose url_key
-     *     category-<id>-visual.webp  is unstable or awkward to type (Arabic
-     *                                url keys transliterate inconsistently)
-     *
-     * The id form exists because the id is what an admin can read straight
-     * off the dashboard's category picker, which makes "which file do I name
-     * this?" answerable without a database lookup.
-     *
-     * getSourceFile() throws when a file is absent anywhere in the theme
-     * fallback chain, which makes it a reliable existence test that also
-     * honours a theme overriding the module's artwork.
+     * A category with no image returns '' and the template omits the <img>
+     * rather than rendering a broken one. That is a documented, recoverable
+     * state - an admin fixes it by setting the image on the category - so it
+     * is logged at debug, not as a warning.
      */
-    private function findAsset(string $urlKey, int $categoryId, string $slot): ?string
+    private function categoryImageUrl(Category $category): string
     {
-        $candidates = [];
+        try {
+            $url = (string) ($category->getImageUrl() ?: '');
+        } catch (\Exception $exception) {
+            $this->logger->warning(
+                'Spartrak_Homepage: category ' . $category->getId()
+                . ' has an unreadable image: ' . $exception->getMessage()
+            );
 
-        if ($urlKey !== '') {
-            $candidates[] = $urlKey . '-' . $slot;
+            return '';
         }
 
-        $candidates[] = 'category-' . $categoryId . '-' . $slot;
-
-        $memoKey = implode('|', $candidates);
-
-        if (array_key_exists($memoKey, $this->assetUrls)) {
-            return $this->assetUrls[$memoKey];
+        if ($url === '') {
+            $this->logger->debug(
+                'Spartrak_Homepage: category ' . $category->getId()
+                . ' has no image set, so its tile renders without artwork.'
+            );
         }
 
-        foreach ($candidates as $baseName) {
-            foreach (self::ASSET_EXTENSIONS as $extension) {
-                try {
-                    $asset = $this->assetRepository->createAsset(
-                        self::ASSET_DIR . $baseName . '.' . $extension
-                    );
-                    $asset->getSourceFile();
-
-                    return $this->assetUrls[$memoKey] = $asset->getUrl();
-                } catch (\Exception $exception) {
-                    continue;
-                }
-            }
-        }
-
-        // Deliberately a debug line, not a warning: a category without
-        // artwork is a known, documented state while the asset set is being
-        // completed, not a fault. See view/frontend/web/images/categories/
-        // README.md for the naming contract.
-        $this->logger->debug(
-            'Spartrak_Homepage: no static "' . $slot . '" artwork for category ' . $categoryId
-            . ' (looked for ' . $memoKey . ').'
-        );
-
-        return $this->assetUrls[$memoKey] = null;
+        return $url;
     }
 }

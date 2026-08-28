@@ -65,6 +65,31 @@ class SectionActions extends Column
                     // POST, like delete: this writes, so it must not be a GET
                     // link. The grid adds the admin form key for us.
                     'post' => true,
+                    // ===========================================================
+                    // THE CONFIRM IS LOAD-BEARING, NOT DECORATION
+                    // ===========================================================
+                    // `post` alone does NOTHING here. Magento's actions column
+                    // only attaches a click handler when isHandlerRequired() is
+                    // true, and that is `callback || confirm || !href`. With an
+                    // href and neither of the other two, the template's
+                    // click="$col.getActionHandler(...)" binds `undefined`, the
+                    // browser just follows the <a href> as an ordinary GET, and
+                    // defaultCallback() - the only code that honours `post` -
+                    // never runs. The POST-only controller then correctly 404s.
+                    //
+                    // Delete has always worked precisely because it carries a
+                    // confirm. Verified the hard way: clicking this action
+                    // navigated to a 404 until this block was added.
+                    //
+                    // It earns its place on its own terms too - this takes a
+                    // section on or off the live homepage the instant it is
+                    // clicked, with no save step to reconsider at.
+                    'confirm' => [
+                        'title' => $isActive ? __('Disable section') : __('Enable section'),
+                        'message' => $isActive
+                            ? __('This section stops appearing on the homepage straight away. Continue?')
+                            : __('This section starts appearing on the homepage straight away. Continue?'),
+                    ],
                 ],
                 'delete' => [
                     'href' => $this->urlBuilder->getUrl('spartrak_homepage/section/delete', ['section_id' => $sectionId]),

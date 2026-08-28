@@ -72,8 +72,6 @@
         <column xsi:type="varchar" name="promo_heading_ar" nullable="true" length="255" comment="Promo panel headline (Arabic)"/>
         <column xsi:type="text" name="promo_text_en" nullable="true" comment="Promo panel body (English)"/>
         <column xsi:type="text" name="promo_text_ar" nullable="true" comment="Promo panel body (Arabic)"/>
-        <column xsi:type="varchar" name="promo_image_en" nullable="true" length="255" comment="Promo panel image (English)"/>
-        <column xsi:type="varchar" name="promo_image_ar" nullable="true" length="255" comment="Promo panel image (Arabic)"/>
         <column xsi:type="smallint" name="is_active" unsigned="true" nullable="false" default="1" comment="Enabled"/>
         <column xsi:type="int" name="sort_order" nullable="false" default="0" comment="Position on the homepage"/>
         <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>

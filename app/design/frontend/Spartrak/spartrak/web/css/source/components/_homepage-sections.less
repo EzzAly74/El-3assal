@@ -46,6 +46,31 @@
 // instead of capping at 1403 and stranding the artwork in the middle.
 @home-banner-gutter: 24px;
 
+// ===========================================================================
+// BOX MODEL
+// ===========================================================================
+// MEASURED FIX. Neither Magento/blank nor Porto sets a global border-box on
+// this storefront, so everything here was inheriting `content-box` — and every
+// size in this file was authored from Figma frames, which are border-box.
+//
+// The two are only equivalent while a box has no padding or border. Where one
+// had both, the difference was a live layout bug:
+//   - the split section's rail header carries `width: 100%` AND
+//     `padding-inline: 16px`, so it rendered 407px wide inside a 375px phone
+//     and pushed the whole page sideways;
+//   - .spartrak-card's 1px border made every card 2px taller than the box it
+//     was told to fill, which is what made the rails scroll vertically.
+//
+// One scoped rule removes the entire class of bug. Verified at 375px: page
+// scrollWidth went 407 -> 375 with zero remaining overflow anywhere in the
+// section tree.
+.spartrak-home,
+.spartrak-home *,
+.spartrak-home *::before,
+.spartrak-home *::after {
+    box-sizing: border-box;
+}
+
 .spartrak-home {
     display: flex;
     flex-direction: column;
@@ -489,28 +514,62 @@
     scroll-snap-align: start;
 }
 
-// --- Scroll progress bar (Figma 595:15326) ---------------------------------
-.spartrak-home-rail__progress {
+// ===========================================================================
+// SCROLL PROGRESS — ONE COMPONENT, EVERY CAROUSEL
+// ===========================================================================
+// Figma draws this indicator twice, at two sizes: 4px under the product rail
+// (595:15326) and 8px on the split layout (595:15477). Two sizes meant two
+// implementations, and the sections that were not in either drawing — the
+// tiles, the brand rail, the video showcase — simply had no indicator at all,
+// so three of the six carousels gave a shopper no clue they scrolled.
+//
+// It is now ONE component at the 8px size, used by all of them. The JS never
+// knew about the class names anyway: the widget binds to
+// `[data-carousel-progress]` and writes a single custom property, so unifying
+// the styling changed no behaviour and no script.
+//
+// Only the transform moves, so the update is compositor-only — no width
+// recalculation, no layout, nothing else on the page touched.
+.spartrak-home-progress {
     position: relative;
-    height: 4px;
-    margin: 24px 32px 0;
+    height: 8px;
+    margin-block-start: 24px;
     border-radius: var(--radius-pill);
     background-color: var(--color-bg-field);
     overflow: hidden;
 }
 
-.spartrak-home-rail__progress-bar {
+.spartrak-home-progress__bar {
     position: absolute;
     inset-block: 0;
     inset-inline-start: 0;
     width: 25%;
     border-radius: var(--radius-pill);
-    background-color: var(--color-bg-inverse);
-
-    // The widget writes ONE custom property per frame and the compositor does
-    // the rest — no width recalculation, no layout, nothing else touched.
+    background-color: var(--color-action-primary-hover);
     transform: translateX(var(--spartrak-rail-progress, 0));
     will-change: transform;
+}
+
+// Each section only says where its own indicator sits; the look above is
+// shared. The inline inset always matches that section's own track padding so
+// the bar lines up with the cards it describes.
+.spartrak-home-rail__panel .spartrak-home-progress {
+    margin-inline: 32px;
+}
+
+.spartrak-home-split__rail-side .spartrak-home-progress {
+    margin-inline: 32px;
+    margin-block-start: 0;
+}
+
+.spartrak-home-tiles__stage .spartrak-home-progress,
+.spartrak-home-brands .spartrak-home-progress,
+.spartrak-home-showcase .spartrak-home-progress {
+    // Held to the same measure as those sections' own headers, so the bar
+    // starts and ends exactly under the content it tracks.
+    width: 100%;
+    max-width: ~"min(100% - (@{home-gutter} * 2), @{home-measure})";
+    margin-inline: auto;
 }
 
 // ===========================================================================
@@ -645,7 +704,10 @@
     font-size: 70px;
     font-weight: 700;
     line-height: 1;
-    text-align: end;
+    // `start`, matching the `inset-inline-start: 0` above. `end` would push the
+    // text to the far side of its own 322px box, away from the edge it is
+    // anchored to — visible as a ragged gap against the artwork in Arabic.
+    text-align: start;
     color: var(--color-text-primary);
 
     // The name swaps at the same moment the visual does. Same two properties,
@@ -962,11 +1024,14 @@
 .spartrak-home-showcase__meta {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    // Reading start, like every other text block on this page. Figma expresses
+    // it as `items-end` because its canvas is LTR; under `direction: rtl` that
+    // literal translation lands the timecode and the handle on the wrong side.
+    align-items: flex-start;
     gap: 2px;
     width: 179px;
     color: var(--color-text-inverse);
-    text-align: end;
+    text-align: start;
 }
 
 .spartrak-home-showcase__time {
@@ -997,6 +1062,19 @@
 // Scoped through .spartrak-home-showcase__product so nothing outside this
 // section is affected, and at (0,2,0) so it clears the card's own (0,1,0)
 // rules without an !important.
+// The shared horizontal card truncates its name to ONE line, which is right at
+// Figma's 532px. Six across gives it ~128px of text column, where one line is a
+// couple of words and an ellipsis. Two lines is legible and still bounded — and
+// the mobile frame draws it over two lines too.
+.spartrak-home-showcase__product .spartrak-card__name {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    white-space: normal;
+    text-overflow: clip;
+    overflow: hidden;
+}
+
 .spartrak-home-showcase__product .spartrak-card--horizontal {
     gap: 8px;
 
@@ -1087,8 +1165,15 @@
         width: 200px;
     }
 
-    .spartrak-home-rail__progress {
+    .spartrak-home-rail__panel .spartrak-home-progress,
+    .spartrak-home-split__rail-side .spartrak-home-progress {
         margin-inline: @home-gutter-mobile;
+    }
+
+    .spartrak-home-tiles__stage .spartrak-home-progress,
+    .spartrak-home-brands .spartrak-home-progress,
+    .spartrak-home-showcase .spartrak-home-progress {
+        max-width: ~"min(100% - (@{home-gutter-mobile} * 2), @{home-measure})";
     }
 
     // The tile stage's fixed 608px and absolutely-positioned rail are a
@@ -1147,27 +1232,26 @@
 
     .spartrak-home-showcase__item {
         // Six across is a desktop decision; on a phone that would be ~55px a
-        // card. Figma's mobile frame (647:57253) shows two items across a 440
-        // frame — 226 wide inside a 408 measure, i.e. ~56% — with the second
-        // clipped just enough to read as "this scrolls".
+        // card. Figma's mobile frame (647:57253) draws TWO across — a 226px
+        // item inside a 408px measure on a 440 frame, so a shade over half,
+        // with the second clipped just enough to read as "this scrolls".
         //
-        // Expressed as that proportion rather than a fixed 240px so it holds
-        // at 440 AND at 375, with a floor so a 320px phone does not squeeze the
-        // card past legibility.
-        flex-basis: ~"clamp(180px, 56%, 240px)";
-        width: ~"clamp(180px, 56%, 240px)";
+        // Written as that proportion rather than a pixel width so it holds at
+        // 440 and at 375 alike. `- 6px` is half the 12px gap, which is what
+        // keeps it to two across instead of one-and-a-bit.
+        flex-basis: ~"calc(52% - 6px)";
+        width: ~"calc(52% - 6px)";
     }
 
-    // The card has room again at 240px, so the desktop shrink is undone.
+    // The thumbnail scales with the card. At 88px it was taking 60% of a
+    // 148px card and leaving 52px for the name — MEASURED, and the reason the
+    // text looked crushed on a phone. 56px matches the proportion the mobile
+    // frame draws and hands the name back a usable column.
     .spartrak-home-showcase__product .spartrak-card--horizontal {
         .spartrak-card__media {
-            flex-basis: 88px;
-            width: 88px;
-            height: 88px;
-        }
-
-        .spartrak-card__rating {
-            display: flex;
+            flex: 0 0 56px;
+            width: 56px;
+            height: 56px;
         }
     }
 
@@ -1198,7 +1282,7 @@
     .spartrak-home-tiles__card,
     .spartrak-home-tiles__visual,
     .spartrak-home-tiles__name,
-    .spartrak-home-rail__progress-bar,
+    .spartrak-home-progress__bar,
     .spartrak-home-showcase__control {
         transition: none;
     }
@@ -1709,40 +1793,30 @@
     scroll-snap-align: start;
 }
 
-// Figma 595:15477 — the split layout's scroll indicator. Same widget, same
-// [data-carousel-progress] hook and the same compositor-only transform as the
-// plain rail's; only the placement differs, because here it belongs to the
-// rail half rather than the page.
-.spartrak-home-split__progress {
-    position: relative;
-    height: 8px;
-    margin-inline: 32px;
-    border-radius: var(--radius-pill);
-    background-color: var(--color-bg-field);
-    overflow: hidden;
-}
-
-.spartrak-home-split__progress-bar {
-    position: absolute;
-    inset-block: 0;
-    inset-inline-start: 0;
-    width: 25%;
-    border-radius: var(--radius-pill);
-    background-color: var(--color-action-primary-hover);
-    transform: translateX(var(--spartrak-rail-progress, 0));
-    will-change: transform;
-}
-
 // --- The promo panel (Figma 595:15463) -------------------------------------
 // Figma stacks two large rings behind the artwork (595:15464 / 595:15465).
 // They are drawn as radial-gradient backgrounds rather than shipped as an
 // asset: they are two flat concentric circles in one flat tint, which a
 // gradient reproduces exactly at zero bytes and zero requests.
+// ===========================================================================
+// EVERYTHING IN THIS PANEL SITS AT THE INLINE-START
+// ===========================================================================
+// Figma's canvas is LTR, so the design file expresses "right edge" as
+// `items-end`. Copied literally that becomes `align-items: flex-end` — which
+// under `direction: rtl` means the LEFT edge, the exact mirror of what the
+// design shows. MEASURED on the live Arabic store: the badge, the body copy
+// and the CTA were all pinned 16px from the left while the design puts them
+// 32px from the right.
+//
+// The design's intent, stated in logical terms rather than Figma's physical
+// ones, is: this panel's content hugs the READING START. That is
+// `flex-start` — right in Arabic, and correctly mirrored to left in English
+// with no second rule.
 .spartrak-home-split__promo {
     position: relative;
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: flex-start;
     min-width: 0;
     // Figma 595:15463 — px-32 / pb-32 and NO top padding: the badge sits flush
     // with the panel's top edge (595:15466 is at y=0).
@@ -1787,12 +1861,15 @@
     z-index: 1;
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     // Figma 595:15469 — gap 12 inside the copy, 32 between badge and copy.
     gap: 12px;
     width: 100%;
     max-width: 322px;
     margin-block-start: 32px;
-    text-align: end;
+    // `start`, not `end`. Arabic reads right-to-left, so the reading start IS
+    // the right edge — which is where the design aligns this text.
+    text-align: start;
 }
 
 // Figma 595:15470 — the headline runs to three lines at this width in the
@@ -1811,7 +1888,6 @@
     // Figma 595:15471 is Body/Large — size/lg, 18px — and is given its own
     // narrower measure than the headline above it (241 against 322).
     max-width: 241px;
-    margin-inline-start: auto;
     font-size: var(--text-18);
     font-weight: 400;
     line-height: 1.5;
@@ -1832,11 +1908,14 @@
     object-fit: contain;
 }
 
-// Figma 595:15473 — the CTA sits at the panel's inline-end bottom corner.
+// Figma 595:15473 — the CTA sits at the panel's inline-START bottom corner,
+// i.e. bottom-right on the Arabic store. Its x in the design frame is 406 in a
+// 600-wide panel with 32px padding: 406 + 162 = 568 = 600 - 32, so its trailing
+// edge is flush with the panel's right padding.
 .spartrak-home-split__cta {
     position: absolute;
     inset-block-end: 32px;
-    inset-inline-end: 32px;
+    inset-inline-start: 32px;
     z-index: 2;
 
     display: inline-flex;
@@ -1898,10 +1977,6 @@
         width: 200px;
     }
 
-    .spartrak-home-split__progress {
-        margin-inline: @home-gutter-mobile;
-    }
-
     .spartrak-home-split__promo {
         padding: 0 @home-gutter-mobile 24px;
     }
@@ -1925,7 +2000,7 @@
     .spartrak-home-split__cta {
         position: static;
         order: 1;
-        align-self: flex-end;
+        align-self: flex-start;
         margin-block-start: 16px;
     }
 

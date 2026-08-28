@@ -1,0 +1,733 @@
+// ===========================================================================
+// MINICART DRAWER  (Figma 818:7775 "Overlay" / 818:7776 "Forms and Content")
+// ===========================================================================
+// Magento's minicart is a dropdown. Figma draws a full-height drawer pinned to
+// the viewport's inline-start edge with the page dimmed behind it. This file
+// turns the one into the other WITHOUT replacing Magento's component:
+//
+//   - the markup is this theme's override of the two Knockout templates
+//     (Magento_Checkout/web/template/minicart/{content,item/default}.html);
+//   - the open/close behaviour is still core's `dropdownDialog` — click to
+//     open, click outside to close, Escape to close;
+//   - not one line of new JavaScript is added for any of it.
+//
+// VERIFIED BEFORE WRITING A SINGLE RULE
+// ---------------------------------------------------------------------------
+// Two things had to be true for this approach to work, and both were checked
+// on the live storefront rather than assumed:
+//
+//  1. `.ui-dialog` — the wrapper jQuery UI puts around the panel — carries NO
+//     inline styles here and computes to `position: static`. So the drawer can
+//     be positioned from CSS with no specificity fight and no `!important`
+//     (CLAUDE.md section 9).
+//  2. `position: fixed` inside the header escapes to the viewport: no ancestor
+//     of `[data-block=minicart]` establishes a containing block via transform,
+//     filter or contain. Measured with a probe element — it landed at viewport
+//     x/y 0.
+//
+// DIRECTION
+// ---------------------------------------------------------------------------
+// The design places the drawer on the RIGHT of an Arabic layout, i.e. at the
+// READING START. Everything below is written with logical properties, so the
+// same rules put it on the right in Arabic and mirror it to the left in
+// English without a second stylesheet.
+
+// Figma 818:7776 — the panel is 548 wide.
+@minicart-drawer-width: 548px;
+@minicart-drawer-pad: 24px;
+@minicart-drawer-pad-mobile: 16px;
+
+// ---------------------------------------------------------------------------
+// The wrapper jQuery UI inserts. It must not size or clip the drawer.
+// ---------------------------------------------------------------------------
+.minicart-wrapper .ui-dialog {
+    position: static;
+    width: auto;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+}
+
+// ---------------------------------------------------------------------------
+// The drawer itself
+// ---------------------------------------------------------------------------
+// `.block-minicart` is core's class and carries an inline `display` that the
+// widget toggles. Everything else about the box is claimed here.
+.minicart-wrapper .block-minicart {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    z-index: 1000;
+
+    display: flex;
+    flex-direction: column;
+    width: @minicart-drawer-width;
+    // Never wider than the screen it is on — the safety net for a viewport
+    // between the 548px panel and the mobile breakpoint. `100%` rather than
+    // `100vw`: for a fixed element the percentage resolves against the initial
+    // containing block, which EXCLUDES the scrollbar, where 100vw includes it
+    // and would allow the drawer a scrollbar's width of overhang.
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+
+    background-color: var(--color-bg-surface);
+    box-shadow: var(--shadow-container);
+
+    // Core and Porto both draw a speech-bubble arrow on the dropdown. There is
+    // no arrow on a drawer.
+    &::before,
+    &::after {
+        content: none;
+    }
+}
+
+// The whole drawer is one flex column: header, a body that scrolls, and a
+// summary pinned to the bottom.
+.spartrak-minicart-drawer {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: @minicart-drawer-pad;
+    min-height: 0;
+    padding: @minicart-drawer-pad;
+}
+
+// --- Header (Figma 818:7777) -----------------------------------------------
+.spartrak-minicart-drawer__head {
+    display: flex;
+    align-items: center;
+    gap: @minicart-drawer-pad;
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+// Figma 819:20024 — Heading/H4 at size/lg, 18px bold, on text/primary. Takes
+// the free space so the link and the close control sit at the trailing edge.
+.spartrak-minicart-drawer__title {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    font-size: var(--text-18);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+}
+
+// Figma 819:19370 — Label/Large at size/md on text/link. `text/link` and
+// `text/brand` are both the design system's navy, which this theme already
+// exposes as --color-action-primary; there is no separate link token to add.
+.spartrak-minicart-drawer__view {
+    flex: 0 0 auto;
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-action-primary);
+    text-decoration: none;
+
+    // Porto repaints every visited link; pinned with the component's own token,
+    // the same finding as the header and homepage passes.
+    &:visited {
+        color: var(--color-action-primary);
+    }
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+.spartrak-minicart-drawer__close {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: none;
+    cursor: pointer;
+    transition: background-color .15s ease;
+
+    &:hover {
+        background-color: var(--color-bg-field);
+    }
+}
+
+.spartrak-minicart-drawer__close-icon {
+    .spartrak-icon('close.svg'; 20px; var(--color-text-secondary));
+}
+
+// --- Body: the only region that scrolls ------------------------------------
+.spartrak-minicart-drawer__body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: @minicart-drawer-pad;
+    min-height: 0;
+    padding: 0;
+    // The block axis scrolls here and ONLY here, so the summary and its
+    // checkout button never leave the viewport no matter how full the cart is.
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior-block: contain;
+}
+
+// ---------------------------------------------------------------------------
+// MEASURED: this element is written to by sidebar.js, so it is given no box.
+// ---------------------------------------------------------------------------
+// Magento_Checkout/js/sidebar.js::_calcHeight() ends with
+//
+//     target.parent().height(height)
+//
+// where `target` is #mini-cart — so core sets an INLINE height on this wrapper,
+// sized to the first `minicartMaxItemsVisible` lines (three by default). That is
+// right for a dropdown that grows to fit its contents. It is wrong for a
+// full-height drawer, where the list should fill whatever room is left above the
+// summary, and it would have pinned the list to a three-item box with the rest
+// of the drawer empty beneath it.
+//
+// An inline height cannot be overridden from a stylesheet without `!important`,
+// which CLAUDE.md section 9 rules out — so instead this element is given no box
+// at all. `display: contents` means core's write lands on something that
+// generates no principal box, where height simply does not apply, and
+// `ol#mini-cart` becomes a direct child of the scrolling body above.
+//
+// Nothing is broken by that: the wrapper is a layout div, its `data-action`
+// hook stays in the DOM for anything that queries it, and core's own function
+// still runs to completion.
+.spartrak-minicart-drawer__items {
+    display: contents;
+}
+
+// Figma 818:7842 — the lines are 24 apart.
+.spartrak-minicart-drawer .minicart-items {
+    display: flex;
+    flex-direction: column;
+    gap: @minicart-drawer-pad;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.spartrak-minicart-drawer__empty {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-block: 32px;
+    color: var(--color-text-secondary);
+    font-size: var(--text-16);
+    line-height: 1.5;
+    text-align: center;
+}
+
+// ===========================================================================
+// ONE CART LINE  (Figma 819:19887 "Card - Cart Product")
+// ===========================================================================
+.spartrak-minicart-line {
+    // Porto's `ul > li { margin-bottom: .05rem }` — pinned, as on every list in
+    // this theme.
+    margin: 0;
+    padding: 0;
+
+    &::before,
+    &::after {
+        content: none;
+    }
+}
+
+.spartrak-minicart-line__inner {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 12px;
+    border: 1px solid var(--color-border-default);
+    background-color: var(--color-bg-surface);
+}
+
+// Figma 819:19872 — 96 square on bg/field, hairline border, clipped.
+.spartrak-minicart-line__media {
+    flex: 0 0 96px;
+    width: 96px;
+    height: 96px;
+    overflow: hidden;
+    border: 1px solid var(--color-border-default);
+    background-color: var(--color-bg-field);
+
+    // Magento's image component writes the rendered size inline, as
+    // `width / 2`. That is NOT fought with `!important` here — the number it
+    // prints is declared in this theme's own etc/view.xml, which sets the
+    // mini_cart_product_thumbnail role to 192 so the inline value resolves to
+    // exactly the 96 the design asks for (and ships a 2x asset while it is at
+    // it). See that file for the full note.
+    //
+    // These two only need to fill the frame; the inline width already agrees
+    // with it, so no override is required.
+    .product-image-container,
+    .product-image-wrapper {
+        display: block;
+        max-width: 100%;
+        height: 100%;
+    }
+
+    .product-image-photo {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+}
+
+.spartrak-minicart-line__details {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    justify-content: center;
+    gap: @minicart-drawer-pad;
+    min-width: 0;
+}
+
+// Figma 819:19845 — name and the remove control, 32 apart.
+.spartrak-minicart-line__top {
+    display: flex;
+    align-items: flex-start;
+    gap: 32px;
+    min-width: 0;
+}
+
+// Figma 819:19862 — 18px medium, line-height 1.3, clamped to two lines. The
+// names in this catalogue are full sentences, so the clamp is load-bearing.
+.spartrak-minicart-line__name {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    font-size: var(--text-18);
+    font-weight: 500;
+    line-height: 1.3;
+
+    a,
+    span {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        color: var(--color-text-primary);
+        text-decoration: none;
+    }
+
+    a:visited {
+        color: var(--color-text-primary);
+    }
+
+    a:hover {
+        color: var(--color-action-primary);
+    }
+}
+
+// Figma 819:19847 — the trash glyph in a 4px-radius bordered box.
+.spartrak-minicart-line__remove {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-4);
+    background-color: var(--color-bg-surface);
+    transition: border-color .15s ease, background-color .15s ease;
+
+    &:hover {
+        border-color: var(--color-feedback-danger, var(--color-action-primary));
+        background-color: var(--color-bg-field);
+    }
+}
+
+.spartrak-minicart-line__remove-icon {
+    .spartrak-icon('cart-line-remove.svg'; 24px; var(--color-feedback-danger, var(--color-text-secondary)));
+}
+
+// Figma 819:19863 — price at the reading start, quantity at the far end.
+.spartrak-minicart-line__bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-width: 0;
+}
+
+// Figma 819:19871 — Heading/H3 at size/xl, 20px bold, on the design system's
+// navy (text/brand).
+.spartrak-minicart-line__price {
+    font-size: var(--text-20);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-action-primary);
+    white-space: nowrap;
+
+    .price-container,
+    .price-wrapper,
+    .minicart-price {
+        font: inherit;
+        color: inherit;
+    }
+}
+
+// Figma 820:16477 — the bordered quantity box: 1px border, px24/py8,
+// shadow/input. See the item template's header for why the control inside it
+// is a number input and not the dropdown the design draws.
+.spartrak-minicart-line__qty {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    padding: 8px 24px;
+    border: 1px solid var(--color-border-default);
+    background-color: var(--color-bg-surface);
+    box-shadow: var(--shadow-input);
+}
+
+// The label is for assistive tech; the design shows the number alone.
+.spartrak-minicart-line__qty-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.spartrak-minicart-line__qty-input {
+    width: 3ch;
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--color-text-primary);
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    text-align: center;
+
+    &:focus {
+        outline: none;
+    }
+}
+
+// Core hides this and reveals it on `keyup` in the quantity field. Two problems
+// with inheriting that here: the design has no "Update" affordance at all, and
+// core's keyup binding never fires when the value is changed with the number
+// input's own spinner arrows — so a shopper who clicks the arrows sees the
+// number change and nothing happen.
+//
+// It is therefore always visible, and sized to sit quietly inside the quantity
+// box rather than next to it. That is one small element more than Figma draws;
+// the alternative is a control that silently discards the change a customer
+// just made.
+.spartrak-minicart-line__qty-apply {
+    padding: 0;
+    border: 0;
+    border-inline-start: 1px solid var(--color-border-default);
+    padding-inline-start: 8px;
+    background: none;
+    color: var(--color-action-primary);
+    font-size: var(--text-12);
+    font-weight: 500;
+    line-height: 1.3;
+    cursor: pointer;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+.spartrak-minicart-line__options {
+    font-size: var(--text-14);
+    color: var(--color-text-secondary);
+}
+
+// ===========================================================================
+// SUMMARY  (Figma 819:19976 "Order summary details container")
+// ===========================================================================
+.spartrak-minicart-drawer__summary {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 28px;
+    padding: @minicart-drawer-pad;
+    background-color: var(--color-bg-surface);
+    // Figma "Medium/Darker": 0 1px 3px #00000026.
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .15);
+}
+
+// Figma 819:19977 — Heading/H3, 20px bold.
+.spartrak-minicart-drawer__summary-title {
+    margin: 0;
+    font-size: var(--text-20);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+}
+
+.spartrak-minicart-drawer__rows {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.spartrak-minicart-drawer__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+// Figma 819:19983 — Body/Base, 16px regular, on text/secondary.
+.spartrak-minicart-drawer__row-label {
+    color: var(--color-text-secondary);
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+// Figma 819:19982 — Body/Base Medium, 16px medium, on text/primary.
+.spartrak-minicart-drawer__row-value {
+    color: var(--color-text-primary);
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    white-space: nowrap;
+
+    // Magento's subtotal component brings its own price markup; it inherits
+    // this row's type rather than Porto's.
+    .price-container,
+    .price-wrapper,
+    .price,
+    .label {
+        font: inherit;
+        color: inherit;
+    }
+
+    // Core's subtotal template prints its own "Cart Subtotal" label next to the
+    // amount. This row already has a label, so the duplicate is suppressed —
+    // the amount itself is what belongs here.
+    > .subtotal > .label {
+        display: none;
+    }
+}
+
+.spartrak-minicart-drawer__row-count {
+    color: inherit;
+}
+
+// Figma 819:19990 — a hairline rule between the subtotal and the total.
+.spartrak-minicart-drawer__rule {
+    display: block;
+    height: 1px;
+    background-color: var(--color-border-default);
+}
+
+// Figma 819:19992 — the total row: label 18px medium on text/secondary, amount
+// 20px bold on the navy.
+.spartrak-minicart-drawer__row--total {
+    .spartrak-minicart-drawer__row-label {
+        font-size: var(--text-18);
+        font-weight: 500;
+        line-height: 1.3;
+    }
+
+    .spartrak-minicart-drawer__row-value {
+        color: var(--color-action-primary);
+        font-size: var(--text-20);
+        font-weight: 700;
+        line-height: 1.3;
+    }
+}
+
+// Figma 819:20012 — full-width primary action, 48 tall, no radius.
+.spartrak-minicart-drawer__checkout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    height: 48px;
+    padding-inline: @minicart-drawer-pad;
+    border: 0;
+    border-radius: 0;
+    background-color: var(--color-action-primary);
+    color: var(--color-action-primary-text);
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    cursor: pointer;
+    transition: background-color .15s ease;
+
+    &:hover,
+    &:focus {
+        background-color: var(--color-action-primary-hover);
+        color: var(--color-action-primary-text);
+    }
+}
+
+.spartrak-minicart-drawer__checkout-icon {
+    .spartrak-icon('cart-checkout-bag.svg'; 20px; var(--color-action-primary-text));
+}
+
+// ===========================================================================
+// THE PAGE BEHIND, AND THE WAY IN
+// ===========================================================================
+// `dropdownDialog` puts a class on <body> for exactly this purpose (its
+// `bodyClass` option, set in Magento_Checkout::cart/minicart.phtml). So the
+// scrim and the scroll lock cost no JavaScript of ours at all.
+body.spartrak-minicart-open {
+    overflow: hidden;
+}
+
+body.spartrak-minicart-open::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background-color: rgba(12, 10, 32, .45);
+    animation: spartrak-minicart-scrim .2s ease both;
+    // The scrim is decoration; the click-outside-to-close is core's own
+    // document handler, which needs the event to reach the page beneath.
+    pointer-events: none;
+}
+
+@keyframes spartrak-minicart-scrim {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+// The panel goes from `display: none` to `display: block` when it opens, which
+// no transition can interpolate across — but an ANIMATION does run on that
+// change, so the way in is a keyframe rather than a transition. Closing is not
+// animated: the widget hides the element outright, and faking a close would
+// mean holding it in the DOM after core considers it shut.
+@keyframes spartrak-minicart-in {
+    from { transform: translateX(var(--spartrak-minicart-offset, 100%)); }
+    to   { transform: translateX(0); }
+}
+
+.minicart-wrapper .block-minicart {
+    // Logical direction for the slide: the drawer enters from whichever edge it
+    // is pinned to, which mirrors with the document.
+    --spartrak-minicart-offset: -100%;
+    animation: spartrak-minicart-in .28s cubic-bezier(.32, .72, 0, 1) both;
+}
+
+[dir='ltr'] .minicart-wrapper .block-minicart {
+    --spartrak-minicart-offset: 100%;
+}
+
+// ===========================================================================
+// MOBILE
+// ===========================================================================
+@media (max-width: @breakpoint-header-collapse) {
+    // =======================================================================
+    // MOBILE: FULL WIDTH
+    // =======================================================================
+    // There is NO mobile frame for this drawer in the design file — the mobile
+    // cart artboards are the full cart PAGE, not this panel. So the phone
+    // layout is derived rather than copied, and it follows the convention the
+    // theme's own mobile nav drawer already sets (components/_mobile-drawer.less):
+    // a fixed panel pinned to every edge, the page frozen behind it, momentum
+    // scrolling inside.
+    //
+    // Full width, not a 548px sliver: at 375px a partial drawer leaves ~30px of
+    // page showing down one side, which reads as a rendering fault rather than
+    // as depth, and it steals room from a line that already has an image, a
+    // two-line name, a price and a quantity control to fit.
+    .minicart-wrapper .block-minicart {
+        // `inset-inline: 0` rather than `width: 100vw` — 100vw includes the
+        // scrollbar, which would push the panel off-centre by its width on any
+        // device that shows one.
+        inset-inline: 0;
+        width: auto;
+        max-width: none;
+        // Momentum scrolling inside the panel on iOS, matching the nav drawer.
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .spartrak-minicart-drawer {
+        gap: @minicart-drawer-pad-mobile;
+        padding: @minicart-drawer-pad-mobile;
+    }
+
+    .spartrak-minicart-drawer__head {
+        gap: 12px;
+    }
+
+    .spartrak-minicart-drawer__body {
+        gap: @minicart-drawer-pad-mobile;
+    }
+
+    .spartrak-minicart-drawer .minicart-items {
+        gap: 12px;
+    }
+
+    .spartrak-minicart-drawer__summary {
+        gap: 20px;
+        padding: @minicart-drawer-pad-mobile;
+        // Full-bleed to the drawer's edges so the card does not float inside a
+        // gutter on a narrow screen.
+        margin-inline: -@minicart-drawer-pad-mobile;
+        margin-block-end: -@minicart-drawer-pad-mobile;
+        // Clear of the home indicator on a notched phone: without this the
+        // checkout button sits under the system gesture bar and is awkward to
+        // hit. Resolves to 0 everywhere else.
+        padding-block-end: ~"calc(@{minicart-drawer-pad-mobile} + env(safe-area-inset-bottom, 0px))";
+    }
+
+    // The line has ~64px less room; the image and the gaps give it back.
+    .spartrak-minicart-line__media {
+        flex-basis: 72px;
+        width: 72px;
+        height: 72px;
+    }
+
+    .spartrak-minicart-line__details {
+        gap: 12px;
+    }
+
+    .spartrak-minicart-line__top {
+        gap: 12px;
+    }
+
+    .spartrak-minicart-line__name {
+        font-size: var(--text-16);
+    }
+
+    .spartrak-minicart-line__price {
+        font-size: var(--text-18);
+    }
+
+    // The 24px inline padding is what makes this box wide; at this width the
+    // price and the control would otherwise collide.
+    .spartrak-minicart-line__qty {
+        padding-inline: 12px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .minicart-wrapper .block-minicart,
+    body.spartrak-minicart-open::after {
+        animation: none;
+    }
+
+    .spartrak-minicart-drawer__close,
+    .spartrak-minicart-line__remove,
+    .spartrak-minicart-drawer__checkout {
+        transition: none;
+    }
+}

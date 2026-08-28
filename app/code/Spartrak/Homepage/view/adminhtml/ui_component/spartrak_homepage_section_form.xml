@@ -716,7 +716,7 @@
                 <item name="config" xsi:type="array">
                     <item name="component" xsi:type="string">Magento_Ui/js/form/components/html</item>
                     <item name="additionalClasses" xsi:type="string">message message-notice</item>
-                    <item name="content" xsi:type="string" translate="true">Shown beside the product rail on the "with promo panel" layout. Leave it empty and the section simply renders as the plain full-width carousel, so it is safe to switch the type before filling this in. The "View all" URL above is what the panel's button links to.</item>
+                    <item name="content" xsi:type="string" translate="true">Shown beside the product rail on the "with promo panel" layout. The panel's artwork is the SOURCE CATEGORY'S own image, set in Catalog &gt; Categories &gt; Content - there is nothing to upload here. Leave these fields empty and the section renders as the plain full-width carousel, so it is safe to switch the type before filling them in. The "View all" URL above is what the panel's button links to.</item>
                 </item>
             </argument>
         </container>
@@ -765,49 +765,7 @@
             </settings>
         </field>
 
-        <field name="promo_image_ar" sortOrder="70" formElement="imageUploader">
-            <settings>
-                <elementTmpl>ui/form/element/uploader/image</elementTmpl>
-                <dataType>string</dataType>
-                <label translate="true">Panel image (Arabic)</label>
-                <notice translate="true">A cut-out product shot works best — the panel crops it against its own background. If a language is left empty the other language's image is used.</notice>
-                <required>false</required>
-            </settings>
-            <formElements>
-                <imageUploader>
-                    <settings>
-                        <required>false</required>
-                        <uploaderConfig>
-                            <param xsi:type="url" name="url" path="spartrak_homepage/section/upload"/>
-                        </uploaderConfig>
-                        <allowedExtensions>jpg jpeg png gif webp</allowedExtensions>
-                        <maxFileSize>4194304</maxFileSize>
-                    </settings>
-                </imageUploader>
-            </formElements>
-        </field>
-
-        <field name="promo_image_en" sortOrder="80" formElement="imageUploader">
-            <settings>
-                <elementTmpl>ui/form/element/uploader/image</elementTmpl>
-                <dataType>string</dataType>
-                <label translate="true">Panel image (English)</label>
-                <required>false</required>
-            </settings>
-            <formElements>
-                <imageUploader>
-                    <settings>
-                        <required>false</required>
-                        <uploaderConfig>
-                            <param xsi:type="url" name="url" path="spartrak_homepage/section/upload"/>
-                        </uploaderConfig>
-                        <allowedExtensions>jpg jpeg png gif webp</allowedExtensions>
-                        <maxFileSize>4194304</maxFileSize>
-                    </settings>
-                </imageUploader>
-            </formElements>
-        </field>
-    </fieldset>
+</fieldset>
 
     <fieldset name="category_picks" sortOrder="30">
         <settings>

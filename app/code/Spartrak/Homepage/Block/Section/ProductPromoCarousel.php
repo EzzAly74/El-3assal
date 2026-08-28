@@ -9,7 +9,6 @@ namespace Spartrak\Homepage\Block\Section;
 
 use Magento\Catalog\Helper\Image as ImageHelper;
 use Magento\Framework\View\Element\Template\Context;
-use Spartrak\Homepage\Model\Image\Storage;
 use Spartrak\Homepage\Model\LocaleContext;
 use Spartrak\Homepage\Model\Product\CategoryProductProvider;
 use Spartrak\Homepage\ViewModel\CategoryUrl;
@@ -38,7 +37,6 @@ class ProductPromoCarousel extends ProductCarousel
         CategoryProductProvider $productProvider,
         CategoryUrl $categoryUrl,
         ImageHelper $imageHelper,
-        private readonly Storage $storage,
         array $data = []
     ) {
         parent::__construct($context, $localeContext, $productProvider, $categoryUrl, $imageHelper, $data);
@@ -75,28 +73,25 @@ class ProductPromoCarousel extends ProductCarousel
     }
 
     /**
-     * Promo artwork, resolved to a URL plus its intrinsic size.
+     * The panel's artwork: the SOURCE CATEGORY'S own image.
      *
-     * Dimensions come from the real file header (same helper the banners use),
-     * so the panel reserves the right box and contributes nothing to CLS.
+     * Not an upload on this form any more. The section already names a
+     * category, that category already carries an image in Catalog, and asking
+     * an editor to upload a second copy of it here made two places to keep one
+     * fact - and two places to forget. Choosing the category now chooses the
+     * artwork. See ViewModel\CategoryUrl::getImageUrl() for the full note.
      *
-     * @return array{url: string, width: int|null, height: int|null}|null
+     * No width/height is returned with it. A category image is an arbitrary
+     * upload with no declared size, and reading its header would be a
+     * filesystem stat on every uncached render of the homepage. CLS is handled
+     * instead by an aspect-ratio on .spartrak-home-split__image, which reserves
+     * the box from CSS at zero runtime cost.
      */
-    public function getPromoImage(): ?array
+    public function getPromoImage(): string
     {
-        $file = $this->localised('promo_image');
+        $categoryId = $this->getSection()?->getCategoryId();
 
-        if ($file === '') {
-            return null;
-        }
-
-        $dimensions = $this->storage->getDimensions($file);
-
-        return [
-            'url' => $this->storage->getUrl($file),
-            'width' => $dimensions[0] ?? null,
-            'height' => $dimensions[1] ?? null,
-        ];
+        return $categoryId === null ? '' : $this->categoryUrl->getImageUrl($categoryId);
     }
 
     /**
@@ -112,6 +107,6 @@ class ProductPromoCarousel extends ProductCarousel
         return $this->getPromoBadge() !== ''
             || $this->getPromoHeading() !== ''
             || $this->getPromoText() !== ''
-            || $this->getPromoImage() !== null;
+            || $this->getPromoImage() !== '';
     }
 }

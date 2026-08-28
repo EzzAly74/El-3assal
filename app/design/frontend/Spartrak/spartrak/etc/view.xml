@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  Spartrak theme view configuration.
+  ===========================================================================
+  ADDITIVE. A theme's view.xml MERGES with its parent's, so this file declares
+  only what Spartrak needs to differ on. Everything else still comes from
+  Smartwave/porto and Magento/blank.
+-->
+<view xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Config/etc/view.xsd">
+    <media>
+        <images module="Magento_Catalog">
+            <!--
+              ===================================================================
+              MINICART THUMBNAIL — 192, BECAUSE THE DRAWER DRAWS IT AT 96
+              ===================================================================
+              Figma 819:19872 puts a 96x96 image on each cart line. Porto declares
+              this role at 100x100, and Magento's Knockout image component writes
+              the rendered size inline as `width / 2` — so a 100 here produced a
+              50px image sitting inside a 96px frame.
+
+              That inline style cannot be overridden from CSS without
+              `!important`, which CLAUDE.md section 9 rules out. It does not need
+              to be: the number it prints comes from THIS file. Declaring 192
+              makes `width / 2` resolve to exactly the 96 the design asks for.
+
+              The 2:1 ratio is the point rather than a side effect. Magento
+              generates and caches a 192px file and the browser paints it into a
+              96px box, so the line is sharp on a 2x display while still being a
+              small, correctly-sized asset — which is what section 11 asks for,
+              and the opposite of shipping a full-size product image to a
+              thumbnail slot.
+            -->
+            <image id="mini_cart_product_thumbnail" type="thumbnail">
+                <width>192</width>
+                <height>192</height>
+            </image>
+        </images>
+    </media>
+</view>

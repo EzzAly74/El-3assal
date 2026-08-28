@@ -256,6 +256,19 @@
     display: flex;
     align-items: center;
     width: 100%;
+    // MEASURED FIX. As a flex item this defaulted to `min-width: auto`, i.e.
+    // "never narrower than my content's min-content size". In the horizontal
+    // variant the name is `white-space: nowrap`, so its min-content size is the
+    // WHOLE product name on one line — 342px of it on this catalogue.
+    //
+    // That floor propagated outwards: the 128px text column of a showcase card
+    // was forced to 346px, the name escaped the card, and in RTL it ran
+    // leftwards straight across the neighbouring cards. `overflow: hidden` and
+    // `text-overflow: ellipsis` on the name could not help, because they need a
+    // definite width to ellipsise against and the name simply never got one.
+    //
+    // Letting this shrink is what gives the name a real width to truncate to.
+    min-width: 0;
     padding-inline: 2px;
 }
 

@@ -74,14 +74,18 @@ $ctaUrl = $block->getViewAllUrl();
                     <?php endif; ?>
                 </div>
 
-                <?php if ($image) : ?>
+                <?php if ($image !== '') : ?>
+                    <?php /*
+                      The SOURCE CATEGORY'S own image - not an upload on this
+                      form. See the block's getPromoImage(). No width/height
+                      attributes: a category image has no declared size and
+                      stat-ing the file per render would be a filesystem hit on
+                      the busiest page on the site. The box is reserved from CSS
+                      instead, by aspect-ratio, which costs nothing.
+                    */ ?>
                     <img class="spartrak-home-split__image"
-                         src="<?= $block->escapeUrl($image['url']) ?>"
+                         src="<?= $block->escapeUrl($image) ?>"
                          alt=""
-                         <?php if ($image['width'] && $image['height']) : ?>
-                             width="<?= (int) $image['width'] ?>"
-                             height="<?= (int) $image['height'] ?>"
-                         <?php endif; ?>
                          <?php /*
                            Decorative: the panel's meaning is carried by the
                            headline beside it, so alt="" is correct rather than
@@ -120,8 +124,8 @@ $ctaUrl = $block->getViewAllUrl();
               to scroll, so it is never a bar stuck at 100%.
             */ ?>
             <?php if ($isCarousel) : ?>
-                <div class="spartrak-home-split__progress" aria-hidden="true">
-                    <span class="spartrak-home-split__progress-bar" data-carousel-progress></span>
+                <div class="spartrak-home-progress" aria-hidden="true">
+                    <span class="spartrak-home-progress__bar" data-carousel-progress></span>
                 </div>
             <?php endif; ?>
         </div>

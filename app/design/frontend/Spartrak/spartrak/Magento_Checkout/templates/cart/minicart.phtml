@@ -99,6 +99,15 @@
     <?php if ($block->getIsNeedToDisplaySideBar()) : ?>
         <div class="block block-minicart empty"
              data-role="dropdownDialog"
+             <?php /*
+               `bodyClass` is the widget's OWN option for this: it puts a class
+               on <body> while the dropdown is open and takes it off on close.
+               components/_minicart-drawer.less hangs the page scrim and the
+               scroll lock off that class, so the drawer's overlay costs no
+               JavaScript of ours at all — see that file's closing section.
+
+               Everything else here is unchanged core configuration.
+             */ ?>
              data-mage-init='{"dropdownDialog":{
                 "appendTo":"[data-block=minicart]",
                 "triggerTarget":".showcart",
@@ -107,6 +116,7 @@
                 "closeOnEscape": true,
                 "triggerClass":"active",
                 "parentClass":"active",
+                "bodyClass":"spartrak-minicart-open",
                 "buttons":[]}}'>
             <div id="minicart-content-wrapper" data-bind="scope: 'minicart_content'">
                 <!-- ko template: getTemplate() --><!-- /ko -->

@@ -1,0 +1,164 @@
+<!--
+/**
+ * Spartrak Minicart — the cart drawer (Figma "Forms and Content", 818:7776,
+ * inside Overlay 818:7775).
+ *
+ * FIGMA SSOT
+ * ==========================================================================
+ * A 548px panel pinned to the viewport's inline-start edge, white, 24px
+ * padding, 24px gap, drop-shadow 0 3px 8px rgba(0,0,0,.05). Three stacked
+ * regions:
+ *
+ *   header   818:7777   "سلة التسوق (N)" 18px bold + a text/link 14px link
+ *                       through to the full cart page
+ *   items    818:7842   the cart lines, 24px apart — the only region that
+ *                       scrolls, so the summary never leaves the viewport
+ *   summary  819:19976  "تفاصيل الدفع" 20px bold, a subtotal row, a rule,
+ *                       a total row, and the primary action
+ *
+ * SOURCE ORDER IS THE LAYOUT
+ * ==========================================================================
+ * Figma's canvas is left-to-right and this storefront is right-to-left, so
+ * every row here is written in reading order — first child to the right in
+ * Arabic — and mirrors to the English store with no second rule. That is why
+ * the heading precedes the link, and each summary label precedes its amount.
+ *
+ * EVERY MAGENTO HOOK IS PRESERVED — do not "tidy" these away
+ * ==========================================================================
+ *   #btn-minicart-close / data-action="close" / closeMinicart()
+ *                                  core's own close path
+ *   .minicart-items-wrapper + data-action="scroll"
+ *                                  the scroll region Magento_Checkout/js/sidebar
+ *                                  measures and keeps in view
+ *   #mini-cart.minicart-items      the list sidebar.js binds item actions inside
+ *   afterRender initSidebar()      rebinds sidebar.js after every re-render
+ *   getRegion('subtotalContainer' | 'extraInfo' | 'promotion' | 'sign-in-popup')
+ *                                  the KO regions other modules inject into —
+ *                                  dropping any of them silently removes
+ *                                  another module's output (gift cards, reward
+ *                                  points, tax display, "sign in to check out")
+ *   #top-cart-btn-checkout .action.primary.checkout
+ *                                  the checkout button core and Porto both key on
+ *   .action.viewcart               the cart-page link core styles and tests use
+ *
+ * WHY THE TOTAL EQUALS THE SUBTOTAL HERE
+ * ==========================================================================
+ * The design shows both rows carrying the same figure, and that is correct
+ * rather than a placeholder: at minicart stage no address has been entered, so
+ * shipping and tax are genuinely unknown. The subtotal row renders Magento's
+ * own subtotalContainer region, which already honours the store's tax-display
+ * configuration; the total row shows the same value and is labelled as the
+ * estimate it is. Neither number is computed here.
+ */
+-->
+<div class="spartrak-minicart-drawer" data-role="minicart-drawer">
+
+    <div class="block-title spartrak-minicart-drawer__head">
+        <strong class="spartrak-minicart-drawer__title">
+            <span class="text" translate="'Shopping cart'"></span>
+            <span class="qty empty"
+                  data-bind="css: { empty: !!getCartParam('summary_count') == false },
+                             attr: { title: $t('Items in Cart') }">
+                (<!-- ko text: getCartParam('summary_count') || 0 --><!-- /ko -->)
+            </span>
+        </strong>
+
+        <a class="action viewcart spartrak-minicart-drawer__view"
+           data-bind="attr: {href: shoppingCartUrl}">
+            <span translate="'Shopping basket'"></span>
+        </a>
+
+        <!--
+          Not drawn in Figma, and deliberately kept anyway. The design closes
+          the drawer by clicking the page behind it, which is a pointer-only
+          affordance: without this a keyboard user who tabs into the drawer has
+          no way out but Escape, and a touch user has no visible exit at all.
+          CLAUDE.md section 15 makes a visible, keyboard-reachable control a
+          correctness requirement, so it is core's own close button, styled as a
+          quiet 24px glyph at the header's trailing edge.
+        -->
+        <button type="button"
+                id="btn-minicart-close"
+                class="action close spartrak-minicart-drawer__close"
+                data-action="close"
+                data-bind="attr: { title: $t('Close'), 'aria-label': $t('Close') },
+                           click: closeMinicart()">
+            <span class="spartrak-minicart-drawer__close-icon" aria-hidden="true"></span>
+        </button>
+    </div>
+
+    <div class="block-content spartrak-minicart-drawer__body">
+
+        <if args="getCartParam('summary_count')">
+            <div data-action="scroll" class="minicart-items-wrapper spartrak-minicart-drawer__items">
+                <ol id="mini-cart" class="minicart-items" data-bind="foreach: { data: getCartItems(), as: 'item' }">
+                    <each args="$parent.getRegion($parent.getItemRenderer(item.product_type))"
+                          render="{name: getTemplate(), data: item, afterRender: function() {$parents[1].initSidebar()}}"></each>
+                </ol>
+            </div>
+        </if>
+
+        <ifnot args="getCartParam('summary_count')">
+            <div class="spartrak-minicart-drawer__empty">
+                <strong class="subtitle empty"
+                        translate="'You have no items in your shopping cart.'"></strong>
+                <if args="getCartParam('cart_empty_message')">
+                    <p class="minicart empty text" text="getCartParam('cart_empty_message')"></p>
+                </if>
+            </div>
+        </ifnot>
+
+        <!--
+          Other modules render into these. Kept outside the summary card so a
+          promotion block or a gift-card form does not land between the total
+          and the checkout button.
+        -->
+        <each args="getRegion('extraInfo')" render=""></each>
+        <div id="minicart-widgets" class="minicart-widgets" if="regionHasElements('promotion')">
+            <each args="getRegion('promotion')" render=""></each>
+        </div>
+    </div>
+
+    <div class="spartrak-minicart-drawer__summary" if="getCartParam('summary_count')">
+        <p class="spartrak-minicart-drawer__summary-title" translate="'Payment details'"></p>
+
+        <div class="spartrak-minicart-drawer__rows">
+            <div class="spartrak-minicart-drawer__row">
+                <span class="spartrak-minicart-drawer__row-label">
+                    <span translate="'Subtotal'"></span>
+                    <span class="spartrak-minicart-drawer__row-count">
+                        (<!-- ko text: getCartParam('summary_count') --><!-- /ko -->
+                        <!-- ko if: getCartParam('summary_count') > 1 --><span translate="'products'"></span><!-- /ko -->
+                        <!-- ko if: getCartParam('summary_count') <= 1 --><span translate="'product'"></span><!-- /ko -->)
+                    </span>
+                </span>
+                <span class="spartrak-minicart-drawer__row-value">
+                    <each args="getRegion('subtotalContainer')" render=""></each>
+                </span>
+            </div>
+
+            <span class="spartrak-minicart-drawer__rule" aria-hidden="true"></span>
+
+            <div class="spartrak-minicart-drawer__row spartrak-minicart-drawer__row--total">
+                <span class="spartrak-minicart-drawer__row-label" translate="'Estimated total'"></span>
+                <span class="spartrak-minicart-drawer__row-value"
+                      data-bind="html: getCartParamUnsanitizedHtml('subtotal')"></span>
+            </div>
+        </div>
+
+        <div class="actions" if="getCartParam('possible_onepage_checkout')">
+            <div class="primary">
+                <button id="top-cart-btn-checkout"
+                        type="button"
+                        class="action primary checkout spartrak-minicart-drawer__checkout"
+                        data-action="close"
+                        data-bind="attr: { title: $t('Buy now') }, click: closeMinicart()">
+                    <span translate="'Buy now'"></span>
+                    <span class="spartrak-minicart-drawer__checkout-icon" aria-hidden="true"></span>
+                </button>
+                <div data-bind="html: getCartParamUnsanitizedHtml('extra_actions')"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<each args="getRegion('sign-in-popup')" render=""></each>

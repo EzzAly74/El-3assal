@@ -35,7 +35,11 @@ class ProductCarousel extends AbstractSection
         Context $context,
         LocaleContext $localeContext,
         private readonly CategoryProductProvider $productProvider,
-        private readonly CategoryUrl $categoryUrl,
+        // protected, not private: ProductPromoCarousel asks the SAME resolver
+        // for the source category's image, and a second injected copy would be
+        // two constructor arguments of one type for one shared instance - and
+        // two separate memos of the same category load.
+        protected readonly CategoryUrl $categoryUrl,
         private readonly ImageHelper $imageHelper,
         array $data = []
     ) {
