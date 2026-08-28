@@ -206,6 +206,7 @@
     flex: 1 1 auto;
     flex-direction: column;
     gap: @minicart-drawer-pad;
+    max-height: 60vh;
     min-height: 0;
     padding: 0;
     // The block axis scrolls here and ONLY here, so the summary and its
@@ -650,12 +651,12 @@ body.spartrak-minicart-open::after {
 .minicart-wrapper.spartrak-minicart .block-minicart {
     // Logical direction for the slide: the drawer enters from whichever edge it
     // is pinned to, which mirrors with the document.
-    --spartrak-minicart-offset: -100%;
+    --spartrak-minicart-offset: 100%;
     animation: spartrak-minicart-in .28s cubic-bezier(.32, .72, 0, 1) both;
 }
 
 [dir='ltr'] .minicart-wrapper.spartrak-minicart .block-minicart {
-    --spartrak-minicart-offset: 100%;
+    --spartrak-minicart-offset: -100%;
 }
 
 // ===========================================================================
