@@ -198,13 +198,33 @@
     }
 }
 
-.spartrak-minicart-drawer__close {
+// ===========================================================================
+// THE CLOSE CONTROL — MOBILE ONLY, AND IN THE HEADER ROW
+// ===========================================================================
+// Figma draws no close button on this drawer at all. It is kept for the one
+// case where the design's own dismissal does not exist: on a phone the panel is
+// full width, so there is no page left showing to tap and no way out but the
+// browser's back gesture. On desktop the page IS visible around the drawer,
+// clicking it closes (core's own handler), Escape closes (`closeOnEscape` in
+// the trigger's config) and the cart button toggles — so the design's intent
+// stands there and the button is hidden, which is the `display: none` further
+// down in the desktop-only rule.
+//
+// MEASURED — WHY THE SELECTOR CARRIES THE THIRD CLASS. Core ships
+// `.minicart-wrapper .action.close { position: absolute; top: 0; left: 0 }` at
+// (0,2,0), for its own dropdown where the button floats over the corner. This
+// rule never declared `position`, so core's won: the glyph was pinned to the
+// panel's top-left corner and landed ON TOP of the heading. `position: static`
+// puts it back in the header's flex row, and (0,3,0) is what makes that stick.
+.minicart-wrapper.spartrak-minicart .spartrak-minicart-drawer__close {
+    position: static;
     flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 32px;
     height: 32px;
+    margin: 0;
     padding: 0;
     border: 0;
     border-radius: var(--radius-pill);
@@ -212,8 +232,20 @@
     cursor: pointer;
     transition: background-color .15s ease;
 
+    // Core draws its own glyph from the Porto icon font in a ::before. There is
+    // already a real asset in the span inside; this would be a second, different
+    // cross sitting beside it.
+    &::before {
+        content: none;
+    }
+
     &:hover {
         background-color: var(--color-bg-field);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-action-primary);
+        outline-offset: 2px;
     }
 }
 
@@ -223,8 +255,20 @@
 // its computed width read 20px. Every other icon in this theme happens to sit
 // inside a flex container, which blockifies it; these do not always, so they
 // declare their own box.
-.spartrak-minicart-drawer__close-icon {
+// Also (0,3,0), and for a second reason: core screen-reader-hides ANY span
+// inside that button — `.minicart-wrapper .action.close > span { clip: rect(0
+// 0 0 0); width: 1px; height: 1px }` — because in core's markup the span is the
+// accessible label, not the glyph. Here it IS the glyph, so the clip has to go
+// or there is nothing to see.
+.minicart-wrapper.spartrak-minicart .spartrak-minicart-drawer__close-icon {
+    position: static;
     display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    clip: auto;
+    clip-path: none;
+    overflow: visible;
     .spartrak-icon('close.svg'; 20px; var(--color-text-secondary));
 }
 
@@ -279,6 +323,18 @@
     margin: 0;
     padding: 0;
     list-style: none;
+}
+
+// The empty-state heading also carries `.subtitle.empty`, which core styles at
+// (0,2,0) — `.block-minicart .subtitle.empty { padding: 18px 0; font-size:
+// inherit; font-weight: 400 }`. That beat the component's own (0,1,0) rule and
+// flattened the title to body text. The class stays (core's CSS and core's own
+// tests key on it); the design-system type is restated here at (0,3,0), which
+// is the smallest selector that outranks it without an !important.
+.minicart-wrapper.spartrak-minicart .spartrak-empty-state__title {
+    padding: 0;
+    font-size: var(--text-18);
+    font-weight: 700;
 }
 
 // AN EMPTY CART HAS NO SUMMARY UNDER IT, so the body's 60vh cap — which is
@@ -711,6 +767,16 @@ body.spartrak-minicart-open::after {
 @keyframes spartrak-minicart-in {
     from { transform: translateX(var(--spartrak-minicart-offset, 100%)); }
     to   { transform: translateX(0); }
+}
+
+// See the close control's own note above for why this is desktop-only. Written
+// as a min-width query rather than hidden in the mobile block, so the default —
+// the button EXISTS — is the accessible one and the desktop case is the
+// deliberate exception.
+@media (min-width: (@breakpoint-header-collapse + 1)) {
+    .minicart-wrapper.spartrak-minicart .spartrak-minicart-drawer__close {
+        display: none;
+    }
 }
 
 .minicart-wrapper.spartrak-minicart .block-minicart {

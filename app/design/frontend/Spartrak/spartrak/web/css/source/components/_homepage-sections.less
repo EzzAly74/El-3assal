@@ -567,9 +567,14 @@
 // the left edge under `direction: rtl`); the one LTR rule below mirrors it.
 // A gradient cannot take a logical direction, so this is the single place in
 // this file where a physical one is unavoidable.
+// NOT ON THE TILES RAIL. A mask fades the content to TRANSPARENT, which only
+// reads as Figma's white gradient where what shows through is the plain
+// surface. The tiles rail is the one that is not: it sits over the reveal
+// stage's photographic backdrop, so fading its cards there smeared the
+// photograph through them instead of softening them into white. Every other
+// rail here sits directly on --color-bg-surface, where the two are identical.
 .spartrak-home-rail__track,
 .spartrak-home-split__track,
-.spartrak-home-tiles__rail,
 .spartrak-home-brands__rail,
 .spartrak-home-showcase__track {
     -webkit-mask-image: linear-gradient(to left, #000 ~"calc(100% - 80px)", transparent 100%);
@@ -578,7 +583,6 @@
 
 [dir='ltr'] .spartrak-home-rail__track,
 [dir='ltr'] .spartrak-home-split__track,
-[dir='ltr'] .spartrak-home-tiles__rail,
 [dir='ltr'] .spartrak-home-brands__rail,
 [dir='ltr'] .spartrak-home-showcase__track {
     -webkit-mask-image: linear-gradient(to right, #000 ~"calc(100% - 80px)", transparent 100%);
@@ -594,7 +598,7 @@
 // tiles, the brand rail, the video showcase — simply had no indicator at all,
 // so three of the six carousels gave a shopper no clue they scrolled.
 //
-// It is now ONE component at Figma's 4px size, used by all of them. The JS never
+// It is now ONE component at the split layout's 8px size, used by all of them. The JS never
 // knew about the class names anyway: the widget binds to
 // `[data-carousel-progress]` and writes a single custom property, so unifying
 // the styling changed no behaviour and no script.
@@ -603,9 +607,16 @@
 // recalculation, no layout, nothing else on the page touched.
 .spartrak-home-progress {
     position: relative;
-    // Figma 704:27791 — a 4px track, not 8. Read off the design rather than
-    // eyeballed: the node's own height is 4 and so is the fill inside it.
-    height: 4px;
+    // 8px, NOT the 4px the flash-deals node measures.
+    //
+    // Figma draws this indicator at two sizes — 4px under the product rail
+    // (704:27791) and 8px on the split layout (595:15477) — and it was the 8px
+    // one that was chosen as the single shared size, because a 4px track with a
+    // 25% fill is barely legible as a scroll position and the whole point of
+    // unifying the six carousels on one component was that the indicator reads
+    // the same everywhere. Taking the flash-deals node as the authority quietly
+    // changed the component for every section; it is back to 8.
+    height: 8px;
     margin-block-start: 24px;
     border-radius: var(--radius-pill);
     background-color: var(--color-bg-field);
@@ -619,8 +630,10 @@
     // Figma 704:27793 — 320 of a 1281 track.
     width: 25%;
     border-radius: var(--radius-pill);
-    // Figma's own token for this fill is bg/inverse, not the action colour.
-    background-color: var(--color-bg-inverse);
+    // The split layout's own fill colour, kept for the same reason as the 8px
+    // height above: this is one shared component, and near-black on the field
+    // grey reads as a divider rather than as a position.
+    background-color: var(--color-action-primary-hover);
     transform: translateX(var(--spartrak-rail-progress, 0));
     will-change: transform;
 }
@@ -1272,6 +1285,15 @@
         // Figma 647:57783 — the mobile card is 228 wide and 20 apart, a
         // different pair from the desktop 557/16, so both are restated.
         gap: 20px;
+
+        // MEASURED: the inset was 32px, not Figma's 16. This track carries the
+        // section measure (a 16px margin either side on mobile) AND a 16px
+        // padding, and the two ADD. Releasing the measure here leaves the
+        // padding as the only inset, which is both the right number and the
+        // right mechanism for a rail: the cards then scroll all the way to the
+        // screen edge instead of stopping short inside a margin.
+        max-width: none;
+        margin-inline: 0;
         padding-inline: @home-gutter-mobile;
     }
 

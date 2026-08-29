@@ -65,6 +65,37 @@ define([
              * @private
              */
             _hideItemButton: function () {
+            },
+
+            /**
+             * Core's guard, made safe for a <select>.
+             *
+             * MEASURED, from a real console trace: core does `changed.length`,
+             * and `.val()` on a <select> returns NULL when no <option> matches
+             * the bound value, where `.val()` on an <input> always returned a
+             * string. That is a direct consequence of swapping the control, so
+             * handling it belongs here and not in core.
+             *
+             * It happens for real: between a cart re-render and Knockout
+             * re-populating the list there is a frame where the select is empty,
+             * and `focusout` in that frame took the whole widget down with a
+             * TypeError — which also killed the remove button and the checkout
+             * button, because they are bound by the same widget instance.
+             *
+             * A null value means "no quantity is selected", which is never a
+             * valid change, so it returns false and core carries on.
+             *
+             * @param {*} origin - the quantity the line was rendered with
+             * @param {*} changed - the quantity now in the control
+             * @returns {Boolean}
+             * @private
+             */
+            _isValidQty: function (origin, changed) {
+                if (changed === null || changed === undefined || changed === '') {
+                    return false;
+                }
+
+                return this._super(origin, String(changed));
             }
         });
 

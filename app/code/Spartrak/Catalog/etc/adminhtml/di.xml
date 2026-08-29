@@ -25,17 +25,38 @@
  * rather than merged item-by-item, so listing only `webp` would leave the four
  * existing formats unuploadable.
  *
- * SVG IS DELIBERATELY STILL ABSENT, here as in
- * Spartrak/Homepage/etc/adminhtml/di.xml. An SVG is an executable document, and
- * one stored under the media directory and served from the storefront's own
- * origin is a stored-XSS primitive — it can carry <script>, and it is served to
- * every visitor. An admin account is precisely what an attacker escalates to,
- * so "only an admin can upload it" is not the protection it sounds like.
- * CLAUDE.md section 17 makes that call for us. WebP covers the small-file case
- * that would otherwise be the reason to reach for SVG.
+ * SVG IS NOT IN THIS LIST, and that is still deliberate. A category image is
+ * free-form artwork with no reason to be a vector, and an SVG stored under the
+ * media directory is an executable document — see CLAUDE.md section 17 and the
+ * same position in Spartrak/Homepage/etc/adminhtml/di.xml. WebP covers the
+ * small-file case that would otherwise be the reason to reach for it.
+ *
+ * SVG *is* accepted for one thing, on request: attribute swatches, because the
+ * brand marks in the header and the homepage rail are logos and a logo is a
+ * vector. That is the preference below, and it comes with a sanitiser rather
+ * than a relaxed rule — the two are not the same decision and are not made in
+ * the same place.
  */
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <!--
+      SVG BRAND SWATCHES.
+
+      Core's swatch upload controller hardcodes its extension list AND attaches
+      a raster-image validation callback, both as local variables inside
+      execute(), so neither is reachable from a plugin. The subclass hands every
+      non-SVG upload straight back to parent::execute() — raster keeps core's
+      own code, verbatim — and adds one branch for SVG that validates it as XML
+      and sanitises it instead.
+
+      SVG is an executable document, so it is not merely allowed here: see
+      Controller/Adminhtml/Iframe/Show.php and Model/Swatch/SvgSanitizer.php for
+      the two controls, and CLAUDE.md section 17 for the standing position this
+      is a narrowed, requested exception to.
+    -->
+    <preference for="Magento\Swatches\Controller\Adminhtml\Iframe\Show"
+                type="Spartrak\Catalog\Controller\Adminhtml\Iframe\Show"/>
 
     <virtualType name="Magento\Catalog\CategoryImageUpload" type="Magento\Catalog\Model\ImageUploader">
         <arguments>
