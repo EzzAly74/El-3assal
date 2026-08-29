@@ -301,6 +301,32 @@
         top: auto;
     }
 
+    // -----------------------------------------------------------------------
+    // AND IT IS NOT ON SCREEN UNTIL THAT WRAPPER EXISTS
+    // -----------------------------------------------------------------------
+    // MEASURED on the live store: the language panel painted open on every
+    // page load and closed itself once the JS arrived.
+    //
+    // Nothing in CSS was hiding it. Magento's own `display: none` for a
+    // switcher panel is written as `.page-header .switcher .options ul.dropdown`
+    // and this panel lives in the support strip, not the page header, so that
+    // rule never matched it. What hides it after init is the `.ui-dialog`
+    // wrapper the widget builds, carrying an inline `display: none`.
+    //
+    // `.ui-dialog-content` is stamped on the list in the same synchronous step
+    // that builds the wrapper, so it is an exact test for "the widget has
+    // taken this over". Same guard as the cart drawer's — see the head of
+    // components/_minicart-drawer.less for the full finding.
+    //
+    // The cost is that with JavaScript disabled the panel is now unreachable
+    // rather than permanently open. That is the correct trade here: opening it
+    // already required a click handler, so it was never operable without JS —
+    // it was only ever *visible* — and a panel hanging open over the page on
+    // every single load is a defect a shopper sees every time.
+    .switcher-dropdown:not(.ui-dialog-content) {
+        display: none;
+    }
+
     .switcher-dropdown {
         margin: 0;
         padding: 4px 0;

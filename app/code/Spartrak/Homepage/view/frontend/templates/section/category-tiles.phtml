@@ -158,16 +158,14 @@ $hasTitle = $block->getTitle() !== '';
         </div>
 
         <?php /*
-          Scroll indicator. ONE shared component across every carousel on this
-          page - same markup, same [data-carousel-progress] hook the widget
-          binds to, same styling. Rendered only when there is more than one
-          item, so it is never a bar stuck at 100%.
+          NO SCROLL INDICATOR HERE. Every other carousel on this page carries
+          the shared .spartrak-home-progress bar; this one does not, because
+          Figma does not draw one for it. The tiles rail sits inside the
+          reveal stage (704:27343), which already signals its own scroll
+          position through the backdrop image and the category name changing
+          as the rail moves - a progress bar underneath it was an addition,
+          not an implementation.
         */ ?>
-        <?php if (count($tiles) > 1) : ?>
-            <div class="spartrak-home-progress" aria-hidden="true">
-                <span class="spartrak-home-progress__bar" data-carousel-progress></span>
-            </div>
-        <?php endif; ?>
         </div>
     </div>
 </section>

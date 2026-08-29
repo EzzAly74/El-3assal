@@ -1,0 +1,74 @@
+<?php
+/**
+ * Spartrak — the empty cart PAGE.
+ *
+ * FIGMA SSOT: "Empty cart container" 675:17514, inside 675:17510. That artboard
+ * is this page, not the drawer, which is why the design lives here and the cart
+ * drawer's own empty state reuses it.
+ *
+ * It is the SAME component in both places — components/_empty-state.less — so
+ * the two can never drift apart, and a third empty surface (an empty wishlist,
+ * a search with no results) is markup rather than another stylesheet.
+ *
+ * ===========================================================================
+ * WHY THIS FILE EXISTS AT ALL
+ * ===========================================================================
+ * Core renders two bare <p> tags, the second of which embeds a link inside a
+ * translated sentence ("Click <a>here</a> to continue shopping"). "here" as
+ * link text is a documented accessibility failure — a screen-reader user
+ * listing the links on the page hears "here" with no context — and the design
+ * replaces it with a labelled button anyway.
+ *
+ * ===========================================================================
+ * WHAT IS KEPT FROM CORE, DELIBERATELY
+ * ===========================================================================
+ *   .cart-empty                        core CSS and third-party modules key on it
+ *   getChildHtml('checkout_cart_empty_widget')
+ *                                      the layout hook merchants and extensions
+ *                                      inject an empty-cart promo into
+ *   getChildHtml('shopping.cart.table.after')
+ *                                      the same, after the block
+ *   Magento_Checkout/js/empty-cart     clears the cart section on this page; a
+ *                                      stale minicart badge is what remains
+ *                                      without it
+ *   getContinueShoppingUrl()           respects the "continue shopping"
+ *                                      destination the merchant configured and
+ *                                      the last category the shopper came from
+ *
+ * @var \Magento\Checkout\Block\Cart $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+?>
+<div class="cart-empty">
+    <?= $block->getChildHtml('checkout_cart_empty_widget') ?>
+
+    <div class="spartrak-empty-state">
+        <span class="spartrak-empty-state__art" aria-hidden="true"></span>
+
+        <div class="spartrak-empty-state__copy">
+            <strong class="spartrak-empty-state__title">
+                <?= $block->escapeHtml(__('Your cart is empty')) ?>
+            </strong>
+
+            <p class="spartrak-empty-state__text">
+                <?= $block->escapeHtml(__('Start shopping now and your products will appear here.')) ?>
+            </p>
+
+            <?php /* A labelled destination, not "click here" — the link text
+                     says where it goes when it is read on its own. */ ?>
+            <a class="spartrak-empty-state__action"
+               href="<?= $block->escapeUrl($block->getContinueShoppingUrl()) ?>">
+                <?= $block->escapeHtml(__('Browse products')) ?>
+            </a>
+        </div>
+    </div>
+
+    <?= $block->getChildHtml('shopping.cart.table.after') ?>
+</div>
+<script type="text/x-magento-init">
+{
+    "*": {
+        "Magento_Checkout/js/empty-cart": {}
+    }
+}
+</script>

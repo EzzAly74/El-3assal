@@ -35,6 +35,47 @@
                 <width>192</width>
                 <height>192</height>
             </image>
+
+            <!--
+              ===================================================================
+              BRAND LOGOS — 270x180, BECAUSE THEY WERE BEING GENERATED AT 30x20
+              ===================================================================
+              This storefront uses VISUAL SWATCHES for brand logos, not colour
+              chips: Spartrak\Catalog\ViewModel\BrandNavigation reads the
+              `brand` attribute's per-option swatch image and both the header's
+              brand pane and the homepage brand rail render it.
+
+              Magento_Swatches/etc/view.xml declares `swatch_image` at THIRTY BY
+              TWENTY PIXELS, which is the right size for the colour chip the
+              feature was built for. Magento generates and caches a file at
+              exactly that size (Helper\Media::generateSwatchVariations ->
+              Image::resize), and this theme then paints it into a 134.779px
+              plate on the homepage rail — a 4.5x upscale of a 30px file. That,
+              and not the upload format, is why the brand marks looked pixelated.
+
+              Uploading an SVG would not have fixed it: the same resize step runs
+              regardless of what was uploaded, so the served file would still be
+              30px wide.
+
+              270x180 keeps core's own 3:2 frame exactly — so nothing about how a
+              logo is composed inside it changes — and gives it nine times the
+              pixels. 270 is the homepage plate (134.779) at 2x, which is the
+              largest this asset is ever painted; the header's brand mark is 58px
+              and is comfortably covered by the same file.
+
+              The resize is `constrainOnly`, so this is a CEILING and not an
+              upscale: a merchant who uploads a 200px mark still gets their 200px
+              mark, never a blurry 270px one. It costs nothing on a page that
+              does not show swatches, and the generated files are still small.
+
+              Re-generating is not automatic for logos already uploaded — the
+              cached variation is keyed by size, so the new one is written on
+              first request after a cache flush.
+            -->
+            <image id="swatch_image" type="swatch_image">
+                <width>270</width>
+                <height>180</height>
+            </image>
         </images>
     </media>
 </view>

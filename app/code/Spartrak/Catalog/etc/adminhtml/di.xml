@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © ElAssal for Trading & Supply. All rights reserved.
+ *
+ * ===========================================================================
+ * WEBP FOR CATEGORY IMAGES
+ * ===========================================================================
+ * Magento_Catalog declares Magento\Catalog\CategoryImageUpload with jpg, jpeg,
+ * gif and png only (vendor/magento/module-catalog/etc/di.xml). WebP is absent
+ * for no reason other than age — the virtual type predates broad WebP support,
+ * and PHP has read WebP through getimagesize() since 7.1 and written it through
+ * GD since 5.4, so nothing downstream of the upload has a problem with it.
+ *
+ * WebP is the single largest lever available on this storefront's image weight,
+ * and image weight is the LCP of every category landing page (CLAUDE.md
+ * sections 4 and 11). A category hero re-encoded from PNG to WebP typically
+ * lands between a quarter and a half of the bytes at the same visual quality.
+ * Blocking it at the upload form pushes a merchant into shipping the heavy file
+ * instead, which is the outcome those two sections exist to prevent.
+ *
+ * This EXTENDS the virtual type rather than replacing it: `allowedExtensions`
+ * and `allowedMimeTypes` are both restated in full because Magento's
+ * object-manager array arguments are replaced wholesale by the last declaration
+ * rather than merged item-by-item, so listing only `webp` would leave the four
+ * existing formats unuploadable.
+ *
+ * SVG IS DELIBERATELY STILL ABSENT, here as in
+ * Spartrak/Homepage/etc/adminhtml/di.xml. An SVG is an executable document, and
+ * one stored under the media directory and served from the storefront's own
+ * origin is a stored-XSS primitive — it can carry <script>, and it is served to
+ * every visitor. An admin account is precisely what an attacker escalates to,
+ * so "only an admin can upload it" is not the protection it sounds like.
+ * CLAUDE.md section 17 makes that call for us. WebP covers the small-file case
+ * that would otherwise be the reason to reach for SVG.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <virtualType name="Magento\Catalog\CategoryImageUpload" type="Magento\Catalog\Model\ImageUploader">
+        <arguments>
+            <argument name="allowedExtensions" xsi:type="array">
+                <item name="jpg" xsi:type="string">jpg</item>
+                <item name="jpeg" xsi:type="string">jpeg</item>
+                <item name="gif" xsi:type="string">gif</item>
+                <item name="png" xsi:type="string">png</item>
+                <item name="webp" xsi:type="string">webp</item>
+            </argument>
+            <argument name="allowedMimeTypes" xsi:type="array">
+                <item name="jpg" xsi:type="string">image/jpg</item>
+                <item name="jpeg" xsi:type="string">image/jpeg</item>
+                <item name="gif" xsi:type="string">image/gif</item>
+                <item name="png" xsi:type="string">image/png</item>
+                <item name="webp" xsi:type="string">image/webp</item>
+            </argument>
+        </arguments>
+    </virtualType>
+
+</config>

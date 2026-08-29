@@ -1,35 +1,46 @@
 /**
- * Spartrak — commit a minicart quantity change without an Update button.
+ * Spartrak — commit a minicart quantity change with no Update button.
  *
  * ===========================================================================
  * WHY THIS EXISTS
  * ===========================================================================
- * Figma's cart drawer (820:16477) has no "Update" control. Magento's minicart
- * does, and it is load-bearing: core's sidebar widget binds `keyup` on the
- * quantity field to REVEAL that button, and the actual update request only
- * happens when the button is clicked.
+ * Figma's cart drawer (820:16477) draws the quantity as a dropdown and draws
+ * no "Update" control at all. Magento's minicart has one, and in stock core it
+ * is load-bearing: `change` on the quantity field only REVEALS the button, and
+ * the update request happens when the button is clicked.
  *
- * So the button cannot simply be deleted — deleting it deletes the update. It
- * is hidden instead (core's own `style="display:none"`, kept in the item
- * template), and this mixin supplies the missing half: when the quantity
- * changes, click it.
+ * That extra step is the whole reason this file exists. It replaces core's
+ * reveal with the commit itself, so choosing a number IS the update — which is
+ * what a dropdown with no button beside it promises.
  *
  * ===========================================================================
- * WHY A MIXIN, AND WHY IT IS THIS SMALL
+ * WHY IT OVERRIDES _showItemButton RATHER THAN ADDING A HANDLER
  * ===========================================================================
- * A mixin extends Magento_Checkout/js/sidebar in place — no core file is
- * touched, no widget is re-implemented, and core keeps ownership of the
- * request, the loader, the error handling and the section reload. All this
- * adds is one delegated event binding.
+ * The first version of this file bound its own `change` listener and clicked a
+ * hidden button. That left core's handler running as well, so every change
+ * still started `$('#update-cart-item-N').show('fade', 300)` — a 300ms jQuery
+ * animation on an element the design says does not exist. Overriding the one
+ * method core routes both `keyup` and `change` into removes the animation, the
+ * hidden element and the synthetic click in one go.
  *
- * `change` rather than `keyup` on purpose: it fires once when the value is
- * actually settled — on blur after typing, and immediately on a spinner click,
- * which core's keyup binding misses entirely. That last case is a real bug in
- * the stock minicart: click the spinner arrows and the number moves while the
- * cart does not.
+ * `_updateItemQty` is called with the FIELD, not the button, and that is safe:
+ * read it in vendor/magento/module-checkout/view/frontend/web/js/sidebar.js —
+ * it uses only `elem.data('cart-item')` and then reads the value back out of
+ * `#cart-item-<id>-qty`. The <select> carries both. Core keeps ownership of
+ * the request, the loader, the error handling and the section reload.
+ *
+ * `_isValidQty` is core's own guard: it returns false when the value has not
+ * actually changed, so re-selecting the number that is already chosen sends
+ * nothing.
+ *
+ * `Magento_Checkout/js/sidebar` returns `$.mage.sidebar`, a jQuery UI widget
+ * CONSTRUCTOR. A constructor has no `.extend()` — that is the uiClass idiom for
+ * UI components — so it is re-declared through `$.widget` with the original as
+ * its base, which is the widget factory's own inheritance mechanism.
  */
 define([
-    'jquery'
+    'jquery',
+    'jquery-ui-modules/widget'
 ], function ($) {
     'use strict';
 
@@ -37,28 +48,23 @@ define([
         $.widget('mage.sidebar', targetWidget, {
 
             /**
-             * Adds the change binding on top of everything core already binds.
+             * Commit instead of revealing a button that is not in the design.
+             *
+             * @param {jQuery} elem - the quantity control that changed
+             * @private
+             */
+            _showItemButton: function (elem) {
+                if (this._isValidQty(elem.data('item-qty'), elem.val())) {
+                    this._updateItemQty(elem);
+                }
+            },
+
+            /**
+             * Core hides the same button here. There is no button.
              *
              * @private
              */
-            _initContent: function () {
-                this._super();
-
-                this._on(this.element, {
-                    'change :input.cart-item-qty': function (event) {
-                        var itemId = $(event.currentTarget).data('cart-item'),
-                            button = $('#update-cart-item-' + itemId);
-
-                        if (!button.length) {
-                            return;
-                        }
-
-                        // Core's own handler. It reads the quantity straight
-                        // out of the field, so nothing is passed to it and
-                        // nothing about its behaviour changes.
-                        button.trigger('click');
-                    }
-                });
+            _hideItemButton: function () {
             }
         });
 

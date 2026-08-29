@@ -38,6 +38,42 @@
 $banners = $block->getBanners();
 $isCarousel = $block->isCarousel();
 $hasTitle = $block->getTitle() !== '';
+
+/*
+ * THE FRAME'S ASPECT RATIO IS THE FIRST BANNER'S OWN.
+ *
+ * The frame is one box shared by every slide, so it can only hold one ratio,
+ * and the first slide is the one that decides it: it is what paints above the
+ * fold, it is the LCP element, and it is the only slide a shopper who never
+ * swipes will ever see. Later slides are `object-fit: cover`-ed into it, which
+ * is the only coherent behaviour for a rail of assets that may not share a
+ * shape.
+ *
+ * Two properties rather than one because <source media> swaps the FILE on a
+ * phone, and the mobile asset is a different crop with a different ratio. The
+ * CSS applies the desktop value and the mobile media query applies the other,
+ * so each viewport reserves the box for the file it will actually download.
+ *
+ * Emitted only when both dimensions were readable. When they were not (an SVG
+ * has no raster header) the property is simply absent and the stylesheet's own
+ * var() fallback — Figma's hero ratio — reserves the box instead.
+ */
+$first = $banners[0] ?? null;
+$ratioVars = '';
+
+if ($first !== null) {
+    if ($first['width'] && $first['height']) {
+        $ratioVars .= sprintf('--spartrak-banner-ratio:%d/%d;', $first['width'], $first['height']);
+    }
+
+    if ($first['mobile_width'] && $first['mobile_height']) {
+        $ratioVars .= sprintf(
+            '--spartrak-banner-ratio-mobile:%d/%d;',
+            $first['mobile_width'],
+            $first['mobile_height']
+        );
+    }
+}
 ?>
 <section class="spartrak-home-section spartrak-home-banner<?= $isCarousel ? ' spartrak-home-banner--carousel' : '' ?>"
     <?php if ($hasTitle) : ?>aria-labelledby="<?= $block->escapeHtmlAttr($block->getHeadingId()) ?>"<?php endif; ?>>
@@ -45,6 +81,10 @@ $hasTitle = $block->getTitle() !== '';
     <?= /* @noEscape */ $block->getHeadHtml() ?>
 
     <div class="spartrak-home-banner__frame"
+        <?php /* Two integer ratios built from getimagesize() output above and
+                 cast through %d — no admin-supplied string reaches this
+                 attribute, so there is nothing here to escape around. */ ?>
+        <?php if ($ratioVars !== '') : ?>style="<?= $block->escapeHtmlAttr($ratioVars) ?>"<?php endif; ?>
         <?php if ($isCarousel) : ?>
             data-mage-init='{"spartrakHomeCarousel":{"mode":"banner"}}'
             role="group"

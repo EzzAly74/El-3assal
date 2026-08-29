@@ -26,37 +26,35 @@
  *   .action.delete + data-cart-item
  *                                 sidebar.js binds the confirm-and-remove flow
  *                                 to exactly this selector
- *   .cart-item-qty + id           sidebar.js reads the new quantity from
- *                                 '#cart-item-<id>-qty'
- *   .update-cart-item + data-cart-item
- *                                 sidebar.js reveals this on change and commits
- *                                 the new quantity when it is clicked
+ *   .cart-item-qty + id           sidebar.js binds `change` to
+ *                                 `:input.cart-item-qty` and then reads the new
+ *                                 quantity back out of '#cart-item-<id>-qty'.
+ *                                 `:input` matches a <select> as well as an
+ *                                 <input>, which is what lets the control below
+ *                                 be a dropdown without touching either binding.
  *   $parent.getRegion('itemImage' / 'priceSidebar')
  *                                 the KO regions that render Magento's own
  *                                 image and price components
  *   afterRender initSidebar()     rebinds sidebar.js after each re-render
  *
- * DOCUMENTED DEVIATION: THE QUANTITY CONTROL IS A NUMBER INPUT, NOT A DROPDOWN
+ * THE QUANTITY CONTROL IS A DROPDOWN (Figma 820:16477)
  * ==========================================================================
- * Figma 820:16477 draws the quantity as a dropdown — a value and a chevron.
- * This renders core's <input type="number"> in that box instead, and here is
- * why that is the correct call rather than a shortcut.
+ * A <select>, as the design draws it: a value and a chevron, in a bordered
+ * box. The option list is 1..N where N comes from the component's own
+ * `maxQtyOptions` config — set in Magento_Checkout/layout/default.xml, not
+ * written here, so the length of the list is a presentation setting a
+ * developer owns in one place rather than a number buried in a template.
  *
- * A dropdown has to be populated from SOMETHING, and the minicart's data has
- * no maximum quantity in it: `qty` is the only quantity field on a cart line.
- * The real ceiling lives in inventory (max_sale_qty, salable quantity,
- * backorder policy) and is not sent to this component. Picking a number to
- * cap the list at would be an invented constraint that silently stops a
- * customer ordering the eleventh unit of something we have a hundred of —
- * a magic value standing in for real data, which CLAUDE.md section 9 rules out.
+ * THE CURRENT QUANTITY IS ALWAYS IN THE LIST. getQtyOptions() appends it when
+ * it sits above the cap, so a line added from a product page at qty 25 shows
+ * 25 and is not silently rewritten to 10 the moment the drawer renders. That
+ * case is the whole reason the list is built in the component and not inline.
  *
- * The chevron is likewise not drawn as decoration: a chevron that opens
- * nothing is a control that lies about what it does.
- *
- * So the box, its border, padding, shadow and typography are Figma's to the
- * pixel; the control inside it is the native one that preserves real
- * behaviour. If inventory data is later exposed to the minicart, this becomes
- * a <select> with a real bound and no other change.
+ * THERE IS NO UPDATE BUTTON, because Figma does not draw one. Core reveals its
+ * own on change and commits when it is clicked; the sidebar mixin
+ * (web/js/spartrak-minicart-qty-mixin.js) replaces that reveal with the commit
+ * itself, so choosing a number IS the update. The button is gone from the
+ * markup entirely rather than hidden — nothing needs to click it any more.
  */
 -->
 <li class="item product product-item spartrak-minicart-line" data-role="product-item">
@@ -150,34 +148,25 @@
                     <label class="label spartrak-minicart-line__qty-label"
                            data-bind="i18n: 'Qty', attr: {for: 'cart-item-' + item_id + '-qty'}"></label>
 
-                    <input type="number"
-                           min="1"
-                           size="4"
-                           class="item-qty cart-item-qty spartrak-minicart-line__qty-input"
-                           data-bind="attr: {
-                                  id: 'cart-item-' + item_id + '-qty',
-                                  'data-cart-item': item_id,
-                                  'data-item-qty': qty,
-                                  'data-cart-item-id': product_sku
-                                  }, value: qty">
-
                     <!--
-                      Core's commit button, kept and kept INVISIBLE exactly as
-                      core ships it. Figma has no Update control, and it is not
-                      drawn: the quantity commits by itself when the field
-                      changes, and this button is only the element that carries
-                      out the commit. Removing it outright would take core's own
-                      update request with it.
+                      `.cart-item-qty` and the `cart-item-<id>-qty` id are BOTH
+                      load-bearing: sidebar.js binds its change handler to
+                      `:input.cart-item-qty` and then reads the new value back
+                      out of `#cart-item-<id>-qty`. `:input` matches a <select>
+                      as well as an <input>, so swapping the control keeps every
+                      one of those bindings intact.
                     -->
-                    <button class="update-cart-item spartrak-minicart-line__qty-apply"
-                            style="display: none"
+                    <select class="item-qty cart-item-qty spartrak-minicart-line__qty-select"
                             data-bind="attr: {
-                                   id: 'update-cart-item-' + item_id,
+                                   id: 'cart-item-' + item_id + '-qty',
                                    'data-cart-item': item_id,
-                                   title: $t('Update')
-                                   }">
-                        <span data-bind="i18n: 'Update'"></span>
-                    </button>
+                                   'data-item-qty': qty,
+                                   'data-cart-item-id': product_sku
+                                   },
+                                   options: $parent.getQtyOptions(qty),
+                                   value: qty"></select>
+
+                    <span class="spartrak-minicart-line__qty-chevron" aria-hidden="true"></span>
                 </div>
             </div>
         </div>

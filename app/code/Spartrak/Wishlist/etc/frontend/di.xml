@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!--
+  Adds a NUMERIC item count to the `wishlist` customer-data section. Frontend
+  scope only: the section is a storefront concern and nothing in the admin
+  reads it, so the plugin is not loaded on admin requests.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Magento\Wishlist\CustomerData\Wishlist">
+        <plugin name="spartrak_wishlist_numeric_count"
+                type="Spartrak\Wishlist\Plugin\CustomerData\AddNumericCount"
+                sortOrder="10"/>
+    </type>
+</config>

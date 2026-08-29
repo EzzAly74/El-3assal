@@ -1,0 +1,142 @@
+// ===========================================================================
+// EMPTY STATE — one component, every "there is nothing here yet" surface
+// ===========================================================================
+// FIGMA SSOT: "Empty cart container" 675:17514, inside the mobile cart page
+// 675:17510. The design draws it once, for the cart; it is built here as a
+// shared component rather than as cart chrome because the same three parts —
+// an illustration, a sentence explaining the state, and one way out of it —
+// are what every empty surface in this storefront needs (an empty wishlist, a
+// search with no results, an order history with no orders). A second one of
+// those is then markup, not a new stylesheet.
+//
+// Figma's own measurements, node by node:
+//   container  675:17514  bg/surface, centred column, px16 py46
+//   stack      675:17884  gap 16
+//   art        724:43484  176 square
+//   copy       675:17886  gap 8, centred
+//   title      675:17888  Price/Base — arabic bold, size/lg 18px, lh 1.3,
+//                         text/primary
+//   text       675:17889  Body/Base — arabic regular, size/base 16px, lh 1.5,
+//                         text/muted, 290 wide, centred
+//   action     724:43551  bg/field, h40, px20, gap 8, and Label/Large on
+//                         action/secondary-text — the SECONDARY button, not
+//                         the navy primary. Reading it off the node matters:
+//                         "primary" is only what the Figma layer is called.
+
+.spartrak-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 46px 16px;
+    background-color: var(--color-bg-surface);
+    text-align: center;
+}
+
+// The illustration is decorative — the title beside it says everything it
+// says — so it is a background on an aria-hidden span rather than an <img>,
+// which keeps it out of the accessibility tree and out of Knockout's way (a
+// KO template cannot build a static file URL; LESS can).
+//
+// `flex: 0 0 auto` so it is never squeezed by the copy beneath it, and both
+// dimensions are explicit so the box is reserved before the file arrives.
+.spartrak-empty-state__art {
+    flex: 0 0 auto;
+    width: 176px;
+    height: 176px;
+    max-width: 100%;
+    background-image: url('../images/illustrations/cart-empty.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+}
+
+.spartrak-empty-state__copy {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.spartrak-empty-state__title {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-family: var(--font-arabic);
+    font-size: var(--text-18);
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.spartrak-empty-state__text,
+.spartrak-empty-state__note {
+    // Figma holds this line to 290px so it breaks into two balanced lines
+    // rather than one long one. `max-width` rather than `width` so a longer
+    // translation is free to be narrower on a small screen instead of
+    // overflowing.
+    max-width: 290px;
+    margin: 0;
+    color: var(--color-text-muted);
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+// The merchant's own configured message, when they have set one. Quieter than
+// the line above it: that one explains the state, this one is an aside.
+.spartrak-empty-state__note {
+    font-size: var(--text-14);
+}
+
+// Figma 724:43551. A <button> here and an <a> on surfaces where the way out is
+// a destination — both take this class, so the reset covers the two.
+.spartrak-empty-state__action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    margin: 0;
+    padding-inline: 20px;
+    border: 0;
+    border-radius: 0;
+    background-color: var(--color-bg-field);
+    color: var(--color-text-primary);
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color .15s ease;
+
+    // Porto's global `a:hover { color: #044776; text-decoration: underline }`
+    // is (0,1,1) and would otherwise beat this component's own (0,1,0) colour
+    // on the anchor form of this control. Restated at (0,2,0).
+    &:hover,
+    &:focus,
+    &:active,
+    &:visited {
+        color: var(--color-text-primary);
+        text-decoration: none;
+    }
+
+    &:hover {
+        background-color: var(--color-bg-surface-subtle);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-action-primary);
+        outline-offset: 2px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spartrak-empty-state__action {
+        transition: none;
+    }
+}

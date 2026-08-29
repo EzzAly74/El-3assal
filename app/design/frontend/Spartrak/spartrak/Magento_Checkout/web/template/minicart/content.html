@@ -53,7 +53,24 @@
 -->
 <div class="spartrak-minicart-drawer" data-role="minicart-drawer">
 
-    <div class="block-title spartrak-minicart-drawer__head">
+    <!--
+      NO `block-title` CLASS HERE — that is what was hiding this whole header.
+
+      Core ships `.minicart-wrapper .block-minicart .block-title { display: none }`
+      at (0,3,0), because in core's own dropdown the title is redundant with the
+      trigger beside it. Figma's drawer (818:7777) DOES have a header, so the
+      class simply goes: nothing in core's JS binds to `.block-title` (checked
+      against Magento_Checkout/js/sidebar.js and view/minicart.js), and it is
+      only ever a styling hook.
+
+      Restating `display: flex` at a higher specificity instead would have been a
+      specificity fight over a class we do not need — CLAUDE.md section 9.
+
+      This also restores the drawer's only visible exit on a phone: the panel is
+      full width there, so there is no page left showing to tap, and the close
+      control lives in here.
+    -->
+    <div class="spartrak-minicart-drawer__head">
         <strong class="spartrak-minicart-drawer__title">
             <span class="text" translate="'Shopping cart'"></span>
             <span class="qty empty"
@@ -98,13 +115,66 @@
             </div>
         </if>
 
+        <!--
+          EMPTY STATE — Figma "Empty cart container" 675:17514.
+
+          The illustration is the design's own asset (724:43484), exported from
+          the file and committed as web/images/illustrations/cart-empty.svg.
+
+          It is a CSS background rather than an <img> for two reasons. It is
+          purely decorative — the heading beside it says everything it says —
+          so it belongs out of the accessibility tree, which is exactly what a
+          background gives it. And a Knockout template has no way to build a
+          static file URL: a relative `src` would resolve against the page URL,
+          not the theme's static path. LESS rewrites `url()` correctly at
+          deploy time, so the stylesheet is the only place that can name the
+          file. Nothing downloads it until this state actually renders.
+
+          The action is Figma's SECONDARY button (724:43551 — bg/field, not the
+          navy primary), and it CLOSES the drawer rather than navigating: the
+          shopper is already on a page they can shop from, and a link to a
+          landing page would throw that away.
+
+          `.subtitle.empty` stays on the heading — core styles and core's own
+          tests both key on it.
+        -->
         <ifnot args="getCartParam('summary_count')">
-            <div class="spartrak-minicart-drawer__empty">
-                <strong class="subtitle empty"
-                        translate="'You have no items in your shopping cart.'"></strong>
-                <if args="getCartParam('cart_empty_message')">
-                    <p class="minicart empty text" text="getCartParam('cart_empty_message')"></p>
-                </if>
+            <div class="spartrak-empty-state spartrak-minicart-drawer__empty">
+                <span class="spartrak-empty-state__art" aria-hidden="true"></span>
+
+                <div class="spartrak-empty-state__copy">
+                    <strong class="subtitle empty spartrak-empty-state__title"
+                            translate="'Your cart is empty'"></strong>
+
+                    <p class="spartrak-empty-state__text"
+                       translate="'Start shopping now and your products will appear here.'"></p>
+
+                    <!--
+                      Magento lets a merchant write their own message in
+                      Stores > Configuration > Sales > Checkout. When they have,
+                      it is shown as well — theirs is the specific one, and
+                      dropping the line above would leave the panel shapeless
+                      for every merchant who has not set it.
+                    -->
+                    <if args="getCartParam('cart_empty_message')">
+                        <p class="minicart empty text spartrak-empty-state__note"
+                           text="getCartParam('cart_empty_message')"></p>
+                    </if>
+
+                    <!--
+                      `click: closeMinicart` — the REFERENCE, not
+                      `closeMinicart()`. Core's own template writes the call
+                      form on #btn-minicart-close and gets away with it only
+                      because sidebar.js binds that button separately; here
+                      there is no second binding, so the call form would run
+                      once at bind time and then do nothing when clicked.
+                    -->
+                    <button type="button"
+                            class="spartrak-empty-state__action"
+                            data-bind="click: closeMinicart">
+                        <span translate="'Browse products'"></span>
+                    </button>
+                </div>
             </div>
         </ifnot>
 

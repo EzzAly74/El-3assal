@@ -31,8 +31,18 @@
 <a class="spartrak-header__icon-button" href="<?= $block->escapeUrl($block->getHref()) ?>" data-bind="scope: 'wishlist'" title="<?= $block->escapeHtmlAttr($block->getLabel()) ?>">
     <span class="spartrak-header__icon--heart" aria-hidden="true"></span>
     <span class="spartrak-header__sr-label"><?= $block->escapeHtml($block->getLabel()) ?></span>
-    <!-- ko if: wishlist().counter -->
-    <span class="spartrak-header__badge" data-bind="text: wishlist().counter"></span>
+    <?php /*
+      `count`, not `counter`. `counter` is a translated PHRASE — core's
+      CustomerData\Wishlist::createCounter() returns __('1 item') / __('%1
+      items', $n) — so this badge rendered the words "1 item" inside a 12x12
+      dot. Figma draws a numeral (595:14506), which is what `count` is:
+      Spartrak_Wishlist adds it to the same section as a plain integer, next to
+      the phrase rather than instead of it.
+
+      The phrase is still what assistive tech gets, on the link's own label.
+    */ ?>
+    <!-- ko if: wishlist().count -->
+    <span class="spartrak-header__badge" data-bind="text: wishlist().count"></span>
     <!-- /ko -->
 </a>
 <script type="text/x-magento-init">

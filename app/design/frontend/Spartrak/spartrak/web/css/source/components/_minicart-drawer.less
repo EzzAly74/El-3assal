@@ -77,6 +77,34 @@
 // `.minicart-wrapper.spartrak-minicart` takes the selector to (0,3,0), which
 // settles both without an `!important` (CLAUDE.md section 9). The extra class
 // is this theme's own, added by Magento_Checkout::cart/minicart.phtml.
+// ===========================================================================
+// NOTHING IS VISIBLE UNTIL THE WIDGET OWNS IT
+// ===========================================================================
+// MEASURED on the live store: on every page load the whole drawer painted
+// down the side of the page and then vanished a moment later.
+//
+// The cause is directly below. Core hides this panel with
+// `.minicart-wrapper .block-minicart { display: none }` at (0,2,0); the rule
+// under this note is (0,3,0) and says `display: flex`, so from first paint
+// until dropdownDialog initialises there is nothing hiding it at all. What
+// hides it afterwards is not CSS at all — the widget WRAPS the panel in a
+// `.ui-dialog` div carrying an inline `display: none`, so the panel itself
+// stays `flex` forever and the wrapper is what toggles.
+//
+// `.ui-dialog-content` is the class jQuery UI's dialog stamps onto the element
+// in the same synchronous step that creates that wrapper, so "wrapped" and
+// "classed" are never out of step with one another. Before it appears there is
+// no widget and the panel must not be on screen; after it appears the wrapper
+// is in charge and this rule stops matching.
+//
+// (0,4,0) — one class more than the rule it guards, and no !important.
+//
+// This is not only a flash: an unwrapped panel is in normal flow and takes up
+// layout, so removing it also takes its contribution to CLS with it.
+.minicart-wrapper.spartrak-minicart .block-minicart:not(.ui-dialog-content) {
+    display: none;
+}
+
 .minicart-wrapper.spartrak-minicart .block-minicart {
     position: fixed;
     inset-block: 0;
@@ -253,15 +281,29 @@
     list-style: none;
 }
 
+// AN EMPTY CART HAS NO SUMMARY UNDER IT, so the body's 60vh cap — which is
+// there to keep a long ITEM LIST from crowding the summary out — would leave
+// the illustration floating in the top 60% of the panel with a band of nothing
+// beneath it. With nothing to protect, the cap comes off and the empty state
+// takes the whole panel.
+//
+// `:has()` rather than a class on the body, because the branch that decides
+// this already exists in the template (`<ifnot summary_count>`) and mirroring
+// it into a second class would be two sources of truth for one condition.
+// Where `:has()` is unsupported the rule simply does not apply and the panel
+// falls back to today's behaviour — a degradation, not a break.
+.spartrak-minicart-drawer__body:has(.spartrak-minicart-drawer__empty) {
+    max-height: none;
+}
+
+// The empty state itself is a shared design-system component — see
+// components/_empty-state.less, which the cart PAGE uses too. All the drawer
+// adds is that it fills the panel instead of sitting at the top of it, so the
+// illustration is optically centred in the space rather than stranded under
+// the header.
 .spartrak-minicart-drawer__empty {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding-block: 32px;
-    color: var(--color-text-secondary);
-    font-size: var(--text-16);
-    line-height: 1.5;
-    text-align: center;
+    flex: 1 1 auto;
+    justify-content: center;
 }
 
 // ===========================================================================
@@ -417,9 +459,16 @@
 }
 
 // Figma 820:16477 — the bordered quantity box: 1px border, px24/py8,
-// shadow/input. See the item template's header for why the control inside it
-// is a number input and not the dropdown the design draws.
+// shadow/input, holding a value and a chevron.
+//
+// The BOX is styled here and the <select> inside it is stripped bare, rather
+// than styling the <select> itself. A native select cannot be given a border
+// and a custom chevron consistently across engines without also losing its
+// popup styling on some of them; wrapping it keeps the design exact and keeps
+// the popup the platform's own, which is the accessible, familiar one on a
+// phone.
 .spartrak-minicart-line__qty {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -443,33 +492,49 @@
     white-space: nowrap;
 }
 
-// Figma 820:16478 — just the number, centred, 16px medium. The native spinner
-// arrows are suppressed: the design has no spinner, and the value commits on
-// change anyway, so they would be a second affordance for the same thing.
-.spartrak-minicart-line__qty-input {
-    -moz-appearance: textfield;
-    appearance: textfield;
+// Figma 820:16478 — just the number, 16px medium. `appearance: none` removes
+// the platform's own frame and arrow so the box above and the chevron below
+// are the only chrome; the popup itself stays native.
+.spartrak-minicart-line__qty-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
 
-    &::-webkit-outer-spin-button,
-    &::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
-
-    width: 3ch;
+    // Wide enough for two digits without reserving room for a scrollbar the
+    // way `auto` would; `ch` follows the font, so it holds if the type scale
+    // changes.
+    width: 2ch;
+    // The chevron is a sibling, not a background on this element, so the
+    // select needs no room for it — the flex gap above provides it.
     padding: 0;
     border: 0;
     background: none;
     box-shadow: none;
     color: var(--color-text-primary);
+    font: inherit;
     font-size: var(--text-16);
     font-weight: 500;
     line-height: 1.5;
     text-align: center;
+    cursor: pointer;
 
+    // The focus ring belongs on the BOX, which is what a shopper sees as the
+    // control — see below. Suppressed here so there are not two rings.
     &:focus {
         outline: none;
     }
+}
+
+// Figma draws the chevron INSIDE the box, after the value. `focus-within`
+// rather than a rule on the select, because the visible control is the box.
+.spartrak-minicart-line__qty:focus-within {
+    outline: 2px solid var(--color-action-primary);
+    outline-offset: 2px;
+}
+
+.spartrak-minicart-line__qty-chevron {
+    .spartrak-icon('chevron-down-16.svg'; 16px; var(--color-text-primary));
+    pointer-events: none;
 }
 
 .spartrak-minicart-line__options {

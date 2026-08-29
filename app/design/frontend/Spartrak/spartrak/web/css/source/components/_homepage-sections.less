@@ -31,11 +31,22 @@
 // Every transition is switched off under `prefers-reduced-motion` at the foot
 // of this file, in one block rather than per component.
 
-// The homepage content measure. Figma's header sits at x=48 with a matching
-// 48 on the far side of a 1440 frame, so the measure is 1344 and the gutter
-// is 48. Expressed as min() so narrow viewports keep the gutter and wide ones
-// stop growing.
-@home-measure: 1344px;
+// THE HOMEPAGE CONTENT MEASURE IS A GUTTER, NOT A CAP.
+//
+// Figma's 1440 frame puts every section header and rail at x=48 with a
+// matching 48 on the far side (verified across "New arrivals header" 704:26756,
+// "Categories header" 704:27331, "Flash Deals Header" 704:27437 and
+// "Footer Links Column" 704:28065 — all x=48, w=1344). So the design states
+// one number: the gutter is 48. It says nothing about a maximum, because 1440
+// is the only frame drawn.
+//
+// This used to read `min(100% - 96px, 1344px)`, which reproduced Figma exactly
+// at 1440 and diverged everywhere above it: MEASURED on a 1890px window the
+// sections sat in a 1344px column with 273px of blank either side, where the
+// design's own language is a 48px edge. The cap was inferred, not designed.
+//
+// `calc(100% - (gutter * 2))` resolves to 1344 on a 1440 viewport — pixel
+// identical to Figma — and holds the same 48px edge at every other width.
 @home-gutter: 48px;
 @home-gutter-mobile: 16px;
 
@@ -96,7 +107,7 @@
     justify-content: space-between;
     gap: 16px;
     width: 100%;
-    max-width: ~"min(100% - (@{home-gutter} * 2), @{home-measure})";
+    max-width: ~"calc(100% - (@{home-gutter} * 2))";
     // Centring by auto margins rather than a wrapper element keeps the
     // full-bleed sections' backgrounds able to escape the measure while their
     // headers stay inside it.
@@ -274,11 +285,27 @@
     margin-inline: @home-banner-gutter;
     overflow: hidden;
 
-    // CLS INSURANCE. The template writes real width/height from the uploaded
-    // file, which is what actually reserves the box. This aspect-ratio is the
-    // fallback for the one case where the intrinsic size cannot be read (an
-    // SVG has no raster header) — Figma's own hero ratio, 1403:462.
-    aspect-ratio: 1403 / 462;
+    // ---------------------------------------------------------------------
+    // THE BOX TAKES THE UPLOADED ASSET'S OWN RATIO, NOT A FIXED ONE.
+    // ---------------------------------------------------------------------
+    // This used to be pinned to Figma's hero ratio. MEASURED on the live
+    // store: the uploaded desktop asset is 1344x784 (1.71) and the box was
+    // forcing 3.04, so `object-fit: cover` cropped 44% off the artwork's
+    // height and took the headline out of the frame with it.
+    //
+    // Figma is the source of truth for the FRAME (section 3), and the frame
+    // it draws is 1403x441 — but the artwork inside that frame is Figma's own
+    // asset at that ratio. The banner is admin-managed content (section 6), so
+    // the merchant's file is what has to survive; cropping their headline off
+    // to satisfy a ratio inherited from a different image is a bug, not
+    // fidelity.
+    //
+    // So the block writes `--spartrak-banner-ratio` from the real file header
+    // it already reads for the width/height attributes, and Figma's ratio is
+    // the fallback for the case where no dimensions can be read (an SVG has no
+    // raster header). Either way the box is reserved before the image loads,
+    // so the section still contributes nothing to CLS.
+    aspect-ratio: var(--spartrak-banner-ratio, 1403 / 441);
 }
 
 .spartrak-home-banner__track {
@@ -464,7 +491,7 @@
 .spartrak-home-rail__panel {
     position: relative;
     width: 100%;
-    max-width: ~"min(100% - (@{home-gutter} * 2), @{home-measure})";
+    max-width: ~"calc(100% - (@{home-gutter} * 2))";
     margin-inline: auto;
     padding: 32px 0 24px;
     background-color: var(--color-bg-surface);
@@ -515,6 +542,50 @@
 }
 
 // ===========================================================================
+// RAIL EDGE FADE — ONE DECLARATION, EVERY CAROUSEL
+// ===========================================================================
+// Figma draws an 80px band over the scrolling end of every rail. Read off the
+// node itself rather than guessed: 704:27790 ("Trending Products Pagination",
+// 80 wide, full rail height) is `bg-gradient-to-l from-[rgba(255,255,255,0)]
+// to-white` — a plain linear gradient from transparent to the surface colour.
+// The same band is drawn on the tiles rail (704:27434), the promo rail
+// (704:27983) and the mobile video rail (647:57909 / 647:57910).
+//
+// WHY A MASK AND NOT AN OVERLAY
+// An overlay pseudo-element needs a positioned wrapper that spans the rail and
+// nothing else. Three of these five rails share their wrapper with a header or
+// a progress bar, so two of them would have needed a new element apiece purely
+// to hang a decoration on — DOM added for styling, which section 13 ranks
+// below every other cost here. Masking the scroller instead adds no nodes at
+// all, and the scroller is already its own compositing layer because it
+// scrolls, so the mask rides along with it rather than forcing a new one.
+//
+// WHY ONLY THE INLINE-END
+// The rail rests at its inline-START, so a fade there would soften the first
+// card when there is nothing before it to hint at. The end is the edge the
+// content actually continues past. `to left` is the RTL case (inline-end is
+// the left edge under `direction: rtl`); the one LTR rule below mirrors it.
+// A gradient cannot take a logical direction, so this is the single place in
+// this file where a physical one is unavoidable.
+.spartrak-home-rail__track,
+.spartrak-home-split__track,
+.spartrak-home-tiles__rail,
+.spartrak-home-brands__rail,
+.spartrak-home-showcase__track {
+    -webkit-mask-image: linear-gradient(to left, #000 ~"calc(100% - 80px)", transparent 100%);
+    mask-image: linear-gradient(to left, #000 ~"calc(100% - 80px)", transparent 100%);
+}
+
+[dir='ltr'] .spartrak-home-rail__track,
+[dir='ltr'] .spartrak-home-split__track,
+[dir='ltr'] .spartrak-home-tiles__rail,
+[dir='ltr'] .spartrak-home-brands__rail,
+[dir='ltr'] .spartrak-home-showcase__track {
+    -webkit-mask-image: linear-gradient(to right, #000 ~"calc(100% - 80px)", transparent 100%);
+    mask-image: linear-gradient(to right, #000 ~"calc(100% - 80px)", transparent 100%);
+}
+
+// ===========================================================================
 // SCROLL PROGRESS — ONE COMPONENT, EVERY CAROUSEL
 // ===========================================================================
 // Figma draws this indicator twice, at two sizes: 4px under the product rail
@@ -523,7 +594,7 @@
 // tiles, the brand rail, the video showcase — simply had no indicator at all,
 // so three of the six carousels gave a shopper no clue they scrolled.
 //
-// It is now ONE component at the 8px size, used by all of them. The JS never
+// It is now ONE component at Figma's 4px size, used by all of them. The JS never
 // knew about the class names anyway: the widget binds to
 // `[data-carousel-progress]` and writes a single custom property, so unifying
 // the styling changed no behaviour and no script.
@@ -532,7 +603,9 @@
 // recalculation, no layout, nothing else on the page touched.
 .spartrak-home-progress {
     position: relative;
-    height: 8px;
+    // Figma 704:27791 — a 4px track, not 8. Read off the design rather than
+    // eyeballed: the node's own height is 4 and so is the fill inside it.
+    height: 4px;
     margin-block-start: 24px;
     border-radius: var(--radius-pill);
     background-color: var(--color-bg-field);
@@ -543,9 +616,11 @@
     position: absolute;
     inset-block: 0;
     inset-inline-start: 0;
+    // Figma 704:27793 — 320 of a 1281 track.
     width: 25%;
     border-radius: var(--radius-pill);
-    background-color: var(--color-action-primary-hover);
+    // Figma's own token for this fill is bg/inverse, not the action colour.
+    background-color: var(--color-bg-inverse);
     transform: translateX(var(--spartrak-rail-progress, 0));
     will-change: transform;
 }
@@ -562,13 +637,12 @@
     margin-block-start: 0;
 }
 
-.spartrak-home-tiles__stage .spartrak-home-progress,
 .spartrak-home-brands .spartrak-home-progress,
 .spartrak-home-showcase .spartrak-home-progress {
     // Held to the same measure as those sections' own headers, so the bar
     // starts and ends exactly under the content it tracks.
     width: 100%;
-    max-width: ~"min(100% - (@{home-gutter} * 2), @{home-measure})";
+    max-width: ~"calc(100% - (@{home-gutter} * 2))";
     margin-inline: auto;
 }
 
@@ -628,7 +702,7 @@
 .spartrak-home-tiles__inner {
     position: relative;
     width: 100%;
-    max-width: ~"min(100% - (@{home-gutter} * 2), @{home-measure})";
+    max-width: ~"calc(100% - (@{home-gutter} * 2))";
     height: 100%;
     margin-inline: auto;
 }
@@ -881,7 +955,7 @@
     // released for the full-bleed hero this section stretched to the whole
     // viewport and its cards read as enormous.
     width: 100%;
-    max-width: ~"min(100% - (@{home-gutter} * 2), @{home-measure})";
+    max-width: ~"calc(100% - (@{home-gutter} * 2))";
     margin-inline: auto;
     padding-inline: 0;
     list-style: none;
@@ -909,20 +983,17 @@
 }
 
 .spartrak-home-showcase__item {
-    // SIX across the measure, by request.
-    //
-    // Figma 595:14830 draws a 557px card three-up in a 1440 frame. That is a
-    // documented deviation: at six the card is ~210px, so the media frame and
-    // the product card inside it are both scaled down to suit (see the
-    // showcase-scoped card overrides further down). Six is what the brief for
-    // this section asked for; the layout is otherwise unchanged.
-    //
-    // Expressed as a fraction of the row, not a pixel width, so it stays
-    // exactly six across at any measure: five 16px gaps between six items.
-    flex: 0 0 calc((100% - (16px * 5)) / 6);
-    width: calc((100% - (16px * 5)) / 6);
+    // Figma 704:27146 ("Buyer Item") — 557 wide, 16 apart, which is 2.4 of
+    // them across the 1388 measure the section header uses. This carried a
+    // six-across override before; the design was asked for explicitly this
+    // time, and six put a 557px composition into a ~210px box, which is why
+    // the card text had nowhere to go.
+    flex: 0 0 557px;
+    width: 557px;
     min-width: 0;
-    max-width: calc(100vw - (@home-gutter-mobile * 2));
+    // Never wider than the measure it sits in, so the card cannot force the
+    // rail wider than the page on a narrow tablet.
+    max-width: ~"calc(100% - (@{home-gutter} * 2))";
     margin: 0;
     padding: 12px;
     background-color: var(--color-bg-surface);
@@ -1053,42 +1124,33 @@
     padding: 4px;
 }
 
-// The horizontal Card - Product variant is sized for Figma's 533px column.
-// At six-across it sits in roughly 210px, where a 140px image would leave
-// about 50px for the name — unreadable. These overrides scale the card to the
-// narrower column WITHOUT forking the component: same template, same classes,
-// just this section's own measurements.
+// Figma 704:27170 ("Card - Product" inside "Buyer Product Info") — a 532x140
+// horizontal card: a 140px square image (704:27205), a 16px gap to a 312px
+// content column, and a 40x40 like button (704:27172) beside it. These were
+// scaled down to 64px while this rail ran six-across; the rail is now at
+// Figma's own 557px card, so the numbers go back to Figma's own too.
 //
 // Scoped through .spartrak-home-showcase__product so nothing outside this
 // section is affected, and at (0,2,0) so it clears the card's own (0,1,0)
 // rules without an !important.
 .spartrak-home-showcase__product .spartrak-card--horizontal {
-    gap: 8px;
+    gap: 16px;
 
     .spartrak-card__media {
-        flex: 0 0 64px;
-        width: 64px;
-        height: 64px;
+        flex: 0 0 140px;
+        width: 140px;
+        height: 140px;
     }
 
     .spartrak-card__content {
         gap: 8px;
     }
 
-    // The NAME keeps its design-system size. Heading/H4 is 18px, weight 500,
-    // line-height 130%, clamped to two lines — the same type as every other
-    // product name on the site, and shrinking it to 14px here to win back a few
-    // pixels was a change to the design rather than an implementation of it.
-    // The two-line clamp is what bounds it at this width, not a smaller face.
-    .spartrak-card__price {
-        font-size: var(--text-14);
-    }
-
-    // The rating row does not survive this width legibly; the name and price
-    // are what a shopper needs at a glance here, and both remain on the
-    // product page. Hidden rather than shrunk to an unreadable size.
-    .spartrak-card__rating,
-    .spartrak-card__wishlist {
+    // Figma's content column is 312x90 — a two-line name and a price, and no
+    // star row. The rating is hidden rather than shrunk; the like button is
+    // NOT, because the design draws it (704:27172) and hiding it here was
+    // only ever a consequence of the six-across width.
+    .spartrak-card__rating {
         display: none;
     }
 }
@@ -1103,7 +1165,7 @@
     }
 
     .spartrak-home-section__head {
-        max-width: ~"min(100% - (@{home-gutter-mobile} * 2), @{home-measure})";
+        max-width: ~"calc(100% - (@{home-gutter-mobile} * 2))";
         margin-block-end: 16px;
     }
 
@@ -1121,11 +1183,11 @@
         // artwork needs every pixel it can get.
         margin-inline: 0;
         max-width: none;
-        // The MOBILE artwork is a different crop, so the desktop hero ratio
-        // would letterbox it. 4:3 matches the mobile frame's own banner box;
-        // as on desktop this is only the fallback — real dimensions from the
-        // uploaded file take precedence.
-        aspect-ratio: 4 / 3;
+        // The mobile <source> is a DIFFERENT file with its own shape, so the
+        // desktop ratio cannot govern here. Same rule as above: the block
+        // writes the mobile asset's real ratio, and Figma's own mobile hero
+        // box (647:57255 — 440x266) is the fallback.
+        aspect-ratio: var(--spartrak-banner-ratio-mobile, 440 / 266);
     }
 
     // Full-width edge-to-edge arrows would eat a third of a phone screen.
@@ -1141,15 +1203,11 @@
     }
 
     .spartrak-home-rail__track {
-        gap: 12px;
+        // Figma's mobile frame uses the SAME card and the SAME gap as the
+        // desktop one (647:57345 — 260 wide, 20 apart). Only the measure
+        // changes, so 1.46 cards land in the 408 mobile measure where 4.6
+        // land in the desktop one. Nothing here needs to restate them.
         padding-inline: @home-gutter-mobile;
-    }
-
-    .spartrak-home-rail__item {
-        // Two cards visible with the third peeking, which is what the mobile
-        // frame shows and what signals "this scrolls" without an arrow.
-        flex-basis: 200px;
-        width: 200px;
     }
 
     .spartrak-home-rail__panel .spartrak-home-progress,
@@ -1157,10 +1215,9 @@
         margin-inline: @home-gutter-mobile;
     }
 
-    .spartrak-home-tiles__stage .spartrak-home-progress,
     .spartrak-home-brands .spartrak-home-progress,
     .spartrak-home-showcase .spartrak-home-progress {
-        max-width: ~"min(100% - (@{home-gutter-mobile} * 2), @{home-measure})";
+        max-width: ~"calc(100% - (@{home-gutter-mobile} * 2))";
     }
 
     // The tile stage's fixed 608px and absolutely-positioned rail are a
@@ -1199,10 +1256,9 @@
         padding-inline: @home-gutter-mobile;
     }
 
-    .spartrak-home-tiles__item {
-        flex-basis: 264px;
-        width: 264px;
-    }
+    // Figma 647:57312 — the mobile tile is the SAME 324px card as the desktop
+    // one (704:27359), so it is not restated here; only the rail's gutter
+    // changes. 1.3 of them land in a 440 frame, which is what the design draws.
 
     .spartrak-home-tiles__nav {
         display: none;
@@ -1213,33 +1269,46 @@
     }
 
     .spartrak-home-showcase__track {
-        gap: 12px;
+        // Figma 647:57783 — the mobile card is 228 wide and 20 apart, a
+        // different pair from the desktop 557/16, so both are restated.
+        gap: 20px;
         padding-inline: @home-gutter-mobile;
     }
 
     .spartrak-home-showcase__item {
-        // Six across is a desktop decision; on a phone that would be ~55px a
-        // card. Figma's mobile frame (647:57253) draws TWO across — a 226px
-        // item inside a 408px measure on a 440 frame, so a shade over half,
-        // with the second clipped just enough to read as "this scrolls".
-        //
-        // Written as that proportion rather than a pixel width so it holds at
-        // 440 and at 375 alike. `- 6px` is half the 12px gap, which is what
-        // keeps it to two across instead of one-and-a-bit.
-        flex-basis: ~"calc(52% - 6px)";
-        width: ~"calc(52% - 6px)";
+        // 228 in a 408 measure is 1.46 cards: one whole card and enough of
+        // the next to read as scrollable, which is exactly what the mobile
+        // frame draws.
+        flex-basis: 228px;
+        width: 228px;
+        max-width: ~"calc(100% - (@{home-gutter-mobile} * 2))";
     }
 
-    // The thumbnail scales with the card. At 88px it was taking 60% of a
-    // 148px card and leaving 52px for the name — MEASURED, and the reason the
-    // text looked crushed on a phone. 56px matches the proportion the mobile
-    // frame draws and hands the name back a usable column.
+    // Figma 647:57825 — a 64px thumbnail in a 220px card, and no like button
+    // in the mobile drawing at all (647:57808 holds only the content column).
     .spartrak-home-showcase__product .spartrak-card--horizontal {
+        gap: 8px;
+
         .spartrak-card__media {
-            flex: 0 0 56px;
-            width: 56px;
-            height: 56px;
+            flex: 0 0 64px;
+            width: 64px;
+            height: 64px;
         }
+
+        .spartrak-card__wishlist {
+            display: none;
+        }
+    }
+
+    // Figma 647:57280 — the mobile brand tile is 93 square with an 8px gap,
+    // against 134.779 / 16 on desktop.
+    .spartrak-home-brands__rail {
+        gap: 8px;
+    }
+
+    .spartrak-home-brands__plate {
+        width: 93px;
+        height: 93px;
     }
 
     .spartrak-home-showcase__control {
@@ -1311,7 +1380,7 @@
 .spartrak-home-brands__rail-wrap {
     position: relative;
     width: 100%;
-    max-width: ~"min(100% - (@{home-gutter} * 2), @{home-measure})";
+    max-width: ~"calc(100% - (@{home-gutter} * 2))";
     margin-inline: auto;
 }
 
@@ -1483,7 +1552,7 @@
     flex-direction: column;
     gap: 12px;
     width: 100%;
-    max-width: ~"min(100% - (@{home-gutter} * 2), @{home-measure})";
+    max-width: ~"calc(100% - (@{home-gutter} * 2))";
     padding: 12px 16px 32px;
     border: 1px solid var(--color-border-default);
     border-radius: var(--radius-16);
@@ -1631,7 +1700,20 @@
     .spartrak-icon('arrow-next.svg'; 20px; var(--color-action-primary-text));
 }
 
-[dir='ltr'] .spartrak-home-finder__cta-arrow {
+// ===========================================================================
+// THE ASSET POINTS RIGHT, SO IT IS THE RTL STORE THAT FLIPS IT
+// ===========================================================================
+// icons/arrow-next.svg draws its head at x=12.667 of a 16-wide box - it points
+// PHYSICALLY RIGHT. A "continue" arrow follows the reading direction, so it is
+// correct as exported in the English store and has to be mirrored in the
+// Arabic one.
+//
+// This said `[dir='ltr']`, which is the exact opposite: the Arabic store, which
+// is the one a shopper actually sees, pointed its arrow backwards into the text
+// it was meant to lead away from, and the English store pointed its arrow the
+// wrong way too. `.spartrak-home-section__view-all-arrow` above already had it
+// right, which is what made the two disagree on the same page.
+[dir='rtl'] .spartrak-home-finder__cta-arrow {
     transform: scaleX(-1);
 }
 
@@ -1645,7 +1727,7 @@
 @media (max-width: @breakpoint-header-collapse) {
     .spartrak-home-brands__rail-wrap,
     .spartrak-home-finder__card {
-        max-width: ~"min(100% - (@{home-gutter-mobile} * 2), @{home-measure})";
+        max-width: ~"calc(100% - (@{home-gutter-mobile} * 2))";
     }
 
     .spartrak-home-brands .spartrak-home-section__title {
@@ -1706,7 +1788,7 @@
     grid-template-columns: minmax(0, 600fr) minmax(0, 760fr);
     align-items: stretch;
     width: 100%;
-    max-width: ~"min(100% - (@{home-gutter} * 2), @{home-measure})";
+    max-width: ~"calc(100% - (@{home-gutter} * 2))";
     margin-inline: auto;
 }
 
@@ -1923,8 +2005,18 @@
         color: var(--color-action-primary-text);
     }
 
-    &:hover {
+    // Porto ships a global `a:hover { color: #044776; text-decoration: underline }`.
+    // That selector is (0,1,1) and the CTA's own base rule is (0,1,0), so the
+    // base colour LOSES to it and the label turned blue-on-blue on hover.
+    // Restating the token inside this (0,2,0) hover block is what settles it —
+    // the button is a filled control, and its label is on-primary in every
+    // state.
+    &:hover,
+    &:focus,
+    &:active {
         background-color: var(--color-action-primary-hover);
+        color: var(--color-action-primary-text);
+        text-decoration: none;
     }
 }
 
@@ -1932,7 +2024,9 @@
     .spartrak-icon('arrow-next.svg'; 20px; var(--color-action-primary-text));
 }
 
-[dir='ltr'] .spartrak-home-split__cta-arrow {
+// Same asset, same rule as the finder CTA above - see the note there for why
+// this is `rtl` and not `ltr`.
+[dir='rtl'] .spartrak-home-split__cta-arrow {
     transform: scaleX(-1);
 }
 

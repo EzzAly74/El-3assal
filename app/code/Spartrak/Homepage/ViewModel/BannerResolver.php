@@ -59,6 +59,8 @@ class BannerResolver implements ArgumentInterface
      *     mobile_url: string,
      *     width: int|null,
      *     height: int|null,
+     *     mobile_width: int|null,
+     *     mobile_height: int|null,
      *     alt: string,
      *     url: string,
      *     media: string
@@ -92,11 +94,23 @@ class BannerResolver implements ArgumentInterface
         // bytes are fetched, and the reserved box is set from the img.
         $dimensions = $this->storage->getDimensions($desktop);
 
+        // The MOBILE file is a different asset with its own shape, and the
+        // <source> swap happens before the img ever loads. Its ratio is read
+        // here so the frame can reserve the correct box on a phone too —
+        // without it a portrait mobile hero would be cropped to the desktop
+        // ratio, which is exactly the artwork loss this pair of values fixes.
+        // Re-reading the same path is free: Storage memoises per request.
+        $mobileDimensions = $mobile === $desktop
+            ? $dimensions
+            : $this->storage->getDimensions($mobile);
+
         return [
             'desktop_url' => $this->storage->getUrl($desktop),
             'mobile_url' => $this->storage->getUrl($mobile),
             'width' => $dimensions[0] ?? null,
             'height' => $dimensions[1] ?? null,
+            'mobile_width' => $mobileDimensions[0] ?? null,
+            'mobile_height' => $mobileDimensions[1] ?? null,
             'alt' => $this->getTitle($banner),
             'url' => trim((string) $banner->getData('url')),
             'media' => self::MOBILE_MEDIA_CONDITION,

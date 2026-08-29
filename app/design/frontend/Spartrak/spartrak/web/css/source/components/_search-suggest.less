@@ -346,6 +346,16 @@
     .spartrak-icon('arrow-up-right.svg'; 16px; var(--color-text-muted));
 }
 
+// It is a DIRECTIONAL glyph and it was not being mirrored - it pointed the same
+// way in both stores. The arrow means "this term goes back up into the box", so
+// it has to point at the box: up-and-toward-the-reading-start. The asset was
+// exported from the Arabic frame (864:8949), where the box starts on the right,
+// so RTL keeps it as drawn and LTR mirrors it. That is also the convention every
+// LTR search panel uses.
+[dir='ltr'] .spartrak-suggest__term-arrow {
+    transform: scaleX(-1);
+}
+
 .spartrak-suggest__term:hover .spartrak-suggest__term-arrow,
 .spartrak-suggest__term:focus-visible .spartrak-suggest__term-arrow {
     background-color: var(--color-action-primary);

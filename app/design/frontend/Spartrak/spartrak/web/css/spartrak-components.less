@@ -33,6 +33,15 @@
 @import 'source/components/_search-suggest.less';
 @import 'source/components/_mobile-drawer.less';
 @import 'source/components/_login-modal.less';
+// Every OTHER dialog in the project. Claims core's .modal-popup / .modal-slide
+// classes so one stylesheet covers the cart's remove confirmation, the
+// wishlist, checkout's address forms and any module that uses the platform's
+// own modal — imported after the auth modal, which owns its own markup and
+// must not be reached by these rules.
+@import 'source/components/_modal.less';
+// "Nothing here yet" — one component, shared by the cart drawer and the cart
+// page. Imported before both so either can add its own placement on top.
+@import 'source/components/_empty-state.less';
 @import 'source/components/_footer.less';
 @import 'source/components/_homepage-sections.less';
 @import 'source/components/_product-card.less';

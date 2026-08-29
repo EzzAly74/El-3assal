@@ -23,13 +23,23 @@ var config = {
         }
     },
     /*
-     * Extends Magento's own minicart sidebar rather than replacing it: the
-     * cart drawer has no Update button (Figma has none), so the quantity has
-     * to commit on change instead. See web/js/spartrak-minicart-qty-mixin.js
-     * for why the button is hidden rather than removed.
+     * Both mixins serve one thing Figma's cart drawer asks for and core's
+     * minicart does not do: a quantity DROPDOWN with no Update button beside
+     * it (820:16477).
+     *
+     *   view/minicart  builds the option list, and keeps the line's own
+     *                  quantity in it when it sits above the configured cap.
+     *   js/sidebar     commits on change, instead of revealing a button that
+     *                  the design does not draw.
+     *
+     * Both extend core in place. Neither replaces a core module, and neither
+     * adds a request — a mixin is merged into the same bundle as its target.
      */
     config: {
         mixins: {
+            'Magento_Checkout/js/view/minicart': {
+                'js/spartrak-minicart-view-mixin': true
+            },
             'Magento_Checkout/js/sidebar': {
                 'js/spartrak-minicart-qty-mixin': true
             }

@@ -16,6 +16,13 @@ use Spartrak\Homepage\Model\SectionType;
  * Labels describe what the admin GETS, not what the code calls it — an admin
  * choosing between "banner" and "product_carousel" is being asked to read our
  * type names, which is a leak, not a UI.
+ *
+ * Each one is a SHORT NAME, then the reason to use it. The name is what the
+ * merchandiser will say out loud and search the list for; the clause after it
+ * is what tells them why this row is worth filling in rather than leaving
+ * empty. The previous labels led with the mechanism ("Product carousel with
+ * promo panel — rail beside a promotional block"), which reads as a
+ * description of our code and gives nobody a reason to reach for it.
  */
 class SectionTypeOptions implements OptionSourceInterface
 {
@@ -27,31 +34,31 @@ class SectionTypeOptions implements OptionSourceInterface
         return [
             [
                 'value' => SectionType::BANNER,
-                'label' => __('Banner — one image, or several as a carousel'),
+                'label' => __('Hero Banner — the first thing every shopper sees'),
             ],
             [
                 'value' => SectionType::CATEGORY_TILES,
-                'label' => __('Category tiles — chosen categories with the reveal visual'),
+                'label' => __('Category Spotlight — send shoppers straight into a category'),
             ],
             [
                 'value' => SectionType::PRODUCT_CAROUSEL,
-                'label' => __('Product carousel — products from a category'),
+                'label' => __('Product Rail — a scrollable row of products from one category'),
             ],
             [
                 'value' => SectionType::PRODUCT_VIDEO_CAROUSEL,
-                'label' => __('Product showcase — products from a category, with video'),
+                'label' => __('Video Showcase — products shown in action, with video'),
             ],
             [
                 'value' => SectionType::PRODUCT_PROMO_CAROUSEL,
-                'label' => __('Product carousel with promo panel — rail beside a promotional block'),
+                'label' => __('Promo + Products — a campaign block beside a product rail'),
             ],
             [
                 'value' => SectionType::BRAND_CAROUSEL,
-                'label' => __('Brand rail — every brand, same source as the header'),
+                'label' => __('Brand Strip — every brand you stock, in one row'),
             ],
             [
                 'value' => SectionType::CASCADE_SEARCH,
-                'label' => __('Cascading finder — brand and category drill-down'),
+                'label' => __('Part Finder — brand and model drill-down to the exact part'),
             ],
         ];
     }

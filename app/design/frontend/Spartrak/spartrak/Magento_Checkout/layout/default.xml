@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Spartrak — cart drawer configuration.
+ *
+ * ONE value, and it lives here rather than in the Knockout template because
+ * it is a PRESENTATION decision (CLAUDE.md section 7: the theme owns
+ * presentation, the admin owns content). How many rows a quantity dropdown
+ * offers is not a merchant's content and not a shopper's data — it is the
+ * shape of a control — so a developer sets it in one declarative place
+ * instead of it appearing as a bare number inside markup.
+ *
+ * Figma 820:16477 draws the quantity as a dropdown. It does not state a
+ * length; ten is the brief's. A line already holding more than ten keeps its
+ * own value in the list — see getQtyOptions() in
+ * web/js/spartrak-minicart-view-mixin.js, which is the part that stops this
+ * number from ever silently rewriting a shopper's cart.
+ */
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="minicart">
+            <arguments>
+                <argument name="jsLayout" xsi:type="array">
+                    <item name="components" xsi:type="array">
+                        <item name="minicart_content" xsi:type="array">
+                            <item name="config" xsi:type="array">
+                                <item name="maxQtyOptions" xsi:type="number">10</item>
+                            </item>
+                        </item>
+                    </item>
+                </argument>
+            </arguments>
+        </referenceBlock>
+    </body>
+</page>
