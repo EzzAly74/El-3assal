@@ -18,13 +18,31 @@
  * cart, whatever the cap is set to.
  *
  * ===========================================================================
- * WHY A MIXIN
+ * WHY IT EXTENDS cart-item-renderer AND NOT view/minicart
  * ===========================================================================
- * It extends Magento_Checkout/js/view/minicart in place — no core file is
- * touched and no component is re-implemented. `$parent` inside the item
- * template IS this component, so the template calls `$parent.getQtyOptions(qty)`
- * and Knockout's own `options` binding does the rest. No new dependency, and
- * the file merges into the bundle rather than adding a request.
+ * MEASURED, from the browser console: with this on view/minicart the template
+ * threw `$parent.getQtyOptions is not a function` and Knockout dropped the
+ * whole binding, leaving a <select> with no options in it.
+ *
+ * `$parent` inside Magento_Checkout/minicart/item/default is the ITEM RENDERER,
+ * not the minicart view. content.html renders each line through
+ *
+ *     <each args="$parent.getRegion(...)" render="{name: getTemplate(), data: item, ...}">
+ *
+ * so the context the item template is rendered in has the renderer element that
+ * `each` is iterating as its parent — which is exactly why core's own item
+ * template calls `$parent.getProductNameUnsanitizedHtml()`, a
+ * cart-item-renderer method, and has to reach the minicart view as
+ * `$parents[1]` for initSidebar().
+ *
+ * Reading a core template's OTHER `$parent` calls is what settles which
+ * component a mixin belongs on. Both of that template's existing ones —
+ * getProductNameUnsanitizedHtml and getOptionValueUnsanitizedHtml — are defined
+ * in vendor/magento/module-checkout/view/frontend/web/js/view/cart-item-renderer.js.
+ *
+ * It extends that component in place: no core file is touched, no component is
+ * re-implemented, no new dependency, and the file merges into the same bundle
+ * as its target rather than adding a request.
  */
 define([], function () {
     'use strict';

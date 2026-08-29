@@ -58,6 +58,54 @@
     <preference for="Magento\Swatches\Controller\Adminhtml\Iframe\Show"
                 type="Spartrak\Catalog\Controller\Adminhtml\Iframe\Show"/>
 
+    <!--
+      ONE UPLOADER THAT ACCEPTS SVG. NOT A GLOBAL SETTING.
+
+      MEASURED: allowing the extension on the uploader was not enough, and this
+      is why SVG swatches still would not upload after the controller was in
+      place. Magento ships `svg` and `svgz` inside
+      general/file/protected_extensions (Magento_Store/etc/config.xml), and
+
+          MediaStorage\Model\File\Uploader::checkAllowedExtension()
+              if (!$this->_validator->isValid($extension)) { return false; }
+              return parent::checkAllowedExtension($extension);
+
+      consults that validator BEFORE the allowed list — so the controller's
+      setAllowedExtensions(['svg']) never got a say.
+
+      Deleting svg from that config node would have been one line and a
+      catastrophe: the node is GLOBAL, so SVG would immediately become
+      uploadable through the CMS media gallery, product images, category
+      images, customer file-upload options and every third-party uploader in
+      the installation, none of which sanitise anything.
+
+      So the list is left exactly as Magento ships it, and the substitution is
+      made for ONE uploader INSTANCE: a virtual Uploader carrying a validator
+      that permits only svg/svgz, behind a virtual factory that only the swatch
+      controller is handed. Nothing else in the admin can reach it, and the
+      protection it replaces is not dropped — SvgSanitizer inspects and rewrites
+      the file's contents, which is a stricter control than an extension ban.
+    -->
+    <virtualType name="Spartrak\Catalog\Model\Swatch\SvgFileUploader"
+                 type="Magento\MediaStorage\Model\File\Uploader">
+        <arguments>
+            <argument name="validator" xsi:type="object">Spartrak\Catalog\Model\Swatch\SvgExtensionValidator</argument>
+        </arguments>
+    </virtualType>
+
+    <virtualType name="Spartrak\Catalog\Model\Swatch\SvgUploaderFactory"
+                 type="Magento\MediaStorage\Model\File\UploaderFactory">
+        <arguments>
+            <argument name="instanceName" xsi:type="string">Spartrak\Catalog\Model\Swatch\SvgFileUploader</argument>
+        </arguments>
+    </virtualType>
+
+    <type name="Spartrak\Catalog\Controller\Adminhtml\Iframe\Show">
+        <arguments>
+            <argument name="svgUploaderFactory" xsi:type="object">Spartrak\Catalog\Model\Swatch\SvgUploaderFactory</argument>
+        </arguments>
+    </type>
+
     <virtualType name="Magento\Catalog\CategoryImageUpload" type="Magento\Catalog\Model\ImageUploader">
         <arguments>
             <argument name="allowedExtensions" xsi:type="array">

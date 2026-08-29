@@ -67,6 +67,18 @@
 }
 
 .modal-popup .modal-inner-wrap {
+    // MEASURED at 375px, and this line is the fix for it: core positions this
+    // panel ABSOLUTELY with `left: 0; right: 0` and centres it with auto
+    // margins. Left alone, the flex centring above never reaches it, because an
+    // absolutely-positioned child is out of flow — and once the panel was wider
+    // than the screen (see the `.confirm` note below) those auto margins went
+    // NEGATIVE and put the dialog at x=-105, half of it off the left edge.
+    //
+    // Back in flow, so the flex container is what centres it, in both axes and
+    // at any height.
+    position: relative;
+    inset: auto;
+
     width: 480px;
     max-width: 100%;
     // `margin: auto` rather than 0 so an over-tall dialog stays scrollable from
@@ -77,10 +89,18 @@
     box-shadow: var(--shadow-container);
 }
 
-// A confirmation carries one sentence and two buttons. Core widens it to 50rem,
-// which strands a short question across a very long line.
+// A confirmation carries one sentence and two buttons. Core widens it to 50rem
+// at (0,3,0), which strands a short question across a very long line.
+//
+// This has to REOPEN the cap rather than lower it. Restating a pixel
+// max-width here — which is what it did — replaces the `max-width: 100%`
+// above at higher specificity, and that cap was the only thing keeping the
+// panel inside a narrow screen: MEASURED at 375px the dialog rendered 480px
+// wide and overflowed in both directions. `100%` puts the viewport cap back;
+// the `width: 480px` above is what still holds it to the design measure on a
+// wide screen.
 .modal-popup.confirm .modal-inner-wrap {
-    max-width: 480px;
+    max-width: 100%;
 }
 
 // ---------------------------------------------------------------------------

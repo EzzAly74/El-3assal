@@ -13,8 +13,16 @@
  * Figma 820:16477 draws the quantity as a dropdown. It does not state a
  * length; ten is the brief's. A line already holding more than ten keeps its
  * own value in the list — see getQtyOptions() in
- * web/js/spartrak-minicart-view-mixin.js, which is the part that stops this
- * number from ever silently rewriting a shopper's cart.
+ * web/js/spartrak-minicart-qty-options-mixin.js, which is the part that stops
+ * this number from ever silently rewriting a shopper's cart.
+ *
+ * IT SITS ON item.renderer, NOT ON minicart_content. Component config reaches
+ * the component it is declared on, and the one that owns getQtyOptions() is
+ * Magento_Checkout/js/view/cart-item-renderer — the component the item template
+ * addresses as `$parent`. Declared a level up it would land on the minicart view
+ * and the renderer would fall back to its own default. The node path below
+ * matches Magento_Checkout/view/frontend/layout/checkout_cart_sidebar_item_renderers.xml,
+ * which is where that child is declared.
  */
 -->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -25,8 +33,12 @@
                 <argument name="jsLayout" xsi:type="array">
                     <item name="components" xsi:type="array">
                         <item name="minicart_content" xsi:type="array">
-                            <item name="config" xsi:type="array">
-                                <item name="maxQtyOptions" xsi:type="number">10</item>
+                            <item name="children" xsi:type="array">
+                                <item name="item.renderer" xsi:type="array">
+                                    <item name="config" xsi:type="array">
+                                        <item name="maxQtyOptions" xsi:type="number">10</item>
+                                    </item>
+                                </item>
                             </item>
                         </item>
                     </item>

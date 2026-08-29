@@ -27,18 +27,28 @@ var config = {
      * minicart does not do: a quantity DROPDOWN with no Update button beside
      * it (820:16477).
      *
-     *   view/minicart  builds the option list, and keeps the line's own
+     *   view/cart-item-renderer
+     *                  builds the option list, and keeps the line's own
      *                  quantity in it when it sits above the configured cap.
      *   js/sidebar     commits on change, instead of revealing a button that
      *                  the design does not draw.
+     *
+     * The FIRST one is on cart-item-renderer and not on view/minicart, which is
+     * a correction. `$parent` inside Magento_Checkout/minicart/item/default is
+     * the ITEM RENDERER, not the minicart view: content.html renders each line
+     * through `<each args="$parent.getRegion(...)" render="{data: item}">`, so
+     * the template's own parent context is the renderer element that `each` is
+     * iterating. That is why core's item template calls
+     * `$parent.getProductNameUnsanitizedHtml()` — a cart-item-renderer method —
+     * while reaching the minicart view as `$parents[1]`.
      *
      * Both extend core in place. Neither replaces a core module, and neither
      * adds a request — a mixin is merged into the same bundle as its target.
      */
     config: {
         mixins: {
-            'Magento_Checkout/js/view/minicart': {
-                'js/spartrak-minicart-view-mixin': true
+            'Magento_Checkout/js/view/cart-item-renderer': {
+                'js/spartrak-minicart-qty-options-mixin': true
             },
             'Magento_Checkout/js/sidebar': {
                 'js/spartrak-minicart-qty-mixin': true

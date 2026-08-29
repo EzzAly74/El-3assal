@@ -52,6 +52,9 @@ use Spartrak\Catalog\Model\Swatch\SvgSanitizer;
  * is accepted here because the brief requires it, and it is made safe rather
  * than merely allowed:
  *
+ *   - The extension gate is opened for ONE uploader instance, not globally —
+ *     Model\Swatch\SvgExtensionValidator, wired in etc/adminhtml/di.xml.
+ *     Magento's own protected-extension list is left exactly as it ships.
  *   - Model\Swatch\SvgSanitizer runs as an uploader validate callback, which
  *     the uploader invokes against PHP's own upload temp BEFORE the file is
  *     copied anywhere. A file that will not parse as a plain SVG is refused
@@ -85,7 +88,8 @@ class Show extends CoreShow
         Config $config,
         Filesystem $filesystem,
         UploaderFactory $uploaderFactory,
-        private readonly SvgSanitizer $svgSanitizer
+        private readonly SvgSanitizer $svgSanitizer,
+        private readonly UploaderFactory $svgUploaderFactory
     ) {
         parent::__construct($context, $swatchHelper, $adapterFactory, $config, $filesystem, $uploaderFactory);
     }
@@ -102,7 +106,18 @@ class Show extends CoreShow
         }
 
         try {
-            $uploader = $this->uploaderFactory->create(['fileId' => self::FILE_ID]);
+            // NOT $this->uploaderFactory. That one builds core's stock
+            // uploader, whose protected-extension validator refuses `svg`
+            // BEFORE the allowed list is consulted — Magento ships svg and
+            // svgz in general/file/protected_extensions, so setAllowedExtensions
+            // below has no effect on it whatsoever.
+            //
+            // This factory is a virtual type wired in etc/adminhtml/di.xml that
+            // builds the same Uploader with one validator swapped, and it is
+            // injected only here. Every other uploader in the admin keeps the
+            // stock one and keeps refusing SVG. See that file for why the
+            // global config node was left alone.
+            $uploader = $this->svgUploaderFactory->create(['fileId' => self::FILE_ID]);
             $uploader->setAllowedExtensions(['svg']);
 
             // Replaces core's raster adapter check, which cannot read an SVG.
