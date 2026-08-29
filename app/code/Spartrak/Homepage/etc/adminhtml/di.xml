@@ -22,6 +22,35 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
 
     <virtualType name="Spartrak\Homepage\BannerImageUpload" type="Magento\Catalog\Model\ImageUploader">
+        <!--
+          MEASURED, from a real save: "Could not import media assets for files:
+          spartrak/homepage/home_hero_web_1.webp".
+
+          Magento_MediaGalleryCatalogIntegration attaches
+          SaveBaseCategoryImageInformation to Magento\Catalog\Model\ImageUploader,
+          and a virtual type inherits its parent type's plugins — so a plugin
+          written for CATEGORY images was running on every banner save. It
+          resolves the file against the CMS WYSIWYG storage root and hands it to
+          the media-gallery synchroniser, which then fails on a path and a file
+          type it was never meant to index. The exception is a LocalizedException,
+          so it does not just log: it surfaces on the form and aborts the save.
+
+          This uploader is a virtual type of that class to reuse its validation
+          and its tmp-to-final move, not because a banner is a category image.
+          Banner artwork lives in spartrak/homepage/, outside the media gallery's
+          managed tree, and merchants manage it through this module's own grid —
+          so there is nothing for the media gallery to usefully index here.
+
+          Disabling by NAME on the virtual type is the supported mechanism:
+          Interception\PluginListGenerator::inheritPlugins() resolves a virtual
+          type to its real type, inherits that type's plugins, then applies the
+          virtual type's own overrides and skips any marked disabled. Core's
+          category uploader is untouched and keeps the plugin.
+
+          It also removes a media-gallery row insert and a metadata parse from
+          every banner save, which is work this module was never asking for.
+        -->
+        <plugin name="save_category_image" disabled="true"/>
         <arguments>
             <argument name="baseTmpPath" xsi:type="string">spartrak/homepage/tmp</argument>
             <argument name="basePath" xsi:type="string">spartrak/homepage</argument>
