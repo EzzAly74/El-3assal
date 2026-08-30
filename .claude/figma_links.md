@@ -83,14 +83,18 @@ https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=6
 Checkout
 
 DESKTOP
-https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=553-4663&m=dev
-https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=559-4362&m=dev
 https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=552-11748&m=dev
 https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=549-2753&m=dev
 https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=551-10038&m=dev
 https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=554-10780&m=dev
 https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=554-11651&m=dev
 https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=554-11231&m=dev
+https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=554-12084&m=dev
+https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=554-13119&m=dev
+https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=554-13750&m=dev
+https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=557-4731&m=dev
+https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=572-15198&m=dev
+https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=586-7352&m=dev
 
 MOBILE (RESPONSIVE)
 https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=669-13034&m=dev
