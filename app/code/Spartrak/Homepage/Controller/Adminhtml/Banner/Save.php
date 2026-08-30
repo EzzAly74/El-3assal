@@ -9,13 +9,13 @@ namespace Spartrak\Homepage\Controller\Adminhtml\Banner;
 
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
-use Magento\Catalog\Model\ImageUploader;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Spartrak\Homepage\Model\BannerFactory;
 use Spartrak\Homepage\Model\BannerRepository;
+use Spartrak\Homepage\Model\Image\Uploader;
 
 /**
  * Saves one banner item, including moving any freshly uploaded artwork out of
@@ -40,7 +40,7 @@ class Save extends Action implements HttpPostActionInterface
         Context $context,
         private readonly BannerRepository $bannerRepository,
         private readonly BannerFactory $bannerFactory,
-        private readonly ImageUploader $imageUploader,
+        private readonly Uploader $imageUploader,
         private readonly DataPersistorInterface $dataPersistor
     ) {
         parent::__construct($context);
@@ -106,9 +106,11 @@ class Save extends Action implements HttpPostActionInterface
      *   - an UNCHANGED one  -> ['name' => ...] with no tmp_name    : keep it
      *   - a CLEARED field   -> [] or absent                        : store ''
      *
-     * Storing the bare filename (not a path, not a URL) is what lets
-     * Model\Image\Storage own the location — moving the media directory later
-     * is then a change in one class, not a data migration.
+     * What is stored is the MEDIA-RELATIVE PATH, never a URL: a URL would bake
+     * the store's base URL into a data row and break the moment the domain or
+     * the media host changes. Model\Image\Storage normalises the base path back
+     * off the value on the way out, so it stays the one class that knows where
+     * banner artwork lives.
      *
      * @param array<string, mixed> $data
      * @return array<string, mixed>
@@ -129,9 +131,11 @@ class Save extends Action implements HttpPostActionInterface
 
             if (!empty($value['tmp_name'])) {
                 // Freshly uploaded: move it out of staging. moveFileFromTmp()
-                // returns the final filename, which may differ from the
-                // uploaded one when a collision was resolved.
-                $data[$field] = $this->imageUploader->moveFileFromTmp((string) $value['name'], true);
+                // returns the media-relative path of the file that now exists,
+                // which carries a collision suffix when one was needed — so a
+                // second upload of the same filename cannot leave this row
+                // pointing at the first upload's artwork.
+                $data[$field] = $this->imageUploader->moveFileFromTmp((string) $value['name']);
                 continue;
             }
 

@@ -9,10 +9,10 @@ namespace Spartrak\Homepage\Controller\Adminhtml\Banner;
 
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
-use Magento\Catalog\Model\ImageUploader;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
+use Spartrak\Homepage\Model\Image\Uploader;
 
 /**
  * Receives one banner image from the form's uploader and stages it.
@@ -23,8 +23,8 @@ use Magento\Framework\Controller\Result\JsonFactory;
  * litter the media directory with files no row references.
  *
  * All validation — extension, MIME, filename safety — happens inside
- * ImageUploader, configured in etc/adminhtml/di.xml. None of it is re-done
- * (or, worse, relaxed) here.
+ * Model\Image\Uploader, configured in etc/adminhtml/di.xml. None of it is
+ * re-done (or, worse, relaxed) here.
  */
 class Upload extends Action implements HttpPostActionInterface
 {
@@ -32,7 +32,7 @@ class Upload extends Action implements HttpPostActionInterface
 
     public function __construct(
         Context $context,
-        private readonly ImageUploader $imageUploader,
+        private readonly Uploader $imageUploader,
         private readonly JsonFactory $jsonFactory
     ) {
         parent::__construct($context);

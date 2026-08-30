@@ -117,8 +117,34 @@
     // Resets Porto's `min-width: 100%` — see note 1 above.
     min-width: 0;
 
-    display: flex;
-    flex-direction: column;
+    // ===================================================================
+    // THIS PANEL IS NOT A FLEX COLUMN, AND IT CANNOT BE MADE ONE.
+    // ===================================================================
+    // It used to declare `display: flex; flex-direction: column` here. That
+    // never once applied, and finding out why is what explains the drawer's
+    // height bug. MEASURED on the open drawer: the element's own inline
+    // style is `display: block`, and an inline declaration beats every
+    // stylesheet rule short of `!important`.
+    //
+    // The inline style is written by jQuery UI, not by us, and the
+    // `:not(.ui-dialog-content)` rule directly above this one is what makes
+    // it happen. Read `$.ui.dialog._create()` in
+    // lib/web/jquery/ui-modules/widgets/dialog.js:
+    //
+    //     this.element.show().removeAttr('title').appendTo(this.uiDialog);
+    //     this._addClass('ui-dialog-content', 'ui-widget-content');
+    //
+    // show() FIRST, the class SECOND. At the moment show() runs the panel
+    // still matches `.block-minicart:not(.ui-dialog-content)` and therefore
+    // still computes to `display: none`, so jQuery falls back to the default
+    // display for the tag and stamps `display: block` on the element. By the
+    // time the class lands and this rule could have applied, an inline value
+    // is already sitting on top of it. Permanently.
+    //
+    // That is a fair trade — the `:not()` rule above is what keeps an
+    // unwrapped drawer off the first paint and out of CLS — so the layout
+    // is built one level down instead, on the Knockout scope element, which
+    // no widget writes to. See .spartrak-minicart-drawer__scope below.
     width: @minicart-drawer-width;
     // Never wider than the screen it is on — the safety net for a viewport
     // between the 548px panel and the mobile breakpoint. `100%` rather than
@@ -140,6 +166,36 @@
     &::after {
         content: none;
     }
+}
+
+// ---------------------------------------------------------------------------
+// THE HEIGHT CHAIN — the one element that makes the drawer fit the screen
+// ---------------------------------------------------------------------------
+// MEASURED, on a three-line cart in a 620px-tall window: the panel was 620px
+// and the drawer inside it was 752px, so 132px of drawer — the whole checkout
+// button among it — hung below the bottom of the screen with nothing able to
+// scroll it back. Every element between the two was a plain block that grew to
+// its content, and the drawer's own `flex: 1 1 auto` had no flex parent to be
+// relative to (see the note on .block-minicart above).
+//
+// This is that missing link, and it is the Knockout scope root — the element
+// core's own markup already puts between the panel and the drawer. Nothing
+// writes an inline style to it, so a stylesheet can own it outright:
+//
+//   height: 100%   resolves against the panel, whose height IS definite even
+//                  though it is written as `height: auto` — a fixed box with
+//                  both block insets set has its height resolved from them.
+//   display: flex  gives the drawer a flex context, which is what finally makes
+//                  its `flex: 1 1 auto` and the body's `min-height: 0` mean
+//                  something.
+//
+// Re-measured after: panel 620, scope 620, drawer 620, body 240 and scrolling,
+// checkout button fully inside the viewport with 0px of overflow.
+.spartrak-minicart-drawer__scope {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
 }
 
 // The whole drawer is one flex column: header, a body that scrolls, and a
@@ -255,12 +311,25 @@
 // its computed width read 20px. Every other icon in this theme happens to sit
 // inside a flex container, which blockifies it; these do not always, so they
 // declare their own box.
-// Also (0,3,0), and for a second reason: core screen-reader-hides ANY span
-// inside that button — `.minicart-wrapper .action.close > span { clip: rect(0
-// 0 0 0); width: 1px; height: 1px }` — because in core's markup the span is the
-// accessible label, not the glyph. Here it IS the glyph, so the clip has to go
-// or there is nothing to see.
-.minicart-wrapper.spartrak-minicart .spartrak-minicart-drawer__close-icon {
+// The second reason is specificity, and it is the one that had this glyph
+// invisible. Core screen-reader-hides ANY span inside that button —
+//
+//     .minicart-wrapper .action.close > span {
+//         position: absolute; clip: rect(0,0,0,0); width: 1px; height: 1px;
+//         margin: -1px; overflow: hidden;
+//     }
+//
+// — because in core's markup that span is the accessible LABEL. Here it is the
+// GLYPH, so the clip has to go or there is nothing to see.
+//
+// MEASURED: this rule used to be written as
+// `.minicart-wrapper.spartrak-minicart .spartrak-minicart-drawer__close-icon`,
+// which is (0,3,0). Core's selector carries three classes AND a type selector,
+// so it is (0,3,1) — one type selector higher — and it won every declaration
+// the reset depends on. Adding the button's own class puts this at (0,4,0),
+// which outranks it on the class column without an `!important`
+// (CLAUDE.md section 9) and without touching core.
+.minicart-wrapper.spartrak-minicart .spartrak-minicart-drawer__close > .spartrak-minicart-drawer__close-icon {
     position: static;
     display: inline-block;
     width: 20px;
@@ -273,12 +342,47 @@
 }
 
 // --- Body: the only region that scrolls ------------------------------------
+//
+// ===========================================================================
+// THE HEIGHT IS WHATEVER IS LEFT OVER. IT IS NOT A FRACTION OF THE VIEWPORT.
+// ===========================================================================
+// This box used to carry `max-height: 60vh`, and that number was the second
+// half of the checkout-button bug fixed above.
+//
+// 60vh was an attempt to stop a long list crowding the summary out by guessing
+// how much room the list may have. It cannot work, because 60vh is not the
+// space that is actually available:
+//
+//     48px padding + header + 24px gap + BODY + 24px gap + summary  <=  100vh
+//
+// With BODY pinned at 60vh, everything else had to fit in the remaining 40vh
+// minus 96px — and the summary is not a fixed height. It holds a title, two
+// rows, a rule and a 48px button, and it grows with the type scale and with the
+// language. MEASURED at 620px tall, the summary alone was 261px where the
+// budget allowed 152, so the sum exceeded the panel whatever the cap said.
+//
+// `flex: 1 1 auto` with `min-height: 0` IS the leftover space, computed by the
+// browser from the siblings' real heights every time anything changes. The
+// summary is `flex: 0 0 auto`, so it takes its natural height first and can
+// never be compressed; the body then gets exactly the rest and scrolls inside
+// it. No number in this file has to be kept in step with the summary's design,
+// and the checkout button cannot leave the viewport at any cart length, window
+// height or language.
+//
+// `min-height: 0` is the load-bearing half of that pair: a flex item's default
+// `min-height: auto` refuses to shrink below its content, which would have let
+// a long list push the summary down regardless.
+//
+// This only became true once the scope element above started passing the
+// panel's height down — until then there was no constrained column for these
+// two declarations to divide up, which is why the cap looked like it was
+// helping. Removing it on its own made the overflow WORSE (84px -> 225px):
+// both halves are the fix.
 .spartrak-minicart-drawer__body {
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
     gap: @minicart-drawer-pad;
-    max-height: 60vh;
     min-height: 0;
     padding: 0;
     // The block axis scrolls here and ONLY here, so the summary and its
@@ -335,21 +439,6 @@
     padding: 0;
     font-size: var(--text-18);
     font-weight: 700;
-}
-
-// AN EMPTY CART HAS NO SUMMARY UNDER IT, so the body's 60vh cap — which is
-// there to keep a long ITEM LIST from crowding the summary out — would leave
-// the illustration floating in the top 60% of the panel with a band of nothing
-// beneath it. With nothing to protect, the cap comes off and the empty state
-// takes the whole panel.
-//
-// `:has()` rather than a class on the body, because the branch that decides
-// this already exists in the template (`<ifnot summary_count>`) and mirroring
-// it into a second class would be two sources of truth for one condition.
-// Where `:has()` is unsupported the rule simply does not apply and the panel
-// falls back to today's behaviour — a degradation, not a break.
-.spartrak-minicart-drawer__body:has(.spartrak-minicart-drawer__empty) {
-    max-height: none;
 }
 
 // The empty state itself is a shared design-system component — see
@@ -533,6 +622,7 @@
     border: 1px solid var(--color-border-default);
     background-color: var(--color-bg-surface);
     box-shadow: var(--shadow-input);
+    transition: border-color .15s ease, box-shadow .15s ease;
 }
 
 // The label is for assistive tech; the design shows the number alone.
@@ -581,11 +671,55 @@
     }
 }
 
-// Figma draws the chevron INSIDE the box, after the value. `focus-within`
-// rather than a rule on the select, because the visible control is the box.
+// ===========================================================================
+// FOCUS: A POINTER GETS A SOFT EDGE, A KEYBOARD GETS THE THEME'S RING
+// ===========================================================================
+// The emphasis is put on the BOX rather than on the <select>, because the box
+// is what a shopper reads as the control — the select inside it is stripped of
+// all its own chrome.
+//
+// MEASURED, and this is the heavy navy frame that made the focused quantity
+// control look wrong: this rule was `:focus-within` with the theme's full
+// keyboard ring on it — `outline: 2px solid navy` at `outline-offset: 2px`. A
+// native <select> takes focus on CLICK, so every shopper who so much as opened
+// the dropdown with a mouse got a 2px navy ring standing 2px clear of a box
+// that already has its own 1px border. Three concentric edges, which reads as a
+// rendering fault rather than as focus.
+//
+// It is now split along the line the CSS already draws for us:
+//
+//   :focus-within      ANY focus, pointer included. The box's own border moves
+//                      to the focus token and picks up a soft 3px halo in
+//                      blue/50 — a real design-system primitive, not an
+//                      invented tint — and both properties transition, so the
+//                      control settles rather than snapping. Smooth, quiet, and
+//                      it never doubles an edge because it REPLACES the border
+//                      colour instead of drawing beside it.
+//
+//   :has(:focus-visible)
+//                      KEYBOARD focus only. This is the one that needs to be
+//                      unmissable (CLAUDE.md section 15), so it keeps the exact
+//                      2px navy outline every other focusable thing in this
+//                      theme uses. `:has()` is what projects the select's own
+//                      :focus-visible state onto its wrapper; the @supports
+//                      block below restores the ring wholesale on an engine
+//                      that does not have it, so no browser is ever left with
+//                      keyboard focus it cannot see.
 .spartrak-minicart-line__qty:focus-within {
+    border-color: var(--color-border-focus);
+    box-shadow: 0 0 0 3px var(--primitive-blue-50);
+}
+
+.spartrak-minicart-line__qty:has(:focus-visible) {
     outline: 2px solid var(--color-action-primary);
     outline-offset: 2px;
+}
+
+@supports not selector(:has(*)) {
+    .spartrak-minicart-line__qty:focus-within {
+        outline: 2px solid var(--color-action-primary);
+        outline-offset: 2px;
+    }
 }
 
 .spartrak-minicart-line__qty-chevron {

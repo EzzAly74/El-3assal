@@ -16,9 +16,10 @@ use Psr\Log\LoggerInterface;
 /**
  * Where banner artwork lives, what it is called, and how big it is.
  *
- * The one place that knows the media sub-path. etc/adminhtml/di.xml points
- * the admin image uploader at the SAME two constants, so the write side and
- * the read side cannot drift apart.
+ * The one place that knows the media sub-path. Model\Image\Uploader — the
+ * write side — reads the SAME two constants directly, so the directory an
+ * upload is written to and the URL the storefront builds for it cannot drift
+ * apart.
  */
 class Storage
 {
@@ -123,10 +124,10 @@ class Storage
      * The media-relative path of a stored file, base path included exactly
      * once.
      *
-     * Exposed because the stored column value is NOT a bare filename: the
-     * admin save promotes an upload with moveFileFromTmp($name, true), whose
-     * `true` returns the path WITH the base path already on it. Callers that
-     * built their own "BASE_PATH . '/' . $value" therefore produced
+     * Exposed because the stored column value is NOT a bare filename: the admin
+     * save promotes an upload with Uploader::moveFileFromTmp(), which returns
+     * the path WITH the base path already on it. Callers that built their own
+     * "BASE_PATH . '/' . $value" therefore produced
      * `spartrak/homepage/spartrak/homepage/x.png` and silently found nothing.
      * Both admin data providers now ask this instead, so the assumption lives
      * in one place next to the normaliser that resolves it.

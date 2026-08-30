@@ -2,58 +2,33 @@
 <!--
   The banner image uploader.
 
-  A virtualType of Magento\Catalog\Model\ImageUploader, wired exactly the way
-  core wires its own category-image uploader (Magento\Catalog\CategoryImageUpload
-  in module-catalog/etc/di.xml). Reusing that class means the whole upload path
-  — tmp staging, filename collision handling, MIME validation, moving the file
-  on save, and the media-storage-database hook a clustered install needs —
-  comes from Magento and is not reimplemented here.
+  It is Spartrak\Homepage\Model\Image\Uploader — this module's own class, NOT a
+  virtual type of Magento\Catalog\Model\ImageUploader. That class carries
+  Magento_MediaGalleryCatalogIntegration's `save_category_image` plugin, which
+  force-feeds every saved file to the media-gallery synchroniser and broke every
+  banner save with "Could not import media assets for files:
+  spartrak/homepage/<file>.webp". Disabling that plugin on a virtual type does
+  not work — the full finding, including why, is written up on the class itself.
 
-  The two paths are read from Model\Image\Storage's constants at the one place
-  they are declared, so the write side (here) and the read side (the storefront
-  URL builder) can never drift apart.
+  Only the two paths' OWNER differs from before: they are no longer declared
+  here at all. The uploader reads them from Model\Image\Storage's constants,
+  which is the one place this module states where banner artwork lives, so the
+  write side and the storefront's read side cannot drift apart.
 
-  ALLOWED TYPES: raster formats plus WebP. SVG is deliberately NOT allowed.
-  An SVG is an executable document — a banner is admin-uploaded, but an admin
-  account is exactly what an attacker escalates to, and a stored SVG served
-  from the media domain is a stored-XSS primitive. WebP covers the "small file"
-  case that would otherwise tempt someone to reach for SVG.
+  ALLOWED TYPES: raster formats plus WebP. Both lists stay here because they are
+  policy a developer may want to change without touching PHP, and because the
+  extension list and the MIME list have to be kept in step with each other.
+
+  SVG is deliberately NOT allowed. An SVG is an executable document — a banner is
+  admin-uploaded, but an admin account is exactly what an attacker escalates to,
+  and a stored SVG served from the media domain is a stored-XSS primitive. WebP
+  covers the "small file" case that would otherwise tempt someone to reach for
+  SVG.
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
 
-    <virtualType name="Spartrak\Homepage\BannerImageUpload" type="Magento\Catalog\Model\ImageUploader">
-        <!--
-          MEASURED, from a real save: "Could not import media assets for files:
-          spartrak/homepage/home_hero_web_1.webp".
-
-          Magento_MediaGalleryCatalogIntegration attaches
-          SaveBaseCategoryImageInformation to Magento\Catalog\Model\ImageUploader,
-          and a virtual type inherits its parent type's plugins — so a plugin
-          written for CATEGORY images was running on every banner save. It
-          resolves the file against the CMS WYSIWYG storage root and hands it to
-          the media-gallery synchroniser, which then fails on a path and a file
-          type it was never meant to index. The exception is a LocalizedException,
-          so it does not just log: it surfaces on the form and aborts the save.
-
-          This uploader is a virtual type of that class to reuse its validation
-          and its tmp-to-final move, not because a banner is a category image.
-          Banner artwork lives in spartrak/homepage/, outside the media gallery's
-          managed tree, and merchants manage it through this module's own grid —
-          so there is nothing for the media gallery to usefully index here.
-
-          Disabling by NAME on the virtual type is the supported mechanism:
-          Interception\PluginListGenerator::inheritPlugins() resolves a virtual
-          type to its real type, inherits that type's plugins, then applies the
-          virtual type's own overrides and skips any marked disabled. Core's
-          category uploader is untouched and keeps the plugin.
-
-          It also removes a media-gallery row insert and a metadata parse from
-          every banner save, which is work this module was never asking for.
-        -->
-        <plugin name="save_category_image" disabled="true"/>
+    <type name="Spartrak\Homepage\Model\Image\Uploader">
         <arguments>
-            <argument name="baseTmpPath" xsi:type="string">spartrak/homepage/tmp</argument>
-            <argument name="basePath" xsi:type="string">spartrak/homepage</argument>
             <argument name="allowedExtensions" xsi:type="array">
                 <item name="jpg" xsi:type="string">jpg</item>
                 <item name="jpeg" xsi:type="string">jpeg</item>
@@ -68,18 +43,6 @@
                 <item name="gif" xsi:type="string">image/gif</item>
                 <item name="webp" xsi:type="string">image/webp</item>
             </argument>
-        </arguments>
-    </virtualType>
-
-    <type name="Spartrak\Homepage\Controller\Adminhtml\Banner\Upload">
-        <arguments>
-            <argument name="imageUploader" xsi:type="object">Spartrak\Homepage\BannerImageUpload</argument>
-        </arguments>
-    </type>
-
-    <type name="Spartrak\Homepage\Controller\Adminhtml\Banner\Save">
-        <arguments>
-            <argument name="imageUploader" xsi:type="object">Spartrak\Homepage\BannerImageUpload</argument>
         </arguments>
     </type>
 

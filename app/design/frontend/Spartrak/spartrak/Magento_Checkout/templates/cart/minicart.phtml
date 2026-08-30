@@ -118,7 +118,17 @@
                 "parentClass":"active",
                 "bodyClass":"spartrak-minicart-open",
                 "buttons":[]}}'>
-            <div id="minicart-content-wrapper" data-bind="scope: 'minicart_content'">
+            <?php /*
+              The Knockout scope root, and — since it sits between the fixed
+              panel and the drawer — the element that has to carry the panel's
+              height down to it. It is given a class purely so the stylesheet
+              can say that without reaching for the id; the id itself stays
+              because core's own getTemplate() binding and Porto both query it.
+              See components/_minicart-drawer.less.
+            */ ?>
+            <div id="minicart-content-wrapper"
+                 class="spartrak-minicart-drawer__scope"
+                 data-bind="scope: 'minicart_content'">
                 <!-- ko template: getTemplate() --><!-- /ko -->
             </div>
         </div>
