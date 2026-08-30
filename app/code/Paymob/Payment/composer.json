@@ -1,0 +1,28 @@
+{
+    "name": "paymob/magento-payment",
+    "version": "2.0.0",
+    "description": "Paymob payment for for Magento2 e-commerce.",
+    "keywords": [
+        "Paymob",
+        "paymob Payment"
+    ],
+    "homepage": "https://paymob.com/",
+    "authors": [
+        {
+            "name": "Paymob Technical Team"
+        }
+    ],
+    "type": "magento2-module",
+    "license": [
+        "GPL-3.0-only"
+    ],
+    "require": {
+        "paymob/php-library": "1.0.*"
+    },
+    "autoload": {
+        "files": ["registration.php"],
+        "psr-4": {
+            "Paymob\\Payment\\": ""
+        }
+    }
+}

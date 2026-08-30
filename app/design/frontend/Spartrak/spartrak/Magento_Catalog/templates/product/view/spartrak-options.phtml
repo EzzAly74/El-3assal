@@ -1,0 +1,67 @@
+<?php
+/**
+ * Spartrak — PDP "خيارات المنتج" card.
+ *
+ * Figma 526:23403: a 16px heading above a bordered card holding three
+ * sections — shipping & delivery, available payment methods (five brand
+ * marks), and warranty & returns.
+ *
+ * CONTENT vs PRESENTATION (CLAUDE.md section 7). Every word in this card is
+ * merchant CONTENT: a delivery promise with real lead times, the payment
+ * methods this store actually accepts, and warranty terms. None of it is
+ * product data and none of it belongs hardcoded in a template — a merchant
+ * must be able to change "7-10 days" or drop a payment method without a
+ * developer. So the card's body comes from a CMS block and this template
+ * owns only the frame.
+ *
+ * The three section icons are the opposite: they are part of the design, not
+ * the message, so they live in the stylesheet (spartrak-pdp.phtml) as
+ * background images on `.spartrak-opt--shipping/--payment/--returns`, and
+ * the CMS block only has to carry the right class name. That keeps the CMS
+ * content free of markup a merchant could break, and keeps the Figma assets
+ * under design ownership where CLAUDE.md section 3 wants them.
+ *
+ * The payment brand marks ARE content — they change with the store's payment
+ * setup — so they are `<img>` tags in the CMS block pointing at media the
+ * merchant uploads, not theme assets.
+ *
+ * RENDERS NOTHING until the block exists, rather than showing an empty
+ * bordered box. Create it at Content > Blocks with identifier:
+ *
+ *     spartrak_pdp_product_options
+ *
+ * and the markup contract documented in this theme's README note. The store
+ * scope makes it per-store-view automatically, which is what a bilingual
+ * storefront needs.
+ *
+ * @var \Magento\Catalog\Block\Product\View $block
+ */
+
+// A plain variable, not a `const`: a template can legitimately be rendered
+// more than once in a request, and a file-scope const would then warn about
+// redeclaration.
+$optionsBlockId = 'spartrak_pdp_product_options';
+
+$cardHtml = '';
+
+try {
+    $cardHtml = (string) $block->getLayout()
+        ->createBlock(\Magento\Cms\Block\Block::class)
+        ->setBlockId($optionsBlockId)
+        ->toHtml();
+} catch (\Throwable $e) {
+    // A missing or misconfigured CMS block must never take the PDP down.
+    // catch (\Throwable) rather than (\Exception) deliberately — see the
+    // note in Mageplaza_LayeredNavigation/templates/layer/filter.phtml for
+    // why an \Error can reach this point.
+    $cardHtml = '';
+}
+
+if (trim($cardHtml) === '') {
+    return;
+}
+?>
+<div class="spartrak-pdp__options">
+    <h2 class="spartrak-pdp__options-title"><?= $block->escapeHtml(__('Product options')) ?></h2>
+    <div class="spartrak-pdp__options-card"><?= /* @noEscape */ $cardHtml ?></div>
+</div>

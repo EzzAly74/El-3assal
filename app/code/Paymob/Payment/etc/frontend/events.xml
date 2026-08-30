@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="controller_action_predispatch_checkout_index_index">
+        <observer name="initiate_checkout_onepage" instance="Paymob\Payment\Observer\ClickBack" />
+    </event>
+
+    <event name="admin_system_config_changed_section_payment">
+        <observer name="paymob_dynamic_save" instance="Paymob\Payment\Observer\SaveDynamicPaymobMethods" />
+    </event>
+
+     <event name="checkout_onepage_controller_success_action">
+        <observer name="paymob_redirect_after_order" instance="Paymob\Payment\Observer\RedirectAfterOrder" />
+    </event>
+
+</config>

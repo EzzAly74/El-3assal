@@ -1,0 +1,178 @@
+<?php
+/**
+ * Spartrak — PDP media overlay.
+ *
+ * Placed FIRST inside Magento's core `product.info.media` container by this
+ * theme's catalog_product_view.xml — see that file for why. Being a child of
+ * `.product.media` is what lets the Figma media overlay (discount badge
+ * 526:23655 + the three round action buttons 526:23305) position itself over
+ * the gallery without touching Porto's 528-line gallery.phtml or the Fotorama
+ * widget inside it.
+ *
+ * --- STYLESHEET MOVED OUT, 2026-08-29 --------------------------------------
+ * This file used to carry the ENTIRE product-detail-page stylesheet in an
+ * inline <style> block — 29,455 bytes on every PDP view, uncacheable, plus
+ * ten icons as data: URIs re-sent with every navigation. It was always marked
+ * TEMPORARY: it existed so a Figma pass could be reviewed by uploading
+ * .phtml/.xml only, with no setup:static-content:deploy.
+ *
+ * It now lives in web/css/source/components/_pdp.less and compiles into
+ * spartrak-components.css — fetched once, cached, comments stripped. The ten
+ * icons became real asset requests: four reuse SVGs the theme already shipped
+ * (heart, cart, chevron-right, star — proven geometrically identical, see
+ * _pdp.less), six were written to web/images/icons/ from the exact strings
+ * that were inlined here, so nothing was redrawn.
+ *
+ * THIS CHANGE REQUIRES `setup:static-content:deploy` + a cache flush. Until
+ * that runs, the PDP renders unstyled.
+ *
+ * --- FIGMA SOURCES ---------------------------------------------------------
+ *   Desktop  526:21854 (overview tab) / 532:15187 (description) / 534:9322 (reviews)
+ *   Mobile   650:32798 / 657:20157 / 657:20648
+ *
+ * WHAT IS REUSED, NOT REBUILT — this template adds markup for exactly the
+ * three things Magento has no equivalent for (the discount badge, the share
+ * button and the fullscreen button). Everything else on the page is real
+ * Magento/Porto markup that is only restyled:
+ *   - the gallery is Magento's own Fotorama widget, untouched;
+ *   - the wishlist button is Magento_Wishlist's own ajax block, the same one
+ *     the product card uses, so its behaviour comes free;
+ *   - the tabs are Magento's native `.product.data.items` widget, ordered
+ *     with CSS `order` on the stable `#tab-label-*` ids rather than by moving
+ *     blocks in layout XML;
+ *   - the spec table is Magento's own `table.additional-attributes`, kept as
+ *     a real table so it keeps its semantics for assistive tech.
+ *
+ * @var \Magento\Catalog\Block\Product\View $block
+ */
+
+/** @var \Magento\Catalog\Model\Product $product */
+$product = $block->getProduct();
+
+// --- Discount badge (Figma 526:23655) --------------------------------------
+// Real Magento pricing data. Same derivation as the product card: regular vs
+// final price, i.e. a real special_price or catalog price rule. No special
+// price, no badge — never a fabricated percentage.
+$discountPercent = 0;
+try {
+    $priceInfo = $product->getPriceInfo();
+    $regularAmount = (float) $priceInfo->getPrice('regular_price')->getAmount()->getValue();
+    $finalAmount = (float) $priceInfo->getPrice('final_price')->getAmount()->getValue();
+    if ($regularAmount > 0 && $finalAmount > 0 && $finalAmount < $regularAmount) {
+        $discountPercent = (int) round((1 - ($finalAmount / $regularAmount)) * 100);
+    }
+} catch (\Throwable $e) {
+    $discountPercent = 0;
+}
+
+// Wishlist heart (Figma 526:23306) — the FIRST of the three round controls
+// stacked over the gallery, above share and fullscreen.
+//
+// Magento's own ajax add-to-wishlist block, so its behaviour (the data-post
+// payload, the guest redirect, the sidebar refresh) comes free.
+//
+// setTemplate() IS REQUIRED and was the bug that shipped this empty: the block
+// class carries no default $_template. Magento assigns it in layout XML
+// (vendor/magento/module-wishlist/view/frontend/layout/catalog_product_view.xml),
+// and a block created ad-hoc never sees that, so toHtml() returned ''. The
+// heart simply did not render — verified on the live storefront, where the
+// overlay had only two buttons.
+//
+// This is a SECOND instance, not the page's own: Porto's config.phtml moves
+// the original `.product-addto-links` into the cart row at runtime, and that
+// copy is hidden in _pdp.less. Rendering our own here rather than trying to
+// relocate Porto's keeps the design's placement independent of a jQuery
+// snippet running after paint.
+$wishlistHtml = '';
+try {
+    $wishlistHtml = $block->getLayout()
+        ->createBlock(\Magento\Wishlist\Block\Catalog\Product\ProductList\Item\AddTo\Wishlist::class)
+        ->setTemplate('Magento_Wishlist::catalog/product/list/addto/wishlist.phtml')
+        ->setProduct($product)
+        ->toHtml();
+} catch (\Throwable $e) {
+    $wishlistHtml = '';
+}
+?>
+<div class="spartrak-pdp__media-overlay">
+    <?php /* The action column carries margin-inline-start:auto, so it stays
+             pinned to the inline-end whether or not a badge renders — no
+             empty placeholder element is needed here. */ ?>
+    <?php if ($discountPercent > 0) : ?>
+        <span class="spartrak-pdp__promo"><?= $block->escapeHtml(__('Discount %1', $discountPercent . '%')) ?></span>
+    <?php endif; ?>
+    <div class="spartrak-pdp__media-actions">
+        <?= /* @noEscape */ $wishlistHtml ?>
+        <button type="button"
+                class="spartrak-pdp__media-btn spartrak-pdp__media-btn--share"
+                data-role="spartrak-share"
+                title="<?= $block->escapeHtmlAttr(__('Share this product')) ?>">
+            <span><?= $block->escapeHtml(__('Share this product')) ?></span>
+        </button>
+        <?php /*
+          Hidden until the script below confirms Fotorama's fullscreen API is
+          actually present. A control that does nothing is worse than no
+          control, and Porto's gallery has several configurable modes — only
+          some of them mount Fotorama.
+        */ ?>
+        <button type="button"
+                class="spartrak-pdp__media-btn spartrak-pdp__media-btn--zoom"
+                data-role="spartrak-zoom"
+                hidden
+                title="<?= $block->escapeHtmlAttr(__('View full screen')) ?>">
+            <span><?= $block->escapeHtml(__('View full screen')) ?></span>
+        </button>
+    </div>
+</div>
+<script>
+    require(['jquery'], function ($) {
+        'use strict';
+
+        // Share (Figma 526:23308). Uses the platform's own share sheet where
+        // there is one, and falls back to copying the URL — no library, and
+        // nothing to configure.
+        $(document).on('click', '[data-role="spartrak-share"]', function (event) {
+            event.preventDefault();
+            var data = {
+                title: document.title,
+                url: window.location.href
+            };
+
+            if (navigator.share) {
+                navigator.share(data).catch(function () {});
+                return;
+            }
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(data.url).catch(function () {});
+            }
+        });
+
+        // Fullscreen (Figma 526:23310). Magento's gallery widget exposes the
+        // live Fotorama instance on the placeholder's data; requestFullScreen
+        // is Fotorama's own documented method. If either is missing the
+        // button simply never appears.
+        var findFotorama = function () {
+            var api = $('[data-gallery-role="gallery-placeholder"]').data('gallery');
+
+            return (api && api.fotorama && typeof api.fotorama.requestFullScreen === 'function')
+                ? api.fotorama
+                : null;
+        };
+
+        $('[data-gallery-role="gallery-placeholder"]').on('gallery:loaded fotorama:ready', function () {
+            if (findFotorama()) {
+                $('[data-role="spartrak-zoom"]').prop('hidden', false);
+            }
+        });
+
+        $(document).on('click', '[data-role="spartrak-zoom"]', function (event) {
+            event.preventDefault();
+            var fotorama = findFotorama();
+
+            if (fotorama) {
+                fotorama.requestFullScreen();
+            }
+        });
+    });
+</script>

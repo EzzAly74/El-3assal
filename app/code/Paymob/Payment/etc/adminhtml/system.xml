@@ -1,0 +1,103 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <section id="payment">
+            <group id="paymob_payment"
+                   translate="label comment"
+                   showInDefault="1"
+                   showInWebsite="1"
+                   showInStore="1"
+                   sortOrder="15">
+                <label>Accept - Paymob Payment</label>
+                <comment>Start Accepting Payments with Paymob Checkout offering 20+ Payment Methods including Card, Wallets, Bank Installments, Apple Pay, Google Pay, Instapay and a plethora of Buy Now Pay Later Payment Methods.</comment>
+                <frontend_model>Paymob\Payment\Block\Adminhtml\Payment</frontend_model>
+                <fieldset_css>complex paymob-payment-section</fieldset_css>
+               
+                <field id="active" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="10" type="select" translate="label">
+                    <label>Enabled</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+
+                <field id="title" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="20" translate="label" type="text">
+                    <label>Title</label>
+                    <validate>required-entry</validate>
+                </field>
+
+                <field id="secret_key" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="50" translate="label" type="text">
+                    <label>Secret Key</label>
+                    <validate>required-entry</validate>
+                </field>
+
+                <field id="public_key" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="60" translate="label" type="text">
+                    <label>Public Key</label>
+                    <validate>required-entry</validate>
+                </field>
+
+                <field id="api_key" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="65" translate="label" type="text">
+                    <label>API Key</label>
+                    <validate>required-entry</validate>
+                </field>
+
+                <field id="fetch_integrations" translate="label" sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1">
+                   
+                    <frontend_model>Paymob\Payment\Block\Adminhtml\System\Config\FetchButton</frontend_model>
+                </field>
+
+                <!-- <field id="integration_id" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="70" translate="label" type="text">
+                    <label>Integration ID(s)</label>
+                    <validate>required-entry</validate>
+                    <comment>Add the Integration ID(s) from your Paymob account, separated by commas. (Example: 123456,98765)</comment>
+                </field> -->
+
+                <field id="hmac" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="75" translate="label" type="text">
+                    <label>HMAC</label>
+                    <validate>required-entry</validate>
+                </field>
+
+                <field id="endpoints" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="80" translate="label comment">
+                    <label>Callback Urls</label>
+                    <frontend_model>Paymob\Payment\Block\Adminhtml\PaymobCallback</frontend_model>
+                </field>
+
+                <!-- <field id="sort_order" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="90" translate="label" type="text">
+                    <label>Sort Order</label>
+                </field>
+
+                <field id="logo" translate="label" type="image" sortOrder="100" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Select Logo</label>
+                    <backend_model>Paymob\Payment\Model\Image</backend_model>
+                    <base_url type="media" scope_info="1">paymentslogo</base_url>
+                </field> -->
+
+                <field id="allowspecific" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="110" translate="label" type="allowspecific">
+                    <label>Payment from Applicable Countries</label>
+                    <source_model>Magento\Payment\Model\Config\Source\Allspecificcountries</source_model>
+                </field>
+
+                <field id="specificcountry" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="120" translate="label" type="multiselect">
+                    <label>Specific Countries</label>
+                    <source_model>Magento\Directory\Model\Config\Source\Country</source_model>
+                    <can_be_empty>1</can_be_empty>
+                </field>
+
+                <field id="debug" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="130" translate="label" type="select">
+                    <label>Debug Log</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Log file will be saved in var/log</comment>
+                </field>
+
+                <field id="has_items" showInDefault="1" showInStore="1" showInWebsite="1" sortOrder="140" translate="label" type="select">
+                    <label>Pass Item Data</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment><![CDATA[
+                        To display item-level details of the products during checkout, select 'Yes' and enable "Show Item/Product" in Paymob Merchant Dashboard → Checkout Customization → Payment Methods.
+                    ]]></comment>
+                </field>
+
+                
+            </group>
+           
+        </section>
+    </system>
+</config>

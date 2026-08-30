@@ -1,0 +1,35 @@
+{
+    "name": "paymob/php-library",
+    "description": "Paymob PHP Library",
+    "keywords": [
+        "Paymob",
+        "gateway",
+        "payment",
+        "api integration",
+        "e-commerce",
+        "Library"
+    ],
+    "homepage": "https://paymob.com",
+    "authors": [
+        {
+            "name": "Paymob Team"
+        }
+    ],
+    "version": "1.0.4",
+    "type": "library",
+    "license": [
+        "GPL-3.0-only"
+    ],
+    "require": {
+        "ext-curl": "*",
+        "php": ">=7"
+    },
+    "autoload": {
+        "files": ["src/Paymob.php"],
+        "psr-4": {
+            "Paymob\\Library\\": "src/"
+        }
+    },
+    "prefer-stable": true
+}
+

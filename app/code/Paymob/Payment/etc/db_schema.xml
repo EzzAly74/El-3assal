@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+
+    <table name="paymob_order_info" resource="default" engine="innodb" comment="Paymob Order Information" charset="utf8mb4" collation="utf8mb4_general_ci">
+        <column name="id" xsi:type="bigint" identity="true" unsigned="true" nullable="false" comment=""/>
+        <column name="magento_order_id" xsi:type="varchar" length="32" nullable="false" comment="Magento Order Id"/>
+        <column name="paymob_intention_id" xsi:type="varchar" length="150" nullable="true" comment="paymob intention id"/>
+        <column name="paymob_cents_amount" xsi:type="varchar" length="32" nullable="true" comment="paymob amount in cents"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="id"/>
+        </constraint>
+    </table>
+
+    <table name="paymob_cards_token" resource="default" engine="innodb" comment="Paymob Cards Token" charset="utf8mb4" collation="utf8mb4_general_ci">
+        <column xsi:type="bigint" name="id" unsigned="true" identity="true" comment=""/>
+        <column xsi:type="int" name="user_id" unsigned="true" nullable="false" comment="User ID"/>
+        <column xsi:type="varchar" name="token" length="255" nullable="false" comment="Token"/>
+        <column xsi:type="varchar" name="masked_pan" length="255" nullable="false" comment="Masked PAN"/>
+        <column xsi:type="varchar" name="card_subtype" length="255" nullable="true" comment="Card Subtype"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="id"/>
+        </constraint>
+    </table>
+
+</schema>

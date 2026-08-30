@@ -46,6 +46,10 @@
 @import 'source/components/_homepage-sections.less';
 @import 'source/components/_product-card.less';
 @import 'source/components/_plp.less';
+// The PDP. Imported after _product-card and _plp because it shares their
+// vocabulary (the rating mask, the discount pill) and, where it needs to
+// differ — 22px stars against the card's 20px — must be the later word.
+@import 'source/components/_pdp.less';
 // The cart drawer. Imported after the header component that styles its trigger,
 // and grouped here with the other components that claim CORE Magento classes
 // (.block-minicart, .ui-dialog) rather than Spartrak ones.

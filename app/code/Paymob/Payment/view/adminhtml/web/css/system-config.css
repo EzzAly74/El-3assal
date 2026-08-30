@@ -1,0 +1,59 @@
+.paymob-payment-section {
+    border: 1px solid #fff;
+    background: #fff;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.paymob-payment-section .admin__fieldset-title {
+    font-weight: bold;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+}
+
+.paymob-payment-section .admin__fieldset-title img {
+    height: 40px;
+    margin-right: 10px;
+}
+
+.button-container.right {
+    float: right;
+}
+
+.config-heading .paymob-button-container {
+    text-align: right; /* right-align your button */
+}
+.paymob-action-configure {
+    background-color: #2271b1 !important;
+    color: white !important;
+    border: 1px solid #2271b1 !important;
+}
+
+.paymob-action-configure:hover,
+.paymob-action-configure:focus,
+.paymob-action-configure:active {
+    background-color: #1b5d8a !important; /* darkened manually */
+    border-color: #1b5d8a !important;
+    color: #fff !important;
+    text-decoration: none !important;
+}
+
+#row_payment_us_paymob_payment_fetch_integrations span[data-config-scope] {
+    display: none !important;
+}
+
+
+.paymob-auth-button {
+    background-color: #2271b1; /* Optional: blue background */
+    color: #fff !important;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.paymob-auth-button:hover {
+    background-color: #1b5d8a;
+}

@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<!--
+Spartrak — PDP (Figma 526:21854 / 532:15187 / 534:9322).
+
+Only TWO additions. Porto's own catalog_product_view.xml is otherwise left
+completely alone: its layout="2columns-right", every <move> it performs, and
+its custom blocks all still apply. The Figma PDP is a full-width two-column
+page (media 816 | 48 gutter | info 480, inside the 1344 band), and that is
+achieved in CSS by re-flowing .column.main rather than by re-cutting the page
+layout here — changing layout="2columns-right" to "1column" would orphan
+every block Porto moves into sidebar.additional and is a bigger, separate
+decision.
+
+  spartrak.pdp.head    goes FIRST inside product.info.media (a core Magento
+                       container) for two reasons: it is the earliest point in
+                       the PDP's own content, so the temporary inline <style>
+                       it carries lands before the styled markup; and being a
+                       child of `.product.media` is what lets the Figma media
+                       overlay (discount badge 526:23655 + the three round
+                       action buttons 526:23305) position itself over the
+                       gallery without touching Porto's 528-line gallery.phtml
+                       or the Fotorama widget inside it.
+
+  spartrak.pdp.options goes LAST inside product.info.main — the Figma
+                       "خيارات المنتج" card (526:23403), which sits below the
+                       add-to-cart row.
+
+Both target containers are declared by Magento core, not by Porto, so neither
+depends on Porto's layout surviving unchanged.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="product.info.media">
+            <block class="Magento\Catalog\Block\Product\View"
+                   name="spartrak.pdp.head"
+                   before="-"
+                   template="Magento_Catalog::product/view/spartrak-pdp.phtml"/>
+        </referenceContainer>
+        <referenceContainer name="product.info.main">
+            <block class="Magento\Catalog\Block\Product\View"
+                   name="spartrak.pdp.options"
+                   after="-"
+                   template="Magento_Catalog::product/view/spartrak-options.phtml"/>
+        </referenceContainer>
+
+        <move
+            element="catalog.product.related"
+            destination="content"
+            after="product.info.main"/>
+    </body>
+</page>

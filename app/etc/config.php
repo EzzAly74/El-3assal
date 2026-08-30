@@ -369,6 +369,7 @@ return [
         'PayPal_BraintreeGiftWrapping' => 1,
         'PayPal_BraintreeGraphQl' => 1,
         'PayPal_BraintreeReward' => 1,
+        'Paymob_Payment' => 1,
         'Smartwave_Core' => 1,
         'Smartwave_Dailydeals' => 1,
         'Smartwave_Filterproducts' => 1,
@@ -378,6 +379,7 @@ return [
         'Spartrak_Catalog' => 1,
         'Spartrak_CustomerAuth' => 1,
         'Spartrak_Homepage' => 1,
-        'Spartrak_Search' => 1
+        'Spartrak_Search' => 1,
+        'Spartrak_Wishlist' => 1
     ]
 ];

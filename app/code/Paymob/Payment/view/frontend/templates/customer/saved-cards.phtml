@@ -1,0 +1,133 @@
+<?php if ($block->getUserCards()->getSize() > 0): ?>
+    <table>
+        <thead>
+            <tr>
+                <th><?php echo $block->escapeHtml(__('Masked Card')); ?></th>
+                <th><?php echo $block->escapeHtml(__('Card Type')); ?></th>
+                <th><?php echo $block->escapeHtml(__('Action')); ?></th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($block->getUserCards() as $card): ?>
+                <tr>
+                    <td><?php echo $block->escapeHtml($card->getMaskedPan()); ?></td>
+                    <td><?php echo $block->escapeHtml($card->getCardSubtype()); ?></td>
+                    <td>
+                        <a href="#"
+                           data-url="<?php echo $block->escapeUrl($block->getDeleteUrl($card->getId())); ?>"
+                           class="action delete confirm-delete">
+                            <img src="<?php echo $block->escapeUrl($block->getViewFileUrl('Paymob_Payment::images/delete-icon.png')); ?>"
+                                 alt="<?php echo $block->escapeHtmlAttr(__('Delete')); ?>" />
+                        </a>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="paymobDeleteModal" class="paymob-modal">
+        <div class="paymob-modal-content">
+            <span class="paymob-close">&times;</span>
+            <p><?php echo $block->escapeHtml(__('Are you sure you want to delete this card?')); ?></p>
+            <button id="paymob-confirm-delete" class="button"><?php echo $block->escapeHtml(__('Delete')); ?></button>
+            <button id="paymob-cancel-delete" class="button"><?php echo $block->escapeHtml(__('Cancel')); ?></button>
+        </div>
+    </div>
+
+    <script>
+        require(['jquery'], function ($) {
+            var deleteUrl = '';
+
+            $('.confirm-delete').on('click', function (e) {
+                e.preventDefault();
+                deleteUrl = $(this).data('url');
+                $('#paymobDeleteModal').show();
+            });
+
+            $('#paymob-confirm-delete').on('click', function () {
+                window.location.href = deleteUrl;
+            });
+
+            $('.paymob-close, #paymob-cancel-delete').on('click', function () {
+                $('#paymobDeleteModal').hide();
+            });
+        });
+    </script>
+
+    <style>
+        .confirm-delete img {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            transition: opacity 0.2s ease-in-out;
+        }
+
+        .confirm-delete img:hover {
+            opacity: 0.7;
+        }
+
+        .paymob-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .paymob-modal-content {
+            background-color: #fff;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 30%;
+            text-align: center;
+        }
+
+        .paymob-close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .paymob-close:hover,
+        .paymob-close:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .paymob-modal-content p {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .paymob-modal-content .button {
+            padding: 10px 20px;
+            margin: 5px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .paymob-modal-content .button:hover {
+            background-color: #c0392b;
+        }
+
+        #paymob-cancel-delete {
+            background-color: #ccc;
+            color: black;
+        }
+
+        #paymob-cancel-delete:hover {
+            background-color: #bbb;
+        }
+    </style>
+<?php else: ?>
+    <p><?php echo $block->escapeHtml(__('No cards saved.')); ?></p>
+<?php endif; ?>

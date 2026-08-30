@@ -1,0 +1,1296 @@
+// ===========================================================================
+// Spartrak — Product Detail Page.
+// Desktop  Figma 526:21854 / 532:15187 / 534:9322
+// Mobile   Figma 650:32798 / 657:20157 / 657:20648
+// ===========================================================================
+//
+// ---------------------------------------------------------------------------
+// MOVED OUT OF THE TEMPLATE
+// ---------------------------------------------------------------------------
+// These rules previously lived in an inline <style> block inside
+// Magento_Catalog::product/view/spartrak-pdp.phtml. That block was marked
+// TEMPORARY in its own header — it existed so a Figma pass could be reviewed
+// without a static-content deploy — and it cost 29,455 bytes of HTML on every
+// single PDP view: uncacheable (inline <style> is part of the document), and
+// re-parsed on every navigation. Ten icons rode along as data: URIs, re-sent
+// in full each time instead of being fetched once and cached.
+//
+// Here it compiles into spartrak-components.css: fetched once, cached, and
+// LESS strips every `//` comment from the output so the shipped bytes are the
+// rules alone. This is the same migration _product-card.less already went
+// through; see that file's header for the identical rationale.
+//
+// ---------------------------------------------------------------------------
+// ICONS — FOUR OF THE TEN ARE REUSED, NOT DUPLICATED
+// ---------------------------------------------------------------------------
+// The ten inlined data: URIs were compared against every SVG already in
+// web/images/icons/, on GEOMETRY ONLY (viewBox + every path `d` + every
+// stroke-width, with coordinates rounded to 3dp so export noise does not
+// count). Geometry only is the correct test because foundations/_icons.less
+// renders icons as CSS masks: a mask reads the alpha channel and takes its
+// colour from background-color, so a baked-in stroke colour cannot make two
+// otherwise-identical drawings different assets.
+//
+//   heart.svg          reused — identical drawing (the inlined copy differed
+//                      only in one coordinate at the 5th decimal place)
+//   cart.svg           reused — identical drawing; the inlined copy was
+//                      stroke="white" for its navy button, which the mask
+//                      makes irrelevant
+//   chevron-right.svg  reused — identical drawing; inlined copy was #1a144f,
+//                      the shipped file #0c0a20, again irrelevant under a mask
+//   star.svg           reused — byte-identical
+//
+// Six had no equivalent and were written to web/images/icons/ straight from
+// the inlined strings, so the committed files are the untouched Figma
+// exports: share-upload.svg (705:30241), maximize.svg (705:30248),
+// chevron-down-20-thin.svg (705:30491 — stroke 1.25, which is exactly why it
+// is not the theme's 1.5-weight chevron-down-20.svg), delivery-truck.svg
+// (705:30194), payment-card.svg (705:30221), warranty-return.svg (705:30228).
+//
+// ---------------------------------------------------------------------------
+// SPECIFICITY
+// ---------------------------------------------------------------------------
+// Moving CSS out of an inline <style> costs it the source-order tiebreak:
+// this bundle is linked BEFORE styles-l.min.css, so on desktop a Porto rule
+// of EQUAL specificity now wins where the inline block used to (see
+// Magento_Theme/web/css/source/_extend.less for the full finding).
+//
+// Verified that does not bite here. Porto's Magento_Catalog/_module.less
+// references `.product-info-main` 11 times and `.catalog-product-view` twice;
+// every selector below that claims Porto-owned markup is prefixed
+// `.catalog-product-view`, so it carries one more class than Porto's and wins
+// on specificity regardless of order. Selectors built from this component's
+// own `.spartrak-pdp__*` classes cannot tie at all — neither Porto nor
+// Magento/blank defines them. No `!important` anywhere.
+//
+// ---------------------------------------------------------------------------
+// KNOWN OPEN ITEM — GALLERY THUMBNAIL SIZE
+// ---------------------------------------------------------------------------
+// Figma draws the thumbnails 124px on desktop and 88px on mobile. Fotorama
+// sizes its thumbs from the `gallery` var block in view.xml and writes the
+// result as INLINE styles, which CSS cannot beat without `!important`. The
+// correct fix is a `thumbwidth`/`thumbheight`/`thumbmargin` override in this
+// theme's etc/view.xml — deliberately NOT done in this pass: view.xml is a
+// single global value (it cannot be responsive, so desktop and mobile cannot
+// both be satisfied by it), and this theme's RTL sibling documents a PDP
+// gallery crash caused by exactly this block. It needs the running site to
+// verify. Everything else about the thumbnails — surface, active ring,
+// spacing — is owned below.
+
+// ---------------------------------------------------------------------------
+// Local mixin: the visually-hidden pattern, used for the several labels
+// Magento emits that the design does not draw but assistive tech still needs.
+// ---------------------------------------------------------------------------
+.spartrak-pdp-visually-hidden() {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+// ===========================================================================
+// 1. Page shell — Figma 527:13604
+// ===========================================================================
+// Porto's PDP is layout="2columns-right". Figma's is a full-width band, so
+// .column.main is re-flowed here rather than re-cutting the page layout in
+// catalog_product_view.xml — see that file for why.
+//
+// Media 816 | gutter 48 | info 480 inside the 1344 band. Expressed as
+// flex-grow 816/480 against a fixed 48px gap, so the ratio is exact at the
+// Figma width and still correct at any other container width.
+.catalog-product-view {
+    // THE PAGE BAND. Figma's PDP is 1344 wide inside a 1440 frame — 48px
+    // gutters. Magento/blank caps every page at 1140 with one grouped rule
+    // (`.navigation, .header.content, … , .page-main { max-width: 1140px;
+    // padding-inline: 10px }`, inside @media (min-width: 992px)), so without
+    // this the whole PDP renders ~200px narrower than the design and no rule
+    // on anything INSIDE it can escape an ancestor's max-width.
+    //
+    // 1440 + 48px gutters, not 1344 + 0, because blank's rule is box-sizing:
+    // border-box — 1440 - (48 * 2) is exactly Figma's 1344 content measure.
+    //
+    // SAFE FROM HERE, unlike the homepage's release of the same cap (which
+    // lives in Magento_Theme/_extend.less): specificity is compared before
+    // source order, and `.catalog-product-view .page-main` (0,2,0) outranks
+    // the grouped rule's (0,1,0). _extend.less is only needed where a rule
+    // would TIE with one in styles-l.min.css — see its header. Scoped to the
+    // PDP body class, so every other page keeps blank's shell untouched.
+    @media (min-width: 992px) {
+        .page-main {
+            max-width: 1440px;
+            padding-inline: 48px;
+        }
+    }
+
+    .columns {
+        display: block;
+    }
+
+    .columns .sidebar.sidebar-additional {
+        width: auto;
+    }
+
+    .column.main {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 48px;
+        width: auto;
+        padding: 0;
+    }
+
+    .column.main > * {
+        flex: 0 0 100%;
+        min-width: 0;
+    }
+
+    .column.main > .product.media {
+        position: relative;
+        flex: 816 1 0;
+    }
+
+    .column.main > .product-info-main {
+        flex: 480 1 0;
+        width: auto;
+        padding: 0;
+    }
+
+    .breadcrumbs {
+        margin: 0;
+        padding-block: 12px;
+        font-family: var(--font-arabic);
+        font-size: var(--text-12);
+        line-height: 1.5;
+        color: var(--color-text-secondary);
+    }
+
+    .breadcrumbs a {
+        color: var(--color-text-secondary);
+
+        &:hover {
+            color: var(--color-action-primary);
+        }
+    }
+
+    .breadcrumbs .item:last-child strong {
+        font-weight: 400;
+        color: var(--color-text-primary);
+    }
+}
+
+// ===========================================================================
+// 2. Media column — Figma 526:23300
+// ===========================================================================
+// The stage is Magento's Fotorama widget. Only its box is restyled; the
+// widget, its markup and its behaviour are untouched, so every Porto gallery
+// mode keeps working.
+.catalog-product-view .product.media {
+    .gallery-placeholder,
+    .fotorama__stage {
+        background: var(--color-bg-surface-subtle);
+    }
+
+    // Figma 526:23302: the stage is 816 x 624. aspect-ratio holds that at any
+    // width AND reserves the height before Fotorama boots, which is what
+    // stops the classic PDP layout shift (CLAUDE.md §12).
+    .gallery-placeholder {
+        aspect-ratio: 816 / 624;
+    }
+
+    .fotorama__stage {
+        border-radius: 0;
+    }
+
+    // Thumbnails (526:23317) on bg/surface-subtle, active one ringed navy.
+    .fotorama__nav-wrap {
+        margin-block-start: 16px;
+    }
+
+    .fotorama__thumb {
+        background: var(--color-bg-surface-subtle);
+        border-radius: 0;
+    }
+
+    .fotorama__nav__frame--thumb .fotorama__thumb-border,
+    .fotorama__thumb-border {
+        border: 1px solid var(--color-action-primary);
+        border-radius: 0;
+        background: none;
+        margin-block-start: 0;
+    }
+
+    // Fotorama's own arrows, restyled to the design's 40px round control.
+    .fotorama__arr {
+        width: 40px;
+        height: 40px;
+        top: 50%;
+        transform: translateY(-50%);
+        border-radius: var(--radius-pill);
+        background: var(--color-bg-surface);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, .2);
+        opacity: 1;
+    }
+
+    .fotorama__arr .fotorama__arr__arr {
+        .spartrak-icon('chevron-right.svg'; 20px; var(--color-icon-ink));
+        margin: 10px;
+    }
+
+    .fotorama__arr--prev .fotorama__arr__arr {
+        transform: rotate(180deg);
+    }
+}
+
+// --- Media overlay (Figma 526:23305 + 526:23655) ---------------------------
+// Absolutely positioned over the stage: the discount badge at the
+// inline-start corner and the action buttons stacked at the inline-end, both
+// 24px in. pointer-events are handed back only to the controls, so the
+// overlay never steals a click from the gallery underneath.
+.spartrak-pdp__media-overlay {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: 3;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 24px;
+    pointer-events: none;
+
+    > * {
+        pointer-events: auto;
+    }
+}
+
+// Same pill as the product card's badge (feedback/danger, h28, px12,
+// Label/Large). The decorative "Glow" child is omitted for the reason
+// measured and recorded in card.phtml: a 1/255 colour delta. Confirmed still
+// true on the mobile frame, where the Glow is bg/on-media (#ffffff26) over
+// the same danger fill.
+.spartrak-pdp__promo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    padding-inline: 12px;
+    border-radius: var(--radius-pill);
+    background: var(--color-feedback-danger);
+    color: var(--color-text-inverse);
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+.spartrak-pdp__media-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 16px;
+    // Keeps the stack pinned to the inline-end whether or not a badge
+    // renders, so no empty placeholder element is needed in the markup.
+    margin-inline-start: auto;
+}
+
+// 48px white circles, 20px glyph. The glyph is a ::before carrying a mask
+// rather than a background-image on the button itself: the button already
+// owns a background (the white circle), and a mask lets the glyph colour come
+// from a token instead of from whatever colour Figma happened to bake into
+// the export.
+.spartrak-pdp__media-btn,
+.spartrak-pdp__media-actions .action.towishlist {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--color-bg-surface);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .1);
+    cursor: pointer;
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
+    }
+
+    // The accessible name stays in the DOM for assistive tech.
+    > span {
+        .spartrak-pdp-visually-hidden();
+    }
+}
+
+.spartrak-pdp__media-actions .action.towishlist::before {
+    content: "";
+    .spartrak-icon('heart.svg'; 20px; var(--color-icon-ink));
+}
+
+.spartrak-pdp__media-btn--share::before {
+    content: "";
+    .spartrak-icon('share-upload.svg'; 20px; var(--color-icon-ink));
+}
+
+.spartrak-pdp__media-btn--zoom::before {
+    content: "";
+    .spartrak-icon('maximize.svg'; 20px; var(--color-icon-ink));
+}
+
+// ===========================================================================
+// 3. Info column — Figma 526:23354
+// ===========================================================================
+// ---------------------------------------------------------------------------
+// ترتيب العمود — Figma 526:23354
+// ---------------------------------------------------------------------------
+// `order` بيأثر على الأبناء المباشرين فقط. ماجنتو بيلف عنصرين من اللي
+// التصميم بيرتبهم: شريط المواصفات جوه .product-info-stock-sku، وصف السلة
+// جوه .product-add-form — فالترتيب لازم يتحط على الحاوية مش على
+// .spartrak-pdp__meta / .box-tocart اللي جواها.
+//
+// كل الأبناء مذكورين. أي ابن مش مذكور قيمته الافتراضية 0 وبيقفز لأعلى
+// العمود — وده بالظبط اللي كانت الحاويتين وأسهم بورتو بيعملوه — فـ `> *`
+// بيدي قيمة متأخرة كافتراضي وميبقاش فيه حاجة تطلع فوق العنوان من غير قصد.
+.catalog-product-view .product-info-main {
+    > *                           { order: 50; }
+    > .page-title-wrapper         { order: 2; }
+    > .product-info-price         { order: 3; }
+    > .product-reviews-summary    { order: 4; }
+    > .product-info-stock-sku     { order: 5; }  // بتلف .spartrak-pdp__meta
+    > .product-add-form           { order: 6; }  // بتلف .box-tocart
+    > .product.attribute.overview { order: 7; }
+    > .spartrak-pdp__options      { order: 9; }
+
+    // NOT IN FIGMA — two Porto additions the design does not have. Hidden
+    // rather than ordered out of the way, at the merchant's instruction
+    // (2026-08-29): Porto's previous/next product arrows above the title, and
+    // its social share rail.
+    //
+    // `display: none` is safe on .product-social-links even though Porto's
+    // config.phtml reaches into it at runtime — that script MOVES
+    // `.product-social-links > .product-addto-links` out to `.moved-add-to-links`
+    // before this ever matters, and jQuery selects hidden elements fine. What
+    // is left behind, and hidden here, is only the share rail.
+    > .prev-next-products         { display: none; }
+    > .product-social-links       { display: none; }
+
+    // Magento's wrapper around the meta bar. Figma has no such box, so it
+    // must not contribute spacing of its own — Porto gives it a 10.4px block
+    // margin, which stacked on top of this column's own 20px gap.
+    > .product-info-stock-sku {
+        margin: 0;
+        padding: 0;
+    }
+}
+
+// Porto's runtime-moved wishlist/compare pair, which its config.phtml appends
+// after `.box-tocart .actions`. Hidden for two reasons at once:
+//
+//   1. `.action.tocompare` is not in the design at all (merchant's call,
+//      2026-08-29).
+//   2. The wishlist heart belongs OVER the gallery in Figma (526:23306), not
+//      in the cart row. spartrak-pdp.phtml renders it there instead, so the
+//      copy Porto parks here is a duplicate.
+//
+// Hiding the pair also gives the add-to-cart CTA its width back: it was a
+// third flex item in that row, which squeezed the button to 235px on desktop
+// and 169px on mobile against Figma's 374 / 313.
+.catalog-product-view .product-info-main .moved-add-to-links {
+    display: none;
+}
+
+// Magento's own `product.info.sku` block, which renders a second "SKU: …"
+// line inside the same wrapper as the meta bar. The bar already carries the
+// item number as its first cell (Figma 527:12990), so this is a duplicate.
+.catalog-product-view .product-info-main .product-info-stock-sku .product.attribute.sku {
+    display: none;
+}
+.catalog-product-view .product-info-main {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    // Porto moves page.main.title into product.info.main before everything
+    // else. Figma 526:23360: Heading/H2, arabic bold 24/1.3, text/primary.
+    .page-title-wrapper {
+        margin: 0;
+    }
+
+    .page-title-wrapper .page-title {
+        margin: 0;
+        font-family: var(--font-arabic);
+        font-size: var(--text-24);
+        font-weight: 700;
+        line-height: 1.3;
+        color: var(--color-text-primary);
+        text-align: start;
+    }
+
+    // Price (526:23361). Figma orders it CURRENT then struck-through
+    // original, and the current price is text/brand navy here — not the ink
+    // the product card uses.
+    .product-info-price {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    .product-info-price .price-box {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0;
+        padding: 0;
+    }
+
+    .price-box .special-price {
+        order: 1;
+    }
+
+    .price-box .old-price {
+        order: 2;
+        margin: 0;
+    }
+
+    .price-box .price-container .price,
+    .price-box .special-price .price {
+        font-family: var(--font-arabic);
+        font-size: var(--text-24);
+        font-weight: 700;
+        line-height: 1.3;
+        color: var(--color-action-primary);
+        white-space: nowrap;
+    }
+
+    .price-box .old-price .price {
+        font-family: var(--font-arabic);
+        font-size: var(--text-18);
+        font-weight: 500;
+        line-height: 1.3;
+        color: var(--color-feedback-danger);
+        text-decoration: line-through;
+        text-decoration-thickness: .5px;
+        white-space: nowrap;
+    }
+
+    .price-box .price-label {
+        .spartrak-pdp-visually-hidden();
+    }
+
+    // Rating (526:23367). Porto moves product.info.review above the price;
+    // Figma puts it below, between two dashed dividers — the same 1px
+    // border/strong dash-2/2 rule the filter sidebar uses, reproduced with a
+    // repeating gradient so it needs no asset and the dash length is exact.
+    //
+    // Unlike the product card's rating row this one is NOT direction-locked:
+    // Figma renders it count -> value -> stars left-to-right, i.e. stars at
+    // the inline-start, which is the natural RTL flow. Left to mirror itself.
+    .product-reviews-summary {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin: 0;
+        padding-block: 20px;
+        
+        &::before,
+        &::after {
+            content: "";
+            position: absolute;
+            inset-inline: 0;
+            height: 1px;
+            background-image: repeating-linear-gradient(
+                to right,
+                var(--color-border-strong) 0 2px,
+                transparent 2px 4px
+            );
+            // RESET Porto's own `:after` on this same element. Porto declares
+            // `width: 40px; border-top: 2px solid #e7e7e7; margin: 1rem 0 1.25rem`
+            // there, and the cascade MERGES those into this rule — a rule
+            // winning on specificity only replaces the properties it actually
+            // declares. Measured on the live storefront before this reset: the
+            // BOTTOM divider computed to width 40px with a stray 2px solid grey
+            // border, while the top one (which Porto has no `:before` for) was
+            // correct at 408px. Same element, two different lines.
+            //
+            // `width: auto` rather than `100%`: with `inset-inline: 0` on an
+            // absolutely-positioned box, auto is what stretches it edge to
+            // edge, and it is exactly what ::before already resolves to.
+            // `margin: 0` because Figma pins both rules to the block's edges
+            // and the 18/20px breathing room comes from padding-block.
+            width: auto;
+            border: 0;
+            margin: 0;
+        }
+
+        &::before {
+            inset-block-start: 0;
+        }
+
+        &::after {
+            inset-block-end: 0;
+        }
+    }
+
+    .rating-summary {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .rating-summary .label {
+        .spartrak-pdp-visually-hidden();
+    }
+
+    // Magento's .rating-result is already a percentage-width meter: the outer
+    // element is the empty track, the inner span the filled part. That maps
+    // exactly onto the two rating tokens with the real Figma star as a
+    // repeating mask — no per-star DOM, no JS, one asset. Figma 705:30162
+    // sizes these 22px on the PDP (the card uses 20px).
+    .rating-summary .rating-result {
+        width: 110px;
+        height: 22px;
+        margin: 0;
+        background-color: var(--color-rating-empty);
+        -webkit-mask-image: url('../images/icons/star.svg');
+        mask-image: url('../images/icons/star.svg');
+        -webkit-mask-repeat: repeat-x;
+        mask-repeat: repeat-x;
+        -webkit-mask-position: left center;
+        mask-position: left center;
+        -webkit-mask-size: 22px 22px;
+        mask-size: 22px 22px;
+
+        &::before {
+            content: none;
+        }
+
+        > span {
+            display: block;
+            height: 100%;
+            background: var(--color-action-accent);
+
+            &::before {
+                content: none;
+            }
+
+            > span {
+                .spartrak-pdp-visually-hidden();
+            }
+        }
+    }
+
+    // Figma 526:23374: "(3,171 تقييم)" Body/Base regular on text/secondary,
+    // with the numeric average beside it in Body/Base Medium on text/primary.
+    .reviews-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-family: var(--font-arabic);
+        font-size: var(--text-16);
+        font-weight: 400;
+        line-height: 1.5;
+
+        a {
+            color: var(--color-text-secondary);
+            text-decoration: none;
+
+            &:hover {
+                color: var(--color-action-primary);
+            }
+        }
+    }
+
+    // Figma has no short-description in the info column — Porto moves
+    // product.info.overview there. Left visible but given the design's body
+    // type rather than hidden: removing real content is the merchant's call,
+    // not a styling one.
+    .product.attribute.overview {
+        margin: 0;
+        font-family: var(--font-arabic);
+        font-size: var(--text-14);
+        line-height: 1.5;
+        color: var(--color-text-secondary);
+    }
+
+}
+
+// --- SKU + availability bar (Figma 527:12990 desktop / 650:33782 mobile) ---
+// Desktop is two equal cells; mobile is a 2x2 grid — see section 6. Markup
+// comes from this theme's own product/view/type/default.phtml override.
+//
+// SPECIFICITY: prefixed `.catalog-product-view .product-info-main`, and NOT
+// left as the bare `.spartrak-pdp__meta` it started as. Magento wraps this bar
+// in `.product-info-stock-sku`, and Porto ships
+// `.product-info-main .product-info-stock-sku > * { display: block }` — (0,2,0)
+// against a bare class's (0,1,0), so it won and the cells stacked into one
+// column instead of laying out as a row (desktop) / 2x2 grid (mobile).
+// Measured on the live storefront before the fix: computed `display: block`,
+// cells 408x80 instead of 204x48.
+.catalog-product-view .product-info-main .spartrak-pdp__meta {
+    display: flex;
+    align-items: stretch;
+    margin: 0;
+}
+
+.spartrak-pdp__meta-cell {
+    display: flex;
+    flex: 1 1 0;
+    min-width: 0;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    height: 48px;
+    padding: 16px 24px;
+    background: var(--color-bg-surface-subtle);
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+// i18n GUARD. The cell is a fixed 48px single line, so a locale whose wording
+// runs longer than the Arabic the design was drawn in will overflow it. Caught
+// in the browser on the English store: "Availability in stock" + "In stock" in
+// a 204px mobile cell clipped the VALUE, which is the half that matters —
+// "In stoc". So the label absorbs the shortfall and the value never does.
+// CLAUDE.md §16: bidirectional and multi-locale is a baseline, not an edge
+// case, and the Arabic fitting is not evidence that the English does.
+.spartrak-pdp__meta-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.spartrak-pdp__meta-value {
+    flex: 0 0 auto;
+}
+
+// Figma draws two cells on desktop (527:12990) and four on mobile
+// (650:33782). type/default.phtml emits all of them and tags the extras, so
+// the desktop bar is the design's two — nothing is re-templated per
+// breakpoint and there is no second block to keep in sync.
+.spartrak-pdp__meta-cell--mobile-only {
+    display: none;
+}
+
+.spartrak-pdp__meta-value--in-stock {
+    color: var(--color-feedback-success);
+}
+
+.spartrak-pdp__meta-value--out-of-stock {
+    color: var(--color-feedback-danger);
+}
+
+// --- Qty + add to cart (Figma 526:23400 / 535:12981) -----------------------
+// DOM is Porto's box-tocart, restyled: a 48px bordered qty control and a
+// flex-1 navy CTA, 12px apart. `order` puts the CTA first in the flex line,
+// i.e. at the RIGHT under RTL, matching the design.
+.catalog-product-view .product-info-main .box-tocart {
+    margin: 0;
+
+    .fieldset {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    .field.qty {
+        order: 2;
+        display: flex;
+        align-items: center;
+        margin: 0;
+    }
+
+    .field.qty > .label {
+        .spartrak-pdp-visually-hidden();
+    }
+
+    .field.qty .control {
+        position: relative;
+        display: block;
+    }
+
+    // The chevron sits at the physical RIGHT of the control, which is where
+    // Figma draws it (705:30188 "1" then 705:30491 chevron, left to right) —
+    // so it is intentionally NOT a logical inset. It is a background-image
+    // rather than a mask because an <input> cannot carry a ::before and the
+    // control already owns its own background; chevron-down-20-thin.svg is
+    // exported #1A144F, which is Figma's `icon/default` for this glyph, so
+    // the baked colour and the token agree by construction. Porto's own
+    // +/- stepper is hidden: the design has one value and a chevron.
+    .field.qty input#qty {
+        width: 88px;
+        height: 48px;
+        padding: 16px 44px 16px 24px;
+        border: 1px solid var(--color-border-default);
+        border-radius: 0;
+        background: var(--color-bg-surface) url('../images/icons/chevron-down-20-thin.svg') no-repeat right 16px center;
+        background-size: 20px 20px;
+        box-shadow: var(--shadow-input);
+        font-family: var(--font-arabic);
+        font-size: var(--text-16);
+        font-weight: 500;
+        line-height: 1.5;
+        color: var(--color-text-primary);
+        text-align: start;
+        appearance: textfield;
+        -moz-appearance: textfield;
+    }
+
+    .field.qty input#qty::-webkit-outer-spin-button,
+    .field.qty input#qty::-webkit-inner-spin-button {
+        appearance: none;
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    .qty-changer {
+        display: none;
+    }
+
+    .actions {
+        order: 1;
+        flex: 1 1 0;
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+    }
+
+    .action.tocart {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        height: 48px;
+        padding-inline: 24px;
+        border: 0;
+        border-radius: 0;
+        background: var(--color-action-primary);
+        color: var(--color-action-primary-text);
+        font-family: var(--font-arabic);
+        font-size: var(--text-16);
+        font-weight: 500;
+        line-height: 1.5;
+        cursor: pointer;
+        transition: background-color .15s ease;
+
+        &::before {
+            content: "";
+            .spartrak-icon('cart.svg'; 20px; var(--color-action-primary-text));
+        }
+
+        &:hover {
+            background: var(--color-action-primary-hover);
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--color-border-focus);
+            outline-offset: 2px;
+        }
+    }
+
+    // Porto's daily-deal countdown block is empty on this catalogue (no deal
+    // data exists) but still occupies the top of box-tocart.
+    .sw-dailydeal-wrapper:empty,
+    #countdown:empty {
+        display: none;
+    }
+}
+
+// ===========================================================================
+// 4. Tabs — Figma 527:13545
+// ===========================================================================
+// Magento's native tabs widget markup, restyled. Tab ORDER comes from `order`
+// on the stable #tab-label-* ids: Figma reads overview | description |
+// reviews from the inline-start, which is Magento's `additional`,
+// `description`, `reviews`. Nothing is moved in layout XML.
+.catalog-product-view {
+    .product.info.detailed {
+        margin: 0;
+    }
+
+    .product.data.items {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0;
+        padding: 0;
+        border: 1px solid var(--color-border-default);
+        border-radius: 0;
+        background: var(--color-bg-surface);
+    }
+
+    .product.data.items > .item.title {
+        flex: 1 1 calc(100% / 3);
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        background: none;
+    }
+
+    #tab-label-additional { order: 1; }
+    #tab-label-description { order: 2; }
+    #tab-label-reviews { order: 3; }
+
+    .product.data.items > .item.title > .switch {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        height: 48px;
+        padding: 8px 16px;
+        border: 0;
+        border-block-end: 1px solid var(--color-border-strong);
+        background: none;
+        font-family: var(--font-arabic);
+        font-size: var(--text-16);
+        font-weight: 500;
+        line-height: 1.5;
+        color: var(--color-text-primary);
+        text-align: center;
+        text-decoration: none;
+        white-space: nowrap;
+        box-sizing: border-box;
+
+        &:focus-visible {
+            outline: 2px solid var(--color-border-focus);
+            outline-offset: -2px;
+        }
+    }
+
+    .product.data.items > .item.title.active > .switch {
+        border-block-end-color: var(--color-action-primary);
+        color: var(--color-action-primary);
+        font-weight: 700;
+        line-height: 1.3;
+    }
+
+    .product.data.items > .item.content {
+        flex: 0 0 100%;
+        order: 9;
+        margin: 0;
+        padding: 24px;
+        border: 0;
+        background: none;
+    }
+}
+
+// --- Spec table (Figma 527:13623 desktop / 650:33796 mobile) ---------------
+// Magento's own additional-attributes table. It stays a real <table> —
+// display is untouched — so it keeps its semantics for assistive tech; the
+// design's 12px row rhythm comes from border-spacing, pulled back at the ends
+// so the panel's own padding is not doubled.
+.catalog-product-view {
+    .additional-attributes-wrapper {
+        margin: 0;
+        padding: 0;
+    }
+
+    table.additional-attributes {
+        width: 100%;
+        margin-block: -12px;
+        border: 0;
+        border-collapse: separate;
+        border-spacing: 0 12px;
+
+        > caption {
+            .spartrak-pdp-visually-hidden();
+        }
+
+        tbody tr:nth-child(odd) {
+            background: var(--color-bg-surface-subtle);
+        }
+
+        th.label,
+        td.data {
+            padding: 12px 16px;
+            border: 0;
+            vertical-align: top;
+            font-family: var(--font-arabic);
+            font-size: var(--text-18);
+            color: var(--color-text-primary);
+            background: none;
+        }
+
+        th.label {
+            width: 50%;
+            font-weight: 400;
+            line-height: 1.5;
+            text-align: start;
+        }
+
+        td.data {
+            font-weight: 500;
+            line-height: 1.3;
+            text-align: end;
+        }
+    }
+
+    // Description panel (532:15392) and reviews panel (534:9527) — the same
+    // card, the same padding, the design's body type.
+    .product.attribute.description,
+    .product.attribute.description .value {
+        font-family: var(--font-arabic);
+        font-size: var(--text-16);
+        font-weight: 400;
+        line-height: 1.5;
+        color: var(--color-text-primary);
+        text-align: start;
+    }
+}
+
+// ===========================================================================
+// 5. "خيارات المنتج" card — Figma 526:23403 / 650:33660
+// ===========================================================================
+// Structure and icons are DESIGN and live here. The card's TEXT and the
+// payment-method logos are CONTENT and come from the CMS block
+// `spartrak_pdp_product_options` — see spartrak-options.phtml.
+.spartrak-pdp__options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-block-start: 8px;
+}
+
+.spartrak-pdp__options-title {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    text-align: start;
+}
+
+.spartrak-pdp__options-card {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 24px;
+    border: 1px solid var(--color-border-default);
+    background: var(--color-bg-surface);
+    box-shadow: var(--shadow-input);
+
+    // Each section: icon at the inline-start, text block filling the rest.
+    .spartrak-opt {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+
+        &::before {
+            content: "";
+            margin-block-start: 2px;
+        }
+    }
+
+    .spartrak-opt--shipping::before {
+        .spartrak-icon('delivery-truck.svg'; 20px; var(--color-icon-ink));
+    }
+
+    .spartrak-opt--payment::before {
+        .spartrak-icon('payment-card.svg'; 20px; var(--color-icon-ink));
+    }
+
+    .spartrak-opt--returns::before {
+        .spartrak-icon('warranty-return.svg'; 20px; var(--color-icon-ink));
+    }
+
+    .spartrak-opt__body {
+        flex: 1 1 0;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        text-align: start;
+    }
+
+    .spartrak-opt__body > h3,
+    .spartrak-opt__body > strong {
+        margin: 0;
+        font-family: var(--font-arabic);
+        font-size: var(--text-14);
+        font-weight: 500;
+        line-height: 1.5;
+        color: var(--color-text-primary);
+    }
+
+    .spartrak-opt__body > p,
+    .spartrak-opt__body > ul {
+        margin: 0;
+        font-family: var(--font-arabic);
+        font-size: var(--text-14);
+        font-weight: 400;
+        line-height: 1.5;
+        color: var(--color-text-secondary);
+    }
+
+    // The bulleted lists (shipping, warranty) get a marker indent. The
+    // payment row is also a <ul> but is a logo strip, not prose — it is
+    // excluded HERE rather than being un-set again further down, because
+    // `.spartrak-pdp__options-card .spartrak-opt__body > ul` (0,2,1) outranks
+    // a later `.spartrak-pdp__pay-methods` (0,1,0) and the reset never
+    // applied. Measured in the browser before the fix: the logo strip was
+    // inset 21px from the card's inline-start, so it did not line up with the
+    // heading above it the way Figma draws it.
+    .spartrak-opt__body > ul:not(.spartrak-pdp__pay-methods) {
+        padding-inline-start: 21px;
+        list-style: disc;
+    }
+
+    // Payment logo tiles (526:23433): equal columns, 12px apart, 12px padding
+    // on bg/surface-subtle, 28px mark.
+    .spartrak-opt--payment .spartrak-opt__body {
+        gap: 10px;
+    }
+}
+
+.spartrak-pdp__pay-methods {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    > li {
+        display: flex;
+        flex: 1 1 0;
+        min-width: 0;
+        align-items: center;
+        justify-content: center;
+        padding: 12px;
+        margin: 0;
+        background: var(--color-bg-surface-subtle);
+    }
+
+    img {
+        display: block;
+        width: 28px;
+        height: 28px;
+        object-fit: contain;
+    }
+}
+
+// ===========================================================================
+// 6. Mobile — Figma 650:32798 / 657:20157 / 657:20648
+// ===========================================================================
+// Every value below was read off the 440-wide mobile frames via the Figma MCP
+// (get_metadata for geometry, get_variable_defs for the bound tokens and text
+// styles). The previous pass shipped this section as a documented default
+// with an explicit "NO FIGMA REFERENCE" note; it is now sourced.
+//
+// The switch point is @breakpoint-header-collapse (767px), NOT the 440px
+// mobile design width — see foundations/_breakpoints.less for why 440 as a
+// switch left every viewport from 441 to 1439 on the desktop layout.
+@media (max-width: @breakpoint-header-collapse) {
+
+    // --- Shell: single column, 16px gutters (440 frame, 408 content) -------
+    // Blank's 1140 cap is inside @media (min-width: 992px) and so never
+    // reaches here; what does is its small-screen 15px page padding. Figma
+    // draws 16. One pixel, but it is the difference between the content
+    // measure being 408 (every mobile number below is derived from 408) and
+    // 410, so it is worth stating rather than inheriting.
+    .catalog-product-view .page-main {
+        padding-inline: 16px;
+    }
+
+    .catalog-product-view .column.main {
+        display: block;
+    }
+
+    .catalog-product-view .column.main > .product.media,
+    .catalog-product-view .column.main > .product-info-main {
+        width: auto;
+    }
+
+    // --- Media: the mobile stage is 408 x 440, a PORTRAIT box, where the
+    // desktop stage is 816 x 624 landscape. Same widget, different reserved
+    // height — so the aspect-ratio has to be restated, not inherited.
+    .catalog-product-view .product.media .gallery-placeholder {
+        aspect-ratio: 408 / 440;
+    }
+
+    .catalog-product-view .product.media .fotorama__nav-wrap {
+        margin-block-start: 12px;
+    }
+
+    // Overlay: 12px inset (650:33567 sits at 12,12 inside the stage), and the
+    // controls drop from 48px to 24px with an 18px glyph, stacked 8px apart
+    // (buttons at y=12 / 44 / 76 inside a 48x112 column).
+    //
+    // 24x24 is exactly WCAG 2.2 Target Size (Minimum), and the 8px gaps keep
+    // the targets from crowding, so this clears AA as drawn.
+    .spartrak-pdp__media-overlay {
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .spartrak-pdp__media-actions {
+        gap: 8px;
+    }
+
+    .spartrak-pdp__media-btn,
+    .spartrak-pdp__media-actions .action.towishlist {
+        width: 24px;
+        height: 24px;
+    }
+
+    .spartrak-pdp__media-actions .action.towishlist::before,
+    .spartrak-pdp__media-btn--share::before,
+    .spartrak-pdp__media-btn--zoom::before {
+        width: 18px;
+        height: 18px;
+    }
+
+    // Promo badge (650:33574): 14px tall, Label/Micro — arabic BOLD 7px/1.3 —
+    // and 6px of inline padding. Not a shrunk copy of the desktop pill: 7px
+    // is its own step in the type scale (`size/2xs`), already in the token
+    // set because the mobile header's count badge needed it.
+    .spartrak-pdp__promo {
+        height: 14px;
+        padding-inline: 6px;
+        font-size: var(--text-7);
+        font-weight: 700;
+    }
+
+    // --- Info column: Figma spaces these individually rather than on one
+    // rhythm, so the flex gap is dropped and each block states its own.
+    .catalog-product-view .product-info-main {
+        gap: 0;
+        margin-block-start: 24px;
+    }
+
+    // Title 650:33635 — `Price/Base`: arabic bold 18/1.3. (Figma reuses the
+    // price style for the mobile title; confirmed by get_variable_defs on the
+    // node, not inferred from its 23px box.)
+    .catalog-product-view .product-info-main .page-title-wrapper .page-title {
+        font-size: var(--text-18);
+        line-height: 1.3;
+    }
+
+    // Price 650:33636 — current `Price/Medium` bold 20/1.3 on text/brand;
+    // original `Price/XSmall` bold 16/1.3 on text/price-sale. The original is
+    // BOLD 16 here, where desktop is medium 18.
+    .catalog-product-view .product-info-main .product-info-price {
+        margin-block-start: 12px;
+    }
+
+    .catalog-product-view .product-info-main .price-box .price-container .price,
+    .catalog-product-view .product-info-main .price-box .special-price .price {
+        font-size: var(--text-20);
+    }
+
+    .catalog-product-view .product-info-main .price-box .old-price .price {
+        font-size: var(--text-16);
+        font-weight: 700;
+    }
+
+    // Rating row: 18px above and below each dashed divider (105 -> 123 ->
+    // 141 and 163 -> 181 in the frame), against 20px on desktop.
+    .catalog-product-view .product-info-main .product-reviews-summary {
+        margin-block-start: 18px;
+        padding-block: 18px;
+    }
+
+    .catalog-product-view .product-info-main .reviews-actions {
+        font-size: var(--text-14);
+    }
+
+    // Meta bar 650:33782 — a 2x2 GRID on mobile, not the desktop's single
+    // row and not the column the previous pass shipped. Two 204px cells per
+    // row with no column gap, and a 1px white hairline between the two rows
+    // (row 1 at y=0 h48, row 2 at y=49). Text is Label/Large: medium 14/1.3.
+    // Same specificity prefix as the desktop rule above, and for the same
+    // reason — Porto's `.product-info-stock-sku > *{display:block}` outranks a
+    // bare class and would keep this a stacked column.
+    .catalog-product-view .product-info-main .spartrak-pdp__meta {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        column-gap: 0;
+        row-gap: 1px;
+        margin-block-start: 18px;
+        // The container repeats the cells' own surface so an ODD number of
+        // cells still reads as a complete band instead of leaving a bare
+        // white half-row. Invisible at the design's four cells; it matters
+        // now, because Figma's fourth cell ("العدد") is deliberately not
+        // implemented yet — see catalog_product_view.xml.
+        background: var(--color-bg-surface-subtle);
+    }
+
+    .spartrak-pdp__meta-cell {
+        font-size: var(--text-14);
+        line-height: 1.3;
+    }
+
+    .spartrak-pdp__meta-cell--mobile-only {
+        display: flex;
+    }
+
+    // Qty + CTA 650:33656: 83 | 12 | 313 across the 408 content width.
+    .catalog-product-view .product-info-main .box-tocart {
+        margin-block-start: 28px;
+    }
+
+    .catalog-product-view .product-info-main .box-tocart .field.qty input#qty {
+        width: 83px;
+        padding-inline: 24px 44px;
+        background-position: right 24px center;
+    }
+
+    .spartrak-pdp__options {
+        margin-block-start: 24px;
+    }
+
+    // --- Tabs 650:33790: full-bleed on mobile — the row spans the whole 440
+    // frame with no card border, and the panel's inset drops 24 -> 16.
+    .catalog-product-view .product.data.items {
+        border: 0;
+    }
+
+    .catalog-product-view .product.data.items > .item.content {
+        padding: 16px;
+    }
+
+    // --- Spec table 650:33796: EVERY row is bg/surface-subtle on mobile,
+    // where desktop stripes odd rows only — the eight rows are drawn as
+    // eight identical 45px bands separated by 12px of page background
+    // (confirmed on adjacent rows 650:33797 / 650:33800 / 650:33803, all
+    // bound to bg/surface-subtle). Label is Body/Small regular 14/1.5, value
+    // Label/Large medium 14/1.3 — the same weight split as desktop, two
+    // steps down in size.
+    .catalog-product-view table.additional-attributes tbody tr {
+        background: var(--color-bg-surface-subtle);
+    }
+
+    .catalog-product-view table.additional-attributes th.label,
+    .catalog-product-view table.additional-attributes td.data {
+        font-size: var(--text-14);
+    }
+}
+
+// ===========================================================================
+// 7. Reduced motion
+// ===========================================================================
+@media (prefers-reduced-motion: reduce) {
+    .catalog-product-view .product-info-main .box-tocart .action.tocart {
+        transition: none;
+    }
+}

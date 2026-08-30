@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<!--
+Spartrak — extra cells for the PDP meta bar.
+
+WHY THIS HANDLE AND NOT catalog_product_view.xml
+The template these cells render in, Magento_Catalog::product/view/type/
+default.phtml, is NOT bound to a block in the generic PDP handle. Magento
+declares it per product TYPE:
+
+    catalog_product_view_type_simple.xml        -> block product.info.simple
+    catalog_product_view_type_virtual.xml       -> block product.info.virtual
+    catalog_product_view_type_configurable.xml  -> block product.info.configurable
+
+`product.info.stock.sku`, which reads like the obvious target, is a CONTAINER
+(vendor/magento/module-catalog/view/frontend/layout/catalog_product_view.xml
+line 41) — containers do not take <arguments>, so referencing it here would
+have silently done nothing.
+
+This catalogue is all Simple products (confirmed with the merchant,
+2026-08-29), so this one handle covers it. If another product type is ever
+introduced, copy this file to the matching handle above and change the block
+name — nothing else, and no PHP.
+
+WHAT IS BEING PASSED
+The extra cells of the MOBILE meta bar (Figma 650:33782 — a 2x2 grid, against
+the desktop's single row of two, 527:12990). Listed here, in the order Figma
+draws them, rather than named inside the template: adding, reordering or
+renaming one then costs a single line.
+
+Each entry is a product attribute code. Labels come from the attribute's own
+per-store-view label, so the admin owns the wording (CLAUDE.md §7), and a code
+with no value on a given product simply renders no cell.
+
+    attr_03d89377   "وحدة القياس" (unit of measure) — dropdown, created in
+                    Admin on 2026-08-29. Magento auto-generated the code; it
+                    is opaque on purpose, so it is written exactly once, here.
+
+NOT LISTED: Figma's fourth cell, "العدد". The value it draws is "متوفر", in
+the same green as the availability cell beside it — i.e. filler text rather
+than a real value, which leaves the underlying field genuinely ambiguous
+(stock quantity? pieces per pack?). Left out rather than guessed (CLAUDE.md §9,
+no fake data). Add its code to the list below once the answer is in; nothing
+else has to change.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="product.info.simple">
+            <arguments>
+                <argument name="spartrak_meta_attributes" xsi:type="array">
+                    <item name="unit_of_measure" xsi:type="string">attr_03d89377</item>
+                </argument>
+            </arguments>
+        </referenceBlock>
+    </body>
+</page>

@@ -1,0 +1,167 @@
+<!--
+/**
+ * Paymob Payment Template
+ * Styled to match Cash on Delivery design
+ */
+-->
+<style>
+    .payment-method-title {
+        border-radius: 7px;
+        background: #e5f2df;
+        box-shadow: 0px 6px 12px 0px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: space-between;
+        padding: 24px !important;
+    }
+
+    .payment-method-title input[type="radio"] {
+        display: none;
+    }
+
+    .payment-method-title input[type="radio"]+.fakeLabel {
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        border-radius: 50%;
+        border: 1px solid #ccc;
+        cursor: pointer;
+        background-color: #f8f8f8;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        align-self: center;
+    }
+
+    .payment-method-title input[type="radio"]+.fakeLabel span {
+        width: 16px;
+        display: inline-block;
+        height: 16px;
+        padding: 0px;
+        border-radius: 50%;
+        transition: 0.25s ease-in-out;
+    }
+
+    .payment-method-title input[type="radio"]:checked+.fakeLabel span {
+        background: #0bb34b;
+    }
+
+    .payment-method-title input[type="radio"]:checked+.fakeLabel {
+        border: 1.5px solid #0bb34a;
+    }
+
+    .payment-group {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .checkout-payment-method .payment-option-title {
+        border: none !important;
+    }
+
+    .actualLabel {
+        color: var(--Primary-Black, #231f20);
+        font-size: 18px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: normal;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+    }
+
+    .imgContainer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .payment-icon {
+        max-width: 102px;
+        max-height: 72px;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+    }
+
+    @media (max-width: 992px) {
+        .payment-group {
+            width: 90%;
+            margin: auto;
+        }
+
+        .custom-slide .modal-inner-wrap {
+            box-shadow: none;
+        }
+
+        #opc-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .payment-method-title {
+            padding: 16px !important;
+        }
+
+        .actualLabel {
+            font-size: 14px;
+        }
+
+        .custom-slide .modal-inner-wrap {
+            background: #fff;
+        }
+    }
+
+    .checkout-billing-address {
+        margin-block: 32px;
+    }
+</style>
+
+<div class="payment-method" data-bind="css: {'_active': (getCode() == isChecked())}">
+    <div class="payment-method-title field choice">
+        <input type="radio" name="payment[method]" class="radio"
+            data-bind="attr: {'id': getCode()}, value: getCode(), checked: isChecked, click: selectPaymentMethod, visible: isRadioButtonVisible()" />
+        <label data-bind="attr: {'for': getCode()}" class="fakeLabel">
+            <span></span>
+        </label>
+        <label class="actualLabel" data-bind="attr: {'for': getCode()}">
+            <div class="imgContainer">
+                <!-- ko if: logo() -->
+                <img class="payment-icon" data-bind="attr: { src: logo(), alt: getTitle() }" />
+                <!-- /ko -->
+            </div>
+            <span data-bind="text: getTitle()"></span>
+        </label>
+    </div>
+
+    <div class="payment-method-content">
+        <!-- ko foreach: getRegion('messages') -->
+        <!-- ko template: getTemplate() --><!-- /ko -->
+        <!--/ko-->
+        <div class="payment-method-billing-address">
+            <!-- ko foreach: $parent.getRegion(getBillingAddressFormName()) -->
+            <!-- ko template: getTemplate() --><!-- /ko -->
+            <!--/ko-->
+        </div>
+        <p data-bind="html: getInstructions()"></p>
+        <div class="checkout-agreements-block">
+            <!-- ko foreach: $parent.getRegion('before-place-order') -->
+            <!-- ko template: getTemplate() --><!-- /ko -->
+            <!--/ko-->
+        </div>
+        <div class="actions-toolbar">
+            <div class="primary">
+                <button class="action primary checkout" type="submit" data-bind="
+                        click: placeOrder,
+                        attr: {title: $t('Place Order')},
+                        enable: (getCode() == isChecked()),
+                        css: {disabled: !isPlaceOrderActionAllowed()}
+                        " disabled>
+                    <span data-bind="i18n: 'Place Order'"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

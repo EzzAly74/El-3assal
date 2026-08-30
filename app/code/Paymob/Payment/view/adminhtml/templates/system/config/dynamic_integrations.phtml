@@ -1,0 +1,21 @@
+<?php $methods = $block->getPaymobMethods(); ?>
+<table class="admin__control-table">
+    <thead>
+        <tr>
+            <th>Code</th>
+            <th>Title</th>
+            <th>HMAC</th>
+            <th>Sort Order</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php foreach ($methods as $code => $data): ?>
+            <tr>
+                <td><?= $code ?></td>
+                <td><?= $data['title'] ?? '-' ?></td>
+                <td><?= $data['hmac'] ?? '-' ?></td>
+                <td><?= $data['sort_order'] ?? '-' ?></td>
+            </tr>
+        <?php endforeach; ?>
+    </tbody>
+</table>

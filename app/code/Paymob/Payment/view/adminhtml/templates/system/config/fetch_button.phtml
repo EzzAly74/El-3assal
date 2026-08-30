@@ -1,0 +1,34 @@
+<button id="paymob-fetch-btn" type="button" class="scalable paymob-auth-button">
+    <span><?= __('Authenticate') ?></span>
+</button>
+<div id="paymob-fetch-result"></div>
+
+<script type="text/javascript">
+    require(['jquery', 'mage/url'], function($, urlBuilder) {
+    var fetchUrl = '<?= $block->getAjaxFetchUrl() ?>';
+        $('#paymob-fetch-btn').on('click', function () {
+            var apiKey = $('input[id$="paymob_payment_api_key"]:visible').first().val();
+            var secKey = $('input[id$="paymob_payment_secret_key"]:visible').first().val();
+            var pubKey = $('input[id$="paymob_payment_public_key"]:visible').first().val();
+
+            $.ajax({
+                url: fetchUrl,
+                type: 'POST',
+                data: {
+                    api_key: apiKey,
+                    secret_key: secKey,
+                    public_key: pubKey,
+                    form_key: window.FORM_KEY // CSRF protection
+                },
+                showLoader: true,
+                success: function(response) {
+                    $('#paymob-fetch-result').html(response.message);
+                    location.reload();
+                },
+                error: function(xhr) {
+                    $('#paymob-fetch-result').html('Error: ' + xhr.statusText);
+                }
+            });
+        });
+    });
+</script>

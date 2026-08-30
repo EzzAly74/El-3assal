@@ -1,0 +1,144 @@
+<?php
+/**
+ * Spartrak — PDP "SKU + availability" bar.
+ *
+ * Overrides Smartwave/porto's Magento_Catalog/templates/product/view/type/
+ * default.phtml, the template Magento renders for the `product.info.stock.sku`
+ * block. Porto moves that block directly under the price, which is exactly
+ * where Figma puts this bar.
+ *
+ * FIGMA — the bar is NOT the same on both breakpoints:
+ *
+ *   Desktop 527:12990   TWO cells, one 48px row:  [رقم المنتج] [التوفر في المخزون]
+ *   Mobile  650:33782   FOUR cells, a 2x2 grid:   [رقم المنتج]   [التوفر في المخزون]
+ *                                                 [وحده القياس]  [العدد]
+ *
+ * DOM order is therefore [sku, stock, …extras] so that under RTL the item
+ * number takes the inline-start (right) cell of row 1 and the extras fall
+ * into row 2 in the order the design draws them. It mirrors cleanly for an
+ * LTR store. Each cell's text hugs the inline-start of its own cell (Figma's
+ * `justify-end` in an LTR canvas).
+ *
+ * The extra cells are drawn on MOBILE ONLY, because that is what Figma
+ * specifies — see `--mobile-only` below. That the mobile design exposes more
+ * product data than the desktop one is unusual and has been raised as a
+ * design question; until it is answered, Figma is followed literally
+ * (CLAUDE.md §3).
+ *
+ * WHY THIS FILE EXISTS AT ALL. Porto's version renders only the stock line,
+ * as a bare `<span>Availability: </span><div class="stock available">…` — and
+ * it drops `getChildHtml()`, so Magento core's `product.info.sku` child block
+ * never renders on this storefront. There is therefore no existing markup to
+ * restyle into the design's cells; the values have to be emitted here. All of
+ * them come straight off the product — nothing is fabricated.
+ *
+ * `displayProductStockStatus()` is still honoured: if a merchant turns the
+ * stock display off in admin, the availability cell disappears and the SKU
+ * cell takes the full width, rather than the bar showing a blank half.
+ *
+ * EXTRA ATTRIBUTES ARE CONFIGURED, NOT HARDCODED. The attribute codes come in
+ * as a block argument from this theme's catalog_product_view.xml, so adding,
+ * removing or renaming one is a one-line layout change and this template never
+ * names a specific attribute. Labels come from the attribute's own store
+ * label, so the admin owns the wording per store view (CLAUDE.md §7), and
+ * values go through getAttributeText() so a dropdown resolves to its
+ * translated option label rather than an option id.
+ *
+ * @var \Magento\Catalog\Block\Product\View\AbstractView $block
+ */
+
+/** @var \Magento\Catalog\Model\Product $product */
+$product = $block->getProduct();
+
+if (!$product) {
+    return;
+}
+
+$sku = trim((string) $product->getSku());
+$showStock = (bool) $block->displayProductStockStatus();
+$isAvailable = (bool) $product->isAvailable();
+
+/**
+ * Extra cells, mobile only. Shape: ['<attribute_code>', …] in the order Figma
+ * draws them. Empty (or absent) is a valid, supported state — the bar then
+ * renders exactly the desktop design on both breakpoints.
+ */
+$extraCodes = $block->getData('spartrak_meta_attributes');
+$extraCodes = is_array($extraCodes) ? $extraCodes : [];
+
+$extras = [];
+
+foreach ($extraCodes as $code) {
+    $code = trim((string) $code);
+    if ($code === '') {
+        continue;
+    }
+
+    try {
+        // getResource()->getAttribute() reads Magento's cached EAV attribute
+        // registry, not the database — this is not a query from a template.
+        $attribute = $product->getResource()->getAttribute($code);
+        if (!$attribute || !$attribute->getId()) {
+            continue;
+        }
+
+        // getAttributeText() resolves a select/multiselect to its store-view
+        // option label; for other input types it returns false, so fall back
+        // to the raw value.
+        $value = $product->getAttributeText($code);
+        if ($value === false || $value === null || $value === '') {
+            $value = $product->getData($code);
+        }
+        if (is_array($value)) {
+            $value = implode(', ', $value);
+        }
+
+        $value = trim((string) $value);
+        $label = trim((string) $attribute->getStoreLabel());
+
+        // No value, or no label for the merchant to have named it by: render
+        // nothing rather than a cell with a dangling label or a bare number.
+        if ($value === '' || $label === '') {
+            continue;
+        }
+
+        $extras[] = ['label' => $label, 'value' => $value];
+    } catch (\Throwable $e) {
+        // A misconfigured or since-deleted attribute must never take the PDP
+        // down. catch (\Throwable) rather than (\Exception) deliberately —
+        // see the note in Mageplaza_LayeredNavigation/templates/layer/
+        // filter.phtml for why an \Error can reach this point.
+        continue;
+    }
+}
+
+if ($sku === '' && !$showStock && $extras === []) {
+    return;
+}
+?>
+<div class="spartrak-pdp__meta">
+    <?php if ($sku !== '') : ?>
+        <div class="spartrak-pdp__meta-cell spartrak-pdp__meta-cell--sku">
+            <span class="spartrak-pdp__meta-label"><?= $block->escapeHtml(__('Item number')) ?></span>
+            <span class="spartrak-pdp__meta-value" itemprop="sku"><?= $block->escapeHtml($sku) ?></span>
+        </div>
+    <?php endif; ?>
+    <?php if ($showStock) : ?>
+        <div class="spartrak-pdp__meta-cell spartrak-pdp__meta-cell--stock">
+            <span class="spartrak-pdp__meta-label"><?= $block->escapeHtml(__('Availability in stock')) ?></span>
+            <?php if ($isAvailable) : ?>
+                <span class="spartrak-pdp__meta-value spartrak-pdp__meta-value--in-stock stock available"
+                      title="<?= $block->escapeHtmlAttr(__('In stock')) ?>"><?= $block->escapeHtml(__('In stock')) ?></span>
+            <?php else : ?>
+                <span class="spartrak-pdp__meta-value spartrak-pdp__meta-value--out-of-stock stock unavailable"
+                      title="<?= $block->escapeHtmlAttr(__('Out of stock')) ?>"><?= $block->escapeHtml(__('Out of stock')) ?></span>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+    <?php foreach ($extras as $extra) : ?>
+        <div class="spartrak-pdp__meta-cell spartrak-pdp__meta-cell--mobile-only">
+            <span class="spartrak-pdp__meta-label"><?= $block->escapeHtml($extra['label']) ?></span>
+            <span class="spartrak-pdp__meta-value"><?= $block->escapeHtml($extra['value']) ?></span>
+        </div>
+    <?php endforeach; ?>
+</div>

@@ -1,0 +1,11 @@
+.admin__fieldset .admin__field label.label {
+    text-align: left !important;
+    float: left !important;
+    width: 25% !important;
+    padding-left: 10px;
+    direction: ltr;
+}
+
+.admin__fieldset .admin__field-control {
+    margin-left: 26%;
+}
