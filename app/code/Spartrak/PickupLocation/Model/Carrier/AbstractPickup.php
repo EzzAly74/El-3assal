@@ -120,19 +120,41 @@ abstract class AbstractPickup extends AbstractCarrier implements CarrierInterfac
     }
 
     /**
-     * Pickup is never "shipped" in the courier sense, so Magento should not
-     * offer a tracking UI for it.
+     * NEITHER getCarrierCode() NOR isTrackingAvailable() IS REDECLARED HERE.
+     *
+     * Both were, and both were deleted. AbstractCarrier already implements
+     * them exactly as this class wants them:
+     *
+     *   getCarrierCode()       returns $this->_code
+     *   isTrackingAvailable()  returns false
+     *
+     * Pickup is never "shipped" in the courier sense, so `false` is the right
+     * answer for tracking - it is just already the inherited one.
+     *
+     * The getCarrierCode() override additionally declared itself `protected`,
+     * narrowing an inherited public method, which PHP rejects outright:
+     *
+     *     Access level to ...AbstractPickup::getCarrierCode() must be public
+     *     (as in class Magento\Shipping\Model\Carrier\AbstractCarrier)
+     *
+     * That is fatal at class-load time, so it took down setup:di:compile rather
+     * than appearing at runtime. The fix in both cases is deletion, not
+     * widening: an override identical to its parent is duplication whatever its
+     * visibility.
+     *
+     * AbstractCarrier already implements it as `public function
+     * getCarrierCode() { return $this->_code; }` - byte for byte what the
+     * override that used to sit here did. Redeclaring it as `protected`
+     * narrowed the visibility of an inherited public method, which PHP rejects
+     * outright:
+     *
+     *     Access level to ...AbstractPickup::getCarrierCode() must be public
+     *     (as in class Magento\Shipping\Model\Carrier\AbstractCarrier)
+     *
+     * That is a fatal at class-load time, so it took down setup:di:compile
+     * rather than showing up at runtime. The fix is deletion, not widening: an
+     * override identical to its parent is duplication whatever its visibility.
      */
-    public function isTrackingAvailable(): bool
-    {
-        return false;
-    }
-
-    protected function getCarrierCode(): string
-    {
-        return (string) $this->_code;
-    }
-
     private function methodTitle(): string
     {
         $title = (string) $this->getConfigData('name');
