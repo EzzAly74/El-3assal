@@ -1,0 +1,134 @@
+<!--
+/**
+ * Spartrak — one shipping-method card (Figma "Option - Shipping Type",
+ * 551:9683 unselected / 551:9700 selected).
+ *
+ * ===========================================================================
+ * READ OFF get_design_context, NOT OFF THE RENDER
+ * ===========================================================================
+ * Two things here would have been wrong if taken from a screenshot, and both
+ * came back different from Figma's own CSS:
+ *
+ *   - the SELECTED border is 1px `action/primary`, not 2px;
+ *   - the FREE price is `text/secondary` (grey) and the SURCHARGE price is
+ *     `text/success` (green) — the opposite way round from what a low-res
+ *     render suggests, and the opposite of the usual "free is green" instinct.
+ *
+ * Both are reproduced exactly. See _checkout.less for the colour rule and the
+ * note recording that the green-surcharge choice looks deliberate but is worth
+ * confirming with the designer.
+ *
+ * ===========================================================================
+ * NOTHING ABOUT A RATE IS HARDCODED
+ * ===========================================================================
+ * The card renders whatever Magento returns. `method_title` is the merchant's
+ * configured name, the price comes from core's own price region (so the store's
+ * tax-display setting is honoured rather than reimplemented here), and the
+ * delivery window arrives as an extension attribute published by
+ * Spartrak_Shipping. A carrier that supplies no window simply renders without
+ * that line — nothing is invented to fill the gap.
+ *
+ * ===========================================================================
+ * SOURCE ORDER IS THE LAYOUT
+ * ===========================================================================
+ * Figma places the glyph at x=316 of a 352 card — the trailing edge on its
+ * left-to-right canvas, which under `direction: rtl` is the READING START. So
+ * the icon is written FIRST here to land on the right as the design shows, and
+ * the whole card mirrors correctly on the English store with no second rule.
+ * (Figma's own export lists the content first; that is canvas order, not
+ * reading order.)
+ *
+ * EVERY CORE HOOK IS PRESERVED — do not "tidy" these away:
+ *   element.selectShippingMethod   core's action; also writes checkoutData
+ *   element.isSelected             returns "<carrier>_<method>" or null
+ *   element.getRegion('price')     core's price renderer, tax-aware
+ *   the radio input                keyboard + screen-reader selection, and the
+ *                                  thing core's own tests click
+ */
+-->
+<!-- ko ifnot: method.error_message -->
+<label class="spartrak-ship-method"
+       data-bind="css: {
+                      'spartrak-ship-method--selected':
+                          element.isSelected() === method.carrier_code + '_' + method.method_code
+                  },
+                  attr: {
+                      'data-carrier': method.carrier_code,
+                      'data-method': method.method_code
+                  },
+                  click: element.selectShippingMethod">
+
+    <!--
+      The real control. Visually replaced by the card itself (the design draws
+      no radio), but kept in the DOM and focusable so the list stays operable
+      from the keyboard and announces as a radio group — CLAUDE.md §15.
+    -->
+    <!--
+      `ko-checked` / `ko-value`, exactly as core's own item template writes
+      them, and NOT the `checked:` binding inside data-bind. `element.isSelected`
+      is a READ-ONLY ko.computed; KO's two-way `checked` binding writes the
+      clicked element's value back into whatever it is bound to, and writing to
+      a computed with no `write` option throws
+      "Cannot write a value to a ko.computed…" the first time a shopper picks a
+      method. Core's attribute form is the one-way read that avoids it, so it is
+      reused rather than re-solved.
+    -->
+    <input type="radio"
+           class="spartrak-ship-method__input"
+           name="shipping_method"
+           ko-checked="element.isSelected"
+           ko-value="method.carrier_code + '_' + method.method_code"
+           attr="'id': 's_method_' + method.carrier_code + '_' + method.method_code" />
+
+    <span class="spartrak-ship-method__icon" aria-hidden="true"></span>
+
+    <span class="spartrak-ship-method__body">
+        <span class="spartrak-ship-method__name" data-bind="text: method.method_title"></span>
+
+        <!--
+          The delivery window, as two integers plus one translatable sentence.
+          Built with a single placeholder string rather than concatenated spans
+          so the range reads correctly in both directions and the English store
+          can say "5–7 working days" instead of a transliterated Arabic phrase.
+        -->
+        <!-- ko if: method.extension_attributes
+                    && method.extension_attributes.spartrak_delivery_days_min
+                    && method.extension_attributes.spartrak_delivery_days_max -->
+        <span class="spartrak-ship-method__window"
+              data-bind="text: $t('%1–%2 working days')
+                            .replace('%1', method.extension_attributes.spartrak_delivery_days_min)
+                            .replace('%2', method.extension_attributes.spartrak_delivery_days_max)"></span>
+        <!-- /ko -->
+
+        <span class="spartrak-ship-method__price"
+              data-bind="css: { 'spartrak-ship-method__price--free': method.amount == 0 }">
+            <!-- ko if: method.amount > 0 -->
+            <span class="spartrak-ship-method__price-sign" aria-hidden="true">+</span>
+            <!-- /ko -->
+
+            <each args="element.getRegion('price')" render=""></each>
+
+            <!-- ko if: method.amount == 0 -->
+            <span class="spartrak-ship-method__price-note" data-bind="i18n: '(free)'"></span>
+            <!-- /ko -->
+        </span>
+    </span>
+</label>
+<!-- /ko -->
+
+<!--
+  A carrier that could not quote. Core renders this as a table row; the design
+  has no drawing for it, so it reuses the theme's existing message component
+  rather than inventing a card variant — and the hidden radio core's flow
+  expects stays present.
+-->
+<!-- ko if: method.error_message -->
+<div class="spartrak-ship-method spartrak-ship-method--error" role="alert">
+    <span class="spartrak-ship-method__error-icon" aria-hidden="true"></span>
+    <span class="spartrak-ship-method__error-text" data-bind="text: method.error_message"></span>
+    <span class="spartrak-ship-method__input">
+        <input type="radio"
+               data-bind="attr: { value: method.method_code, id: 's_method_' + method.method_code }" />
+    </span>
+</div>
+<!-- /ko -->

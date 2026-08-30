@@ -1,0 +1,31 @@
+<!--
+/**
+ * Spartrak — the shipping-method list (Figma "Shipping type options",
+ * 549:26262 inside "Shipping type container" 549:26260).
+ *
+ * Core renders the rates as a four-column <table> with a header row of column
+ * labels. Figma draws a row of cards and no table at all, so the table is
+ * replaced outright rather than restyled — a <table> whose cells are forced to
+ * `display: block` is neither the design nor honest markup, and the header row
+ * has no equivalent in the design to hide.
+ *
+ * A LIST is what this actually is: a set of mutually exclusive choices. It is
+ * marked up as one, with the radio group living in the item template, so the
+ * control stays operable and announceable (CLAUDE.md §15).
+ *
+ * `#checkout-shipping-method-load` IS PRESERVED. Core's shipping.js and its
+ * loader both address that id; renaming it stops the rate list refreshing when
+ * the address changes.
+ *
+ * Geometry (Figma): the row is 720 wide with a 16px gap, so each card is 352 —
+ * expressed here as an equal-fraction grid rather than a fixed width, because
+ * the number of rates is whatever Magento returns, not always two.
+ */
+-->
+<div id="checkout-shipping-method-load">
+    <ol class="spartrak-ship-methods" data-bind="foreach: { data: rates(), as: 'method' }">
+        <li class="spartrak-ship-methods__item">
+            <!-- ko template: { name: element.shippingMethodItemTemplate } --><!-- /ko -->
+        </li>
+    </ol>
+</div>

@@ -1,0 +1,53 @@
+<?php
+/**
+ * Copyright © ElAssal for Trading & Supply. All rights reserved.
+ *
+ * The collection point on the admin order view.
+ *
+ * Reads the ORDER's own snapshot of the location, never the live branch record
+ * - so an order still prints what the shopper actually chose after the branch
+ * has been renamed or removed. See the module README.
+ *
+ * @var \Magento\Sales\Block\Adminhtml\Order\AbstractOrder $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+/** @var \Spartrak\PickupLocation\ViewModel\OrderPickup $pickup */
+$pickup = $block->getData('pickup_view_model');
+$order = $block->getOrder();
+
+// Renders nothing for a delivered order, which is why the layout can attach
+// this block unconditionally.
+if (!$pickup->isPickup($order)) {
+    return;
+}
+?>
+<section class="admin__page-section spartrak-order-pickup">
+    <div class="admin__page-section-title">
+        <span class="title"><?= $escaper->escapeHtml(__('Pickup location')) ?></span>
+    </div>
+
+    <div class="admin__page-section-content">
+        <div class="admin__page-section-item">
+            <table class="admin__table-secondary">
+                <tbody>
+                    <tr>
+                        <th><?= $escaper->escapeHtml(__('Method')) ?></th>
+                        <td><?= $escaper->escapeHtml($pickup->getLabel($order)) ?></td>
+                    </tr>
+                    <tr>
+                        <th><?= $escaper->escapeHtml(__('Name')) ?></th>
+                        <td><?= $escaper->escapeHtml($pickup->getName($order)) ?></td>
+                    </tr>
+                    <?php $address = $pickup->getAddress($order); ?>
+                    <?php if ($address !== null): ?>
+                        <tr>
+                            <th><?= $escaper->escapeHtml(__('Address')) ?></th>
+                            <td><?= $escaper->escapeHtml($address) ?></td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>

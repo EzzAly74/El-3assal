@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Spartrak — Latin numerals, everywhere.
+ *
+ * Three seams, because Magento builds ICU formatters at three points and only
+ * one of them goes through a factory. Each class carries the full reasoning for
+ * its own seam; the README has the map.
+ *
+ * GLOBAL, NOT frontend-only, on purpose. The rule is that this business writes
+ * numbers in Latin digits — it is not a storefront skin. An admin reading an
+ * order total in ٠١٢٣ while the customer's confirmation email says 0123 is the
+ * same defect seen from the other side, and reconciling the two by eye is
+ * exactly the kind of thing that produces a mis-keyed refund.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <!-- Seam 1: every server-rendered price (via the generated NumberFormatterFactory). -->
+    <preference for="Magento\Framework\NumberFormatter" type="Spartrak\Locale\Model\NumberFormatter"/>
+
+    <!-- Seam 2: the toCurrency() fallback, fixed at construction. -->
+    <preference for="Magento\Framework\Currency" type="Spartrak\Locale\Model\Currency"/>
+
+    <!-- Seam 3: the decimal/group separators handed to the browser. -->
+    <type name="Magento\Framework\Locale\Format">
+        <plugin name="spartrak_latin_price_format" type="Spartrak\Locale\Plugin\LatinPriceFormat"/>
+    </type>
+
+</config>

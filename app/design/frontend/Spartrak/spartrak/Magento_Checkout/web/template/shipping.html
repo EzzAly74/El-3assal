@@ -1,0 +1,143 @@
+<!--
+/**
+ * Spartrak — the shipping step.
+ *
+ * FIGMA SSOT: 549:2753 (delivery), 554:13119 (branch), 554:13750 (depot).
+ * All three are the SAME step: a segmented control at the top, then a body
+ * that changes with the segment. That is why this is one template with three
+ * bodies rather than three screens.
+ *
+ * ===========================================================================
+ * WHAT IS ADDED TO CORE'S TEMPLATE, AND WHAT IS UNTOUCHED
+ * ===========================================================================
+ * Added, in three places only:
+ *
+ *   1. the `spartrak-delivery-mode` region, above everything — Figma puts the
+ *      segments at y=48, before the address container at y=124;
+ *   2. an `if` around the address block, so branch and depot replace the
+ *      address book rather than appearing beneath it (inspected, not assumed:
+ *      554:13119's "Shipping address container" holds branch rows and no form
+ *      fields anywhere in its subtree);
+ *   3. the `spartrak-pickup-locations` region, which renders in their place.
+ *
+ * Everything else is core's, verbatim and load-bearing:
+ *
+ *   fadeVisible / blockLoader   the step's own show-hide and busy state
+ *   getRegion('customer-email') the guest email field. Guest checkout is off
+ *                               on this store, but removing the region would
+ *                               break the moment a merchant turns it on.
+ *   address-list regions        the saved-address cards
+ *   isFormInline / showFormPopUp the add-address modal's own trigger and
+ *                               visibility, which the desktop modal and the
+ *                               mobile bottom sheet both go through
+ *   #co-shipping-method-form + submit="setShippingInformation"
+ *                               the ONLY path to the next step. The pickup
+ *                               flows use it too — they change what is
+ *                               selected, never how it is submitted.
+ *   rates().length guards       "no quotes available" still shows when a
+ *                               carrier declines, including our pickup
+ *                               carriers when no locations exist.
+ *   errorValidationMessage      server-side errors, including "please choose a
+ *                               pickup location" from
+ *                               ApplyPickupLocation::resolveLocation
+ *
+ * `spartrakMode` is added to this component by js/view/shipping-mixin.js.
+ */
+-->
+<li id="shipping" class="checkout-shipping-address" data-bind="fadeVisible: visible()">
+    <div class="step-title" translate="'Shipping Address'" data-role="title"></div>
+    <div id="checkout-step-shipping"
+         class="step-content"
+         data-role="content">
+
+        <!-- Figma 554:13250 — the segmented control, above everything. -->
+        <each args="getRegion('spartrak-delivery-mode')" render=""></each>
+
+        <each if="!quoteIsVirtual" args="getRegion('customer-email')" render=""></each>
+
+        <!-- ko if: spartrakMode.isDelivery() -->
+        <each args="getRegion('address-list')" render=""></each>
+        <each args="getRegion('address-list-additional-addresses')" render=""></each>
+
+        <!-- Address form pop up -->
+        <if args="!isFormInline">
+            <div class="new-address-popup">
+                <button type="button"
+                        class="action action-show-popup"
+                        click="showFormPopUp"
+                        visible="!isNewAddressAdded()">
+                    <span translate="'New Address'"></span>
+                </button>
+            </div>
+            <div id="opc-new-shipping-address"
+                 visible="isFormPopUpVisible()"
+                 render="shippingFormTemplate"></div>
+        </if>
+
+        <each args="getRegion('before-form')" render=""></each>
+
+        <!-- Inline address form -->
+        <render if="isFormInline" args="shippingFormTemplate"></render>
+        <!-- /ko -->
+
+        <!-- Figma 554:13119 / 554:13750 — branch and depot replace the above. -->
+        <each args="getRegion('spartrak-pickup-locations')" render=""></each>
+    </div>
+</li>
+
+<!--Shipping method template-->
+<li id="opc-shipping_method"
+    class="checkout-shipping-method"
+    data-bind="fadeVisible: visible(), blockLoader: isLoading"
+    role="presentation">
+    <div class="checkout-shipping-method">
+        <div class="step-title"
+             translate="'Shipping Methods'"
+             data-role="title"></div>
+
+        <each args="getRegion('before-shipping-method-form')" render=""></each>
+
+        <div id="checkout-step-shipping_method"
+             class="step-content"
+             data-role="content"
+             role="tabpanel"
+             aria-hidden="false">
+            <form id="co-shipping-method-form"
+                  class="form methods-shipping"
+                  if="rates().length"
+                  submit="setShippingInformation"
+                  novalidate="novalidate">
+
+                <!--
+                  The method cards are a DELIVERY concern. Figma's pickup
+                  frames draw no shipping-method cards at all — the location IS
+                  the method — so the list is hidden on those segments while
+                  the form around it, and its submit, stay exactly where they
+                  were.
+                -->
+                <!-- ko if: spartrakMode.isDelivery() -->
+                <render args="shippingMethodListTemplate"></render>
+                <!-- /ko -->
+
+                <div id="onepage-checkout-shipping-method-additional-load">
+                    <each args="getRegion('shippingAdditional')" render=""></each>
+                </div>
+                <div role="alert"
+                     if="errorValidationMessage().length"
+                     class="message notice">
+                    <span text="errorValidationMessage()"></span>
+                </div>
+                <div class="actions-toolbar" id="shipping-method-buttons-container">
+                    <div class="primary">
+                        <button data-role="opc-continue" type="submit" class="button action continue primary">
+                            <span translate="'Next'"></span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+            <div class="no-quotes-block"
+                 ifnot="rates().length > 0"
+                 translate="'Sorry, no quotes are available for this order at this time'"></div>
+        </div>
+    </div>
+</li>

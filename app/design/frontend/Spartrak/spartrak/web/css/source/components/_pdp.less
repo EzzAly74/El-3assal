@@ -78,19 +78,16 @@
 // spacing — is owned below.
 
 // ---------------------------------------------------------------------------
-// Local mixin: the visually-hidden pattern, used for the several labels
-// Magento emits that the design does not draw but assistive tech still needs.
+// The visually-hidden pattern, used for the several labels Magento emits that
+// the design does not draw but assistive tech still needs.
+//
+// The IMPLEMENTATION moved to foundations/_a11y.less when the cart became a
+// second consumer - see that file for why the pattern is what it is. The local
+// name is kept as a delegating alias rather than deleted, so the three call
+// sites below are untouched and this file's rules stay readable on their own.
 // ---------------------------------------------------------------------------
 .spartrak-pdp-visually-hidden() {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+    .spartrak-visually-hidden();
 }
 
 // ===========================================================================

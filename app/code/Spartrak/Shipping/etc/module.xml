@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/module.xsd">
+    <module name="Spartrak_Shipping" setup_version="1.0.0">
+        <sequence>
+            <!-- Shipping/Quote: this module declares a carrier and extends the
+                 shipping-method service contract both own. -->
+            <module name="Magento_Shipping"/>
+            <module name="Magento_Quote"/>
+        </sequence>
+    </module>
+</config>

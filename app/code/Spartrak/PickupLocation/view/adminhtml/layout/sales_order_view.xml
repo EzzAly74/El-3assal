@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<!--
+  Shows the chosen collection point on the admin order view.
+
+  Added AFTER the order-info block rather than replacing the shipping-address
+  renderer: the synthesised address is still correct and still the thing a
+  shipment is raised against, so overwriting it would remove information. This
+  adds the one fact the address alone cannot convey - that the shopper is
+  coming to collect, and from which named place.
+
+  Renders nothing at all for a delivered order (see ViewModel\OrderPickup),
+  so it is safe to attach unconditionally.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="order_additional_info">
+            <!--
+              Magento\Sales\Block\Adminhtml\Order\AbstractOrder is the canonical
+              base for a block on this screen: it already resolves the order
+              being viewed, so this module does not reach into the registry for
+              it or re-load it from the request.
+            -->
+            <block class="Magento\Sales\Block\Adminhtml\Order\AbstractOrder"
+                   name="spartrak.order.pickup"
+                   template="Spartrak_PickupLocation::order/pickup.phtml">
+                <arguments>
+                    <argument name="pickup_view_model" xsi:type="object">
+                        Spartrak\PickupLocation\ViewModel\OrderPickup
+                    </argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+    </body>
+</page>

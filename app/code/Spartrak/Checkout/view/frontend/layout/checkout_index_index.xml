@@ -1,0 +1,109 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Spartrak checkout — component wiring.
+ *
+ * ONE VALUE IS OVERRIDDEN: the class behind the `progressBar` node. Layout
+ * merging is a deep array merge, so naming only the leaf that changes leaves
+ * `displayArea` and the `deps` list — which is what defers the bar until the
+ * shipping and payment components exist — exactly as Magento_Checkout declared
+ * them. Restating the whole node would fork those two values into a second copy
+ * that has to be kept in step with core by hand (CLAUDE.md §9).
+ *
+ * The replacement EXTENDS Magento_Checkout/js/view/progress-bar rather than
+ * standing in for it; see the header of web/js/view/progress-bar.js for why
+ * that distinction matters (core's component owns checkout's hash routing).
+ *
+ * The node path below mirrors
+ * vendor/magento/module-checkout/view/frontend/layout/checkout_index_index.xml,
+ * which is where `progressBar` is declared.
+ *
+ * ===========================================================================
+ * THE PAGE LAYOUT IS CHANGED FROM `checkout` TO `1column`
+ * ===========================================================================
+ * Magento ships checkout on its own `checkout` page layout, and that layout
+ * `<update handle="empty"/>` — it deletes the site header outright and rebuilds
+ * a stripped one containing nothing but the logo, on the usual reasoning that a
+ * funnel should have no exits.
+ *
+ * This design does not do that. Figma's checkout frame (549:2753) carries the
+ * full SpareTrak chrome: the top promo banner, the utility row, the search bar,
+ * the account and cart controls, and the complete footer. Keeping `checkout`
+ * would have meant rebuilding every one of those inside a checkout-only header,
+ * i.e. a second copy of the site header to maintain.
+ *
+ * ONE THING IS DROPPED, AND THE DESIGN IS EXPLICIT ABOUT IT. Measured off the
+ * frames: the navbar is 157.42 tall on checkout (549:2764) and 223.42 on the
+ * cart (553:4674). The 66px difference is exactly the mega-menu row
+ * ("Navbar - Menus", 553:4730), which the cart has and checkout does not. So
+ * the category navigation is removed here and only here — the funnel keeps the
+ * shopper's own controls and loses the browse affordance.
+ *
+ * `spartrak.primary_nav` is a child block of `porto_header`, rendered by this
+ * theme's Smartwave_Porto/templates/html/header.phtml, so removing it by name
+ * takes the row out without touching the header template.
+ */
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      layout="1column"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="spartrak.primary_nav" remove="true"/>
+
+        <referenceBlock name="checkout.root">
+            <arguments>
+                <argument name="jsLayout" xsi:type="array">
+                    <item name="components" xsi:type="array">
+                        <item name="checkout" xsi:type="array">
+                            <item name="children" xsi:type="array">
+                                <item name="progressBar" xsi:type="array">
+                                    <item name="component" xsi:type="string">Spartrak_Checkout/js/view/progress-bar</item>
+                                </item>
+
+                                <!--
+                                  ===================================================
+                                  THE DELIVERY-MODE SEGMENTS AND THE PICKUP LISTS
+                                  ===================================================
+                                  Both are children of `shippingAddress`, and both
+                                  render through a `displayArea` the theme's
+                                  shipping.html asks for by name. That is how a
+                                  component reaches a specific point in a template it
+                                  does not own - and it is why the two new regions in
+                                  that file are `getRegion(...)` calls rather than
+                                  hardcoded markup.
+
+                                  ADDED HERE, NOT REPLACING ANYTHING. Every core child
+                                  of shippingAddress - the address list, the form, the
+                                  method list - is untouched; these two simply join
+                                  them, and the template decides which are visible.
+                                -->
+                                <item name="steps" xsi:type="array">
+                                    <item name="children" xsi:type="array">
+                                        <item name="shipping-step" xsi:type="array">
+                                            <item name="children" xsi:type="array">
+                                                <item name="shippingAddress" xsi:type="array">
+                                                    <item name="children" xsi:type="array">
+                                                        <item name="spartrak-delivery-mode" xsi:type="array">
+                                                            <item name="component" xsi:type="string">Spartrak_Checkout/js/view/delivery-mode</item>
+                                                            <item name="displayArea" xsi:type="string">spartrak-delivery-mode</item>
+                                                            <item name="sortOrder" xsi:type="string">0</item>
+                                                        </item>
+                                                        <item name="spartrak-pickup-locations" xsi:type="array">
+                                                            <item name="component" xsi:type="string">Spartrak_Checkout/js/view/pickup-locations</item>
+                                                            <item name="displayArea" xsi:type="string">spartrak-pickup-locations</item>
+                                                            <item name="sortOrder" xsi:type="string">10</item>
+                                                        </item>
+                                                    </item>
+                                                </item>
+                                            </item>
+                                        </item>
+                                    </item>
+                                </item>
+                            </item>
+                        </item>
+                    </item>
+                </argument>
+            </arguments>
+        </referenceBlock>
+    </body>
+</page>

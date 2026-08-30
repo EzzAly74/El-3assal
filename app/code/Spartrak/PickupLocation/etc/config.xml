@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<!--
+  Defaults for the two pickup carriers.
+
+  These are DEFAULTS, not the storefront's source of truth. They reproduce the
+  Figma segmented control's labels on a fresh install so the checkout looks
+  right before anyone opens the admin; every one of them is editable per store
+  view (see etc/adminhtml/system.xml), and the storefront renders whatever the
+  configuration actually says.
+
+  Both are priced at 0.00. Collecting an order yourself costs the shopper
+  nothing in any frame of the design - but it is a PRICE FIELD rather than a
+  hardcoded zero, because a merchant who later charges a handling fee for depot
+  consignment must be able to type a number instead of asking for a deploy.
+
+  `sallowspecific` is 0 (all allowed countries). A pickup network is domestic by
+  nature, but restricting it here would silently duplicate the store's own
+  allowed-countries setting in a second place.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <carriers>
+            <spartrak_branch>
+                <active>1</active>
+                <model>Spartrak\PickupLocation\Model\Carrier\BranchPickup</model>
+                <title>استلام من الفرع</title>
+                <name>استلام من الفرع</name>
+                <price>0.00</price>
+                <sallowspecific>0</sallowspecific>
+                <sort_order>20</sort_order>
+                <!--
+                  A pickup carrier cannot fail the way a courier API can, so a
+                  rate error has nothing useful to say. The field exists because
+                  AbstractCarrier reads it; it is never reached in practice
+                  because collectRates() returns false rather than an error when
+                  there is nothing to collect from.
+                -->
+                <specificerrmsg>هذه الخدمة غير متاحة حاليا. برجاء اختيار طريقة أخرى.</specificerrmsg>
+            </spartrak_branch>
+
+            <spartrak_depot>
+                <active>1</active>
+                <model>Spartrak\PickupLocation\Model\Carrier\DepotPickup</model>
+                <title>استلام من الموقف</title>
+                <name>استلام من الموقف</name>
+                <price>0.00</price>
+                <sallowspecific>0</sallowspecific>
+                <sort_order>30</sort_order>
+                <specificerrmsg>هذه الخدمة غير متاحة حاليا. برجاء اختيار طريقة أخرى.</specificerrmsg>
+            </spartrak_depot>
+        </carriers>
+    </default>
+</config>

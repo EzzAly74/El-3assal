@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+    <menu>
+        <add id="Spartrak_PickupLocation::pickup"
+             title="Pickup Locations"
+             module="Spartrak_PickupLocation"
+             sortOrder="60"
+             parent="Magento_Backend::stores"
+             resource="Spartrak_PickupLocation::pickup"/>
+        <add id="Spartrak_PickupLocation::branch"
+             title="Branches"
+             module="Spartrak_PickupLocation"
+             sortOrder="10"
+             parent="Spartrak_PickupLocation::pickup"
+             action="spartrak_pickup/branch/index"
+             resource="Spartrak_PickupLocation::branch"/>
+        <add id="Spartrak_PickupLocation::depot"
+             title="Depots"
+             module="Spartrak_PickupLocation"
+             sortOrder="20"
+             parent="Spartrak_PickupLocation::pickup"
+             action="spartrak_pickup/depot/index"
+             resource="Spartrak_PickupLocation::depot"/>
+        <add id="Spartrak_PickupLocation::operator"
+             title="Transport Operators"
+             module="Spartrak_PickupLocation"
+             sortOrder="30"
+             parent="Spartrak_PickupLocation::pickup"
+             action="spartrak_pickup/operator/index"
+             resource="Spartrak_PickupLocation::operator"/>
+    </menu>
+</config>

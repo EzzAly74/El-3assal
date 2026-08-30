@@ -34,4 +34,22 @@
     // The inset-ish hairline lift on form controls. Applied to every text
     // input, the OTP cells, and the OTP step's phone chip.
     --shadow-input: 0 1px 1.5px rgba(44, 54, 53, 0.03);
+
+    // ------------------------------------------------------------------
+    // FIGMA CART PASS (2026-08-30)
+    // ------------------------------------------------------------------
+    // Figma effect name "Medium/Darker":
+    //     color #00000026, offset (0, 1), radius 3, spread 0
+    //
+    // A third effect, and a genuinely different one from the two above — it is
+    // ~8x the alpha of Shadow/Input. It lifts the cart's two floating panels
+    // off the page tint: the order-summary card (817:22713) and the 56px
+    // ship-to icon disc (817:22705).
+    //
+    // Provenance: get_design_context on 817:22697 reported both as
+    // `drop-shadow(0 1px 1.5px rgba(0,0,0,0.15))`. That is TAILWIND'S output,
+    // which halves the blur radius — the variable definition's own radius is 3,
+    // and 3 is what is used here. The same halving is recorded in this file's
+    // header for the Container effect, and it caught us once already.
+    --shadow-medium-darker: 0 1px 3px rgba(0, 0, 0, 0.15);
 }

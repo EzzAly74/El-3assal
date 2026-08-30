@@ -1,0 +1,131 @@
+<!--
+/**
+ * Spartrak — the branch and depot pickers.
+ *
+ * FIGMA SSOT
+ *   branch  554:13119 — heading 187x26, "Address item" 696x86, 102 apart,
+ *                       Card info 612x46 at (20,20), pin 24 at (652,31).
+ *                       No search, no chip, no visible radio.
+ *   depot   554:13750 — heading 172x26, search input 696x48 with a 20px loupe,
+ *                       "Address item" 696x70, 78 apart, radio 20 at (20,25),
+ *                       operator chip at (60,21) 70x28, Card info 482x46 at
+ *                       (150,12), car 24 at (652,23), disclaimer 635x21.
+ *
+ * ===========================================================================
+ * WHY THE BRANCH ROW HAS A RADIO THE DESIGN DOES NOT DRAW
+ * ===========================================================================
+ * Figma gives the depot row a visible radio and the branch row none — the
+ * branch card is selected by tapping it. A pointer can do that; a keyboard and
+ * a screen reader cannot, unless the choice is a real form control.
+ *
+ * So both rows carry a radio in a single named group. On the depot row it is
+ * styled to look like the drawn control; on the branch row it is visually
+ * hidden and the card is its label. The rendered result matches both frames
+ * exactly, and both lists are operable with the arrow keys and announced as
+ * "n of m" (CLAUDE.md section 15).
+ *
+ * ===========================================================================
+ * NOTHING HERE IS A LOCATION NAME
+ * ===========================================================================
+ * Every row is data from the admin-managed tables, published by
+ * Spartrak\PickupLocation\Model\ConfigProvider. There is no placeholder list.
+ */
+-->
+<div class="spartrak-pickup" visible="$data.isBranch() || $data.isDepot()">
+
+    <!-- ko if: isBranch() -->
+    <h2 class="spartrak-pickup__title" translate="'Choose the branch nearest to you'"></h2>
+    <!-- /ko -->
+
+    <!-- ko if: isDepot() -->
+    <h2 class="spartrak-pickup__title" translate="'Choose the depot nearest to you'"></h2>
+
+    <!--
+      Figma 569:14542. `type="search"` rather than `text`: it gets the
+      platform's own clear affordance and the right on-screen keyboard, for
+      free and with no extra markup.
+    -->
+    <div class="spartrak-pickup__search">
+        <label class="spartrak-visually-hidden" for="spartrak-depot-search"
+               translate="'Search for a depot'"></label>
+        <input type="search"
+               id="spartrak-depot-search"
+               class="spartrak-pickup__search-input"
+               autocomplete="off"
+               attr="{ placeholder: $t('Search for a depot') }"
+               textInput="query"/>
+        <span class="spartrak-pickup__search-icon" aria-hidden="true"></span>
+    </div>
+    <!-- /ko -->
+
+    <!-- ko if: hasResults() -->
+    <ol class="spartrak-pickup__list" role="radiogroup"
+        attr="{ 'aria-label': isBranch() ? $t('Branches') : $t('Depots') }">
+
+        <!-- ko foreach: { data: isBranch() ? branches : visibleDepots(), as: 'location' } -->
+        <li class="spartrak-pickup__item">
+            <label class="spartrak-pickup-card"
+                   css="{
+                       'spartrak-pickup-card--selected': $parent.isSelected(location),
+                       'spartrak-pickup-card--branch': $parent.isBranch(),
+                       'spartrak-pickup-card--depot': $parent.isDepot()
+                   }">
+
+                <input type="radio"
+                       class="spartrak-pickup-card__input"
+                       name="spartrak_pickup_location"
+                       attr="{ value: location.id, id: 'spartrak-pickup-' + location.id }"
+                       checked="$parent.isSelected(location)"
+                       click="function () { return $parent.selectLocation(location); }"/>
+
+                <!-- Reading start: the glyph. Branch shows a pin, depot a car. -->
+                <span class="spartrak-pickup-card__icon" aria-hidden="true"></span>
+
+                <span class="spartrak-pickup-card__body">
+                    <span class="spartrak-pickup-card__name" text="location.name"></span>
+
+                    <span class="spartrak-pickup-card__address">
+                        <!-- ko if: location.region -->
+                        <span text="location.region"></span>
+                        <!-- ko if: location.address --><span aria-hidden="true"> — </span><!-- /ko -->
+                        <!-- /ko -->
+                        <span text="location.address"></span>
+                    </span>
+                </span>
+
+                <!--
+                  The operator badge. Depot only, and only when the depot
+                  actually has one — operator_id is nullable by schema, so a
+                  depot with no operator simply renders without a chip rather
+                  than with an empty one.
+                -->
+                <!-- ko if: $parent.isDepot() && location.operator -->
+                <span class="spartrak-pickup-card__chip" text="location.operator"></span>
+                <!-- /ko -->
+            </label>
+        </li>
+        <!-- /ko -->
+    </ol>
+    <!-- /ko -->
+
+    <!-- ko ifnot: hasResults() -->
+    <p class="spartrak-pickup__empty">
+        <!-- ko if: isDepot() && isEmptySearch() -->
+        <span translate="'No pickup locations match your search.'"></span>
+        <!-- /ko -->
+        <!-- ko ifnot: isDepot() && isEmptySearch() -->
+        <span translate="'No pickup locations are available at the moment.'"></span>
+        <!-- /ko -->
+    </p>
+    <!-- /ko -->
+
+    <!--
+      Figma 569:14629 — the footnote under the depot list. Merchant-configured
+      (carriers/spartrak_depot/disclaimer): the words are a statement about a
+      third party's service, so they are not frozen into this template. An empty
+      value renders nothing at all.
+    -->
+    <!-- ko if: isDepot() && disclaimer -->
+    <p class="spartrak-pickup__disclaimer" text="disclaimer"></p>
+    <!-- /ko -->
+</div>

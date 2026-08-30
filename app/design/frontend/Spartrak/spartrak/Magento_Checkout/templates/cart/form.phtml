@@ -1,0 +1,133 @@
+<?php
+/**
+ * Spartrak — the cart page's item column.
+ *
+ * FIGMA SSOT: "Cart section" 817:22809 (816 wide) inside 817:22551.
+ *   header 816x74 — title at the reading start, مسح الكل at the reading end
+ *   Card - Cart Product 720x140, 24px apart
+ *
+ * ===========================================================================
+ * THE TABLE IS GONE; NOTHING ELSE IS
+ * ===========================================================================
+ * Core renders the lines as a four-column <table> with a header row. Figma
+ * draws a stack of cards, so the table is replaced outright rather than forced
+ * to `display: block` — a <table> whose cells are all block-level is neither
+ * the design nor honest markup, and the column headings have no counterpart to
+ * hide.
+ *
+ * EVERY behavioural hook core puts on this page is preserved verbatim. These
+ * are not decoration — remove any one and something stops working:
+ *
+ *   form#form-validate + action=checkout/cart/updatePost
+ *          the ONLY write path. Quantity changes, removals and clear-cart all
+ *          go through core's validated controller, with its CSRF form key.
+ *   data-mage-init Magento_Checkout/js/action/update-shopping-cart
+ *          core's submit handler, including its qty validation round trip.
+ *   data-mage-init shoppingCart (on the list)
+ *          owns the clear-cart confirmation dialog and the update-button
+ *          enable/disable logic. It addresses `emptyCartButton` and
+ *          `updateCartActionContainer` by selector, so both must keep theirs.
+ *   #update_cart_action_container
+ *          the hidden field those two scripts write the intended action into.
+ *   button.action.clear[value=empty_cart][data-cart-empty]
+ *          "مسح الكل". Native, and gated on the merchant's own
+ *          checkout/cart/enable_clear_shopping_cart setting — so this template
+ *          does not invent a clear-cart feature, it restyles the one that
+ *          exists.
+ *   button.action.update[value=update_qty][data-cart-item-update]
+ *          kept, and visually hidden rather than deleted: it is what the
+ *          quantity control clicks (see web/js/spartrak-cart-qty.js), and it is
+ *          the entire no-JavaScript fallback — without it a shopper with JS off
+ *          could change a quantity and never be able to save it.
+ *   getPagerHtml()
+ *          a cart above the merchant's page size is paged by core. Figma draws
+ *          no pager because its frame holds three items; dropping it would
+ *          strand items on page two with no way to reach them.
+ *
+ * @var \Magento\Checkout\Block\Cart\Grid $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+?>
+<?= $block->getChildHtml('form_before') ?>
+
+<form action="<?= $escaper->escapeUrl($block->getUrl('checkout/cart/updatePost')) ?>"
+      method="post"
+      id="form-validate"
+      <?php /* Two initialisers on one element, in one attribute: core's own
+               submit handler, and the quantity control's presentation layer.
+               spartrakCartQty never posts anything itself - it clicks the
+               update button below, so everything still goes through the
+               handler declared alongside it here. */ ?>
+      data-mage-init='{
+          "Magento_Checkout/js/action/update-shopping-cart": {
+              "validationURL": "<?= $escaper->escapeUrl($block->getUrl('checkout/cart/updateItemQty')) ?>",
+              "updateCartActionContainer": "#update_cart_action_container"
+          },
+          "spartrakCartQty": {}
+      }'
+      class="form form-cart spartrak-cart">
+
+    <?= $block->getBlockHtml('formkey') ?>
+
+    <div class="spartrak-cart__header">
+        <h1 class="spartrak-cart__title">
+            <?= $escaper->escapeHtml(__('Shopping cart')) ?>
+        </h1>
+
+        <?php if ($block->getViewModel()->isClearShoppingCartEnabled()): ?>
+            <?php /* Core's own control, core's own attributes — restyled, not
+                     reimplemented. The shoppingCart widget below finds it by
+                     the `.action.clear` selector it is configured with. */ ?>
+            <button type="button"
+                    name="update_cart_action"
+                    data-cart-empty=""
+                    value="empty_cart"
+                    title="<?= $escaper->escapeHtmlAttr(__('Clear Shopping Cart')) ?>"
+                    class="action clear spartrak-cart__clear"
+                    id="empty_cart_button">
+                <span><?= $escaper->escapeHtml(__('Clear all')) ?></span>
+            </button>
+        <?php endif ?>
+    </div>
+
+    <?php if ($block->getPagerHtml()): ?>
+        <div class="cart-products-toolbar cart-products-toolbar-top toolbar spartrak-cart__toolbar"
+             data-attribute="cart-products-toolbar-top"><?= $block->getPagerHtml() ?></div>
+    <?php endif ?>
+
+    <?php /* A LIST, because that is what it is: an ordered set of lines. The
+             `cart items` classes stay so core CSS and any third-party module
+             that keys on them keeps working. */ ?>
+    <ol id="shopping-cart-table"
+        class="cart items spartrak-cart__list"
+        data-mage-init='{"shoppingCart":{"emptyCartButton": ".action.clear",
+        "updateCartActionContainer": "#update_cart_action_container"}}'>
+        <?php foreach ($block->getItems() as $item): ?>
+            <?= $block->getItemHtml($item) ?>
+        <?php endforeach ?>
+    </ol>
+
+    <?php if ($block->getPagerHtml()): ?>
+        <div class="cart-products-toolbar cart-products-toolbar-bottom toolbar spartrak-cart__toolbar"
+             data-attribute="cart-products-toolbar-bottom"><?= $block->getPagerHtml() ?></div>
+    <?php endif ?>
+
+    <div class="cart main actions spartrak-cart__actions">
+        <?php /* Visually hidden, NOT removed. See the header note: this button
+                 is what the quantity control clicks, and it is the whole
+                 no-JavaScript fallback. It stays keyboard-reachable. */ ?>
+        <button type="submit"
+                name="update_cart_action"
+                data-cart-item-update=""
+                value="update_qty"
+                title="<?= $escaper->escapeHtmlAttr(__('Update Shopping Cart')) ?>"
+                class="action update spartrak-cart__update">
+            <span><?= $escaper->escapeHtml(__('Update Shopping Cart')) ?></span>
+        </button>
+
+        <input type="hidden" value="" id="update_cart_action_container" data-cart-item-update=""/>
+    </div>
+</form>
+
+<?= $block->getChildHtml('checkout.cart.order.actions') ?>
+<?= $block->getChildHtml('shopping.cart.table.after') ?>

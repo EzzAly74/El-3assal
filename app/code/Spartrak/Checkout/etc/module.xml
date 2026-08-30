@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/module.xsd">
+    <module name="Spartrak_Checkout" setup_version="1.0.0">
+        <sequence>
+            <!-- Checkout: this module replaces components declared in that
+                 module's own checkout_index_index.xml, so its layout has to be
+                 merged before ours or the nodes we reference do not exist yet. -->
+            <module name="Magento_Checkout"/>
+            <!-- Customer: the shipping step renders the address book, and the
+                 "default address" badge is read from the customer entity. -->
+            <module name="Magento_Customer"/>
+            <!-- CustomerAuth: Plugin\PromptLoginForGuest builds its redirect
+                 fragment from PostLoginDestinations::CHECKOUT, so that class
+                 has to be loadable before this module's plugin is. -->
+            <module name="Spartrak_CustomerAuth"/>
+            <!-- Tax: ViewModel\CartItemPricing consults the cart price-display
+                 setting so the struck-through price shares a tax basis with the
+                 live price core renders beside it. -->
+            <module name="Magento_Tax"/>
+        </sequence>
+    </module>
+</config>

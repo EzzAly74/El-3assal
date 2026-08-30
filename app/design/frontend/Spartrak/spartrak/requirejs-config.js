@@ -19,7 +19,8 @@ var config = {
             spartrakHomeTiles: 'js/spartrak-home-tiles',
             spartrakHomeVideo: 'js/spartrak-home-video',
             spartrakCascadeSearch: 'js/spartrak-cascade-search',
-            spartrakToast: 'js/spartrak-toast'
+            spartrakToast: 'js/spartrak-toast',
+            spartrakCartQty: 'js/spartrak-cart-qty'
         }
     },
     /*

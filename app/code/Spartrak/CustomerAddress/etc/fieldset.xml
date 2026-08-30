@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  additional_phone TRAVELS EXACTLY WHERE telephone TRAVELS
+  ===========================================================================
+  Every aspect below was read off core's own declarations for `telephone` and
+  mirrored one for one. That is the design: the additional phone is a second
+  contact number, so it must behave identically to the first one at every
+  boundary - saved address to quote, quote to order, order back to the address
+  book, and order back to a quote on reorder.
+
+  Anything less produces a field that survives some journeys and silently
+  vanishes on others, which is worse than not having it: a courier would be
+  handed an order whose second number disappeared because the shopper reordered
+  rather than ordered.
+
+  Core's declarations, for reference:
+    Magento_Quote/etc/fieldset.xml  sales_convert_quote_address ->
+                                    to_order_address, to_customer_address
+    Magento_Quote/etc/fieldset.xml  order_address -> (reorder path)
+    Magento_Sales/etc/fieldset.xml  customer_address -> to_quote_address
+    Magento_Sales/etc/fieldset.xml  sales_convert_order_address ->
+                                    to_customer_address
+    Magento_Sales/etc/fieldset.xml  order_address -> to_customer_address
+
+  These are ADDITIVE merges onto core's fieldsets, not replacements - Magento
+  merges fieldset.xml across every module, so declaring one field here leaves
+  core's own fields untouched.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:DataObject/etc/fieldset.xsd">
+    <scope id="global">
+
+        <!-- The shopper's saved address -> the quote being built. -->
+        <fieldset id="customer_address">
+            <field name="additional_phone">
+                <aspect name="to_quote_address"/>
+            </field>
+        </fieldset>
+
+        <!--
+          The quote -> the placed order, and -> the address book when the
+          shopper ticked "save this address".
+        -->
+        <fieldset id="sales_convert_quote_address">
+            <field name="additional_phone">
+                <aspect name="to_order_address"/>
+                <aspect name="to_customer_address"/>
+            </field>
+        </fieldset>
+
+        <!-- A placed order's address -> the address book. -->
+        <fieldset id="sales_convert_order_address">
+            <field name="additional_phone">
+                <aspect name="to_customer_address"/>
+            </field>
+        </fieldset>
+
+        <!-- Reorder: a past order's address -> a fresh quote. -->
+        <fieldset id="order_address">
+            <field name="additional_phone">
+                <aspect name="to_customer_address"/>
+                <aspect name="to_quote_address"/>
+            </field>
+        </fieldset>
+
+    </scope>
+</config>

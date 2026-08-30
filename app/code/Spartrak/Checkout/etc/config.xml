@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!--
+  Defaults for the cart's instalment-plans panel, reproducing Figma 817:22748 on
+  a fresh install. Every one is editable per store view - see
+  etc/adminhtml/system.xml.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <checkout>
+            <spartrak_instalments>
+                <enabled>1</enabled>
+                <heading>اشتري الان وادفع لاحقا</heading>
+                <body>قسط مشترياتك على دفعات شهرية تناسبك، بدون فوائد على خطط محددة.</body>
+                <note>متاح مع فاليو، سهولة وترو.</note>
+            </spartrak_instalments>
+        </checkout>
+    </default>
+</config>

@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Frontend-only: the controller this plugs is a storefront action, and the
+ * customer session it reasons about has no meaning in the admin area.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <type name="Magento\Checkout\Controller\Index\Index">
+        <plugin name="spartrak_prompt_login_for_guest" type="Spartrak\Checkout\Plugin\PromptLoginForGuest"/>
+    </type>
+
+    <!--
+      ===================================================================
+      THE CART LINE'S QUANTITY OPTIONS, HANDED TO EVERY ITEM RENDERER
+      ===================================================================
+      Declared on the BASE renderer rather than on each block in layout XML.
+
+      Magento resolves a cart item renderer per product type - default, simple,
+      virtual, configurable, grouped, bundle, downloadable - and every one of
+      them extends this class. A layout <referenceBlock> would have to name all
+      of them, and would silently miss any product type a merchant installs
+      later; that product's cart line would then render a quantity control with
+      no options at all.
+
+      Magento's DI configuration is inherited down the class hierarchy, so one
+      declaration here reaches every renderer, present and future.
+
+      It goes into the `data` array because that is the argument a Block accepts
+      for view models - the template reads it back with
+      getData('qty_options_view_model'), exactly as it would an argument set in
+      layout.
+    -->
+    <type name="Magento\Checkout\Block\Cart\Item\Renderer">
+        <arguments>
+            <argument name="data" xsi:type="array">
+                <item name="qty_options_view_model" xsi:type="object">
+                    Spartrak\Checkout\ViewModel\CartQtyOptions
+                </item>
+                <item name="pricing_view_model" xsi:type="object">
+                    Spartrak\Checkout\ViewModel\CartItemPricing
+                </item>
+                <!--
+                  Injected rather than fetched with $this->helper() inside the
+                  template. Core's own cart item template does the latter and
+                  suppresses the Magento2.Templates.ThisInTemplate sniff to do
+                  it; passing the helper in keeps the override free of both the
+                  service locator and the suppression.
+                -->
+                <item name="msrp_helper" xsi:type="object">Magento\Msrp\Helper\Data</item>
+            </argument>
+        </arguments>
+    </type>
+
+</config>

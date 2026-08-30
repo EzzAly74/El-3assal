@@ -1,0 +1,64 @@
+<?php
+/**
+ * Spartrak — the instalment-plans panel under the cart summary.
+ *
+ * FIGMA SSOT: "Gift Option Container" 817:22748, 516x159.
+ *   info block  356 wide at (24,24), heading 164x23, body 290x48, note 290x24
+ *   illustration 88x88 at x=404
+ *
+ * Every word is admin-managed (Stores > Configuration > Sales > Checkout >
+ * SpareTrak Instalment Plans Panel), per CLAUDE.md section 7. The ILLUSTRATION
+ * is not: it is a fixed brand asset exported from Figma, so it lives in the
+ * theme and cannot be replaced with an upload that is not it (section 3).
+ *
+ * PERFORMANCE. The artwork is a 40KB SVG well below the fold on a page whose
+ * LCP element is the first cart line's thumbnail. It is therefore a real <img>
+ * with loading="lazy", decoding="async" and both dimensions stated — lazy so it
+ * never competes with the LCP image for bandwidth, and sized so its arrival
+ * shifts nothing (sections 11 and 12).
+ *
+ * It is decorative: the heading beside it says everything it says, so alt=""
+ * keeps it out of the accessibility tree rather than making a screen reader
+ * announce a duplicate.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+/** @var \Spartrak\Checkout\ViewModel\InstalmentsPromo $promo */
+$promo = $block->getData('instalments_view_model');
+
+if ($promo === null || !$promo->isVisible()) {
+    return;
+}
+
+$body = $promo->getBody();
+$note = $promo->getNote();
+?>
+<aside class="spartrak-cart-instalments">
+    <div class="spartrak-cart-instalments__info">
+        <p class="spartrak-cart-instalments__heading">
+            <?= $escaper->escapeHtml($promo->getHeading()) ?>
+        </p>
+
+        <?php if ($body !== null): ?>
+            <p class="spartrak-cart-instalments__body">
+                <?= $escaper->escapeHtml($body) ?>
+            </p>
+        <?php endif; ?>
+
+        <?php if ($note !== null): ?>
+            <p class="spartrak-cart-instalments__note">
+                <?= $escaper->escapeHtml($note) ?>
+            </p>
+        <?php endif; ?>
+    </div>
+
+    <img class="spartrak-cart-instalments__art"
+         src="<?= $escaper->escapeUrl($block->getViewFileUrl('images/illustrations/cart-instalments.svg')) ?>"
+         alt=""
+         width="88"
+         height="88"
+         loading="lazy"
+         decoding="async"/>
+</aside>

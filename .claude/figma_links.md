@@ -15,7 +15,15 @@ https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=6
 
 Category & Product & Cart Page
 
+VERIFIED (read off the file 2026-08-30 via the Figma MCP):
+  553-4663   "Cart"  — the CART page, desktop 1440x1524. Navbar 223.42 tall,
+                       i.e. it KEEPS the mega-menu row, unlike Checkout.
+  817-22551  the mobile cart companion to the above.
+Both were previously filed under Checkout, which is what made 553-4663 read as
+a checkout step. Checkout's own first frame is 549-2753.
+
 DESKTOP
+https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=553-4663&m=dev
 https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=488-10810&m=dev
 https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=526-21854&m=dev
 https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=532-15187&m=dev
@@ -26,6 +34,7 @@ https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=5
 https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=675-16941&m=dev
 
 MOBILE (RESPONSIVE)
+https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=817-22551&m=dev
 https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=647-53990&m=dev
 https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=659-24948&m=dev
 https://www.figma.com/design/6FRlQfPIncVUvNiJLn2kbT/Elassal-e-commerce?node-id=659-27251&m=dev

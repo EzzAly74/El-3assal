@@ -54,8 +54,28 @@ define([
              * the confirmation rather than a page that flashes and jumps. Long
              * enough to read, short enough not to feel stuck.
              */
-            successDelay: 900
+            successDelay: 900,
+
+            /*
+             * key => absolute URL. Supplied by
+             * Spartrak\CustomerAuth\ViewModel\PostLoginDestinations, and the
+             * ONLY thing a `next=` fragment key may resolve to. Empty by
+             * default, so a store that does not configure it keeps the
+             * original reload-in-place behaviour exactly.
+             */
+            destinations: {}
         },
+
+        /**
+         * Resolved from the `next=` fragment key, or null.
+         *
+         * Declared on the prototype so the property always exists: _reload()
+         * reads it on every successful sign-in, including the ones that never
+         * went through _openFromLocationHash at all.
+         *
+         * @type {?String}
+         */
+        postLoginUrl: null,
 
         /** @inheritdoc */
         _create: function () {
@@ -119,11 +139,23 @@ define([
          * already does: `_goto()` no-ops when the selector matches nothing.
          */
         _openFromLocationHash: function () {
-            var match = /^#auth=([a-z-]+)$/.exec(window.location.hash);
+            /*
+             * `#auth=<step>` optionally followed by `&next=<key>`.
+             *
+             * The key is matched as [a-z-]+ and then looked up in
+             * options.destinations. A value that is not a known key resolves to
+             * nothing and the modal falls back to reloading in place - which is
+             * what makes this safe: the fragment can never introduce a URL, only
+             * select one this store already built. See
+             * Spartrak\CustomerAuth\ViewModel\PostLoginDestinations.
+             */
+            var match = /^#auth=([a-z-]+)(?:&next=([a-z-]+))?$/.exec(window.location.hash);
 
             if (!match) {
                 return;
             }
+
+            this.postLoginUrl = match[2] ? this.options.destinations[match[2]] || null : null;
 
             this.open(match[1]);
 
@@ -539,11 +571,29 @@ define([
          * stubbable, same as before this fix.
          */
         _reload: function () {
-            var url = window.location.pathname + window.location.search,
+            /*
+             * POST-LOGIN DESTINATION (added for the guest-checkout bounce).
+             *
+             * A guest who tried to reach /checkout is sent to the cart with
+             * `#auth=login&next=checkout`; signing in should return them to
+             * checkout rather than leaving them on the cart to click through a
+             * second time.
+             *
+             * `postLoginUrl` is only ever a value from options.destinations, so
+             * it is a URL this store built. When it is null - which is every
+             * other way the modal can be opened - this behaves exactly as it
+             * did before, and the unrelated auth flows are untouched.
+             */
+            var url = this.postLoginUrl || (window.location.pathname + window.location.search),
                 marker = 'spartrak_auth=1',
-                separator = url.indexOf('?') === -1 ? '?' : '&';
+                separator = url.indexOf('?') === -1 ? '?' : '&',
+                // The fragment is only worth carrying forward when we are
+                // reloading the same page; on a redirect it belongs to the page
+                // being left, and re-appending `#auth=...` would reopen the
+                // modal on arrival.
+                fragment = this.postLoginUrl ? '' : window.location.hash;
 
-            window.location.href = url + separator + marker + window.location.hash;
+            window.location.href = url + separator + marker + fragment;
         },
 
         // ------------------------------------------------------------------

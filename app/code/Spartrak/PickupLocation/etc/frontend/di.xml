@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <!--
+      Joins the composite that builds window.checkoutConfig. See
+      Model\ConfigProvider for why the location lists are inlined into that
+      payload rather than fetched when the shopper taps a segment.
+    -->
+    <type name="Magento\Checkout\Model\CompositeConfigProvider">
+        <arguments>
+            <argument name="configProviders" xsi:type="array">
+                <item name="spartrak_pickup_config_provider" xsi:type="object">
+                    Spartrak\PickupLocation\Model\ConfigProvider
+                </item>
+            </argument>
+        </arguments>
+    </type>
+</config>

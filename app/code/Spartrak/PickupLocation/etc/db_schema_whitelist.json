@@ -1,0 +1,84 @@
+{
+    "spartrak_pickup_operator": {
+        "column": {
+            "operator_id": true,
+            "code": true,
+            "name_ar": true,
+            "name_en": true,
+            "is_active": true,
+            "sort_order": true,
+            "created_at": true,
+            "updated_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "SPARTRAK_PICKUP_OPERATOR_CODE": true
+        },
+        "index": {
+            "SPARTRAK_PICKUP_OPERATOR_IS_ACTIVE_SORT_ORDER": true
+        }
+    },
+    "spartrak_pickup_branch": {
+        "column": {
+            "branch_id": true,
+            "name_ar": true,
+            "name_en": true,
+            "address_ar": true,
+            "address_en": true,
+            "region_id": true,
+            "phone": true,
+            "is_active": true,
+            "sort_order": true,
+            "created_at": true,
+            "updated_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "SPARTRAK_PICKUP_BRANCH_REGION_ID_DIR_CNTRY_REGION_REGION_ID": true
+        },
+        "index": {
+            "SPARTRAK_PICKUP_BRANCH_IS_ACTIVE_SORT_ORDER": true
+        }
+    },
+    "spartrak_pickup_depot": {
+        "column": {
+            "depot_id": true,
+            "name_ar": true,
+            "name_en": true,
+            "address_ar": true,
+            "address_en": true,
+            "region_id": true,
+            "operator_id": true,
+            "is_active": true,
+            "sort_order": true,
+            "created_at": true,
+            "updated_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "SPARTRAK_PICKUP_DEPOT_REGION_ID_DIR_CNTRY_REGION_REGION_ID": true,
+            "SPARTRAK_PICKUP_DEPOT_OPERATOR_ID_SPRTRK_PCKP_OPRTR_OPRTR_ID": true
+        },
+        "index": {
+            "SPARTRAK_PICKUP_DEPOT_IS_ACTIVE_SORT_ORDER": true,
+            "SPARTRAK_PICKUP_DEPOT_OPERATOR_ID": true,
+            "SPARTRAK_PICKUP_DEPOT_REGION_ID": true
+        }
+    },
+    "quote_address": {
+        "column": {
+            "spartrak_pickup_type": true,
+            "spartrak_pickup_id": true,
+            "spartrak_pickup_name": true,
+            "spartrak_pickup_address": true
+        }
+    },
+    "sales_order_address": {
+        "column": {
+            "spartrak_pickup_type": true,
+            "spartrak_pickup_id": true,
+            "spartrak_pickup_name": true,
+            "spartrak_pickup_address": true
+        }
+    }
+}

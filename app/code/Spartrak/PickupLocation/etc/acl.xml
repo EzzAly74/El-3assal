@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!--
+  Under Stores, not Content.
+
+  A branch or a depot is not marketing copy - it is a physical fulfilment point
+  that changes where a shopper's parcel is sent, which puts it in the same
+  family as shipping and store configuration. Magento already trains admins to
+  look under Stores for anything that governs how an order is fulfilled.
+
+  Three resources rather than one, for the same least-privilege reason
+  Spartrak_Homepage splits sections from banners: an operator list is a rarely
+  touched reference set, while depots turn over as routes change. A branch
+  manager can be given the branch role without also being able to retire an
+  operator that dozens of depots point at.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
+    <acl>
+        <resources>
+            <resource id="Magento_Backend::admin">
+                <resource id="Magento_Backend::stores">
+                    <resource id="Spartrak_PickupLocation::pickup" title="Spartrak Pickup Locations" sortOrder="60">
+                        <resource id="Spartrak_PickupLocation::branch" title="Branches" sortOrder="10"/>
+                        <resource id="Spartrak_PickupLocation::depot" title="Depots" sortOrder="20"/>
+                        <resource id="Spartrak_PickupLocation::operator" title="Transport Operators" sortOrder="30"/>
+                    </resource>
+                </resource>
+            </resource>
+        </resources>
+    </acl>
+</config>

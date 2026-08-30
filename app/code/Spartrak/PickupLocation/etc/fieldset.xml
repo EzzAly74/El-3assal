@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<!--
+  Quote address -> order address, using the platform's own copier.
+
+  Magento\Quote\Model\Quote\Address\ToOrderAddress runs every field declared
+  with the `to_order_address` aspect through Magento\Framework\DataObject\Copy
+  when the order is placed. Declaring the four pickup columns here is therefore
+  the WHOLE of "persist the selected location onto the order" - no observer, no
+  plugin, no second write path that could drift out of step with the first.
+
+  This is also why the columns were put on quote_address rather than on the
+  quote itself (see db_schema.xml): the address is the object this fieldset
+  already knows how to carry across the quote/order boundary.
+
+  The name and address travel alongside the id ON PURPOSE. See db_schema.xml -
+  an order must still read correctly after the branch it names is renamed or
+  deleted.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:DataObject/etc/fieldset.xsd">
+    <scope id="global">
+        <fieldset id="sales_convert_quote_address">
+            <field name="spartrak_pickup_type">
+                <aspect name="to_order_address"/>
+            </field>
+            <field name="spartrak_pickup_id">
+                <aspect name="to_order_address"/>
+            </field>
+            <field name="spartrak_pickup_name">
+                <aspect name="to_order_address"/>
+            </field>
+            <field name="spartrak_pickup_address">
+                <aspect name="to_order_address"/>
+            </field>
+        </fieldset>
+    </scope>
+</config>

@@ -1,0 +1,49 @@
+<!--
+/**
+ * Spartrak — the delivery-mode segmented control.
+ *
+ * FIGMA SSOT: "Segements" 554:13250 — 720x44, three segments of 238.67x40
+ * inset 2. Reading order (right to left on the RTL canvas): الشحن with the
+ * truck glyph, استلام من الفرع with the package glyph, استلام من الموقف with
+ * the car glyph.
+ *
+ * ===========================================================================
+ * A RADIO GROUP, NOT A ROW OF BUTTONS
+ * ===========================================================================
+ * These are three mutually exclusive choices that change the rest of the step,
+ * which is exactly what a radio group is. Marked up as one, the control is
+ * operable with the arrow keys and announced as "1 of 3" without a single ARIA
+ * attribute — where a row of <button>s would need role="tablist",
+ * aria-selected, roving tabindex and hand-written key handling to reach the
+ * same place, and would still not be a form control.
+ *
+ * The radio itself is visually replaced by the segment; it stays in the DOM,
+ * focusable, and is what a keyboard or screen-reader user actually operates.
+ *
+ * ===========================================================================
+ * NOTHING HERE NAMES A MODE
+ * ===========================================================================
+ * Labels come from the rate. The `data-mode` attribute exists so the
+ * stylesheet can put the right glyph on each segment — presentation keyed off
+ * data, which is the split CLAUDE.md section 7 asks for.
+ */
+-->
+<div class="spartrak-delivery-modes" visible="isVisible()" role="radiogroup"
+     attr="{'aria-label': $t('Delivery method')}">
+    <!-- ko foreach: { data: modes(), as: 'entry' } -->
+    <label class="spartrak-delivery-mode"
+           css="{ 'spartrak-delivery-mode--selected': $parent.isSelected(entry.mode) }"
+           attr="{ 'data-mode': entry.mode }">
+
+        <input type="radio"
+               class="spartrak-delivery-mode__input"
+               name="spartrak_delivery_mode"
+               attr="{ value: entry.mode, id: 'spartrak-mode-' + entry.mode }"
+               checked="$parent.selectedMode"
+               click="function () { return $parent.selectMode(entry); }"/>
+
+        <span class="spartrak-delivery-mode__label" text="entry.label"></span>
+        <span class="spartrak-delivery-mode__icon" aria-hidden="true"></span>
+    </label>
+    <!-- /ko -->
+</div>

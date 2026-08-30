@@ -1,0 +1,145 @@
+<?xml version="1.0"?>
+<!--
+  The depot form. Same shape as the branch form plus the operator select, minus
+  the phone field - a depot is a third party's coach station, so "call the
+  depot" is not an instruction this company can give.
+-->
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">spartrak_pickup_depot_form.spartrak_pickup_depot_form_data_source</item>
+        </item>
+        <item name="label" xsi:type="string" translate="true">Depot</item>
+    </argument>
+
+    <settings>
+        <buttons>
+            <button name="back" class="Magento\Backend\Block\Widget\Button\GenericButton">
+                <label translate="true">Back</label>
+            </button>
+            <button name="save" class="Magento\Backend\Block\Widget\Button\GenericButton">
+                <label translate="true">Save Depot</label>
+            </button>
+        </buttons>
+        <namespace>spartrak_pickup_depot_form</namespace>
+        <dataScope>data</dataScope>
+        <deps>
+            <dep>spartrak_pickup_depot_form.spartrak_pickup_depot_form_data_source</dep>
+        </deps>
+    </settings>
+
+    <dataSource name="spartrak_pickup_depot_form_data_source">
+        <argument name="data" xsi:type="array">
+            <item name="js_config" xsi:type="array">
+                <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
+            </item>
+        </argument>
+        <settings>
+            <submitUrl path="spartrak_pickup/depot/save"/>
+        </settings>
+        <dataProvider class="Spartrak\PickupLocation\Model\Depot\DataProvider" name="spartrak_pickup_depot_form_data_source">
+            <settings>
+                <requestFieldName>depot_id</requestFieldName>
+                <primaryFieldName>depot_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+
+    <fieldset name="general">
+        <settings>
+            <label translate="true">Depot Details</label>
+        </settings>
+
+        <field name="depot_id" formElement="hidden">
+            <settings>
+                <dataType>text</dataType>
+            </settings>
+        </field>
+
+        <field name="name_ar" formElement="input" sortOrder="10">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Name (Arabic)</label>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+            </settings>
+        </field>
+
+        <field name="name_en" formElement="input" sortOrder="20">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Name (English)</label>
+                <notice translate="true">Optional. Arabic is used on English store views when this is empty.</notice>
+            </settings>
+        </field>
+
+        <field name="address_ar" formElement="textarea" sortOrder="30">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Address (Arabic)</label>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+            </settings>
+        </field>
+
+        <field name="address_en" formElement="textarea" sortOrder="40">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Address (English)</label>
+            </settings>
+        </field>
+
+        <field name="region_id" formElement="select" sortOrder="50">
+            <argument name="data" xsi:type="array">
+                <item name="options" xsi:type="object">Spartrak\PickupLocation\Model\Source\GovernorateOptions</item>
+            </argument>
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Governorate</label>
+                <notice translate="true">Shown on the depot row at checkout, and used as the city on the order address.</notice>
+            </settings>
+        </field>
+
+        <field name="operator_id" formElement="select" sortOrder="60">
+            <argument name="data" xsi:type="array">
+                <item name="options" xsi:type="object">Spartrak\PickupLocation\Model\Source\OperatorOptions</item>
+            </argument>
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Operator</label>
+                <notice translate="true">Shown as a filter chip at checkout. Optional - a depot with no operator simply has no chip.</notice>
+            </settings>
+        </field>
+
+        <field name="sort_order" formElement="input" sortOrder="70">
+            <settings>
+                <dataType>number</dataType>
+                <label translate="true">Position</label>
+                <validation>
+                    <rule name="validate-number" xsi:type="boolean">true</rule>
+                </validation>
+                <notice translate="true">Lower numbers appear first in the checkout list.</notice>
+            </settings>
+        </field>
+
+        <field name="is_active" formElement="checkbox" sortOrder="80">
+            <settings>
+                <dataType>boolean</dataType>
+                <label translate="true">Enabled</label>
+            </settings>
+            <formElements>
+                <checkbox>
+                    <settings>
+                        <valueMap>
+                            <map name="false" xsi:type="number">0</map>
+                            <map name="true" xsi:type="number">1</map>
+                        </valueMap>
+                        <prefer>toggle</prefer>
+                    </settings>
+                </checkbox>
+            </formElements>
+        </field>
+    </fieldset>
+</form>

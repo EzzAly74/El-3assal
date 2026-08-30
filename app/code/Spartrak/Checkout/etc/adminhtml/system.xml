@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<!--
+  The instalment-plans panel on the cart summary (Figma 817:22748).
+
+  Under Sales > Checkout, beside Magento's own cart settings, because that is
+  where a merchant already goes to change what the cart page says.
+
+  Every field is showInStore="1": all three are copy an Arabic shopper reads,
+  and the English store view must be able to say something else. `enabled` stops
+  at website scope - whether the panel exists is policy, not wording.
+
+  There is deliberately no image field. The illustration is a fixed brand asset
+  taken from Figma and lives in the theme; letting it be uploaded would invite a
+  substitute, which CLAUDE.md section 3 rules out.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <section id="checkout">
+            <group id="spartrak_instalments" translate="label" type="text" sortOrder="80" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>SpareTrak Instalment Plans Panel</label>
+
+                <field id="enabled" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0" canRestore="1">
+                    <label>Enabled</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Shows the instalment-plans panel under the cart summary.</comment>
+                </field>
+
+                <field id="heading" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Heading</label>
+                    <comment>The panel is hidden when this is empty, whatever Enabled says.</comment>
+                </field>
+
+                <field id="body" translate="label" type="textarea" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Body</label>
+                </field>
+
+                <field id="note" translate="label" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Footnote</label>
+                    <comment>The smaller line beneath the body, e.g. the providers available.</comment>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>

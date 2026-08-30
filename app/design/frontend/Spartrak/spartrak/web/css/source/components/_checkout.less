@@ -1,0 +1,780 @@
+// ===========================================================================
+// CHECKOUT (Figma "Checkout" — 549:2753 / 552:11748)
+// ===========================================================================
+// Phase 1: the page shell and the progress bar. The shipping step, the payment
+// step and the order summary follow in later passes; nothing below assumes
+// their markup.
+//
+// -------------------------------------------------------------------------
+// EVERY NUMBER HERE IS READ OFF A NODE, AND THE NODE IS NAMED
+// -------------------------------------------------------------------------
+// The checkout frames are detached (see the skill's figma-map: only the
+// homepage is library-connected), but they are 100% token-bound — 0 raw
+// colours — so the VALUES are authoritative even though the frames are not
+// component instances. Colours below are the semantic names
+// `get_variable_defs` returns for 817:22383, mapped onto this theme's tokens:
+//
+//   Figma            this theme                      used for
+//   bg/surface       --color-bg-surface              the bar itself
+//   border/default   --color-border-default          its closing hairline
+//   action/primary   --color-action-primary          a reached disc
+//   icon/inverse     --color-icon-inverse            the glyph on that disc
+//   icon/default     --color-icon-default            an unreached glyph
+//   bg/inverse       --color-bg-inverse              a reached connector
+//   bg/field         --color-bg-field                an unreached connector
+//   text/primary     --color-text-primary            a reached label
+//   text/secondary   --color-text-secondary          an unreached label
+//   Label/Large      14 / 500 / 1.3                  every step label
+//   Display/Lead     20 / 400 / 1                    the "الرجوع" label
+//
+// -------------------------------------------------------------------------
+// BIDIRECTIONALITY
+// -------------------------------------------------------------------------
+// There is not one physical `left`/`right` below. The markers are emitted
+// cart-first, so under `direction: rtl` the cart lands on the right exactly as
+// Figma composes it, and the English store mirrors the whole bar for free. The
+// single exception is the back ARROW, which is a directional glyph rather than
+// a layout property — a logical property cannot flip a picture — so it carries
+// one explicit LTR rule at the foot of this block.
+
+// ===========================================================================
+// PROGRESS BAR (817:22383)
+// ===========================================================================
+.spartrak-checkout-progress {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    // Figma: the bar is 97 tall and the steps are 65, inset 16 top and bottom.
+    padding-block: 16px;
+    background-color: var(--color-bg-surface);
+
+    // The closing hairline, as an INSET SHADOW rather than a border: a border
+    // would add its pixel to the box and make the bar 98 where the design says
+    // 97. An inset shadow paints inside the box and costs no layout at all.
+    box-shadow: inset 0 -1px 0 var(--color-border-default);
+}
+
+// The step group is centred on the PAGE, not in the space left over beside the
+// back control — Figma's three steps span x=500.5..939.5, whose midpoint is 720,
+// i.e. exactly half of the 1440 frame. That is why the back control below is
+// taken out of flow instead of being a flex sibling: as a sibling it would push
+// the group off-centre by its own width.
+.spartrak-checkout-progress__steps {
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.spartrak-checkout-progress__step {
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+
+    // Figma: 16px of air between one step's disc and the NEXT step's connector
+    // (step two ends at 735.5, step three begins at 751.5).
+    & + & {
+        margin-inline-start: 16px;
+    }
+
+    // Porto puts a bullet and a bottom margin on every `ol > li` in the theme.
+    &::before,
+    &::after {
+        content: none;
+    }
+}
+
+// Figma 817:22397 — 148 x 4, sitting at y=12 so it is centred on the 28px disc,
+// and 12px clear of it.
+//
+// It shrinks but never grows: on a narrow viewport the bar has to fit, and a
+// connector is the only part of a step with no content to protect. `min-width`
+// keeps it legible as a connector rather than collapsing to nothing.
+.spartrak-checkout-progress__connector {
+    flex: 0 1 148px;
+    width: 148px;
+    min-width: 16px;
+    height: 4px;
+    margin-block-start: 12px;
+    margin-inline-end: 12px;
+    background-color: var(--color-bg-field);
+}
+
+.spartrak-checkout-progress__body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    // Figma: the label's top edge is at y=47 of a 65-tall step, and the disc
+    // above it is 28 tall — so 19px between them.
+    gap: 19px;
+}
+
+// Figma 817:22386 — a 28px disc. Rendered as three different ELEMENTS
+// depending on state (see the template), so every reset a button and an anchor
+// need is stated once here rather than three times.
+.spartrak-checkout-progress__marker {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background-color: transparent;
+    // The glyph inherits this through `currentColor`, so state is set in ONE
+    // declaration below instead of once per step icon.
+    color: var(--color-icon-default);
+    text-decoration: none;
+    transition: background-color .15s ease, color .15s ease;
+}
+
+// Only a marker that can actually be travelled to is offered as clickable.
+a.spartrak-checkout-progress__marker,
+button.spartrak-checkout-progress__marker {
+    cursor: pointer;
+}
+
+.spartrak-checkout-progress__marker:focus-visible {
+    outline: 2px solid var(--color-action-primary);
+    outline-offset: 2px;
+}
+
+// Figma 817:22387 — 20px glyph, inset 4 inside the 28px disc.
+//
+// `currentColor` is the whole trick: the mask takes its paint from the marker's
+// own `color`, so the reached/unreached rule below is two declarations total
+// rather than one per step.
+.spartrak-checkout-progress__step--cart .spartrak-checkout-progress__icon {
+    .spartrak-icon('checkout-step-cart.svg'; 20px; currentColor);
+}
+
+.spartrak-checkout-progress__step--shipping .spartrak-checkout-progress__icon {
+    // Verified identical to the checkout node's own glyph, scale-normalised —
+    // so the existing asset is reused rather than a second copy committed.
+    .spartrak-icon('delivery-truck.svg'; 20px; currentColor);
+}
+
+.spartrak-checkout-progress__step--payment .spartrak-checkout-progress__icon {
+    .spartrak-icon('checkout-step-payment.svg'; 20px; currentColor);
+}
+
+.spartrak-checkout-progress__label {
+    // Figma Label/Large.
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+}
+
+// --- Reached: the shopper is on this step, or has passed it ----------------
+// One attribute drives the disc, the glyph, the connector leading in, and the
+// label — so "reached" is decided once, in the component, and never re-derived
+// in CSS.
+.spartrak-checkout-progress__step[data-reached='true'] {
+    .spartrak-checkout-progress__marker {
+        background-color: var(--color-action-primary);
+        color: var(--color-icon-inverse);
+    }
+
+    .spartrak-checkout-progress__connector {
+        background-color: var(--color-bg-inverse);
+    }
+
+    .spartrak-checkout-progress__label {
+        color: var(--color-text-primary);
+    }
+}
+
+// --- "الرجوع" (817:22427) --------------------------------------------------
+// Out of flow, for the centring reason given above. Figma places the group's
+// trailing edge 55px from the frame edge (x=1291 + w=94 = 1385 of 1440).
+.spartrak-checkout-progress__back {
+    position: absolute;
+    inset-inline-start: 55px;
+    inset-block-start: 50%;
+    transform: translateY(-50%);
+
+    display: inline-flex;
+    align-items: center;
+    // Figma: the label occupies 0..50 and the icon's 40px box starts at 54.
+    gap: 4px;
+    // The icon box is 40x40 in the design and is the tap target; the control is
+    // 40 tall overall (817:22427 is h=40).
+    min-height: 40px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+
+    &:focus-visible {
+        outline: 2px solid var(--color-action-primary);
+        outline-offset: 2px;
+    }
+}
+
+.spartrak-checkout-progress__back-label {
+    // Figma Display/Lead — 20 / 400 / 1, which is exactly the 20px box the node
+    // measures.
+    font-size: var(--text-20);
+    font-weight: 400;
+    line-height: 1;
+    color: var(--color-text-primary);
+}
+
+.spartrak-checkout-progress__back-icon {
+    // Figma 817:22431 — a 29px arrow centred in a 40px box.
+    .spartrak-icon('arrow-next.svg'; 29px; var(--color-icon-default));
+    // Verified identical to this node's glyph, scale-normalised: the existing
+    // 16px asset is the same artwork, and a mask does not care about the
+    // source's own pixel size.
+}
+
+// THE ONE DIRECTIONAL EXCEPTION IN THIS FILE.
+// `arrow-next.svg` points along the reading direction. In Arabic that already
+// means "backwards" and the design shows it pointing right; in English the same
+// artwork would point AWAY from where Back goes. No logical property can mirror
+// a picture, so the glyph is flipped for LTR — and only the glyph.
+[dir='ltr'] .spartrak-checkout-progress__back-icon {
+    transform: scaleX(-1);
+}
+
+// ===========================================================================
+// SHIPPING METHOD CARDS (Figma "Option - Shipping Type" 551:9683 / 551:9700)
+// ===========================================================================
+// Every value below is `get_design_context` output for those two nodes, not a
+// reading of the render. Two of them differ from what the render suggests, and
+// both are reproduced as Figma states them:
+//
+//   1. The SELECTED border is 1px `action/primary` — not the 2px a scaled-down
+//      screenshot implies.
+//   2. The FREE price is `text/secondary` (grey) and the SURCHARGE price is
+//      `text/success` (green). That is the opposite of the usual "free is
+//      green" instinct, and it survives inspection of both nodes:
+//        551:9707  "0.00 ج.م (مجانا)"  -> text/secondary #555463
+//        551:9690  "+50.00 ج.م"        -> text/success   #049228
+//      Read as intent it is an upsell cue — green pulls the eye to express —
+//      and it is implemented literally. FLAGGED for the designer: two samples
+//      is a thin basis for the rule "any surcharge is green", so if a third
+//      tier is ever added this needs confirming rather than extending.
+//
+// The rule is expressed against the AMOUNT, not against a method code, so it
+// holds for whatever rates Magento returns rather than only for the two the
+// design happens to draw.
+
+// Figma: the row is 720 wide with a 16px gap, i.e. 352 per card at two across.
+// Expressed as equal fractions because the rate count is Magento's to decide —
+// a merchant who enables a third tier gets three even cards, not an overflow.
+.spartrak-ship-methods {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.spartrak-ship-methods__item {
+    display: flex;
+    margin: 0;
+
+    // Porto puts a bullet and a bottom margin on every `ol > li` in this theme.
+    &::before,
+    &::after {
+        content: none;
+    }
+}
+
+.spartrak-ship-method {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    width: 100%;
+    padding: 16px;
+    border: 1px solid var(--color-border-default);
+    background-color: var(--color-bg-surface);
+    cursor: pointer;
+    // Figma gives this card no corner radius.
+    transition: border-color .15s ease;
+
+    &--selected {
+        border-color: var(--color-action-primary);
+    }
+}
+
+// The radio is the real control; the card is its label. Hidden the accessible
+// way — never `display: none`, which would take it out of the tab order and
+// out of the accessibility tree along with it.
+.spartrak-ship-method__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+// Focus lives on the CARD, because that is what a shopper sees as the control.
+.spartrak-ship-method:has(.spartrak-ship-method__input:focus-visible) {
+    outline: 2px solid var(--color-action-primary);
+    outline-offset: 2px;
+}
+
+@supports not selector(:has(*)) {
+    .spartrak-ship-method__input:focus-visible + .spartrak-ship-method__icon {
+        outline: 2px solid var(--color-action-primary);
+        outline-offset: 2px;
+    }
+}
+
+// Figma 551:9701 — the glyph sits in a box with 4px of top padding, which is
+// what optically aligns it with the 24px-tall name beside it.
+.spartrak-ship-method__icon {
+    margin-block-start: 4px;
+    .spartrak-icon('delivery-truck.svg'; 20px; var(--color-icon-default));
+}
+
+// Which glyph a method wears is presentation, so it is keyed off the data
+// attributes the template already emits rather than decided in JavaScript.
+// Anything without a rule keeps the truck above — including third-party
+// carriers this theme has never heard of.
+.spartrak-ship-method[data-carrier='spartrak'][data-method='express'] .spartrak-ship-method__icon {
+    .spartrak-icon('shipping-fast-delivery.svg'; 20px; var(--color-icon-default));
+}
+
+.spartrak-ship-method__body {
+    display: flex;
+    flex: 1 0 0;
+    flex-direction: column;
+    // Figma: 12px between the name/window pair and the price.
+    gap: 12px;
+    min-width: 0;
+}
+
+.spartrak-ship-method__name {
+    // Figma Body/Base Medium.
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+}
+
+.spartrak-ship-method__window {
+    // Figma Body/Small. 4px below the name (551:9704).
+    margin-block-start: -8px; // the 12px body gap minus Figma's 4px
+    font-size: var(--text-14);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+}
+
+.spartrak-ship-method__price {
+    // Figma Heading/H5.
+    font-size: var(--text-16);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-success);
+
+    // Core's own price renderer is nested in here so the store's tax-display
+    // setting keeps deciding the figure; it only inherits this type ramp.
+    .price {
+        font: inherit;
+        color: inherit;
+    }
+
+    &--free {
+        color: var(--color-text-secondary);
+    }
+}
+
+.spartrak-ship-method--error {
+    align-items: center;
+    border-color: var(--color-feedback-danger);
+    cursor: default;
+}
+
+.spartrak-ship-method__error-icon {
+    .spartrak-icon('error-warning-line.svg'; 16px; var(--color-feedback-danger));
+}
+
+.spartrak-ship-method__error-text {
+    font-size: var(--text-14);
+    line-height: 1.5;
+    color: var(--color-feedback-danger);
+}
+
+// ===========================================================================
+// MOBILE — PROVISIONAL
+// ===========================================================================
+// The mobile checkout frames have NOT been read yet, so nothing here claims to
+// be the design. This block exists for one reason: the desktop bar is ~439px of
+// fixed content plus an out-of-flow control, and on a 375px screen that would
+// overlap and overflow. What follows keeps every element present, legible and
+// non-overlapping until the real mobile frames are implemented — it is a
+// safety net, not a specification, and it is expected to be replaced.
+@media (max-width: @breakpoint-header-collapse) {
+    .spartrak-checkout-progress {
+        // The back control rejoins the flow above the steps rather than sitting
+        // on top of them; at this width there is no room beside a centred group.
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding-inline: 16px;
+    }
+
+    .spartrak-checkout-progress__back {
+        position: static;
+        transform: none;
+        align-self: flex-start;
+        min-height: 32px;
+    }
+
+    .spartrak-checkout-progress__back-label {
+        font-size: var(--text-16);
+    }
+
+    .spartrak-checkout-progress__back-icon {
+        width: 20px;
+        height: 20px;
+    }
+
+    .spartrak-checkout-progress__steps {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .spartrak-checkout-progress__connector {
+        flex: 1 1 auto;
+        width: auto;
+    }
+
+    .spartrak-checkout-progress__label {
+        font-size: var(--text-12);
+    }
+
+    // Figma's mobile checkout frames (675:21226, 687:16474) stack the rate
+    // cards full width rather than shrinking them two-across.
+    .spartrak-ship-methods {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spartrak-checkout-progress__marker {
+        transition: none;
+    }
+}
+
+// ===========================================================================
+// DELIVERY-MODE SEGMENTS (Figma "Segements" 554:13250)
+// ===========================================================================
+// 720x44 outer, three segments of 238.67x40 inset 2. A radio group — see
+// template/delivery-mode.html for why that markup rather than a row of buttons.
+//
+// The segment count is whatever Magento returned rates for, so the track is an
+// equal-fraction grid rather than three fixed widths: a merchant running
+// delivery plus branch only gets two halves, not two thirds and a gap.
+.spartrak-delivery-modes {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 0;
+    padding: 2px;
+    background: var(--color-bg-field);
+    margin-block-end: 32px;
+}
+
+// Figma: label and glyph centred together, 8px apart, 40px tall.
+.spartrak-delivery-mode {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    block-size: 40px;
+    cursor: pointer;
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-text-secondary);
+    // Colour only — no transform and no size change, so switching segments can
+    // never shift the step below it.
+    transition: background-color 120ms ease, color 120ms ease;
+}
+
+// The real control. Visually replaced by the segment, kept operable.
+.spartrak-delivery-mode__input {
+    .spartrak-visually-hidden();
+}
+
+.spartrak-delivery-mode--selected {
+    background: var(--color-bg-surface);
+    color: var(--color-text-primary);
+    box-shadow: var(--shadow-input);
+}
+
+// Focus lives on the SEGMENT, because that is what a shopper sees as the
+// control — the same rule the shipping-method card follows.
+.spartrak-delivery-mode:has(.spartrak-delivery-mode__input:focus-visible) {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: -2px;
+}
+
+// Figma 554:13898 / 554:13895 / 554:13891 — 16px glyphs, except the car-star
+// which is drawn at 18.
+//
+// KEYED OFF `data-mode`, i.e. off DATA, so a merchant renaming a carrier
+// cannot detach its icon (CLAUDE.md section 7).
+//
+// ONE INCONSISTENCY IN THE SOURCE, RESOLVED. 554:13119 pairs the package-box
+// with the 91-wide label and the car-star with the 106-wide one; 554:13750
+// shows the same two glyphs the other way round. The first is self-consistent —
+// the longer label is the longer word, and a car suits a coach station where a
+// parcel box suits a shop — so it is the one implemented, and the second reads
+// as a slip in the mock.
+.spartrak-delivery-mode__icon {
+    .spartrak-icon('delivery-truck.svg'; 16px; currentColor);
+}
+
+.spartrak-delivery-mode[data-mode='branch'] .spartrak-delivery-mode__icon {
+    .spartrak-icon('segment-package-box.svg'; 16px; currentColor);
+}
+
+.spartrak-delivery-mode[data-mode='depot'] .spartrak-delivery-mode__icon {
+    .spartrak-icon('segment-car-star.svg'; 18px; currentColor);
+}
+
+// ===========================================================================
+// PICKUP LISTS (Figma branch 554:13119, depot 554:13750)
+// ===========================================================================
+// Figma 554:13285 / 554:13903 — Heading/H3 20/700/1.3, 26 tall, then a 42px
+// gap before the list.
+.spartrak-pickup__title {
+    margin: 0 0 16px;
+    font-size: var(--text-20);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+}
+
+// Figma 569:14542 — a 48px field with the loupe at the reading end.
+.spartrak-pickup__search {
+    position: relative;
+    margin-block-end: 16px;
+}
+
+.spartrak-pickup__search-input {
+    box-sizing: border-box;
+    inline-size: 100%;
+    block-size: 48px;
+    // Room for the glyph at the reading end.
+    padding-inline: 12px 44px;
+    border: 1px solid var(--color-border-default);
+    border-radius: 0;
+    background: var(--color-bg-surface);
+    box-shadow: var(--shadow-input);
+    font-size: var(--text-16);
+    line-height: 1.5;
+    color: var(--color-text-primary);
+
+    &::placeholder {
+        color: var(--color-text-muted);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: -1px;
+    }
+}
+
+.spartrak-pickup__search-icon {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-end: 12px;
+    transform: translateY(-50%);
+    pointer-events: none;
+    .spartrak-icon('search-loupe-16.svg'; 20px; var(--color-icon-muted));
+}
+
+// Figma: branch rows sit 102 apart at 86 tall (a 16 gap); depot rows 78 apart
+// at 70 tall (an 8 gap). Expressed as a gap on the list so the row height stays
+// the row's own business.
+.spartrak-pickup__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.spartrak-pickup__item:has(.spartrak-pickup-card--depot) {
+    margin-block-start: -8px;
+}
+
+// The row. Figma draws no radius and a 1px border, matching every other card in
+// this funnel.
+.spartrak-pickup-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-inline: 20px;
+    border: 1px solid var(--color-border-default);
+    background: var(--color-bg-surface);
+    cursor: pointer;
+}
+
+// Figma 554:13664 — 86 tall. The depot row is shorter.
+.spartrak-pickup-card--branch {
+    min-block-size: 86px;
+}
+
+.spartrak-pickup-card--depot {
+    min-block-size: 70px;
+}
+
+// Selected reads as the navy border, exactly as the shipping-method card does —
+// 1px, not 2, so selecting a row never changes its size.
+.spartrak-pickup-card--selected {
+    border-color: var(--color-action-primary);
+}
+
+.spartrak-pickup-card:has(.spartrak-pickup-card__input:focus-visible) {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+}
+
+// The BRANCH row draws no radio (554:13664 has none) — the card is the control.
+// The DEPOT row draws one at the reading end (721:30056, 20 square).
+.spartrak-pickup-card--branch .spartrak-pickup-card__input {
+    .spartrak-visually-hidden();
+}
+
+.spartrak-pickup-card--depot .spartrak-pickup-card__input {
+    order: 3;
+    inline-size: 20px;
+    block-size: 20px;
+    margin: 0;
+    flex: 0 0 auto;
+    accent-color: var(--color-action-primary);
+}
+
+// Figma: the glyph at the reading start — a pin on a branch (721:29832), a car
+// on a depot (721:30057). Both 24 square.
+.spartrak-pickup-card__icon {
+    flex: 0 0 auto;
+    order: 0;
+}
+
+.spartrak-pickup-card--branch .spartrak-pickup-card__icon {
+    .spartrak-icon('account-addresses.svg'; 24px; var(--color-icon-muted));
+}
+
+.spartrak-pickup-card--depot .spartrak-pickup-card__icon {
+    .spartrak-icon('pickup-depot-car.svg'; 24px; var(--color-icon-muted));
+}
+
+.spartrak-pickup-card__body {
+    order: 1;
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-block: 12px;
+}
+
+// Figma 554:13672 / 569:14595 — Body/Base Medium 16/500/1.5.
+.spartrak-pickup-card__name {
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+}
+
+// Figma 554:13674 / 569:14597 — Body/Small 14/400/1.5 in text/muted.
+.spartrak-pickup-card__address {
+    font-size: var(--text-14);
+    line-height: 1.5;
+    color: var(--color-text-muted);
+}
+
+// Figma 821:16636 — the operator badge, 70x28, on the depot row only.
+.spartrak-pickup-card__chip {
+    order: 2;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-inline-size: 70px;
+    block-size: 28px;
+    padding-inline: 10px;
+    border-radius: var(--radius-pill);
+    background: var(--color-bg-field);
+    font-size: var(--text-12);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+}
+
+.spartrak-pickup__empty {
+    margin: 0;
+    padding-block: 24px;
+    font-size: var(--text-16);
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+    text-align: center;
+}
+
+// Figma 569:14629 — the footnote under the depot list, 635x21.
+.spartrak-pickup__disclaimer {
+    margin: 16px 0 0;
+    font-size: var(--text-14);
+    line-height: 1.5;
+    color: var(--color-text-muted);
+}
+
+// ---------------------------------------------------------------------------
+// Mobile (Figma 687:20856 branch, 687:21319 depot)
+// ---------------------------------------------------------------------------
+@media (max-width: (@breakpoint-desktop - 1px)) {
+    // Figma's mobile frames shorten the segment labels. Those labels are the
+    // CARRIERS' OWN TITLES, which a merchant sets per store view — so the
+    // shorter wording is an admin change, not a CSS one. All the stylesheet
+    // does is stop a longer string breaking the track.
+    .spartrak-delivery-mode {
+        gap: 4px;
+        font-size: var(--text-12);
+    }
+
+    .spartrak-delivery-mode__label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .spartrak-pickup-card {
+        gap: 12px;
+        padding-inline: 12px;
+    }
+
+    // The chip drops below the name rather than competing with it for width.
+    .spartrak-pickup-card--depot {
+        flex-wrap: wrap;
+    }
+
+    .spartrak-pickup-card__chip {
+        order: 4;
+        min-inline-size: 0;
+    }
+}

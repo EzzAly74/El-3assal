@@ -73,4 +73,50 @@
     // in Figma and therefore real primitives here.
     --color-badge-promo-start: var(--primitive-yellow-promo-start);
     --color-badge-promo-end: var(--primitive-yellow-promo-end);
+
+    // FIGMA CHECKOUT PASS (2026-08-30) — the seven role names the checkout
+    // frames bind that this file had not surfaced yet. Read off
+    // get_variable_defs on the checkout content area (549:26240); every one is
+    // already a published variable in the Figma "2. Semantic" collection and in
+    // design_system.json, so none of these is a new design decision — they are
+    // names that simply had no consumer until now.
+    //
+    // All seven alias an EXISTING primitive rather than re-declaring a literal,
+    // so the palette stays single-source.
+    //
+    // text/brand and text/link are the same navy as --color-action-primary, and
+    // are kept as separate names for the same reason --color-icon-default is:
+    // the nodes bind these names, so a reader diffing Figma's variable list
+    // against this file needs to find them. design_system.json publishes both
+    // (text.brand = text.link = blue.500).
+    --color-text-brand: var(--primitive-navy);       // Figma: text/brand   #063196
+    --color-text-link: var(--primitive-navy);        // Figma: text/link    #063196
+    // The free-shipping amount on the shipping-method card (551:9707).
+    --color-text-success: var(--primitive-success);  // Figma: text/success #049228
+
+    // The quiet button pair: a white fill with ink text, used by the address
+    // card's "تعديل" (edit) control (720:26509). Distinct from action/primary,
+    // and distinct from bg/surface even though the hex matches — this is a
+    // BUTTON FILL, and naming it as one is what lets the button component stay
+    // ignorant of what colour a surface happens to be.
+    --color-action-secondary: var(--primitive-surface);   // Figma: action/secondary      #ffffff
+    --color-action-secondary-text: var(--primitive-ink);  // Figma: action/secondary-text #0c0a20
+
+    // Glyph on a filled navy step marker (817:22387) — the inverse of
+    // --color-icon-default, and the icon-layer counterpart to text/inverse.
+    --color-icon-inverse: var(--primitive-surface);  // Figma: icon/inverse #ffffff
+    // The not-yet-reached step marker in the progress bar, and the phone/pin
+    // glyphs inside an address card.
+    --color-icon-muted: var(--primitive-text-muted); // Figma: icon/muted   #6d6c79
+
+    // FIGMA CART PASS (2026-08-30) — the struck-through original price on a
+    // discounted cart line (817:22931).
+    //
+    // Figma publishes text/price-sale as #d54033, which is byte-identical to
+    // the danger primitive this theme already holds. Aliased rather than
+    // re-declared, for the same single-source reason as every role above — but
+    // kept as its OWN NAME because the two say different things: one is "this
+    // went wrong", the other is "this used to cost more". A palette change that
+    // moved error red would otherwise silently restyle every sale price.
+    --color-text-price-sale: var(--primitive-danger); // Figma: text/price-sale #d54033
 }

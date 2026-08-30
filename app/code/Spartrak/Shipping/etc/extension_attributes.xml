@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * The delivery window, published on the shipping method DTO.
+ *
+ * WHY AN EXTENSION ATTRIBUTE. The checkout's shipping-method list is fetched by
+ * Magento_Checkout/js/model/shipping-rate-service, which calls the
+ * `estimate-shipping-methods` web API and receives ShippingMethodInterface
+ * objects. Anything the Knockout template needs about a rate has to travel on
+ * that DTO. An extension attribute is the supported way to add a field to a
+ * service contract without editing the interface — and it means the same value
+ * is available to any integration reading the API, not only to this theme.
+ *
+ * TWO INTEGERS, NOT A SENTENCE. See Model\DeliveryWindow for the reasoning: the
+ * days are merchant data, and the storefront decides how to phrase them in each
+ * locale.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Api/etc/extension_attributes.xsd">
+    <extension_attributes for="Magento\Quote\Api\Data\ShippingMethodInterface">
+        <attribute code="spartrak_delivery_days_min" type="int"/>
+        <attribute code="spartrak_delivery_days_max" type="int"/>
+    </extension_attributes>
+</config>

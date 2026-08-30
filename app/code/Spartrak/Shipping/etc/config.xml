@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Spartrak delivery — DEFAULTS ONLY.
+ *
+ * Every value below reproduces the Figma shipping step (549:26260) on a fresh
+ * install, and every one of them is a merchant setting they can change per
+ * store view without a deploy. Nothing in the storefront reads these paths
+ * directly: the checkout renders whatever rates Magento actually returns.
+ *
+ * The titles default to Arabic because Arabic is this storefront's primary
+ * locale, not its translation. The English store view overrides them in the
+ * admin — a shipping method name is merchant CONTENT (CLAUDE.md §7), so it
+ * belongs in configuration rather than in an i18n .csv where the merchant
+ * cannot reach it.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <carriers>
+            <spartrak>
+                <active>1</active>
+                <model>Spartrak\Shipping\Model\Carrier\Spartrak</model>
+                <title>SpareTrak</title>
+
+                <!-- شحن عادي — free, 5-7 working days (Figma 551:9705/9706/9707) -->
+                <standard_enabled>1</standard_enabled>
+                <standard_title>شحن عادي</standard_title>
+                <standard_price>0.00</standard_price>
+                <standard_days_min>5</standard_days_min>
+                <standard_days_max>7</standard_days_max>
+
+                <!-- شحن اكسبريس — +50, 1-3 working days (Figma 551:9688/9689/9690) -->
+                <express_enabled>1</express_enabled>
+                <express_title>شحن اكسبريس</express_title>
+                <express_price>50.00</express_price>
+                <express_days_min>1</express_days_min>
+                <express_days_max>3</express_days_max>
+
+                <sallowspecific>0</sallowspecific>
+                <sort_order>10</sort_order>
+                <showmethod>1</showmethod>
+                <specificerrmsg>This shipping method is currently unavailable. Please choose another.</specificerrmsg>
+            </spartrak>
+        </carriers>
+    </default>
+</config>

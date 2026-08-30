@@ -1,0 +1,199 @@
+<?php
+/**
+ * Spartrak — one cart line.
+ *
+ * FIGMA SSOT: "Card - Cart Product" 817:22816 (plain) / 817:22900 (discounted),
+ * 720x140. Values below are get_design_context output for those nodes, not
+ * measurements off a render:
+ *
+ *   card            1px border/default, padding-inline 12, gap 16, NO radius
+ *   control column  flex-column, gap 26, justify-end, padding-block 12
+ *   trash           32x32 box, 4px radius, 1px border, 24px glyph
+ *   qty control     83x48, 1px border, Shadow/Input, chevron 20
+ *   name            Heading/H4  18/500/1.3   text/primary
+ *   was price       Heading/H4  18/500/1.3   text/price-sale, struck
+ *   price           Heading/H2  24/700/1.3   text/brand
+ *   image           108x108 on bg/field, 0.551px border, own faint shadow
+ *
+ * The price is a UNIT price. That is evidence rather than preference - see
+ * Spartrak\Checkout\ViewModel\CartItemPricing for the checkout frame that
+ * settles it.
+ *
+ * ===========================================================================
+ * SOURCE ORDER IS THE LAYOUT
+ * ===========================================================================
+ * Figma places the image at x=489 of a 720 card - the trailing edge of its
+ * left-to-right canvas, which under `direction: rtl` is the READING START. The
+ * control column sits at x=12, the reading END. Written in reading order here,
+ * so the English store mirrors correctly with no second rule and no physical
+ * left/right anywhere in _cart.less.
+ *
+ * ===========================================================================
+ * CORE HOOKS PRESERVED - do not "tidy" these away
+ * ===========================================================================
+ *   name="cart[<id>][qty]" + data-role="cart-item-qty" + data-item-qty
+ *          the fields core's shoppingCart widget and update-shopping-cart
+ *          action address. The control is a <select> instead of a number
+ *          input, which changes nothing about the name it posts under.
+ *   getUnitPriceHtml()   core's tax-aware price renderer
+ *   getActions()         core's edit/remove toolbar, including the remove
+ *                        control's confirmation and its POST
+ *   getImage(...)        core's image helper, so the cart thumbnail respects
+ *                        the merchant's configured size and format
+ *   getOptionList()      configurable/bundle selections
+ *   getMessages()        per-line stock and price notices. Dropping these
+ *                        would hide "only 2 left" from the shopper.
+ *   MSRP branch          a "see price in cart" product must not print a price
+ *
+ * @var \Magento\Checkout\Block\Cart\Item\Renderer $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+$item = $block->getItem();
+$product = $item->getProduct();
+
+/** @var \Spartrak\Checkout\ViewModel\CartQtyOptions $qtyOptions */
+$qtyOptions = $block->getData('qty_options_view_model');
+/** @var \Spartrak\Checkout\ViewModel\CartItemPricing $pricing */
+$pricing = $block->getData('pricing_view_model');
+
+/** @var \Magento\Msrp\Helper\Data $msrpHelper */
+$msrpHelper = $block->getData('msrp_helper');
+$canApplyMsrp = $msrpHelper !== null
+    && $msrpHelper->isShowBeforeOrderConfirm($product)
+    && $msrpHelper->isMinimalPriceLessMsrp($product);
+
+$itemId = (int) $item->getId();
+$qtyFieldId = 'cart-' . $itemId . '-qty';
+$currentQty = (int) round((float) $block->getQty());
+$options = $qtyOptions !== null ? $qtyOptions->getFor($item) : [$currentQty];
+$isSelectable = count($options) > 1;
+?>
+<li class="cart item spartrak-cart-line" data-spartrak-cart-line>
+
+    <?php /* Reading start: the product image. */ ?>
+    <div class="spartrak-cart-line__media">
+        <?php if ($block->hasProductUrl()): ?>
+            <a href="<?= $escaper->escapeUrl($block->getProductUrl()) ?>"
+               title="<?= $escaper->escapeHtmlAttr($block->getProductName()) ?>"
+               tabindex="-1"
+               class="product-item-photo spartrak-cart-line__photo">
+                <?= $block->getImage($block->getProductForThumbnail(), 'cart_page_product_thumbnail')->toHtml() ?>
+            </a>
+        <?php else: ?>
+            <span class="product-item-photo spartrak-cart-line__photo">
+                <?= $block->getImage($block->getProductForThumbnail(), 'cart_page_product_thumbnail')->toHtml() ?>
+            </span>
+        <?php endif; ?>
+    </div>
+
+    <div class="spartrak-cart-line__body">
+        <strong class="product-item-name spartrak-cart-line__name">
+            <?php if ($block->hasProductUrl()): ?>
+                <a href="<?= $escaper->escapeUrl($block->getProductUrl()) ?>"><?= $escaper->escapeHtml($block->getProductName()) ?></a>
+            <?php else: ?>
+                <?= $escaper->escapeHtml($block->getProductName()) ?>
+            <?php endif; ?>
+        </strong>
+
+        <?php $itemOptions = $block->getOptionList(); ?>
+        <?php if ($itemOptions): ?>
+            <dl class="item-options spartrak-cart-line__options">
+                <?php foreach ($itemOptions as $option): ?>
+                    <?php $formatted = $block->getFormatedOptionValue($option); ?>
+                    <dt><?= $escaper->escapeHtml($option['label']) ?></dt>
+                    <dd>
+                        <?php if (isset($formatted['full_view'])): ?>
+                            <?= $escaper->escapeHtml($formatted['full_view'], ['span', 'a']) ?>
+                        <?php else: ?>
+                            <?= $escaper->escapeHtml($formatted['value'], ['span', 'a']) ?>
+                        <?php endif; ?>
+                    </dd>
+                <?php endforeach; ?>
+            </dl>
+        <?php endif; ?>
+
+        <?php foreach ($block->getMessages() as $message): ?>
+            <div class="cart item message spartrak-cart-line__message <?= $escaper->escapeHtmlAttr($message['type']) ?>">
+                <div><?= $escaper->escapeHtml($message['text']) ?></div>
+            </div>
+        <?php endforeach; ?>
+
+        <?php $addInfoBlock = $block->getProductAdditionalInformationBlock(); ?>
+        <?php if ($addInfoBlock): ?>
+            <?= $addInfoBlock->setItem($item)->toHtml() ?>
+        <?php endif; ?>
+
+        <div class="spartrak-cart-line__pricing">
+            <?php if ($canApplyMsrp): ?>
+                <span class="spartrak-cart-line__msrp">
+                    <?= $escaper->escapeHtml(__('See price before order confirmation.')) ?>
+                </span>
+            <?php else: ?>
+                <?php $wasPrice = $pricing !== null ? $pricing->getOriginalUnitPriceHtml($item) : null; ?>
+                <?php if ($wasPrice !== null): ?>
+                    <?php /* <s> and not CSS alone: the fact that this price no
+                             longer applies is meaning, not decoration, and a
+                             screen reader has to convey it. */ ?>
+                    <s class="spartrak-cart-line__was"><?= $escaper->escapeHtml($wasPrice) ?></s>
+                <?php endif; ?>
+
+                <span class="spartrak-cart-line__price">
+                    <?= $block->getUnitPriceHtml($item) ?>
+                </span>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <?php /* Reading end: remove, then quantity. */ ?>
+    <div class="spartrak-cart-line__controls">
+        <div class="actions-toolbar spartrak-cart-line__actions">
+            <?= /* @noEscape */ $block->getActions($item) ?>
+        </div>
+
+        <div class="field qty spartrak-cart-line__qty">
+            <label class="label spartrak-visually-hidden" for="<?= $escaper->escapeHtmlAttr($qtyFieldId) ?>">
+                <?= $escaper->escapeHtml(__('Quantity')) ?>
+            </label>
+
+            <?php if ($isSelectable): ?>
+                <?php /*
+                  A NATIVE <select>, and the only quantity field on this line.
+
+                  Native because it costs no JavaScript, is keyboard operable
+                  for free, and on a phone opens the OS picker - which is a
+                  better control than anything a stepper could imitate. The
+                  mobile stepper in Figma is a PRESENTATION of this same field:
+                  see web/js/spartrak-cart-qty.js, which drives this element
+                  rather than adding a second one. Two fields sharing the name
+                  cart[id][qty] would post two values and the last would
+                  silently win.
+                */ ?>
+                <select id="<?= $escaper->escapeHtmlAttr($qtyFieldId) ?>"
+                        name="cart[<?= $escaper->escapeHtmlAttr($itemId) ?>][qty]"
+                        data-cart-item-id="<?= $escaper->escapeHtmlAttr($item->getSku()) ?>"
+                        data-item-qty="<?= $escaper->escapeHtmlAttr($currentQty) ?>"
+                        data-role="cart-item-qty"
+                        title="<?= $escaper->escapeHtmlAttr(__('Quantity')) ?>"
+                        class="spartrak-cart-line__qty-select">
+                    <?php foreach ($options as $option): ?>
+                        <option value="<?= $escaper->escapeHtmlAttr($option) ?>"
+                            <?= $option === $currentQty ? ' selected="selected"' : '' ?>>
+                            <?= $escaper->escapeHtml($option) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            <?php else: ?>
+                <?php /* One possible quantity is not a choice. A disabled
+                         select would still post; a hidden input states the
+                         value without pretending to be interactive. */ ?>
+                <input type="hidden"
+                       name="cart[<?= $escaper->escapeHtmlAttr($itemId) ?>][qty]"
+                       value="<?= $escaper->escapeHtmlAttr($currentQty) ?>"/>
+                <span class="spartrak-cart-line__qty-static">
+                    <?= $escaper->escapeHtml($currentQty) ?>
+                </span>
+            <?php endif; ?>
+        </div>
+    </div>
+</li>

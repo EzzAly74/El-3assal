@@ -1,0 +1,17 @@
+{
+    "customer_address_entity": {
+        "column": {
+            "additional_phone": true
+        }
+    },
+    "quote_address": {
+        "column": {
+            "additional_phone": true
+        }
+    },
+    "sales_order_address": {
+        "column": {
+            "additional_phone": true
+        }
+    }
+}

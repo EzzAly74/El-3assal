@@ -18,6 +18,10 @@
 // Spinner mixin + its @keyframes — same rationale as _icons.less above. Must
 // be imported before any component that calls .spartrak-spinner().
 @import 'source/foundations/_spinner.less';
+// Accessibility utilities - the visually-hidden mixin and its utility class.
+// Must be imported before any component that calls .spartrak-visually-hidden(),
+// same rule as the icon and spinner mixins above.
+@import 'source/foundations/_a11y.less';
 
 // Porto chrome that is still load-bearing, migrated out of the DB-stored
 // porto_settings/custom_settings/custom_style blob. Imported FIRST so it can
@@ -60,6 +64,16 @@
 // Page messages as toasts. Imported before the loader for the same reason
 // the loader is last: both claim core/Porto classes rather than Spartrak
 // ones, and the loader must stay the final word on its own.
+// The checkout funnel. Imported after _minicart-drawer because the two share
+// the cart-line vocabulary (image tile, qty badge, price) and, where checkout
+// diverges, must be the later word; and before the toast/loader pair for the
+// same reason every Spartrak component is — those two claim core classes.
+@import 'source/components/_checkout.less';
+// The cart PAGE. Imported straight after _checkout.less because the two share
+// the cart-line vocabulary and the summary-card shape, and before the
+// toast/loader pair for the same reason every Spartrak component is - those two
+// claim core/Porto classes rather than Spartrak ones.
+@import 'source/components/_cart.less';
 @import 'source/components/_toast.less';
 @import 'source/components/_loader.less';
 

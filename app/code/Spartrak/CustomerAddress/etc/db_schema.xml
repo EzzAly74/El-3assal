@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  ADDITIONAL PHONE - رقم اضافي
+  ===========================================================================
+  Figma's add-address form (557:4731 desktop, 687:15189 mobile bottom sheet)
+  asks for a second contact number. Egypt is a market where a delivery is
+  routinely arranged with whoever answers - a neighbour, a workshop, a relative
+  - so this is a real fulfilment field, not decoration.
+
+  WHY NOT `fax`
+  ===========================================================================
+  `fax` is an unused core column of roughly the right shape, and reusing it is
+  the shortcut this project explicitly rejects. It would mean: the admin
+  customer form labels the field "Fax", every export and integration reads a
+  phone number out of a fax field, and the next developer has to be told. A
+  column costs nothing and says what it is.
+
+  WHY A STATIC COLUMN AND NOT AN EAV VARCHAR
+  ===========================================================================
+  Because that is how Magento itself models every other address field -
+  telephone, city, postcode and company are all real columns on
+  customer_address_entity with backend_type `static`. Following that means no
+  EAV join is added to a path the checkout renders on every load (CLAUDE.md
+  section 4), and the value behaves exactly like `telephone` everywhere that
+  already handles addresses.
+
+  The matching EAV attribute ROW is created by
+  Setup\Patch\Data\AddAdditionalPhoneAttribute. Both halves are required: the
+  column without the attribute row is invisible to the metadata layer and is
+  silently dropped on save; the attribute row without the column would write to
+  customer_address_entity_varchar and never reach this column.
+
+  THREE TABLES, BECAUSE THE VALUE HAS TO SURVIVE THE WHOLE FUNNEL
+  ===========================================================================
+  customer_address_entity  where the shopper's address book keeps it
+  quote_address            where checkout puts it while the order is forming
+  sales_order_address      where it becomes part of the placed order
+
+  etc/fieldset.xml carries it across the quote/order boundary using Magento's
+  own converter, the same way the pickup columns travel.
+-->
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+
+    <table name="customer_address_entity">
+        <column xsi:type="varchar" name="additional_phone" nullable="true" length="32" comment="Additional contact phone"/>
+    </table>
+
+    <table name="quote_address">
+        <column xsi:type="varchar" name="additional_phone" nullable="true" length="32" comment="Additional contact phone"/>
+    </table>
+
+    <table name="sales_order_address">
+        <column xsi:type="varchar" name="additional_phone" nullable="true" length="32" comment="Additional contact phone"/>
+    </table>
+
+</schema>

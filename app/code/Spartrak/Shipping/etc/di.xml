@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * The delivery window is attached at the one point every rate passes through.
+ * Global rather than frontend-only: the admin order-create screen renders the
+ * same rates, and a merchant reading "شحن عادي" there should see the same
+ * promise the shopper was shown.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <type name="Magento\Quote\Model\Cart\ShippingMethodConverter">
+        <plugin name="spartrak_shipping_delivery_window" type="Spartrak\Shipping\Plugin\AddDeliveryWindow"/>
+    </type>
+
+</config>

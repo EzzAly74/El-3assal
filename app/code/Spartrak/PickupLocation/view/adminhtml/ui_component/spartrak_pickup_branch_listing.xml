@@ -1,0 +1,140 @@
+<?xml version="1.0"?>
+<!--
+  The branch grid.
+
+  Arabic columns come FIRST, before their English counterparts, everywhere in
+  this module. The Arabic value is the required one (see the Save controller)
+  and the one an operator of this store actually recognises; putting the
+  optional English translation first would make the grid read as though the
+  English name were the identity.
+-->
+<listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">spartrak_pickup_branch_listing.spartrak_pickup_branch_listing_data_source</item>
+        </item>
+    </argument>
+    <settings>
+        <spinner>spartrak_pickup_branch_columns</spinner>
+        <deps>
+            <dep>spartrak_pickup_branch_listing.spartrak_pickup_branch_listing_data_source</dep>
+        </deps>
+        <buttons>
+            <button name="add">
+                <url path="*/*/new"/>
+                <class>primary</class>
+                <label translate="true">Add Branch</label>
+            </button>
+        </buttons>
+    </settings>
+
+    <dataSource name="spartrak_pickup_branch_listing_data_source" component="Magento_Ui/js/grid/provider">
+        <settings>
+            <storageConfig>
+                <param name="indexField" xsi:type="string">branch_id</param>
+            </storageConfig>
+            <updateUrl path="mui/index/render"/>
+        </settings>
+        <aclResource>Spartrak_PickupLocation::branch</aclResource>
+        <dataProvider class="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider"
+                      name="spartrak_pickup_branch_listing_data_source">
+            <settings>
+                <requestFieldName>branch_id</requestFieldName>
+                <primaryFieldName>branch_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+
+    <listingToolbar name="listing_top">
+        <settings>
+            <sticky>true</sticky>
+        </settings>
+        <bookmark name="bookmarks"/>
+        <columnsControls name="columns_controls"/>
+        <filters name="listing_filters"/>
+        <paging name="listing_paging"/>
+    </listingToolbar>
+
+    <columns name="spartrak_pickup_branch_columns">
+        <settings>
+            <childDefaults>
+                <param name="fieldAction" xsi:type="array">
+                    <item name="provider" xsi:type="string">spartrak_pickup_branch_listing.spartrak_pickup_branch_listing.spartrak_pickup_branch_columns.actions</item>
+                    <item name="target" xsi:type="string">applyAction</item>
+                    <item name="params" xsi:type="array">
+                        <item name="0" xsi:type="string">edit</item>
+                        <item name="1" xsi:type="string">${ $.$data.rowIndex }</item>
+                    </item>
+                </param>
+            </childDefaults>
+        </settings>
+
+        <column name="branch_id" sortOrder="10">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">ID</label>
+                <sorting>asc</sorting>
+            </settings>
+        </column>
+
+        <column name="sort_order" sortOrder="20">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">Position</label>
+            </settings>
+        </column>
+
+        <column name="name_ar" sortOrder="30">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Name (Arabic)</label>
+            </settings>
+        </column>
+
+        <column name="name_en" sortOrder="40">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Name (English)</label>
+            </settings>
+        </column>
+
+        <column name="address_ar" sortOrder="50">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Address (Arabic)</label>
+            </settings>
+        </column>
+
+        <column name="region_id" component="Magento_Ui/js/grid/columns/select" sortOrder="60">
+            <settings>
+                <options class="Spartrak\PickupLocation\Model\Source\GovernorateOptions"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <label translate="true">Governorate</label>
+            </settings>
+        </column>
+
+        <column name="phone" sortOrder="70">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Phone</label>
+            </settings>
+        </column>
+
+        <column name="is_active" component="Magento_Ui/js/grid/columns/select" sortOrder="80">
+            <settings>
+                <options class="Magento\Config\Model\Config\Source\Enabledisable"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <label translate="true">Status</label>
+            </settings>
+        </column>
+
+        <actionsColumn name="actions" class="Spartrak\PickupLocation\Ui\Component\Listing\Column\BranchActions" sortOrder="90">
+            <settings>
+                <indexField>branch_id</indexField>
+                <resizeEnabled>false</resizeEnabled>
+            </settings>
+        </actionsColumn>
+    </columns>
+</listing>

@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!--
+  GLOBAL scope, deliberately.
+
+  sales_quote_address_save_before fires wherever a quote address is written -
+  the storefront checkout, the REST API, and admin order create. Scoping this
+  to `frontend` would make the additional phone work at checkout and vanish on
+  an order an agent creates by phone, which is exactly the customer this field
+  exists for.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="sales_quote_address_save_before">
+        <observer name="spartrak_flatten_additional_phone"
+                  instance="Spartrak\CustomerAddress\Observer\FlattenAdditionalPhone"/>
+    </event>
+</config>

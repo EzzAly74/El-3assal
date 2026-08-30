@@ -190,6 +190,13 @@
             <block class="Magento\Framework\View\Element\Template" name="spartrak.auth_modal" template="Magento_Theme::html/login-modal.phtml" after="spartrak.mobile_nav_drawer">
                 <arguments>
                     <argument name="auth_config" xsi:type="object">Spartrak\CustomerAuth\ViewModel\AuthConfig</argument>
+                    <!--
+                      Where the modal may send a shopper after a successful
+                      sign-in. An ALLOWLIST of keys, never a URL from the
+                      request - see the view model for why that distinction
+                      is a security boundary rather than a style choice.
+                    -->
+                    <argument name="post_login_destinations" xsi:type="object">Spartrak\CustomerAuth\ViewModel\PostLoginDestinations</argument>
                 </arguments>
             </block>
         </referenceContainer>

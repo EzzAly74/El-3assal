@@ -1,0 +1,109 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  THE CART PAGE (Figma 817:22551 / 553:4663 desktop, 669:13034 mobile)
+  ===========================================================================
+  The two desktop cart frames are near-identical; per the implementation
+  contract this builds ONE authoritative structure rather than two.
+
+  ===========================================================================
+  TEMPLATES ARE NOT DECLARED HERE, AND THAT IS DELIBERATE
+  ===========================================================================
+  A template placed in the theme at the path core declares -
+  Magento_Checkout::cart/form.phtml, Magento_Checkout::cart/item/default.phtml -
+  is picked up by theme fallback for EVERY block that references it. Writing
+  <action method="setTemplate"> for the same path would be a second, weaker way
+  of saying the same thing: weaker because it names blocks one at a time, and
+  core declares the item template on eight renderers (default, simple, virtual,
+  configurable, grouped, bundle, downloadable...) - so a hand-written list
+  silently misses whichever one it forgot, and that product type renders core's
+  table markup inside a card layout.
+
+  The quantity view model reaches those renderers by DI for the same reason -
+  see Spartrak_Checkout/etc/frontend/di.xml.
+
+  ===========================================================================
+  WHAT THIS FILE ACTUALLY DOES: REGROUPS THE SUMMARY COLUMN
+  ===========================================================================
+  Figma's summary column is two stacked panels inside one container:
+
+      Order summary container      516 wide
+        Order summary details      grey #f9f9f9, 8px padding, 8px gap
+          Shipping details         the "الشحن الي" row
+          Order summary card       white, 24px padding - title, totals, CTA
+        Gift Option Container      the instalments panel
+
+  Core emits title, shipping, totals and the checkout button as four FLAT
+  siblings of cart.summary. CSS alone cannot draw a box around three of four
+  siblings, so two containers are introduced and core's own blocks are moved
+  into them. Nothing is replaced or removed - every block still renders, in the
+  same order, with its own template and behaviour.
+
+  ===========================================================================
+  WHAT IS KEPT FROM CORE, AND WHY THAT MATTERS
+  ===========================================================================
+    checkout.cart.form      still posts to checkout/cart/updatePost, so
+                            quantity changes, removals and clear-cart all run
+                            through core's validated controller with its CSRF
+                            form key. Nothing here invents a write path.
+    checkout.cart.totals    still renders core's Knockout totals components, so
+                            tax display, discounts and any third-party total
+                            behave exactly as configured. The table they emit
+                            is restyled in LESS rather than replaced - see
+                            _cart.less for why keeping it is the safer choice.
+    checkout.cart.shipping  core's shipping estimator. Figma restyles it into
+                            the collapsible ship-to row; the component and its
+                            rate lookup are untouched.
+    checkout.cart.coupon    untouched and left where Porto puts it. Figma draws
+                            no promo field on the CART (it is on the payment
+                            step), so the block is not removed - a merchant or
+                            extension may still surface it.
+
+  The mega-menu row STAYS. The cart navbar is 223.42 tall in Figma against the
+  checkout's 157.42, and the difference is exactly the menu row - so, unlike
+  checkout_index_index.xml, this file does not remove spartrak.primary_nav.
+-->
+<page layout="1column" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="cart.summary">
+            <!-- The grey ground that holds the ship-to row and the white card. -->
+            <container name="spartrak.cart.summary.panel"
+                       htmlTag="div"
+                       htmlClass="spartrak-cart-summary"
+                       before="-"/>
+
+            <!-- The instalments panel sits OUTSIDE that ground, below it. -->
+            <block class="Magento\Framework\View\Element\Template"
+                   name="spartrak.cart.instalments"
+                   after="spartrak.cart.summary.panel"
+                   template="Magento_Checkout::cart/instalments.phtml">
+                <arguments>
+                    <argument name="instalments_view_model" xsi:type="object">
+                        Spartrak\Checkout\ViewModel\InstalmentsPromo
+                    </argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+
+        <referenceContainer name="spartrak.cart.summary.panel">
+            <!-- The white card: title, totals and the checkout CTA. -->
+            <container name="spartrak.cart.summary.card"
+                       htmlTag="div"
+                       htmlClass="spartrak-cart-summary__card"
+                       after="checkout.cart.shipping"/>
+        </referenceContainer>
+
+        <!--
+          The ship-to row first, then the card - the order Figma stacks them in.
+          Moved rather than re-declared so each block keeps the arguments,
+          jsLayout and child blocks core gave it.
+        -->
+        <move element="checkout.cart.shipping" destination="spartrak.cart.summary.panel"/>
+        <move element="checkout.cart.summary.title" destination="spartrak.cart.summary.card"/>
+        <move element="checkout.cart.totals.container" destination="spartrak.cart.summary.card"
+              after="checkout.cart.summary.title"/>
+        <move element="checkout.cart.methods.bottom" destination="spartrak.cart.summary.card"
+              after="checkout.cart.totals.container"/>
+    </body>
+</page>

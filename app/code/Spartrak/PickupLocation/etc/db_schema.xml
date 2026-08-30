@@ -1,0 +1,163 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  SPARTRAK PICKUP LOCATIONS - SCHEMA
+  ===========================================================================
+  Three owned tables plus four columns added to two core tables.
+
+      spartrak_pickup_operator   transport operators (the depot "chips")
+      spartrak_pickup_branch     company branches a shopper can collect from
+      spartrak_pickup_depot      third-party coach depots
+
+  WHY BRANCHES AND DEPOTS ARE TWO TABLES, NOT ONE WITH A type COLUMN
+  ===========================================================================
+  They are not the same thing wearing different labels. A depot carries a
+  governorate and an operator; a branch carries neither and never will, because
+  a branch IS the company. Folding them together would mean two columns that
+  are mandatory for one half of the rows and meaningless for the other, one
+  grid that has to hide columns per row, and a carrier that filters on a type
+  discriminator before it can do anything. Two tables state the difference
+  once, in the schema, and every layer above inherits it for free.
+
+  WHY OPERATORS ARE AN ENTITY AND NOT A VARCHAR ON THE DEPOT
+  ===========================================================================
+  Figma renders operators as a filter chip row above the depot list. A chip row
+  needs a stable, ordered, enable-able set with a display name per locale -
+  none of which a free-text column can offer. Chips derived from SELECT DISTINCT
+  would also fracture the first time someone types a name slightly differently.
+  CLAUDE.md section 7 asks for structured content models over free-form fields;
+  this is that rule applied.
+
+  WHY GOVERNORATES ARE directory_country_region AND NOT A FOURTH TABLE
+  ===========================================================================
+  Magento already owns "administrative subdivisions of a country". It simply
+  ships no rows for Egypt (checked: vendor/magento/module-directory carries
+  region patches for 30 countries, none of them EG).
+  Setup\Patch\Data\AddEgyptGovernorates adds the 27 real governorates to the
+  platform's own tables, so the SAME list feeds the depot form, the customer
+  address form's governorate dropdown and any future tax or shipping rule -
+  instead of this module inventing a private geography nothing else can see.
+
+  WHY THE ORDER STORES A NAME AS WELL AS AN ID
+  ===========================================================================
+  An order is a financial record and must not change retroactively. If a branch
+  is renamed or closed next year, an order placed against it today still has to
+  print what the shopper actually chose. The id keeps the row joinable while it
+  exists; the denormalised name and address keep the order readable forever.
+  This is the same reason sales_order_item copies the product name rather than
+  joining back to the catalog.
+-->
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+
+    <table name="spartrak_pickup_operator" resource="default" engine="innodb" comment="Spartrak Pickup - Transport Operators">
+        <column xsi:type="int" name="operator_id" unsigned="true" nullable="false" identity="true" comment="Operator ID"/>
+        <column xsi:type="varchar" name="code" nullable="false" length="64" comment="Stable identifier used by the storefront filter"/>
+        <column xsi:type="varchar" name="name_ar" nullable="false" length="255" comment="Operator name (Arabic store views)"/>
+        <column xsi:type="varchar" name="name_en" nullable="true" length="255" comment="Operator name (English store views)"/>
+        <column xsi:type="smallint" name="is_active" unsigned="true" nullable="false" default="1" comment="Enabled"/>
+        <column xsi:type="int" name="sort_order" nullable="false" default="0" comment="Chip order"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="operator_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="SPARTRAK_PICKUP_OPERATOR_CODE">
+            <column name="code"/>
+        </constraint>
+        <index referenceId="SPARTRAK_PICKUP_OPERATOR_IS_ACTIVE_SORT_ORDER" indexType="btree">
+            <column name="is_active"/>
+            <column name="sort_order"/>
+        </index>
+    </table>
+
+    <table name="spartrak_pickup_branch" resource="default" engine="innodb" comment="Spartrak Pickup - Company Branches">
+        <column xsi:type="int" name="branch_id" unsigned="true" nullable="false" identity="true" comment="Branch ID"/>
+        <column xsi:type="varchar" name="name_ar" nullable="false" length="255" comment="Branch name (Arabic store views)"/>
+        <column xsi:type="varchar" name="name_en" nullable="true" length="255" comment="Branch name (English store views)"/>
+        <column xsi:type="text" name="address_ar" nullable="false" comment="Street address (Arabic store views)"/>
+        <column xsi:type="text" name="address_en" nullable="true" comment="Street address (English store views)"/>
+        <column xsi:type="int" name="region_id" unsigned="true" nullable="true" comment="Governorate - directory_country_region"/>
+        <column xsi:type="varchar" name="phone" nullable="true" length="32" comment="Branch telephone"/>
+        <column xsi:type="smallint" name="is_active" unsigned="true" nullable="false" default="1" comment="Enabled"/>
+        <column xsi:type="int" name="sort_order" nullable="false" default="0" comment="Position in the storefront list"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="branch_id"/>
+        </constraint>
+        <!--
+          SET NULL, not CASCADE: deleting a governorate must never silently
+          delete the branches standing in it. A branch with no governorate is
+          still a real, collectable-from place.
+        -->
+        <constraint xsi:type="foreign" referenceId="SPARTRAK_PICKUP_BRANCH_REGION_ID_DIR_CNTRY_REGION_REGION_ID"
+                    table="spartrak_pickup_branch" column="region_id"
+                    referenceTable="directory_country_region" referenceColumn="region_id" onDelete="SET NULL"/>
+        <index referenceId="SPARTRAK_PICKUP_BRANCH_IS_ACTIVE_SORT_ORDER" indexType="btree">
+            <column name="is_active"/>
+            <column name="sort_order"/>
+        </index>
+    </table>
+
+    <table name="spartrak_pickup_depot" resource="default" engine="innodb" comment="Spartrak Pickup - Coach Depots">
+        <column xsi:type="int" name="depot_id" unsigned="true" nullable="false" identity="true" comment="Depot ID"/>
+        <column xsi:type="varchar" name="name_ar" nullable="false" length="255" comment="Depot name (Arabic store views)"/>
+        <column xsi:type="varchar" name="name_en" nullable="true" length="255" comment="Depot name (English store views)"/>
+        <column xsi:type="text" name="address_ar" nullable="false" comment="Street address (Arabic store views)"/>
+        <column xsi:type="text" name="address_en" nullable="true" comment="Street address (English store views)"/>
+        <column xsi:type="int" name="region_id" unsigned="true" nullable="true" comment="Governorate - directory_country_region"/>
+        <column xsi:type="int" name="operator_id" unsigned="true" nullable="true" comment="Transport operator"/>
+        <column xsi:type="smallint" name="is_active" unsigned="true" nullable="false" default="1" comment="Enabled"/>
+        <column xsi:type="int" name="sort_order" nullable="false" default="0" comment="Position in the storefront list"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="depot_id"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="SPARTRAK_PICKUP_DEPOT_REGION_ID_DIR_CNTRY_REGION_REGION_ID"
+                    table="spartrak_pickup_depot" column="region_id"
+                    referenceTable="directory_country_region" referenceColumn="region_id" onDelete="SET NULL"/>
+        <!--
+          SET NULL for the same reason: retiring an operator must not delete the
+          physical depots. They simply stop carrying a chip until reassigned.
+        -->
+        <constraint xsi:type="foreign" referenceId="SPARTRAK_PICKUP_DEPOT_OPERATOR_ID_SPRTRK_PCKP_OPRTR_OPRTR_ID"
+                    table="spartrak_pickup_depot" column="operator_id"
+                    referenceTable="spartrak_pickup_operator" referenceColumn="operator_id" onDelete="SET NULL"/>
+        <index referenceId="SPARTRAK_PICKUP_DEPOT_IS_ACTIVE_SORT_ORDER" indexType="btree">
+            <column name="is_active"/>
+            <column name="sort_order"/>
+        </index>
+        <index referenceId="SPARTRAK_PICKUP_DEPOT_OPERATOR_ID" indexType="btree">
+            <column name="operator_id"/>
+        </index>
+        <index referenceId="SPARTRAK_PICKUP_DEPOT_REGION_ID" indexType="btree">
+            <column name="region_id"/>
+        </index>
+    </table>
+
+    <!--
+      THE SELECTED LOCATION, carried on the address.
+
+      It lives on the ADDRESS rather than on the quote or the order because that
+      is what it modifies: choosing a depot changes where the parcel goes.
+      Putting it here means Magento's own sales_convert_quote_address fieldset
+      copies it to the order for us (see etc/fieldset.xml) with no observer of
+      ours in the path, and any code already holding the shipping address can
+      read it without a second lookup.
+    -->
+    <table name="quote_address">
+        <column xsi:type="varchar" name="spartrak_pickup_type" nullable="true" length="16" comment="Spartrak pickup type - branch or depot"/>
+        <column xsi:type="int" name="spartrak_pickup_id" unsigned="true" nullable="true" comment="Spartrak pickup location ID"/>
+        <column xsi:type="varchar" name="spartrak_pickup_name" nullable="true" length="255" comment="Spartrak pickup location name as chosen"/>
+        <column xsi:type="text" name="spartrak_pickup_address" nullable="true" comment="Spartrak pickup location address as chosen"/>
+    </table>
+
+    <table name="sales_order_address">
+        <column xsi:type="varchar" name="spartrak_pickup_type" nullable="true" length="16" comment="Spartrak pickup type - branch or depot"/>
+        <column xsi:type="int" name="spartrak_pickup_id" unsigned="true" nullable="true" comment="Spartrak pickup location ID"/>
+        <column xsi:type="varchar" name="spartrak_pickup_name" nullable="true" length="255" comment="Spartrak pickup location name as chosen"/>
+        <column xsi:type="text" name="spartrak_pickup_address" nullable="true" comment="Spartrak pickup location address as chosen"/>
+    </table>
+
+</schema>

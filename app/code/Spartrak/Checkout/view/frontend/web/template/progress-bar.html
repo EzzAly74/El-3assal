@@ -1,0 +1,82 @@
+<!--
+/**
+ * Spartrak — checkout progress bar (Figma 817:22383).
+ *
+ * GEOMETRY, read off the nodes rather than eyeballed:
+ *   bar          1440 x 97, steps inset 16 top and bottom (817:22383)
+ *   marker       28 x 28 disc, 20px glyph inset 4 (817:22386 / 817:22387)
+ *   connector    148 x 4 at y=12 — vertically centred on the 28px disc,
+ *                12px clear of it (817:22397)
+ *   label        19px below the disc (y=47 in a 65-tall step, 817:22394)
+ *
+ * THE CONNECTOR BELONGS TO THE MARKER IT LEADS INTO, not to the one it leaves.
+ * That is how Figma nests it — 817:22397 is a child of step two, and step one
+ * has none — and it is also what makes the colour rule trivial: a connector is
+ * navy exactly when its own marker has been reached. Drawn before the marker in
+ * source order, so under `direction: rtl` it lands on the marker's start side
+ * and the whole bar mirrors for the English store with no second rule.
+ *
+ * SEMANTICS
+ * Three different elements, because the three states are three different
+ * things and a11y should not have to guess (CLAUDE.md §15):
+ *   cart      -> <a href>       a real link to a real page; middle-click works
+ *   complete  -> <button>       an in-page action, not a navigation
+ *   current   -> <span aria-current="step">
+ *   upcoming  -> <span>         inert, and not focusable
+ */
+-->
+<div class="spartrak-checkout-progress" data-bind="visible: visible">
+
+    <!--
+      "الرجوع" (817:22427). First in source order so it sits at the reading
+      START — which is the right-hand edge in Arabic, exactly where the design
+      puts it — and mirrors to the left in English for free.
+    -->
+    <button type="button"
+            class="spartrak-checkout-progress__back"
+            data-bind="click: back, attr: { 'aria-label': $t('Go back one step') }">
+        <span class="spartrak-checkout-progress__back-label" data-bind="i18n: 'Back'"></span>
+        <span class="spartrak-checkout-progress__back-icon" aria-hidden="true"></span>
+    </button>
+
+    <ol class="spartrak-checkout-progress__steps">
+        <!-- ko foreach: { data: markers(), as: 'marker' } -->
+        <li class="spartrak-checkout-progress__step"
+            data-bind="css: 'spartrak-checkout-progress__step--' + marker.code,
+                       attr: { 'data-reached': $parent.isReached(marker) ? 'true' : 'false' }">
+
+            <!-- ko if: marker.connector -->
+            <span class="spartrak-checkout-progress__connector" aria-hidden="true"></span>
+            <!-- /ko -->
+
+            <span class="spartrak-checkout-progress__body">
+
+                <!-- ko if: marker.code === 'cart' -->
+                <a class="spartrak-checkout-progress__marker" data-bind="attr: { href: marker.href }">
+                    <span class="spartrak-checkout-progress__icon" aria-hidden="true"></span>
+                    <span class="spartrak-checkout-progress__sr" data-bind="i18n: 'Completed:'"></span>
+                </a>
+                <!-- /ko -->
+
+                <!-- ko if: marker.code !== 'cart' && marker.complete -->
+                <button type="button"
+                        class="spartrak-checkout-progress__marker"
+                        data-bind="click: $parent.goToStep.bind($parent, marker)">
+                    <span class="spartrak-checkout-progress__icon" aria-hidden="true"></span>
+                    <span class="spartrak-checkout-progress__sr" data-bind="i18n: 'Completed:'"></span>
+                </button>
+                <!-- /ko -->
+
+                <!-- ko if: marker.code !== 'cart' && !marker.complete -->
+                <span class="spartrak-checkout-progress__marker"
+                      data-bind="attr: { 'aria-current': marker.active ? 'step' : false }">
+                    <span class="spartrak-checkout-progress__icon" aria-hidden="true"></span>
+                </span>
+                <!-- /ko -->
+
+                <span class="spartrak-checkout-progress__label" data-bind="text: marker.title"></span>
+            </span>
+        </li>
+        <!-- /ko -->
+    </ol>
+</div>

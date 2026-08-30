@@ -12,6 +12,9 @@
                      read catalogue collections and stock status.
       Spartrak_Catalog — supplies the shared Card - Product template that
                      every product section renders through.
+      Spartrak_Locale — owns Model\StoreLanguage, which this module's
+                     Model\LocaleContext now extends. The parent class has to
+                     be loadable before this module's is declared.
     -->
     <module name="Spartrak_Homepage">
         <sequence>
@@ -19,6 +22,7 @@
             <module name="Magento_Catalog"/>
             <module name="Magento_CatalogInventory"/>
             <module name="Spartrak_Catalog"/>
+            <module name="Spartrak_Locale"/>
         </sequence>
     </module>
 </config>

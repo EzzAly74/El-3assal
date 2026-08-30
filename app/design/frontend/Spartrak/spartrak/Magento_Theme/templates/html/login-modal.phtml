@@ -117,6 +117,8 @@
  */
 
 $authConfig = $block->getData('auth_config');
+/** @var \Spartrak\CustomerAuth\ViewModel\PostLoginDestinations|null $postLoginDestinations */
+$postLoginDestinations = $block->getData('post_login_destinations');
 
 $codeLength = $authConfig->getCodeLength();
 $signupPurpose = $authConfig->getSignupPurpose();
@@ -135,6 +137,14 @@ $widgetConfig = [
         ],
         'codeLength' => $codeLength,
         'resendSeconds' => $authConfig->getResendCooldownSeconds(),
+        /*
+         * The only destinations a `#auth=login&next=<key>` fragment may
+         * resolve to. Keys, not URLs - see
+         * Spartrak\CustomerAuth\ViewModel\PostLoginDestinations for why
+         * accepting a URL here would be an open redirect on the page a shopper
+         * is most primed to trust.
+         */
+        'destinations' => $postLoginDestinations !== null ? $postLoginDestinations->toArray() : [],
     ],
 ];
 

@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<!--
+  How the shopper's chosen location reaches the server.
+
+  ShippingInformationInterface is the payload the checkout already POSTs when a
+  shipping method is selected (Magento_Checkout/js/model/shipping-save-processor
+  -> the shipping-information REST endpoint). Hanging the choice off THAT object
+  means the location travels with the method it belongs to, in the request that
+  already exists - rather than a second endpoint of our own that could succeed
+  or fail independently and leave the two out of step.
+
+  ONE DECLARATION, NOT THREE
+  ===========================================================================
+  Matching attributes on Quote\AddressInterface and Sales\OrderAddressInterface
+  were drafted here and removed again. Declaring an extension attribute does not
+  populate it - that needs a plugin on every repository read - so those two
+  would have been dead configuration that made the API look richer than it was.
+
+  Nothing needs them. The values are real COLUMNS on quote_address and
+  sales_order_address (see db_schema.xml), Magento's own fieldset copies them
+  across the order boundary (see fieldset.xml), and the read side -
+  ViewModel\OrderPickup - asks the address for its own column. Add the
+  declarations back the day an external integration needs to read a pickup
+  location over REST, together with the plugins that would make them true.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Api/etc/extension_attributes.xsd">
+    <extension_attributes for="Magento\Checkout\Api\Data\ShippingInformationInterface">
+        <attribute code="spartrak_pickup_type" type="string"/>
+        <attribute code="spartrak_pickup_id" type="int"/>
+    </extension_attributes>
+</config>

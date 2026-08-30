@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!--
+  GLOBAL, not frontend: the checkout reaches the quote address over REST
+  (webapi_rest), so a frontend-scoped plugin here would never fire on a real
+  checkout. Same trap recorded in Spartrak_PickupLocation's etc/di.xml.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Magento\Quote\Model\Quote\Address\CustomAttributeList">
+        <plugin name="spartrak_allow_additional_phone"
+                type="Spartrak\CustomerAddress\Plugin\AllowAdditionalPhoneOnQuoteAddress"/>
+    </type>
+</config>
