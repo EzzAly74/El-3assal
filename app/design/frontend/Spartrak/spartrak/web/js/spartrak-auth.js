@@ -155,9 +155,7 @@ define([
                 return;
             }
 
-            this.postLoginUrl = match[2] ? this.options.destinations[match[2]] || null : null;
-
-            this.open(match[1]);
+            this.open(match[1], match[2]);
 
             // Consumed, not left sitting in the address bar: a shopper who
             // closes the modal and reloads should not have it reopen, and a
@@ -197,8 +195,21 @@ define([
 
         /**
          * @param {String} stepId
+         * @param {String} [destinationKey] a key from options.destinations. When
+         *        given, a successful sign-in redirects there instead of
+         *        reloading in place. Anything not in the allowlist resolves to
+         *        null and the modal simply reloads - see
+         *        Spartrak\CustomerAuth\ViewModel\PostLoginDestinations for why
+         *        a key rather than a URL.
          */
-        open: function (stepId) {
+        open: function (stepId, destinationKey) {
+            // Set on EVERY open, including the ones with no destination, so a
+            // previous open cannot leave a stale redirect behind - the header's
+            // sign-in link must never inherit checkout's return trip.
+            this.postLoginUrl = destinationKey
+                ? this.options.destinations[destinationKey] || null
+                : null;
+
             // Remembered so focus can go back where it came from on close —
             // without this, dismissing the modal drops keyboard focus to the top
             // of the document and the shopper loses their place entirely.

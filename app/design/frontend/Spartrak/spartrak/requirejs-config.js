@@ -53,6 +53,18 @@ var config = {
             },
             'Magento_Checkout/js/sidebar': {
                 'js/spartrak-minicart-qty-mixin': true
+            },
+            /*
+             * Guest checkout is disabled, so core asks a signed-out shopper to
+             * sign in before checkout - and it does that with MAGENTO'S popup,
+             * not this theme's modal. Both the minicart drawer
+             * (Magento_Checkout/js/sidebar) and the cart page button
+             * (proceed-to-checkout) reach it through this one model, so
+             * wrapping showModal() here covers every caller at once instead of
+             * patching each of them.
+             */
+            'Magento_Customer/js/model/authentication-popup': {
+                'js/spartrak-auth-popup-mixin': true
             }
         }
     }

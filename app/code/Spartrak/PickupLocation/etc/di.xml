@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
 <!--
-  GLOBAL, not frontend.
-
+  ===========================================================================
+  THE CHECKOUT PLUGIN: GLOBAL, NOT FRONTEND
+  ===========================================================================
   ShippingInformationManagement::saveAddressInformation() is reached over the
   REST API - the checkout's Knockout layer POSTs to
   /rest/V1/carts/mine/shipping-information, which runs in the `webapi_rest`
@@ -12,11 +13,77 @@
 
   The config provider, by contrast, IS frontend-only and lives in
   etc/frontend/di.xml, because window.checkoutConfig is a rendered-page concern.
+
+  ===========================================================================
+  GRID DATA SOURCES
+  ===========================================================================
+  Magento's generic UI DataProvider resolves a listing's data source by NAME
+  through Framework\View\Element\UiComponent\DataProvider\CollectionFactory.
+  Registering each grid collection here is what lets all three listings use
+  that GENERIC provider - so none of them needs a data-provider class of its
+  own, and filtering, sorting, paging and bookmarks all come from core.
+
+  WITHOUT THESE, THE GRID RENDERS AND THEN FAILS: the page loads, the "Add"
+  button appears, and the listing area prints
+
+      Not registered handle spartrak_pickup_branch_listing_data_source
+
+  because the ui_component names a data source that nothing has mapped to a
+  collection. The listing XML alone is not enough - it declares the NAME; this
+  file says what that name resolves to.
+
+  The Grid collections extend SearchResult (not the plain entity collection)
+  because that is the contract the generic provider expects: it applies the
+  UI's filters as SearchCriteria against it. They are virtualTypes because they
+  add no behaviour - only a table and a resource model - so a real class would
+  be three lines of boilerplate each.
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
     <type name="Magento\Checkout\Model\ShippingInformationManagement">
         <plugin name="spartrak_pickup_apply_location"
                 type="Spartrak\PickupLocation\Plugin\Checkout\ApplyPickupLocation"
                 sortOrder="10"/>
     </type>
+
+    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
+        <arguments>
+            <argument name="collections" xsi:type="array">
+                <item name="spartrak_pickup_branch_listing_data_source" xsi:type="string">
+                    Spartrak\PickupLocation\Model\ResourceModel\Branch\Grid\Collection
+                </item>
+                <item name="spartrak_pickup_depot_listing_data_source" xsi:type="string">
+                    Spartrak\PickupLocation\Model\ResourceModel\Depot\Grid\Collection
+                </item>
+                <item name="spartrak_pickup_operator_listing_data_source" xsi:type="string">
+                    Spartrak\PickupLocation\Model\ResourceModel\Operator\Grid\Collection
+                </item>
+            </argument>
+        </arguments>
+    </type>
+
+    <virtualType name="Spartrak\PickupLocation\Model\ResourceModel\Branch\Grid\Collection"
+                 type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">spartrak_pickup_branch</argument>
+            <argument name="resourceModel" xsi:type="string">Spartrak\PickupLocation\Model\ResourceModel\Branch</argument>
+        </arguments>
+    </virtualType>
+
+    <virtualType name="Spartrak\PickupLocation\Model\ResourceModel\Depot\Grid\Collection"
+                 type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">spartrak_pickup_depot</argument>
+            <argument name="resourceModel" xsi:type="string">Spartrak\PickupLocation\Model\ResourceModel\Depot</argument>
+        </arguments>
+    </virtualType>
+
+    <virtualType name="Spartrak\PickupLocation\Model\ResourceModel\Operator\Grid\Collection"
+                 type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">spartrak_pickup_operator</argument>
+            <argument name="resourceModel" xsi:type="string">Spartrak\PickupLocation\Model\ResourceModel\Operator</argument>
+        </arguments>
+    </virtualType>
+
 </config>
