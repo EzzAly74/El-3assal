@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<!--
+  Spartrak order success — Figma 554:12084 / 554:12434.
+
+  ===========================================================================
+  THE PAGE TITLE AND THE PRINT BUTTON ARE REMOVED
+  ===========================================================================
+  Core sets a "Thank you for your purchase!" page heading above the content and
+  puts a Print button beside it. Figma's success frame has neither: the card
+  carries its own heading (`تم الدفع بنجاح!`), and a second one above it would
+  say the same thing twice in two different type ramps.
+
+  The print button goes with it. Nothing else on this storefront offers to print
+  a page, and the order is reachable from My Account, where printing lives.
+
+  ===========================================================================
+  THE PROGRESS BAR
+  ===========================================================================
+  Figma's success frame has no progress bar — the checkout is over. Core does
+  not put one here either, so there is nothing to remove; this is recorded only
+  so the absence reads as intentional rather than forgotten.
+
+  ===========================================================================
+  THE VIEW MODEL, NOT A NEW BLOCK
+  ===========================================================================
+  `checkout.success` stays Magento\Checkout\Block\Onepage\Success, still
+  resolving the order id and still deciding whether this visitor may follow the
+  link to the order. Everything Figma additionally needs — the line items, the
+  payment title, the destination — arrives as a view model argument beside it.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      layout="1column"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="checkout.success.print.button" remove="true"/>
+
+        <referenceBlock name="page.main.title" remove="true"/>
+
+        <referenceBlock name="checkout.success">
+            <arguments>
+                <argument name="success_view_model" xsi:type="object">
+                    Spartrak\Checkout\ViewModel\OrderSuccess
+                </argument>
+            </arguments>
+        </referenceBlock>
+    </body>
+</page>

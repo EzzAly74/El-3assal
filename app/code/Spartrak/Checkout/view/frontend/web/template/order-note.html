@@ -1,0 +1,44 @@
+<!--
+/**
+ * Spartrak order note - Figma 552:11505 (720 x 147) + 720:26810 (122 x 36).
+ *
+ * Label 21px at Body/Small Medium, textarea 120 tall with 12px padding, and
+ * the `أضف التعليق` button on its own line at the reading end.
+ *
+ * The label is a real <label for>, so tapping it focuses the textarea and a
+ * screen reader announces the two together. Figma's hidden `Hint Error` slot
+ * (552:11512) is the feedback line below - shown only once there is something
+ * to say, in green or, with the warning icon, in red.
+ */
+-->
+<div class="spartrak-order-note">
+    <label class="spartrak-order-note__label" for="spartrak-order-note"
+           data-bind="i18n: 'Leave a note on your order'"></label>
+
+    <textarea id="spartrak-order-note"
+              class="spartrak-order-note__input"
+              rows="4"
+              maxlength="1000"
+              data-bind="value: note,
+                         valueUpdate: 'input',
+                         attr: { placeholder: $t('Add your note here') }"></textarea>
+
+    <!-- ko if: feedback() -->
+    <p class="spartrak-order-note__feedback"
+       data-bind="css: { 'spartrak-order-note__feedback--error': hasError() }"
+       role="status">
+        <!-- ko if: hasError() -->
+        <span class="spartrak-order-note__feedback-icon" aria-hidden="true"></span>
+        <!-- /ko -->
+        <span data-bind="text: feedback()"></span>
+    </p>
+    <!-- /ko -->
+
+    <div class="spartrak-order-note__actions">
+        <button type="button"
+                class="spartrak-order-note__submit"
+                data-bind="click: save, enable: canSubmit()">
+            <span data-bind="i18n: 'Add the note'"></span>
+        </button>
+    </div>
+</div>

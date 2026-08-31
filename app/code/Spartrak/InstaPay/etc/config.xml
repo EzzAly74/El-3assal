@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<!--
+  Defaults for the InstaPay method. Every one of these is editable in
+  Stores > Configuration > Sales > Payment Methods > InstaPay; nothing about the
+  merchant's account is hardcoded, which is the whole point of putting it here
+  rather than in a template.
+
+  ===========================================================================
+  OFF BY DEFAULT
+  ===========================================================================
+  `active` is 0. A payment method that takes real money must never switch itself
+  on at install: until a merchant has entered THEIR transfer number, an enabled
+  InstaPay would show shoppers a blank number and collect receipts for a
+  transfer nobody received.
+
+  ===========================================================================
+  ORDER STATE
+  ===========================================================================
+  `order_status` is `pending_payment`, and that is deliberate. The order is
+  created when the shopper leaves the checkout, so the cart is converted and
+  stock is reserved, but nothing has been paid and nobody has checked anything:
+
+    - pending_payment orders are excluded from "My Orders" and send no
+      confirmation email, so a shopper who abandons the transfer page is not
+      told their order is on its way;
+    - they can be cancelled, individually or on a schedule, which is what a
+      merchant wants for an abandoned transfer.
+
+  It moves to `new` when the receipt is uploaded, and is invoiced when a human
+  approves it.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <payment>
+            <spartrak_instapay>
+                <active>0</active>
+                <model>SpartrakInstaPayFacade</model>
+                <title>InstaPay</title>
+                <order_status>pending_payment</order_status>
+                <payment_action>order</payment_action>
+                <allowspecific>0</allowspecific>
+                <sort_order>30</sort_order>
+                <can_use_checkout>1</can_use_checkout>
+                <can_use_internal>0</can_use_internal>
+                <is_gateway>0</is_gateway>
+                <is_offline>1</is_offline>
+
+                <!--
+                  Empty on purpose. These are the merchant's own banking
+                  details; a placeholder here would be a number some shopper
+                  eventually transfers money to.
+                -->
+                <merchant_number/>
+                <merchant_name/>
+            </spartrak_instapay>
+        </payment>
+    </default>
+</config>

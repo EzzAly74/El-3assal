@@ -1,0 +1,41 @@
+<!--
+/**
+ * Spartrak cart savings row - Figma 669:13034.
+ *
+ * ===========================================================================
+ * ONE CLASS IS ADDED, AND THAT IS THE WHOLE OVERRIDE
+ * ===========================================================================
+ * Core emits this row as `<tr class="totals">` - the same class the subtotal
+ * and the shipping rows carry. So there is no way, in CSS alone, to give the
+ * savings row the green treatment Figma draws without also hitting the rows
+ * either side of it.
+ *
+ * `totals-discount` is that hook. Everything else - the title, the coupon
+ * label, the value - is core's, and the amount is still Magento's own discount
+ * total. Nothing here calculates a saving.
+ *
+ * ===========================================================================
+ * THIS ROW IS SHOWN ON THE CART
+ * ===========================================================================
+ * An earlier reading of these frames recorded the cart as having NO savings
+ * row, from the desktop frame alone. The mobile cart (669:13034) draws one -
+ * `وفرت` with the info icon and a green amount, between the subtotal and the
+ * shipping charge - so the row belongs here.
+ *
+ * It is also the safer default in its own right: `isDisplayed()` is core's, and
+ * it is false whenever there is no discount, so the row appears only when the
+ * shopper has actually saved something. Suppressing it would have meant writing
+ * code to hide money someone had earned.
+ */
+-->
+<!-- ko if: isDisplayed() -->
+<tr class="totals totals-discount">
+    <th colspan="1" class="mark" scope="row">
+        <span class="title" data-bind="text: getTitle()"></span>
+        <span class="discount coupon" data-bind="text: getCouponLabel()"></span>
+    </th>
+    <td class="amount" data-bind="attr: {'data-th': title}">
+        <span><span class="price" data-bind="text: getValue()"></span></span>
+    </td>
+</tr>
+<!-- /ko -->

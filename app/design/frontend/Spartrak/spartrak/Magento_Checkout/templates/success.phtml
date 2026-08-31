@@ -1,0 +1,142 @@
+<?php
+/**
+ * Spartrak order success - Figma 554:12434 (desktop) / 687:18900 (mobile).
+ *
+ * ===========================================================================
+ * EVERY VALUE ON THIS PAGE COMES FROM THE ORDER
+ * ===========================================================================
+ * The order number, the line items, the payment method's title and the
+ * destination are all read from the order that was just placed. Nothing is
+ * assumed - in particular the payment method is NOT cash on delivery just
+ * because one Figma frame happens to show it; the desktop frame of this same
+ * screen shows InstaPay, which is exactly why it has to be asked for.
+ *
+ * ===========================================================================
+ * ONE DELIBERATE DIVERGENCE FROM FIGMA
+ * ===========================================================================
+ * Figma's card prints no order number. This one does, under the description.
+ *
+ * That is a considered addition rather than an oversight in either direction:
+ * the number is the reference a shopper quotes when they phone about the order,
+ * it is what Magento's own success page has always shown, and a confirmation
+ * screen that omits it sends people straight to support. It is styled as part
+ * of the description block so the card's proportions are unchanged.
+ *
+ * ===========================================================================
+ * WHAT IS KEPT FROM CORE
+ * ===========================================================================
+ * getAdditionalInfoHtml() renders the `order.success.additional.info`
+ * container, which is where payment integrations put post-order instructions -
+ * a bank transfer's account details, an offline method's next steps. Dropping
+ * it would silently delete those.
+ *
+ * The registration block (checkout.registration) is a sibling block in the
+ * layout and is untouched.
+ *
+ * @var \Magento\Checkout\Block\Onepage\Success $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+/** @var \Spartrak\Checkout\ViewModel\OrderSuccess $success */
+$success = $block->getData('success_view_model');
+$items = $success->getItems();
+?>
+<div class="spartrak-success">
+    <div class="spartrak-success__card">
+
+        <div class="spartrak-success__head">
+            <!--
+              Figma 721:31158, a 156px illustration. A CSS background rather
+              than an <img>: it is multi-colour artwork, so a mask would flatten
+              it, and it is purely decorative - the heading beside it carries
+              the meaning - so there is nothing for alt text to say.
+            -->
+            <span class="spartrak-success__art" aria-hidden="true"></span>
+
+            <div class="spartrak-success__intro">
+                <h1 class="spartrak-success__title">
+                    <?= $escaper->escapeHtml(__('Payment successful!')) ?>
+                </h1>
+                <p class="spartrak-success__lead">
+                    <?= $escaper->escapeHtml(__('Thank you for your purchase. Your order has been placed successfully.')) ?>
+                </p>
+
+                <?php if ($success->getOrderNumber() !== '') : ?>
+                    <p class="spartrak-success__order">
+                        <?php if ($block->getCanViewOrder()) : ?>
+                            <?= $escaper->escapeHtml(
+                                __(
+                                    'Your order number is %1',
+                                    sprintf(
+                                        '<a class="spartrak-success__order-link" href="%s">%s</a>',
+                                        $escaper->escapeUrl($block->getViewOrderUrl()),
+                                        $escaper->escapeHtml($success->getOrderNumber())
+                                    )
+                                ),
+                                ['a']
+                            ) ?>
+                        <?php else : ?>
+                            <?= $escaper->escapeHtml(
+                                __('Your order number is %1', $success->getOrderNumber())
+                            ) ?>
+                        <?php endif; ?>
+                    </p>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <?php if ($items) : ?>
+            <div class="spartrak-success__body">
+                <ol class="spartrak-success__items">
+                    <?php foreach ($items as $item) : ?>
+                        <li class="spartrak-summary-item">
+                            <span class="spartrak-summary-item__media">
+                                <img class="spartrak-summary-item__image"
+                                     src="<?= $escaper->escapeUrl($item['image']) ?>"
+                                     width="108" height="108"
+                                     alt="<?= $escaper->escapeHtmlAttr($item['name']) ?>"
+                                     loading="lazy" decoding="async"/>
+                                <span class="spartrak-summary-item__qty">
+                                    <?= $escaper->escapeHtml((string) $item['qty']) ?>
+                                    <span class="spartrak-visually-hidden"><?= $escaper->escapeHtml(__('in this order')) ?></span>
+                                </span>
+                            </span>
+                            <span class="spartrak-summary-item__body">
+                                <span class="spartrak-summary-item__name"><?= $escaper->escapeHtml($item['name']) ?></span>
+                                <span class="spartrak-summary-item__price"><?= $escaper->escapeHtml($item['price']) ?></span>
+                            </span>
+                        </li>
+                    <?php endforeach; ?>
+                </ol>
+
+                <dl class="spartrak-success__facts">
+                    <div class="spartrak-success__fact">
+                        <dt class="spartrak-success__fact-label spartrak-success__fact-label--payment">
+                            <?= $escaper->escapeHtml(__('Payment method')) ?>
+                        </dt>
+                        <dd class="spartrak-success__fact-value">
+                            <?= $escaper->escapeHtml($success->getPaymentTitle()) ?>
+                        </dd>
+                    </div>
+
+                    <?php if ($success->getDestination() !== '') : ?>
+                        <div class="spartrak-success__fact">
+                            <dt class="spartrak-success__fact-label spartrak-success__fact-label--shipping">
+                                <?= $escaper->escapeHtml($success->getDestinationLabel()) ?>
+                            </dt>
+                            <dd class="spartrak-success__fact-value">
+                                <?= $escaper->escapeHtml($success->getDestination()) ?>
+                            </dd>
+                        </div>
+                    <?php endif; ?>
+                </dl>
+            </div>
+        <?php endif; ?>
+
+        <?= $block->getAdditionalInfoHtml() ?>
+
+        <a class="spartrak-success__cta" href="<?= $escaper->escapeUrl($block->getContinueUrl()) ?>">
+            <?= $escaper->escapeHtml(__('Back to shopping')) ?>
+        </a>
+    </div>
+</div>

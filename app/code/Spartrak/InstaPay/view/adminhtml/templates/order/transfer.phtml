@@ -1,0 +1,149 @@
+<?php
+/**
+ * The InstaPay review panel on an admin order view.
+ *
+ * ===========================================================================
+ * THE RECEIPT IS LOADED FROM A CONTROLLER, NOT FROM MEDIA
+ * ===========================================================================
+ * The <img> src points at spartrak_instapay/proof/view, which checks the ACL
+ * and streams the bytes from var/. The file has no public URL at all - see
+ * Spartrak\InstaPay\Model\ProofStorage for why a customer's banking screenshot
+ * must not live under pub/media.
+ *
+ * ===========================================================================
+ * APPROVING IS A POST, AND IT IS MEANT TO FEEL DELIBERATE
+ * ===========================================================================
+ * Approving marks an order paid and invoices it against money nobody has
+ * mechanically verified. So it is a POST with a form key rather than a link -
+ * no prefetcher, no crawler and no stray GET can trigger it - and it carries a
+ * confirm, because the mistake is expensive and quiet.
+ *
+ * ===========================================================================
+ * NO INLINE onclick
+ * ===========================================================================
+ * Magento 2.4 ships a Content Security Policy that blocks inline event
+ * handlers, so the confirms are attached through SecureHtmlRenderer - which
+ * emits them as a separate script tag the policy allows. An `onclick` attribute
+ * here would look right in review and silently stop confirming in production.
+ *
+ * @var \Spartrak\InstaPay\Block\Adminhtml\Order\View\Transfer $block
+ * @var \Magento\Framework\Escaper $escaper
+ * @var \Magento\Framework\View\Helper\SecureHtmlRenderer $secureRenderer
+ */
+
+if (!$block->shouldRender()) {
+    return;
+}
+
+$transfers = $block->getTransfers();
+?>
+<section class="admin__page-section spartrak-instapay-review">
+    <div class="admin__page-section-title">
+        <span class="title"><?= $escaper->escapeHtml(__('InstaPay transfer')) ?></span>
+    </div>
+
+    <?php if (!$transfers) : ?>
+        <div class="message message-notice">
+            <?= $escaper->escapeHtml(
+                __('The customer has not uploaded a transfer receipt yet. The order stays unpaid until they do.')
+            ) ?>
+        </div>
+    <?php else : ?>
+        <?php foreach ($transfers as $transfer) : ?>
+            <div class="admin__fieldset spartrak-instapay-review__item">
+                <div class="admin__field">
+                    <span class="admin__field-label"><?= $escaper->escapeHtml(__('Status')) ?></span>
+                    <div class="admin__field-value">
+                        <strong><?= $escaper->escapeHtml($block->getStatusLabel($transfer)) ?></strong>
+                        <?php if ($transfer->getReviewedBy()) : ?>
+                            &mdash;
+                            <?= $escaper->escapeHtml(
+                                __('by %1 on %2', $transfer->getReviewedBy(), (string) $transfer->getReviewedAt())
+                            ) ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div class="admin__field">
+                    <span class="admin__field-label"><?= $escaper->escapeHtml(__('Sent from')) ?></span>
+                    <div class="admin__field-value">
+                        <?= $escaper->escapeHtml($transfer->getCustomerPhone()) ?>
+                    </div>
+                </div>
+
+                <div class="admin__field">
+                    <span class="admin__field-label"><?= $escaper->escapeHtml(__('Submitted')) ?></span>
+                    <div class="admin__field-value">
+                        <?= $escaper->escapeHtml((string) $transfer->getCreatedAt()) ?>
+                        <?php if ($transfer->getOriginalName()) : ?>
+                            &mdash; <?= $escaper->escapeHtml($transfer->getOriginalName()) ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div class="admin__field">
+                    <span class="admin__field-label"><?= $escaper->escapeHtml(__('Receipt')) ?></span>
+                    <div class="admin__field-value">
+                        <a href="<?= $escaper->escapeUrl($block->getProofUrl($transfer)) ?>" target="_blank" rel="noopener">
+                            <img class="spartrak-instapay-review__image"
+                                 src="<?= $escaper->escapeUrl($block->getProofUrl($transfer)) ?>"
+                                 alt="<?= $escaper->escapeHtmlAttr(__('Transfer receipt')) ?>"/>
+                        </a>
+                        <p><?= $escaper->escapeHtml(__('Open in a new tab to see it full size.')) ?></p>
+                    </div>
+                </div>
+
+                <?php if ($block->isPending($transfer)) : ?>
+                    <form method="post" action="<?= $escaper->escapeUrl($block->getReviewUrl()) ?>">
+                        <?= $block->getBlockHtml('formkey') ?>
+                        <input type="hidden" name="transfer_id" value="<?= (int) $transfer->getTransferId() ?>"/>
+
+                        <button type="submit"
+                                id="spartrak-instapay-approve-<?= (int) $transfer->getTransferId() ?>"
+                                name="decision"
+                                value="approved"
+                                class="action-default scalable action-primary">
+                            <span><?= $escaper->escapeHtml(__('Approve and invoice')) ?></span>
+                        </button>
+
+                        <button type="submit"
+                                id="spartrak-instapay-reject-<?= (int) $transfer->getTransferId() ?>"
+                                name="decision"
+                                value="rejected"
+                                class="action-default scalable">
+                            <span><?= $escaper->escapeHtml(__('Reject')) ?></span>
+                        </button>
+                    </form>
+
+                    <?= /* @noEscape */ $secureRenderer->renderEventListenerAsTag(
+                        'onclick',
+                        "return confirm('" . $escaper->escapeJs(
+                            __('Approve this transfer? The order will be invoiced as paid.')
+                        ) . "');",
+                        '#spartrak-instapay-approve-' . (int) $transfer->getTransferId()
+                    ) ?>
+                    <?= /* @noEscape */ $secureRenderer->renderEventListenerAsTag(
+                        'onclick',
+                        "return confirm('" . $escaper->escapeJs(
+                            __('Reject this transfer? The order stays open so you can contact the customer.')
+                        ) . "');",
+                        '#spartrak-instapay-reject-' . (int) $transfer->getTransferId()
+                    ) ?>
+                <?php endif; ?>
+            </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
+</section>
+
+<?php
+/**
+ * Rendered through SecureHtmlRenderer for the same reason as the click handlers
+ * above: a `style` attribute is inline content, and the admin's Content
+ * Security Policy is the wrong thing to be quietly relying on an exception in.
+ * Two rules is not worth a stylesheet and a deploy.
+ */
+?>
+<?= /* @noEscape */ $secureRenderer->renderStyleAsTag(
+    "max-width: 360px; height: auto; border: 1px solid #d6d6d6;",
+    ".spartrak-instapay-review__image"
+) ?>

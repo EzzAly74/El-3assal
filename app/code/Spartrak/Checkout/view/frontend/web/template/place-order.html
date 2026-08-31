@@ -1,0 +1,23 @@
+<!--
+/**
+ * Spartrak checkout CTA - Figma 720:26445 (shipping) / 721:30504 (payment).
+ *
+ * 48px tall, full width of the summary card's inner column, `action/primary`
+ * navy, label at Body/Base Medium in white. The disabled state is Figma's
+ * `#8faef0` - the design's own disabled navy, already a token
+ * (--color-action-primary-disabled).
+ *
+ * A real <button disabled>, not a div with a class: it keeps the button out of
+ * the tab order when it cannot be used, announces itself correctly, and cannot
+ * be clicked through by a stray event handler.
+ */
+-->
+<div class="spartrak-checkout-cta">
+    <button type="button"
+            class="spartrak-checkout-cta__button"
+            data-bind="click: submit,
+                       enable: isEnabled(),
+                       css: { 'spartrak-checkout-cta__button--busy': isBusy() }">
+        <span data-bind="text: label()"></span>
+    </button>
+</div>

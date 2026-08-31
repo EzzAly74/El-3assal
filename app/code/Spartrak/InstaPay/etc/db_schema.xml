@@ -1,0 +1,110 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  ONE TABLE: THE TRANSFER A SHOPPER CLAIMS TO HAVE MADE
+  ===========================================================================
+  InstaPay here is a MANUAL method. The shopper transfers the money themselves,
+  in their own banking app, to the merchant's number - the storefront never
+  touches the money and gets no callback from anyone. What it can capture is the
+  shopper's account of it: the phone number they sent from, and a screenshot.
+
+  That claim is a record in its own right, not a property of the order:
+
+    - it is EVIDENCE. It is what a merchant looks at to decide whether the money
+      arrived, and it has to survive being wrong - a rejected transfer is still
+      a thing that happened, and deleting it would delete the audit trail of the
+      decision.
+    - it has a LIFECYCLE the order does not. pending -> approved or rejected,
+      by a named admin, at a known time. An order has its own states and they
+      answer a different question.
+    - there can be MORE THAN ONE. A shopper whose first screenshot was rejected
+      uploads another. Columns on sales_order could hold exactly one.
+
+  ===========================================================================
+  WHY THE PROOF IS A PATH AND NOT A BLOB
+  ===========================================================================
+  `proof_path` is relative to var/spartrak/instapay - deliberately OUTSIDE the
+  web root, and deliberately not in pub/media. A transfer receipt shows a bank
+  account, a name and an amount; anything under pub/media is served by the web
+  server to anyone who can guess or leak the URL, with no session check at all.
+  Admins reach these through Controller/Adminhtml/Proof/View, which is behind
+  an ACL.
+
+  The path is stored rather than the bytes because MySQL is a poor filesystem:
+  a BLOB column bloats every backup and every SELECT that forgets to exclude it.
+
+  ===========================================================================
+  ORDER LINKAGE
+  ===========================================================================
+  `order_id` is a real foreign key with ON DELETE CASCADE: a transfer for an
+  order that no longer exists is evidence about nothing, and orphaned rows
+  pointing at deleted orders are how a table quietly becomes unusable.
+
+  `quote_id` is kept alongside it - NOT as a key - because the transfer is
+  captured against a quote that has already become an order, and having the
+  quote id makes it possible to trace a shopper's session back through the
+  checkout when something goes wrong.
+-->
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+
+    <table name="spartrak_instapay_transfer" resource="default" engine="innodb"
+           comment="Proof-of-transfer records for the InstaPay offline payment method">
+
+        <column xsi:type="int" name="transfer_id" unsigned="true" nullable="false" identity="true"
+                comment="Transfer ID"/>
+        <column xsi:type="int" name="order_id" unsigned="true" nullable="false"
+                comment="Order entity ID"/>
+        <column xsi:type="int" name="quote_id" unsigned="true" nullable="true"
+                comment="Quote ID the transfer was captured against"/>
+
+        <!--
+          The number the shopper says they transferred FROM. Not the merchant's
+          number - that is configuration, and storing it per row would mean an
+          old transfer silently rewrote itself when the merchant changed
+          accounts.
+        -->
+        <column xsi:type="varchar" name="customer_phone" length="32" nullable="false"
+                comment="Phone number registered with InstaPay, as given by the customer"/>
+
+        <column xsi:type="varchar" name="proof_path" length="255" nullable="false"
+                comment="Path to the uploaded receipt, relative to var/spartrak/instapay"/>
+        <!--
+          What the shopper called the file. Shown to the admin so they can see
+          it is a screenshot and not something odd; never used to build a path -
+          see Model\ProofStorage for why the stored name is generated instead.
+        -->
+        <column xsi:type="varchar" name="original_name" length="255" nullable="true"
+                comment="Original file name as uploaded"/>
+        <column xsi:type="int" name="file_size" unsigned="true" nullable="true"
+                comment="Uploaded file size in bytes"/>
+
+        <column xsi:type="varchar" name="status" length="16" nullable="false" default="pending"
+                comment="pending, approved or rejected"/>
+        <column xsi:type="varchar" name="reviewed_by" length="64" nullable="true"
+                comment="Username of the admin who approved or rejected it"/>
+        <column xsi:type="timestamp" name="reviewed_at" on_update="false" nullable="true"
+                comment="When it was reviewed"/>
+
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false"
+                default="CURRENT_TIMESTAMP" comment="When the customer submitted it"/>
+
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="transfer_id"/>
+        </constraint>
+
+        <constraint xsi:type="foreign" referenceId="SPARTRAK_INSTAPAY_TRANSFER_ORDER_ID_SALES_ORDER_ENTITY_ID"
+                    table="spartrak_instapay_transfer" column="order_id"
+                    referenceTable="sales_order" referenceColumn="entity_id" onDelete="CASCADE"/>
+
+        <!-- The admin order view asks "what transfers exist for this order?" on
+             every render, and that is the only hot read this table has. -->
+        <index referenceId="SPARTRAK_INSTAPAY_TRANSFER_ORDER_ID" indexType="btree">
+            <column name="order_id"/>
+        </index>
+        <!-- Supports a "what is waiting for review?" queue. -->
+        <index referenceId="SPARTRAK_INSTAPAY_TRANSFER_STATUS_CREATED_AT" indexType="btree">
+            <column name="status"/>
+            <column name="created_at"/>
+        </index>
+    </table>
+</schema>

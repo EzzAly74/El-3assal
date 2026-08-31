@@ -3,20 +3,17 @@
 /**
  * Spartrak checkout — component wiring.
  *
- * ONE VALUE IS OVERRIDDEN: the class behind the `progressBar` node. Layout
- * merging is a deep array merge, so naming only the leaf that changes leaves
- * `displayArea` and the `deps` list — which is what defers the bar until the
- * shipping and payment components exist — exactly as Magento_Checkout declared
- * them. Restating the whole node would fork those two values into a second copy
- * that has to be kept in step with core by hand (CLAUDE.md §9).
+ * ONE VALUE IS OVERRIDDEN on the progress bar: the class behind the
+ * `progressBar` node. Layout merging is a deep array merge, so naming only the
+ * leaf that changes leaves `displayArea` and the `deps` list — which is what
+ * defers the bar until the shipping and payment components exist — exactly as
+ * Magento_Checkout declared them. Restating the whole node would fork those two
+ * values into a second copy that has to be kept in step with core by hand
+ * (CLAUDE.md §9).
  *
  * The replacement EXTENDS Magento_Checkout/js/view/progress-bar rather than
  * standing in for it; see the header of web/js/view/progress-bar.js for why
  * that distinction matters (core's component owns checkout's hash routing).
- *
- * The node path below mirrors
- * vendor/magento/module-checkout/view/frontend/layout/checkout_index_index.xml,
- * which is where `progressBar` is declared.
  *
  * ===========================================================================
  * THE PAGE LAYOUT IS CHANGED FROM `checkout` TO `1column`
@@ -60,28 +57,69 @@
                                     <item name="component" xsi:type="string">Spartrak_Checkout/js/view/progress-bar</item>
                                 </item>
 
-                                <!--
-                                  ===================================================
-                                  THE DELIVERY-MODE SEGMENTS AND THE PICKUP LISTS
-                                  ===================================================
-                                  Both are children of `shippingAddress`, and both
-                                  render through a `displayArea` the theme's
-                                  shipping.html asks for by name. That is how a
-                                  component reaches a specific point in a template it
-                                  does not own - and it is why the two new regions in
-                                  that file are `getRegion(...)` calls rather than
-                                  hardcoded markup.
-
-                                  ADDED HERE, NOT REPLACING ANYTHING. Every core child
-                                  of shippingAddress - the address list, the form, the
-                                  method list - is untouched; these two simply join
-                                  them, and the template decides which are visible.
-                                -->
                                 <item name="steps" xsi:type="array">
                                     <item name="children" xsi:type="array">
+                                        <!--
+                                          ===================================================
+                                          THE DELIVERY-MODE SEGMENTS AND THE PICKUP LISTS
+                                          ===================================================
+                                          Both are children of `shippingAddress`, and both
+                                          render through a `displayArea` the theme's
+                                          shipping.html asks for by name. That is how a
+                                          component reaches a specific point in a template it
+                                          does not own - and it is why the two new regions in
+                                          that file are `getRegion(...)` calls rather than
+                                          hardcoded markup.
+
+                                          ADDED HERE, NOT REPLACING ANYTHING. Every core child
+                                          of shippingAddress - the address list, the form, the
+                                          method list - is untouched; these two simply join
+                                          them, and the template decides which are visible.
+                                        -->
                                         <item name="shipping-step" xsi:type="array">
                                             <item name="children" xsi:type="array">
                                                 <item name="shippingAddress" xsi:type="array">
+                                                    <!--
+                                                      ===========================================
+                                                      THE ADD-ADDRESS DIALOG
+                                                      ===========================================
+                                                      Figma 557:5173 (desktop, an 800-wide centred
+                                                      modal) and 687:15189 (mobile, a bottom
+                                                      sheet). Magento's own modal widget does both
+                                                      — `responsive: true` is what turns a popup
+                                                      into a slide-up panel on a narrow viewport,
+                                                      which is exactly the transition the two
+                                                      frames describe — so only the labels change
+                                                      here and the rest is styling.
+
+                                                      Only the leaves that differ are named. Layout
+                                                      merging is a deep array merge, so `element`,
+                                                      `type`, `responsive`, `innerScroll` and
+                                                      `trigger` all survive from core untouched.
+
+                                                      `title` is emptied because Figma's dialog
+                                                      draws its own heading inside the body, beside
+                                                      the close control; leaving core's would print
+                                                      the heading twice.
+                                                    -->
+                                                    <item name="config" xsi:type="array">
+                                                        <item name="popUpForm" xsi:type="array">
+                                                            <item name="options" xsi:type="array">
+                                                                <item name="title" xsi:type="string" translate="true">Add a new shipping address</item>
+                                                                <item name="modalClass" xsi:type="string">new-shipping-address-modal spartrak-address-modal</item>
+                                                                <item name="buttons" xsi:type="array">
+                                                                    <item name="save" xsi:type="array">
+                                                                        <item name="text" xsi:type="string" translate="true">Add a new address</item>
+                                                                        <item name="class" xsi:type="string">action primary action-save-address spartrak-address-modal__save</item>
+                                                                    </item>
+                                                                    <item name="cancel" xsi:type="array">
+                                                                        <item name="text" xsi:type="string" translate="true">Discard</item>
+                                                                        <item name="class" xsi:type="string">action secondary action-hide-popup spartrak-address-modal__cancel</item>
+                                                                    </item>
+                                                                </item>
+                                                            </item>
+                                                        </item>
+                                                    </item>
                                                     <item name="children" xsi:type="array">
                                                         <item name="spartrak-delivery-mode" xsi:type="array">
                                                             <item name="component" xsi:type="string">Spartrak_Checkout/js/view/delivery-mode</item>
@@ -94,6 +132,109 @@
                                                             <item name="sortOrder" xsi:type="string">10</item>
                                                         </item>
                                                     </item>
+                                                </item>
+                                            </item>
+                                        </item>
+
+                                        <item name="billing-step" xsi:type="array">
+                                            <item name="children" xsi:type="array">
+                                                <item name="payment" xsi:type="array">
+                                                    <item name="children" xsi:type="array">
+                                                        <!--
+                                                          ===========================================
+                                                          THE ORDER NOTE
+                                                          ===========================================
+                                                          Figma puts the note field below the payment
+                                                          rows (552:11505), inside the payment step, so
+                                                          it is a child of `payment` reached through a
+                                                          displayArea the theme's payment.html asks for
+                                                          by name.
+
+                                                          It writes to quote.customer_note, a column
+                                                          Magento already carries through to the order -
+                                                          see Spartrak\Checkout\Controller\Note\Save.
+                                                        -->
+                                                        <item name="spartrak-order-note" xsi:type="array">
+                                                            <item name="component" xsi:type="string">Spartrak_Checkout/js/view/order-note</item>
+                                                            <item name="displayArea" xsi:type="string">spartrak-order-note</item>
+                                                            <item name="sortOrder" xsi:type="string">100</item>
+                                                        </item>
+
+                                                        <!--
+                                                          ===========================================
+                                                          THE PROMO PANEL MOVES OUT OF THIS STEP
+                                                          ===========================================
+                                                          Magento_SalesRule mounts its coupon form here,
+                                                          under `afterMethods`. Figma has it in the
+                                                          summary column (554:11806), beneath the totals
+                                                          card.
+
+                                                          jsLayout has no <move>, so the original is
+                                                          switched off and an identical component is
+                                                          declared under `sidebar` below.
+                                                          `componentDisabled` is Magento's own supported
+                                                          way to disable a jsLayout node; the component,
+                                                          its coupon actions and its messages are
+                                                          otherwise untouched.
+                                                        -->
+                                                        <item name="afterMethods" xsi:type="array">
+                                                            <item name="children" xsi:type="array">
+                                                                <item name="discount" xsi:type="array">
+                                                                    <item name="componentDisabled" xsi:type="boolean">true</item>
+                                                                </item>
+                                                            </item>
+                                                        </item>
+                                                    </item>
+                                                </item>
+                                            </item>
+                                        </item>
+                                    </item>
+                                </item>
+
+                                <!--
+                                  ===================================================
+                                  THE SUMMARY COLUMN
+                                  ===================================================
+                                  Two additions, both rendered through displayAreas the
+                                  theme's sidebar.html and summary.html ask for by name:
+
+                                    spartrak-place-order  the single CTA — this design
+                                                          has one button for the whole
+                                                          checkout, not one per payment
+                                                          method
+                                    spartrak-promo        the coupon panel, relocated
+                                                          from the payment step above
+
+                                  The promo node repeats Magento_SalesRule's own
+                                  declaration in full — component, messages child and
+                                  captcha child — because a disabled node cannot be
+                                  re-parented, only replaced. It is deliberately
+                                  identical to the original apart from where it sits.
+                                -->
+                                <item name="sidebar" xsi:type="array">
+                                    <item name="children" xsi:type="array">
+                                        <item name="summary" xsi:type="array">
+                                            <item name="children" xsi:type="array">
+                                                <item name="spartrak-place-order" xsi:type="array">
+                                                    <item name="component" xsi:type="string">Spartrak_Checkout/js/view/place-order</item>
+                                                    <item name="displayArea" xsi:type="string">spartrak-place-order</item>
+                                                </item>
+                                            </item>
+                                        </item>
+                                        <item name="spartrak-promo" xsi:type="array">
+                                            <item name="component" xsi:type="string">Magento_SalesRule/js/view/payment/discount</item>
+                                            <item name="displayArea" xsi:type="string">spartrak-promo</item>
+                                            <item name="children" xsi:type="array">
+                                                <item name="errors" xsi:type="array">
+                                                    <item name="sortOrder" xsi:type="string">0</item>
+                                                    <item name="component" xsi:type="string">Magento_SalesRule/js/view/payment/discount-messages</item>
+                                                    <item name="displayArea" xsi:type="string">messages</item>
+                                                </item>
+                                                <item name="captcha" xsi:type="array">
+                                                    <item name="component" xsi:type="string">Magento_SalesRule/js/view/payment/captcha</item>
+                                                    <item name="displayArea" xsi:type="string">captcha</item>
+                                                    <item name="formId" xsi:type="string">sales_rule_coupon_request</item>
+                                                    <item name="configSource" xsi:type="string">checkoutConfig</item>
                                                 </item>
                                             </item>
                                         </item>

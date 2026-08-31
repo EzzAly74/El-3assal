@@ -1,0 +1,18 @@
+<!--
+/**
+ * Spartrak estimated total - Figma 551:11187.
+ *
+ * Label at Heading/H4 18/500 in text/secondary, value at Heading/H3 20/700 in
+ * text/link. Both larger than the rows above them, which is what makes this
+ * read as the figure that matters.
+ */
+-->
+<!-- ko if: isDisplayed() -->
+<div class="spartrak-total spartrak-total--grand">
+    <span class="spartrak-total__label" data-bind="i18n: title"></span>
+    <span class="spartrak-total__value" data-bind="text: getValue()"></span>
+    <!-- ko foreach: elems() -->
+    <!-- ko template: getTemplate() --><!-- /ko -->
+    <!-- /ko -->
+</div>
+<!-- /ko -->

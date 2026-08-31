@@ -2,15 +2,28 @@
 <!--
   GLOBAL scope, deliberately.
 
-  sales_quote_address_save_before fires wherever a quote address is written -
-  the storefront checkout, the REST API, and admin order create. Scoping this
-  to `frontend` would make the additional phone work at checkout and vanish on
-  an order an agent creates by phone, which is exactly the customer this field
-  exists for.
+  These events fire wherever an address is written - the storefront checkout,
+  the REST API, My Account, and admin order create. Scoping them to `frontend`
+  would make the fields work at checkout and vanish on an order an agent creates
+  by phone, which is exactly the customer they exist for.
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+
     <event name="sales_quote_address_save_before">
         <observer name="spartrak_flatten_additional_phone"
                   instance="Spartrak\CustomerAddress\Observer\FlattenAdditionalPhone"/>
+        <observer name="spartrak_fill_city_from_governorate"
+                  instance="Spartrak\CustomerAddress\Observer\FillCityFromGovernorate"/>
+    </event>
+
+    <!--
+      The address book's own save path. Figma's form collects no city, so an
+      address saved from My Account or from the checkout's add-address modal
+      would otherwise be rejected by Magento's own validator - see
+      Spartrak\CustomerAddress\Model\GovernorateCity.
+    -->
+    <event name="customer_address_save_before">
+        <observer name="spartrak_fill_city_from_governorate"
+                  instance="Spartrak\CustomerAddress\Observer\FillCityFromGovernorate"/>
     </event>
 </config>

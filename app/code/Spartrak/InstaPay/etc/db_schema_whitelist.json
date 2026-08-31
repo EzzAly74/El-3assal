@@ -1,0 +1,25 @@
+{
+    "spartrak_instapay_transfer": {
+        "column": {
+            "transfer_id": true,
+            "order_id": true,
+            "quote_id": true,
+            "customer_phone": true,
+            "proof_path": true,
+            "original_name": true,
+            "file_size": true,
+            "status": true,
+            "reviewed_by": true,
+            "reviewed_at": true,
+            "created_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "SPARTRAK_INSTAPAY_TRANSFER_ORDER_ID_SALES_ORDER_ENTITY_ID": true
+        },
+        "index": {
+            "SPARTRAK_INSTAPAY_TRANSFER_ORDER_ID": true,
+            "SPARTRAK_INSTAPAY_TRANSFER_STATUS_CREATED_AT": true
+        }
+    }
+}

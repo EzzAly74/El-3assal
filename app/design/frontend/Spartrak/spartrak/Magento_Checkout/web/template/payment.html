@@ -1,0 +1,63 @@
+<!--
+/**
+ * Spartrak payment step - Figma 551:11313 (Billing address container, 720 x 649).
+ *
+ * ===========================================================================
+ * WHAT CORE'S VERSION HAD THAT THIS DROPS, AND WHY
+ * ===========================================================================
+ *  - <legend>Payment Information</legend>. Figma's heading is
+ *    `خيارات وسيلة الدفع`, rendered as the section title above the rows; two
+ *    headings for one section would be a duplicate, not an addition.
+ *
+ *  - The hidden form_key input. It existed for core's per-method Place Order
+ *    buttons, which submitted this form. This design has one CTA, in the
+ *    summary column, and it goes through the REST API - which carries its own
+ *    authentication. The note field, the only thing here that POSTs to a
+ *    controller, sends the key from the cookie itself.
+ *
+ * Everything load-bearing is kept: the customer-email block for a virtual
+ * quote, the beforeMethods / afterMethods regions other modules mount into,
+ * the place-order captcha region, and the "no payment method available"
+ * message - which must survive, because a store with every method switched off
+ * has to say so rather than showing an empty box.
+ */
+-->
+<li id="payment" role="presentation" class="checkout-payment-method spartrak-payment" data-bind="fadeVisible: isVisible">
+    <div id="checkout-step-payment" class="step-content" data-role="content" role="tabpanel" aria-hidden="false">
+
+        <!-- ko if: (quoteIsVirtual) -->
+        <!-- ko foreach: getRegion('customer-email') -->
+        <!-- ko template: getTemplate() --><!-- /ko -->
+        <!--/ko-->
+        <!--/ko-->
+
+        <h2 class="spartrak-payment__title" data-bind="i18n: 'Payment options'"></h2>
+
+        <!-- ko foreach: getRegion('place-order-captcha') -->
+        <!-- ko template: getTemplate() --><!-- /ko -->
+        <!-- /ko -->
+
+        <!-- ko foreach: getRegion('beforeMethods') -->
+        <!-- ko template: getTemplate() --><!-- /ko -->
+        <!-- /ko -->
+
+        <div id="checkout-payment-method-load" class="spartrak-payment__methods"
+             data-bind="visible: isPaymentMethodsAvailable">
+            <!-- ko foreach: getRegion('payment-methods-list') -->
+            <!-- ko template: getTemplate() --><!-- /ko -->
+            <!-- /ko -->
+        </div>
+
+        <div class="spartrak-payment__none" data-bind="visible: isPaymentMethodsAvailable() == false">
+            <!-- ko i18n: 'No payment method is available right now. Please contact us.' --><!-- /ko -->
+        </div>
+
+        <!-- ko foreach: getRegion('spartrak-order-note') -->
+        <!-- ko template: getTemplate() --><!-- /ko -->
+        <!-- /ko -->
+
+        <!-- ko foreach: getRegion('afterMethods') -->
+        <!-- ko template: getTemplate() --><!-- /ko -->
+        <!-- /ko -->
+    </div>
+</li>

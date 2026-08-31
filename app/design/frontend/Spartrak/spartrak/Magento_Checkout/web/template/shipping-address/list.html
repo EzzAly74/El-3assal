@@ -1,0 +1,22 @@
+<!--
+/**
+ * Spartrak address list - Figma 549:26272.
+ *
+ * Core wraps the cards in `.field.addresses > .control > .shipping-address-items`,
+ * three nested divs that exist to fit Magento's form styling. Figma's list is a
+ * 16px stack, so it is one <ol> - an ordered list because these ARE a list of
+ * options, and a screen reader announcing "list, 2 items" is information a
+ * sighted user gets from the layout for free.
+ *
+ * `visible`, `elems` and each element's own getTemplate() are core's and
+ * untouched: the components that populate this list, and the order they arrive
+ * in, are not this template's business.
+ */
+-->
+<!-- ko if: (visible) -->
+<ol class="spartrak-address-list">
+    <!-- ko foreach: { data: elems, as: 'element' } -->
+    <!-- ko template: element.getTemplate() --><!-- /ko -->
+    <!-- /ko -->
+</ol>
+<!-- /ko -->

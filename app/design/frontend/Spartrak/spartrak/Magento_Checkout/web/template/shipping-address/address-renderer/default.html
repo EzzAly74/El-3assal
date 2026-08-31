@@ -1,0 +1,80 @@
+<!--
+/**
+ * Spartrak address card - Figma 549:26284 (unselected) / 549:26273 (selected).
+ *
+ * ===========================================================================
+ * SELECTION IS A RADIO, NOT A BUTTON
+ * ===========================================================================
+ * Core gives each unselected card a "Ship Here" button. Figma gives the cards
+ * no button at all - the selected one simply has a navy border. That is a radio
+ * group, so this renders one: a real <input type="radio"> per card, clipped but
+ * present, with the card's <label> stretched over the whole tile.
+ *
+ * The gain is not cosmetic. A radio group gets arrow-key navigation, announces
+ * "2 of 3, selected", and tells a screen-reader user how many addresses there
+ * ARE - none of which a row of "Ship Here" buttons conveys.
+ *
+ * `spartrakSelection` writes through to core's own selectAddress(), so the
+ * quote is updated exactly as before. See js/view/address-renderer-mixin.js.
+ *
+ * ===========================================================================
+ * THE CARD'S TITLE IS THE ADDRESSEE'S NAME
+ * ===========================================================================
+ * Figma's mock shows `مكتب العمل` and `المنزل` - "work office" and "home" -
+ * which read like address nicknames. There is no nickname: the add-address form
+ * on the very next frame (557:5173) collects first name, last name,
+ * governorate, address, phone and an extra phone, and nothing else. Magento has
+ * no such field either.
+ *
+ * So those strings are placeholder copy, and the real title is the name on the
+ * address - which identifies it, is what the form actually collects, and is
+ * what Magento's own renderer prints first.
+ *
+ * ===========================================================================
+ * THE EDIT BUTTON
+ * ===========================================================================
+ * `editAddress` is core's method. For an address typed during this checkout it
+ * reopens the form; for one already in the customer's book core has nowhere to
+ * save a change back to, which is why it normally hides the button. Figma shows
+ * it on every card, so Spartrak_Checkout supplies the missing half - see
+ * Controller/Address/Save.php - and both cases go through the same form.
+ */
+-->
+<li class="spartrak-address"
+    data-bind="css: { 'spartrak-address--selected': isSelected() }">
+
+    <input type="radio"
+           class="spartrak-address__input"
+           name="spartrak-shipping-address"
+           data-bind="attr: { id: 'spartrak-address-' + address().getKey() },
+                      checkedValue: address().getKey(),
+                      checked: spartrakSelection"/>
+
+    <label class="spartrak-address__label"
+           data-bind="attr: { 'for': 'spartrak-address-' + address().getKey() }">
+
+        <span class="spartrak-address__header">
+            <!-- ko if: spartrakIsDefault() -->
+            <span class="spartrak-address__default" data-bind="i18n: 'Default'"></span>
+            <!-- /ko -->
+            <span class="spartrak-address__name" data-bind="text: spartrakName()"></span>
+        </span>
+
+        <span class="spartrak-address__body">
+            <span class="spartrak-address__text" data-bind="text: spartrakAddressLine()"></span>
+
+            <!-- ko if: address().telephone -->
+            <span class="spartrak-address__phone" data-bind="text: address().telephone"></span>
+            <!-- /ko -->
+
+            <!-- ko if: spartrakAdditionalPhone() -->
+            <span class="spartrak-address__phone spartrak-address__phone--additional"
+                  data-bind="text: spartrakAdditionalPhone()"></span>
+            <!-- /ko -->
+        </span>
+    </label>
+
+    <button type="button" class="spartrak-address__edit" data-bind="click: editAddress">
+        <span data-bind="i18n: 'Edit'"></span>
+    </button>
+</li>

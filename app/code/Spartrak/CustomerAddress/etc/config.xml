@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  EGYPT'S POSTCODE IS OPTIONAL
+  ===========================================================================
+  Figma's address form (557:5173) collects no postcode. Magento requires one for
+  every country NOT listed in general/country/optional_zip_countries, and its
+  own default list is `HK,IE,MO,PA,GB` - Egypt is not on it, so the form as
+  designed could not be submitted.
+
+  Egypt does have postal codes, but they are not used in day-to-day addressing
+  and asking for one would cost conversions for a field nobody fills correctly.
+  The design's judgement is followed here, and the field stays available for the
+  countries that need it - this widens the list, it does not replace it.
+
+  A DEFAULT, NOT A HARDCODED VALUE. It seeds core_config_data on install and a
+  merchant can change it in Stores > Configuration > General > Country Options
+  without touching code. Magento's own five are repeated because config.xml
+  values replace rather than merge, and dropping them would silently start
+  requiring a postcode in Hong Kong and the UK.
+
+  ===========================================================================
+  WHY HERE AND NOT IN Spartrak_Checkout
+  ===========================================================================
+  It applies to every address form on the site, not only the checkout's: My
+  Account, the admin, and any API client. This module owns what an address
+  looks like on this store, so this is where the rule belongs.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <general>
+            <country>
+                <optional_zip_countries>EG,HK,IE,MO,PA,GB</optional_zip_countries>
+            </country>
+        </general>
+    </default>
+</config>

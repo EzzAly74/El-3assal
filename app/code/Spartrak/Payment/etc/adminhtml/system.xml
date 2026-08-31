@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  WHY THIS LIVES UNDER SALES > CHECKOUT AND NOT UNDER PAYMENT METHODS
+  ===========================================================================
+  Stores > Configuration > Sales > Payment Methods is generated from the
+  installed payment modules - one group per method, owned by that method's
+  module. There is no supported way to add a field to a group a third party
+  will create later, which is exactly what a Paymob sub-method or a second
+  acquirer would be.
+
+  So the mapping lives once, on the checkout, where it is a property of how
+  THIS storefront renders rather than of any one payment integration. That also
+  keeps it store-view scoped, which the payment groups are not consistently.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <section id="checkout">
+            <group id="spartrak_payment" translate="label comment" type="text" sortOrder="90" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Spartrak Payment Rows</label>
+                <comment><![CDATA[
+                    Controls how each payment method is <em>presented</em> in the
+                    Spartrak checkout - its description line and which brand marks
+                    sit on the row.<br/><br/>
+                    This does not enable, disable or order payment methods. Which
+                    methods a shopper sees is decided entirely by
+                    <strong>Stores &gt; Configuration &gt; Sales &gt; Payment Methods</strong>.
+                    A method with no row here still appears, under its own title,
+                    with no brand marks.
+                ]]></comment>
+
+                <field id="rows" translate="label comment" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Payment rows</label>
+                    <frontend_model>Spartrak\Payment\Block\Adminhtml\Form\Field\PresentationRows</frontend_model>
+                    <backend_model>Magento\Config\Model\Config\Backend\Serialized\ArraySerialized</backend_model>
+                    <comment><![CDATA[
+                        <strong>Description</strong> is the grey line under the method
+                        title. Leave it empty to show the title alone.<br/>
+                        <strong>Brand marks</strong> are the logos on the row; hold Ctrl
+                        (Cmd on a Mac) to pick several. They render in the order the
+                        catalogue lists them.<br/><br/>
+                        The order rows appear in <em>this table</em> means nothing - it
+                        is a lookup table. Checkout order comes from each method's own
+                        <strong>Sort Order</strong> under Sales &gt; Payment Methods.
+                    ]]></comment>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>

@@ -119,4 +119,24 @@
     // went wrong", the other is "this used to cost more". A palette change that
     // moved error red would otherwise silently restyle every sale price.
     --color-text-price-sale: var(--primitive-danger); // Figma: text/price-sale #d54033
+
+    // FIGMA CHECKOUT PASS (2026-08-31)
+
+    // The dark button. Figma calls it action/inverse, and it is the promo
+    // panel's "تطبيق الخصم" (554:11160) — the one primary-weight control in
+    // this design that is deliberately NOT navy, so it does not compete with
+    // the checkout's real CTA a few hundred pixels above it.
+    //
+    // Its hex is the ink primitive, and --color-bg-inverse already aliases the
+    // same primitive. Both are kept, because they say different things: one is
+    // a page-level surface, the other is a button fill. A future palette that
+    // darkened surfaces without darkening buttons would need them apart.
+    --color-action-inverse: var(--primitive-ink);          // Figma: action/inverse      #0c0a20
+    --color-action-inverse-text: var(--primitive-surface); // Figma: action/inverse-text #ffffff
+
+    // The soft brand wash behind the "الافتراضي" (default) badge on an address
+    // card (720:26521). Figma names the variable blue/0 — a primitive name for
+    // a role, which is exactly the leak this layer exists to stop, so it is
+    // given a role name here.
+    --color-bg-brand-subtle: var(--primitive-blue-0);      // Figma: blue/0 #f4f7fd
 }

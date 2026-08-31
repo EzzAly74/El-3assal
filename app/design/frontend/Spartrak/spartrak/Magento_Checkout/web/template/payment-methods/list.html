@@ -1,0 +1,25 @@
+<!--
+/**
+ * Spartrak payment method list - Figma 551:11319 (720 wide, rows gap 16).
+ *
+ * Core groups methods and prints a "Select a new payment method" heading above
+ * each group that has members. Figma has one flat list, so the group heading is
+ * gone - but the GROUP LOOP is not. Vault (saved cards) and other modules
+ * register their methods into their own group, and dropping the loop would make
+ * those methods disappear from the checkout entirely.
+ *
+ * Which methods appear here, and in what order, is Magento's answer alone. This
+ * template introduces no filter and no sort; see
+ * Spartrak\Payment\Model\PresentationCatalog for the boundary between "which
+ * methods exist" and "how a row looks".
+ */
+-->
+<div if="isPaymentMethodsAvailable()" class="spartrak-pay-methods">
+    <div repeat="foreach: paymentGroupsList, item: '$group'" class="spartrak-pay-methods__group">
+        <each args="data: getRegion($group().displayArea), as: 'method'" render=""></each>
+    </div>
+</div>
+<div ifnot="isPaymentMethodsAvailable()"
+     class="spartrak-payment__none"
+     translate="'No payment method is available right now. Please contact us.'">
+</div>

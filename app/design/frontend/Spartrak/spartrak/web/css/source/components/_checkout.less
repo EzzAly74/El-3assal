@@ -778,3 +778,2324 @@ button.spartrak-checkout-progress__marker {
         min-inline-size: 0;
     }
 }
+
+// ===========================================================================
+// CHECKOUT PAGE SHELL — the two columns
+// ===========================================================================
+// Figma 549:26240: a 1440 frame holding a 624-wide summary column and an
+// 816-wide step column. On the LTR canvas the summary is on the left, which in
+// this RTL storefront is the reading END — so the step content comes FIRST in
+// the source and the summary second, and the whole thing mirrors correctly
+// under an LTR locale without a second rule.
+//
+// Core's markup is `.opc-wrapper` (steps) followed by `#opc-sidebar` (summary),
+// already in that order, so this is a grid over what is already there rather
+// than a re-parenting.
+
+.checkout-index-index {
+    .columns .column.main {
+        // Core's checkout page reserves space for its own sidebar with a
+        // padding-bottom that the Spartrak layout does not need.
+        padding-bottom: 0;
+    }
+
+    .opc-wrapper {
+        width: auto;
+        float: none;
+        padding: 0;
+    }
+}
+
+.checkout-container {
+    display: grid;
+    // 816 / 624 of the 1440 frame, as fractions so the columns keep their
+    // proportion at every width between the breakpoint and the frame.
+    grid-template-columns: minmax(0, 816fr) minmax(0, 624fr);
+    align-items: start;
+    max-width: 1440px;
+    margin-inline: auto;
+}
+
+// The progress bar spans both columns; it was measured at the full 1440.
+.checkout-container > .opc-progress-bar,
+.checkout-container > .authentication-wrapper {
+    grid-column: 1 / -1;
+}
+
+.opc-estimated-wrapper {
+    // Core's mobile "estimated total" strip belongs to the sidebar-as-modal
+    // pattern this theme replaced; Figma has no such strip on any frame.
+    display: none;
+}
+
+// ===========================================================================
+// ORDER SUMMARY CARD — Figma 551:11106
+// ===========================================================================
+// 528 wide at (48,48). Outer padding 8, inner padding 24, and a 28px rhythm
+// between title, body and CTA — the inner frame's 664px height is exactly
+// 24 + 26 + 28 + 486 + 28 + 48 + 24, so the 28 is measured, not chosen.
+
+.spartrak-checkout-summary {
+    padding: 48px;
+    // The column is 624 and the card 528; 48 either side is the difference.
+    box-sizing: border-box;
+}
+
+.spartrak-summary {
+    background: var(--color-bg-surface);
+    box-shadow: var(--shadow-medium-darker);
+    padding: 8px;
+}
+
+.spartrak-summary__inner {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    padding: 24px;
+}
+
+.spartrak-summary__title {
+    margin: 0;
+    font-size: var(--text-20);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+}
+
+// ---------------------------------------------------------------------------
+// Summary line items — Figma 551:11110 / 551:11112
+// ---------------------------------------------------------------------------
+
+.spartrak-summary__items {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.spartrak-summary-items {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.spartrak-summary-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-inline: 12px;
+    border: 1px solid var(--color-border-default);
+    // 108 image + 8 top + 8 bottom is the card's 124.
+    min-height: 124px;
+}
+
+.spartrak-summary-item__media {
+    position: relative;
+    flex: 0 0 auto;
+    width: 108px;
+    height: 108px;
+    background: var(--color-bg-field);
+    overflow: hidden;
+    // Figma's own sub-pixel values (551:11122); kept rather than rounded, so
+    // the shadow stays as faint as it was drawn.
+    box-shadow: 0 0.551px 0.827px rgba(44, 54, 53, 0.03);
+}
+
+.spartrak-summary-item__image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: 0.551px solid var(--color-border-default);
+    box-sizing: border-box;
+}
+
+// The quantity badge straddles the image's top inline-start corner
+// (551:11128 at x=333/y=2 against an image at x=332/y=8).
+.spartrak-summary-item__qty {
+    position: absolute;
+    top: -6px;
+    inset-inline-end: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding-inline: 4px;
+    box-sizing: border-box;
+    border-radius: var(--radius-pill);
+    border: 1.5px solid var(--color-text-inverse);
+    background: var(--color-action-primary);
+    color: var(--color-text-inverse);
+    font-size: var(--text-10);
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: 0.5px;
+    font-family: var(--font-numeral);
+}
+
+.spartrak-summary-item__body {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-direction: column;
+    // flex-start on the block axis of a column is the INLINE start — the
+    // reading edge — so this is right in both directions.
+    align-items: flex-start;
+    gap: 12px;
+    padding-block: 12px;
+}
+
+.spartrak-summary-item__name {
+    font-size: var(--text-18);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+    // Figma clips the second product's name at two lines with an ellipsis.
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.spartrak-summary-item__price {
+    font-size: var(--text-18);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-brand);
+    font-family: var(--font-numeral);
+}
+
+.spartrak-summary-item__options {
+    margin: 0;
+    font-size: var(--text-12);
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+
+    dt {
+        font-weight: 500;
+    }
+
+    dd {
+        margin: 0;
+    }
+}
+
+.spartrak-summary__truncated {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: var(--text-14);
+    color: var(--color-text-secondary);
+}
+
+.spartrak-summary__viewcart {
+    color: var(--color-text-link);
+    text-decoration: underline;
+}
+
+// ---------------------------------------------------------------------------
+// Totals — Figma 551:11170
+// ---------------------------------------------------------------------------
+// Rows are a 12px stack. The dividers Figma draws before the shipping row and
+// before the grand total are borders on those two rows, not elements: that way
+// a total this store does not have yet (tax, a fee, store credit) simply joins
+// the stack instead of landing on the wrong side of a hardcoded rule.
+//
+// The 16px Figma leaves either side of each divider is 12 (the stack gap) + 4
+// (this margin) above, and 16 of padding below.
+
+.spartrak-summary-totals {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.spartrak-total {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.spartrak-total__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+}
+
+.spartrak-total__value {
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    font-family: var(--font-numeral);
+    white-space: nowrap;
+}
+
+.spartrak-total__info {
+    .spartrak-icon('savings-info.svg'; 16px; var(--color-text-disabled));
+}
+
+.spartrak-total--savings .spartrak-total__value {
+    color: var(--color-text-success);
+}
+
+.spartrak-total--shipping,
+.spartrak-total--grand {
+    margin-block-start: 4px;
+    padding-block-start: 16px;
+    border-block-start: 1px solid var(--color-border-default);
+}
+
+.spartrak-total--free .spartrak-total__value {
+    color: var(--color-text-success);
+}
+
+.spartrak-total__value--pending {
+    color: var(--color-text-muted);
+    font-weight: 400;
+}
+
+.spartrak-total--grand {
+    align-items: baseline;
+
+    .spartrak-total__label {
+        font-size: var(--text-18);
+        font-weight: 500;
+        line-height: 1.3;
+    }
+
+    .spartrak-total__value {
+        font-size: var(--text-20);
+        font-weight: 700;
+        line-height: 1.3;
+        color: var(--color-text-link);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// The single CTA — Figma 720:26445 (shipping) / 721:30504 (payment)
+// ---------------------------------------------------------------------------
+
+.spartrak-checkout-cta__button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    height: 48px;
+    padding-inline: 24px;
+    border: 0;
+    border-radius: 0;
+    background: var(--color-action-primary);
+    color: var(--color-action-primary-text);
+    font-family: inherit;
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+        background: var(--color-action-primary-hover);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
+    }
+
+    // Figma's empty-address state (552:11748) draws the disabled CTA in
+    // #8faef0 — the design's own disabled navy, already a token.
+    &:disabled {
+        background: var(--color-action-primary-disabled);
+        color: var(--color-action-primary-disabled-text);
+        cursor: not-allowed;
+    }
+}
+
+// ===========================================================================
+// PAYMENT STEP — Figma 551:11313
+// ===========================================================================
+
+.spartrak-payment {
+    display: block;
+    padding: 48px;
+    box-sizing: border-box;
+    list-style: none;
+}
+
+.spartrak-payment__title {
+    margin: 0 0 16px;
+    font-size: var(--text-20);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+}
+
+.spartrak-payment__none {
+    padding: 20px;
+    border: 1px solid var(--color-border-default);
+    background: var(--color-bg-surface);
+    font-size: var(--text-16);
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+}
+
+.spartrak-pay-methods,
+.spartrak-pay-methods__group {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+// ---------------------------------------------------------------------------
+// One payment row — Figma 554:10524 (720 x 86)
+// ---------------------------------------------------------------------------
+// Square corners, a 1px default border, 20px padding and a 20px gap. The whole
+// card is the hit target, which is why the row is a <label> around a real
+// radio rather than a div with a click handler.
+
+.spartrak-pay-method {
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border-default);
+}
+
+.spartrak-pay-method__row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    margin: 0;
+    cursor: pointer;
+}
+
+// The real input stays in the tab order and keeps its native semantics; only
+// its painted appearance is replaced. `display: none` would have removed it
+// from the tab order and from arrow-key navigation between the rows.
+.spartrak-pay-method__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+.spartrak-pay-method__radio {
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    box-sizing: border-box;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-pill);
+    background: var(--color-bg-surface);
+    box-shadow: var(--shadow-input);
+}
+
+// Selected — Figma 721:30533: the circle fills with action/primary and a 12px
+// white check appears inside it (inset 20% of 20px = 4px each side).
+.spartrak-pay-method__input:checked + .spartrak-pay-method__radio {
+    border-color: var(--color-action-primary);
+    background: var(--color-action-primary);
+    box-shadow: none;
+    -webkit-mask: none;
+    mask: none;
+    position: relative;
+}
+
+.spartrak-pay-method__input:checked + .spartrak-pay-method__radio::after {
+    content: '';
+    position: absolute;
+    inset: 20%;
+    background: var(--color-text-inverse);
+    -webkit-mask-image: url('../images/icons/check-12.svg');
+    mask-image: url('../images/icons/check-12.svg');
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
+// Keyboard focus has to be visible on the row, because the input it belongs to
+// is clipped. :has is progressively enhanced — the fallback below covers
+// browsers without it.
+.spartrak-pay-method:has(.spartrak-pay-method__input:focus-visible) {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+}
+
+@supports not selector(:has(*)) {
+    .spartrak-pay-method__input:focus-visible + .spartrak-pay-method__radio {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
+    }
+}
+
+.spartrak-pay-method__body {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.spartrak-pay-method__title {
+    font-size: var(--text-16);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+}
+
+.spartrak-pay-method__desc {
+    font-size: var(--text-14);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+}
+
+// ---------------------------------------------------------------------------
+// Brand marks — Figma 554:10495 (44px tiles, overlapping by 8)
+// ---------------------------------------------------------------------------
+// The marks overlap into a cluster. Figma stacks them with the FIRST on top;
+// the negative inline margin plus source order reproduces that without a
+// z-index ladder.
+
+.spartrak-pay-method__logos {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+}
+
+.spartrak-pay-method__logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    box-sizing: border-box;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+    background: var(--color-bg-surface);
+    overflow: hidden;
+
+    & + & {
+        margin-inline-start: -8px;
+    }
+
+    img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+}
+
+// A method with one mark shows it at 44 with no overlap to compensate for.
+.spartrak-pay-method__logos--single .spartrak-pay-method__logo + .spartrak-pay-method__logo {
+    margin-inline-start: 0;
+}
+
+.spartrak-pay-method__extra:empty {
+    display: none;
+}
+
+// ===========================================================================
+// ORDER NOTE — Figma 552:11505 + 720:26810
+// ===========================================================================
+
+.spartrak-order-note {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-block-start: 16px;
+}
+
+.spartrak-order-note__label {
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+}
+
+.spartrak-order-note__input {
+    height: 120px;
+    padding: 12px;
+    box-sizing: border-box;
+    border: 1px solid var(--color-border-default);
+    border-radius: 0;
+    background: var(--color-bg-surface);
+    box-shadow: var(--shadow-input);
+    font-family: inherit;
+    font-size: var(--text-16);
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    resize: vertical;
+
+    &::placeholder {
+        color: var(--color-text-muted);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: -2px;
+    }
+}
+
+.spartrak-order-note__feedback {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-size: var(--text-14);
+    line-height: 1.5;
+    color: var(--color-text-success);
+}
+
+.spartrak-order-note__feedback--error {
+    color: var(--color-feedback-danger);
+}
+
+.spartrak-order-note__feedback-icon {
+    .spartrak-icon('error-warning-line.svg'; 16px; var(--color-feedback-danger));
+}
+
+.spartrak-order-note__actions {
+    display: flex;
+    // flex-end on the inline axis is the reading END, which is where Figma
+    // puts the button (720:26810 at x=598 of a 720 row).
+    justify-content: flex-end;
+}
+
+.spartrak-order-note__submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 36px;
+    padding-inline: 16px;
+    border: 0;
+    border-radius: 0;
+    background: var(--color-bg-field);
+    color: var(--color-action-secondary-text);
+    font-family: inherit;
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+    cursor: pointer;
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
+    }
+}
+
+// ===========================================================================
+// PROMO PANEL — Figma 554:11160 (default) / 554:11806 (applied)
+// ===========================================================================
+
+.spartrak-promo {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+    padding: 24px;
+    margin-block-start: 24px;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border-default);
+    box-shadow: var(--shadow-input);
+}
+
+.spartrak-promo__details {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.spartrak-promo__title {
+    margin: 0;
+    font-size: var(--text-20);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+}
+
+.spartrak-promo__lead {
+    margin: 0;
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+}
+
+.spartrak-promo__body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+}
+
+.spartrak-promo__row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+}
+
+.spartrak-promo__field {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.spartrak-promo__input {
+    width: 100%;
+    height: 48px;
+    box-sizing: border-box;
+    // 12 edge + 20 icon + 12 gap on the reading side; 12 on the other.
+    padding-inline-start: 44px;
+    padding-inline-end: 12px;
+    border: 1px solid var(--color-border-default);
+    border-radius: 0;
+    background: var(--color-bg-surface);
+    box-shadow: var(--shadow-input);
+    font-family: inherit;
+    font-size: var(--text-16);
+    line-height: 1.5;
+    color: var(--color-text-primary);
+
+    &::placeholder {
+        color: var(--color-text-muted);
+        font-weight: 400;
+    }
+
+    // Applied: the code is shown at Body/Base Medium and the field is locked
+    // until the coupon is removed.
+    &:disabled {
+        font-weight: 500;
+        color: var(--color-text-primary);
+        // Safari greys a disabled input's text regardless of `color`.
+        -webkit-text-fill-color: var(--color-text-primary);
+        opacity: 1;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: -2px;
+    }
+}
+
+.spartrak-promo__icon {
+    position: absolute;
+    inset-inline-start: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    .spartrak-icon('promo-discount.svg'; 20px; var(--color-text-muted));
+}
+
+.spartrak-promo__apply {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    height: 48px;
+    padding-inline: 24px;
+    border: 0;
+    border-radius: 0;
+    // Deliberately NOT navy — see --color-action-inverse in _semantic.less.
+    background: var(--color-action-inverse);
+    color: var(--color-action-inverse-text);
+    font-family: inherit;
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    cursor: pointer;
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
+    }
+}
+
+.spartrak-promo__apply--applied {
+    background: var(--color-feedback-success);
+    color: var(--color-action-primary-text);
+}
+
+// Magento's coupon messages, in Figma's treatment. The component renders
+// <div class="message success|error"> through its `messages` region; only the
+// paint changes, never the text — the text is Magento telling the truth about
+// what happened to the code.
+.spartrak-promo .message {
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: 0;
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+
+    &::before {
+        display: none;
+    }
+
+    &.success {
+        color: var(--color-text-success);
+    }
+
+    &.error {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--color-feedback-danger);
+
+        &::after {
+            content: '';
+            order: -1;
+            .spartrak-icon('error-warning-line.svg'; 16px; var(--color-feedback-danger));
+        }
+    }
+}
+
+// ===========================================================================
+// SHIPPING ADDRESS BOOK — Figma 549:26266
+// ===========================================================================
+
+.spartrak-address-book {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-block-start: 32px;
+}
+
+.spartrak-address-book__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.spartrak-address-book__title {
+    margin: 0;
+    font-size: var(--text-20);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+}
+
+.spartrak-address-book__add {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-family: inherit;
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-link);
+    cursor: pointer;
+
+    &::before {
+        content: '';
+        // Figma's own 16-box plus (720:26504), not the theme's tighter
+        // plus.svg — the two are the same glyph at different crops, and at
+        // 16px the difference is visible.
+        .spartrak-icon('plus-16.svg'; 16px; currentColor);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
+    }
+}
+
+.spartrak-address-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+// ---------------------------------------------------------------------------
+// One address card — Figma 549:26284 (unselected) / 549:26273 (selected)
+// ---------------------------------------------------------------------------
+// The whole card selects. Figma marks the selection with a navy border and no
+// radio at all, so the input is clipped and the border carries the state.
+//
+// The card is NOT a single <label>: the edit button lives inside it, and a
+// button inside a label would select the address on its way to opening the
+// form. Instead the label is stretched over the card by an overlay, and the
+// edit button is raised above that overlay — the standard way to keep one
+// primary target with a secondary control inside it.
+
+.spartrak-address {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border-default);
+    box-shadow: var(--shadow-input);
+}
+
+.spartrak-address--selected {
+    border-color: var(--color-action-primary);
+    // Figma drops the shadow on the selected card; the border is the signal.
+    box-shadow: none;
+}
+
+.spartrak-address__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+.spartrak-address:has(.spartrak-address__input:focus-visible) {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+}
+
+.spartrak-address__label {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    cursor: pointer;
+
+    // Stretches the label's hit area over the entire card.
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+    }
+}
+
+.spartrak-address__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.spartrak-address__name {
+    font-size: var(--text-16);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+}
+
+.spartrak-address__default {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding-inline: 10px;
+    border-radius: var(--radius-pill);
+    background: var(--color-bg-brand-subtle);
+    color: var(--color-text-link);
+    font-size: var(--text-12);
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.spartrak-address__body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+}
+
+.spartrak-address__text {
+    font-size: var(--text-14);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+}
+
+.spartrak-address__phone {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--text-14);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+    font-family: var(--font-numeral);
+
+    &::after {
+        content: '';
+        .spartrak-icon('phone-16.svg'; 16px; var(--color-icon-muted));
+    }
+}
+
+// The extra number Figma adds to the address form (557:10405). Rendered only
+// when the customer supplied one — see Spartrak_CustomerAddress.
+.spartrak-address__phone--additional {
+    color: var(--color-text-muted);
+}
+
+.spartrak-address__edit {
+    position: relative;
+    // Above the label's stretched overlay, so "edit" edits instead of selecting.
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    order: 1;
+    height: 32px;
+    padding-inline: 12px;
+    border: 0;
+    border-radius: 0;
+    background: var(--color-bg-field);
+    color: var(--color-action-secondary-text);
+    font-family: inherit;
+    font-size: var(--text-12);
+    font-weight: 500;
+    line-height: 1.3;
+    cursor: pointer;
+
+    &::before {
+        content: '';
+        .spartrak-icon('pen-edit.svg'; 16px; currentColor);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Empty address book — Figma 557:4898
+// ---------------------------------------------------------------------------
+
+.spartrak-address-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 26px;
+    padding: 12px 12px 26px;
+    background: var(--color-bg-surface-subtle);
+}
+
+.spartrak-address-empty__art {
+    display: block;
+    flex: 0 0 auto;
+    width: 176px;
+    height: 176px;
+    // Multi-colour artwork, so background-image and NOT the .spartrak-icon()
+    // mask - a mask reads only the alpha channel and would flatten the van to
+    // a single flat tint.
+    background-image: url('../images/illustrations/checkout-no-address.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+}
+
+.spartrak-address-empty__body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.spartrak-address-empty__title {
+    margin: 0;
+    font-size: var(--text-18);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+}
+
+.spartrak-address-empty__lead {
+    margin: 0;
+    max-width: 290px;
+    text-align: center;
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+}
+
+.spartrak-address-empty__cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    padding-inline: 20px;
+    border: 0;
+    border-radius: 0;
+    background: var(--color-bg-field);
+    color: var(--color-action-secondary-text);
+    font-family: inherit;
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+    cursor: pointer;
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
+    }
+}
+
+// ===========================================================================
+// PROCESSING STATE — Figma 554:11231
+// ===========================================================================
+// The design's processing modal is the project's existing loader (CLAUDE.md
+// §10), not a new component: a full-page scrim, a centred card, the 8-dot
+// Spartrak spinner and the words `لحظه من فضلك`.
+//
+// Magento already emits exactly that shape. `full-screen-loader` fires
+// processStart on #checkout, mage/loader.js builds
+// `.loading-mask > .loader > (img + p)`, and the p already reads
+// "Please wait..." — which ar_EG translates to Figma's string. So the only
+// work here is turning core's bare overlay into the card Figma drew.
+//
+// The theme's _loader.less already replaces the GIF with the Spartrak spinner
+// everywhere; this adds the card, and only inside the checkout.
+
+.checkout-index-index .loading-mask .loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    min-width: 260px;
+    padding: 32px;
+    background: var(--color-bg-surface);
+    box-shadow: var(--shadow-container);
+}
+
+// _loader.less hides the loader's <p> globally, because on most surfaces the
+// spinner alone is the whole design. Here the design has words, so it comes
+// back — scoped to the checkout so nothing else changes.
+.checkout-index-index .loading-mask .loader > p {
+    display: block;
+    margin: 0;
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    text-align: center;
+}
+
+// ===========================================================================
+// ORDER SUCCESS — Figma 554:12434 (520 x 656)
+// ===========================================================================
+// A centred card: 48 top padding, 16 everywhere else, a 40px gap between the
+// three blocks, a 156px illustration, and a full-width CTA at the bottom.
+
+.checkout-onepage-success {
+    .columns .column.main {
+        padding-bottom: 48px;
+    }
+}
+
+.spartrak-success {
+    display: flex;
+    justify-content: center;
+    padding-block: 77px 48px;
+}
+
+.spartrak-success__card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+    width: 100%;
+    max-width: 520px;
+    box-sizing: border-box;
+    padding: 48px 16px 16px;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border-default);
+    box-shadow: var(--shadow-input);
+}
+
+.spartrak-success__head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.spartrak-success__art {
+    display: block;
+    width: 156px;
+    height: 156px;
+    // Multi-colour artwork — background-image, never a mask.
+    background-image: url('../images/illustrations/checkout-success.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+}
+
+.spartrak-success__intro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+}
+
+.spartrak-success__title {
+    margin: 0;
+    font-size: var(--text-28);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+}
+
+.spartrak-success__lead {
+    margin: 0;
+    max-width: 310px;
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+}
+
+// Not in Figma. See the template's header for why it is here anyway.
+.spartrak-success__order {
+    margin: 0;
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+    font-family: var(--font-numeral);
+}
+
+.spartrak-success__order-link {
+    color: var(--color-text-link);
+    text-decoration: underline;
+}
+
+.spartrak-success__body {
+    width: 100%;
+    background: var(--color-bg-surface-subtle);
+}
+
+.spartrak-success__items {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    // The card's own item rows reuse the summary vocabulary wholesale; the one
+    // difference is that Figma gives the success card no gap between the rows
+    // and the facts block below, because the divider does that job.
+    .spartrak-summary-item {
+        border-inline: 0;
+        border-block-start: 0;
+    }
+}
+
+.spartrak-success__facts {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 0;
+    padding: 16px;
+    border-block-start: 1px solid var(--color-border-default);
+}
+
+.spartrak-success__fact {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+// The label sits at the reading start with its icon; Figma 554:12453 puts the
+// icon after the words, which in RTL means at the reading END of the pair.
+.spartrak-success__fact-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: var(--text-12);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-text-secondary);
+
+    &::after {
+        content: '';
+    }
+}
+
+.spartrak-success__fact-label--payment::after {
+    .spartrak-icon('payment-method.svg'; 16px; var(--color-icon-muted));
+}
+
+.spartrak-success__fact-label--shipping::after {
+    .spartrak-icon('delivery-truck.svg'; 16px; var(--color-icon-muted));
+}
+
+.spartrak-success__fact-value {
+    margin: 0;
+    font-size: var(--text-12);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+    text-align: end;
+}
+
+.spartrak-success__cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 48px;
+    padding-inline: 24px;
+    box-sizing: border-box;
+    background: var(--color-action-primary);
+    color: var(--color-action-primary-text);
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    text-decoration: none;
+
+    &:hover,
+    &:visited {
+        color: var(--color-action-primary-text);
+        text-decoration: none;
+    }
+
+    &:hover {
+        background: var(--color-action-primary-hover);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
+    }
+}
+
+// ===========================================================================
+// THE ADD-ADDRESS DIALOG — Figma 557:5173 (desktop) / 687:15189 (mobile)
+// ===========================================================================
+// Magento's own modal widget renders this; only its chrome is restyled. On a
+// narrow viewport core's `responsive: true` already converts the popup into a
+// slide-up panel, which is exactly the desktop-modal-to-bottom-sheet change the
+// two frames describe — so the mobile half is a few overrides at the bottom of
+// this file rather than a second dialog.
+
+.spartrak-address-modal {
+    .modal-inner-wrap {
+        width: 800px;
+        max-width: calc(100vw - 32px);
+        margin: auto;
+        background: var(--color-bg-surface);
+        border-radius: 0;
+        box-shadow: var(--shadow-container);
+    }
+
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 24px 24px 0;
+    }
+
+    .modal-title {
+        margin: 0;
+        padding: 0;
+        border: 0;
+        font-size: var(--text-18);
+        font-weight: 700;
+        line-height: 1.3;
+        color: var(--color-text-primary);
+    }
+
+    // Figma 557:5176 — a 32px circle filled bg/field with a 20px glyph.
+    .action-close {
+        position: static;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        // Reading END: Figma puts the close control opposite the title.
+        order: 1;
+        border-radius: var(--radius-pill);
+        background: var(--color-bg-field);
+
+        &::before {
+            content: '';
+            .spartrak-icon('close.svg'; 20px; var(--color-text-primary));
+        }
+    }
+
+    .modal-content {
+        padding: 24px;
+    }
+
+    .modal-footer {
+        display: flex;
+        // The pair sits at the reading START of the footer (Figma 557:5194
+        // places both buttons against the container's right edge on an RTL
+        // canvas), with the primary first.
+        justify-content: flex-start;
+        gap: 24px;
+        padding: 0 24px 24px;
+        border: 0;
+    }
+
+    .modal-footer button {
+        min-width: 163px;
+        height: 48px;
+        padding-inline: 24px;
+        border: 0;
+        border-radius: 0;
+        font-family: inherit;
+        font-size: var(--text-16);
+        font-weight: 500;
+        line-height: 1.5;
+    }
+
+    .modal-footer .action-save-address {
+        background: var(--color-action-primary);
+        color: var(--color-action-primary-text);
+    }
+
+    .modal-footer .action-hide-popup {
+        background: var(--color-bg-field);
+        color: var(--color-action-secondary-text);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// The form inside it — Figma 557:5178
+// ---------------------------------------------------------------------------
+// Two columns of 368 with a 16 gutter; the governorate select and the address
+// textarea span both. A grid rather than a row of floats, so a field that is
+// hidden (city, postcode, country) simply leaves the flow instead of stranding
+// an empty column.
+
+.spartrak-address-modal {
+    .fieldset > .field,
+    #shipping-new-address-form > .field {
+        margin: 0;
+    }
+
+    #shipping-new-address-form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    // The street textarea and the governorate select run the full width.
+    #shipping-new-address-form .field[name$='.street'],
+    #shipping-new-address-form .field[name$='.region_id'] {
+        grid-column: 1 / -1;
+    }
+
+    .field.choice,
+    .field[name$='.save_in_address_book'] {
+        grid-column: 1 / -1;
+    }
+
+    .field > .label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: var(--text-14);
+        font-weight: 500;
+        line-height: 1.5;
+        color: var(--color-text-primary);
+        text-align: start;
+        float: none;
+        width: auto;
+        padding: 0;
+    }
+
+    // Figma marks required fields with a red asterisk after the label.
+    .field._required > .label::after,
+    .field.required > .label::after {
+        content: '*';
+        margin-inline-start: 4px;
+        color: var(--color-feedback-danger);
+        font-size: var(--text-14);
+    }
+
+    .field > .control {
+        width: auto;
+        float: none;
+    }
+
+    input[type='text'],
+    input[type='tel'],
+    input[type='email'],
+    select,
+    textarea {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 8px 12px;
+        border: 1px solid var(--color-border-default);
+        border-radius: 0;
+        background: var(--color-bg-surface);
+        box-shadow: var(--shadow-input);
+        font-family: inherit;
+        font-size: var(--text-16);
+        line-height: 1.5;
+        color: var(--color-text-primary);
+
+        &::placeholder {
+            color: var(--color-text-muted);
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--color-border-focus);
+            outline-offset: -2px;
+        }
+    }
+
+    input[type='text'],
+    input[type='tel'],
+    input[type='email'],
+    select {
+        height: 48px;
+    }
+
+    textarea {
+        height: 120px;
+        padding: 12px;
+        resize: vertical;
+    }
+
+    .field-error,
+    div.mage-error {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 6px;
+        font-size: var(--text-14);
+        line-height: 1.5;
+        color: var(--color-feedback-danger);
+
+        &::before {
+            content: '';
+            .spartrak-icon('error-warning-line.svg'; 16px; var(--color-feedback-danger));
+        }
+    }
+}
+
+// ===========================================================================
+// INSTAPAY TRANSFER PAGE — Figma 586:7352 / 586:7420
+// ===========================================================================
+
+// The page's own bar, below the site header (Figma 586:7714, 1440 x 84).
+.spartrak-instapay__bar {
+    border-block-end: 1px solid var(--color-border-default);
+}
+
+.spartrak-instapay__bar-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    max-width: 1440px;
+    height: 84px;
+    margin-inline: auto;
+    padding-inline: 46px;
+    box-sizing: border-box;
+    // Figma puts the title and the back control together at the reading start
+    // (x=1232 and x=1354 of a 1440 canvas), not at opposite ends of the bar.
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+}
+
+.spartrak-instapay__bar-title {
+    font-size: var(--text-20);
+    font-weight: 400;
+    line-height: 1;
+    color: var(--color-text-primary);
+}
+
+// 40px tap target around a 29px glyph, matching the checkout progress bar's
+// own back control so the two read as the same affordance.
+.spartrak-instapay__back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 auto;
+
+    &::before {
+        content: '';
+        .spartrak-icon('arrow-next.svg'; 29px; var(--color-icon-default));
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
+    }
+}
+
+// The arrow points along the reading direction, so it flips with the document
+// rather than being drawn twice.
+[dir='ltr'] .spartrak-instapay__back::before {
+    transform: scaleX(-1);
+}
+
+.spartrak-instapay__card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 26px;
+    width: 100%;
+    max-width: 605px;
+    box-sizing: border-box;
+    margin: 48px auto;
+    padding: 26px 16px 16px;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border-default);
+    box-shadow: var(--shadow-input);
+}
+
+// Figma 586:7751 — a 100px ring around the InstaPay mark.
+.spartrak-instapay__brand {
+    display: block;
+    width: 100px;
+    height: 100px;
+    box-sizing: border-box;
+    border: 2.273px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-surface);
+    // A real brand mark at its real colours — never a mask, never re-tinted.
+    //
+    // The path crosses into the MODULE's static output. Magento publishes a
+    // module's web/ under <theme>/<locale>/<Module_Name>/, so `../` steps out
+    // of the theme's own images/ and back into that sibling. The asset belongs
+    // to Spartrak_InstaPay (it is that method's brand mark, useless without
+    // it); the styling belongs to the theme. This line is the seam.
+    background-image: url('../Spartrak_InstaPay/images/instapay-brand.png');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+}
+
+.spartrak-instapay__facts {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    margin: 0;
+    padding: 16px;
+    box-sizing: border-box;
+    background: var(--color-bg-surface-subtle);
+    border-block-start: 1px solid var(--color-border-default);
+}
+
+.spartrak-instapay__fact {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.spartrak-instapay__fact-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+
+    &::after {
+        content: '';
+        .spartrak-icon('payment-method.svg'; 16px; var(--color-icon-muted));
+    }
+}
+
+.spartrak-instapay__fact-value {
+    margin: 0;
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    font-family: var(--font-numeral);
+}
+
+.spartrak-instapay__form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+.spartrak-instapay__title {
+    margin: 0;
+    font-size: var(--text-20);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+}
+
+.spartrak-instapay__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.spartrak-instapay__label {
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+}
+
+.spartrak-instapay__required {
+    margin-inline-start: 4px;
+    color: var(--color-feedback-danger);
+}
+
+.spartrak-instapay__control {
+    position: relative;
+}
+
+.spartrak-instapay__input {
+    width: 100%;
+    height: 52px;
+    box-sizing: border-box;
+    // 16 edge + 20 icon + 8 gap on the reading side.
+    padding-inline-start: 44px;
+    padding-inline-end: 12px;
+    border: 1px solid var(--color-border-default);
+    border-radius: 0;
+    background: var(--color-bg-surface);
+    box-shadow: var(--shadow-input);
+    font-family: inherit;
+    font-size: var(--text-16);
+    line-height: 1.5;
+    color: var(--color-text-primary);
+
+    &::placeholder {
+        color: var(--color-text-muted);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: -2px;
+    }
+}
+
+.spartrak-instapay__input-icon {
+    position: absolute;
+    inset-inline-start: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    .spartrak-icon('phone-call-20.svg'; 20px; var(--color-icon-muted));
+}
+
+// ---------------------------------------------------------------------------
+// The upload dropzone — Figma 586:13007
+// ---------------------------------------------------------------------------
+// The <label> IS the target, so clicking anywhere in the panel opens the picker
+// natively. The real file input stays in the DOM and in the tab order; it is
+// clipped rather than display:none so it can still be reached by keyboard and
+// still fires the browser's own required-field validation.
+
+.spartrak-instapay__dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    height: 200px;
+    padding: 16px 12px;
+    box-sizing: border-box;
+    border: 1px dashed var(--color-border-strong);
+    border-radius: var(--radius-12);
+    background: var(--color-bg-surface);
+    cursor: pointer;
+    text-align: center;
+}
+
+.spartrak-instapay__dropzone:has(.spartrak-instapay__file:focus-visible) {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+}
+
+.spartrak-instapay__file {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+.spartrak-instapay__dropzone-icon {
+    .spartrak-icon('upload-image.svg'; 34px; var(--color-icon-default));
+}
+
+.spartrak-instapay__dropzone-text {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.spartrak-instapay__dropzone-title {
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+}
+
+.spartrak-instapay__dropzone-hint {
+    font-size: var(--text-12);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+}
+
+.spartrak-instapay__choose {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    padding-inline: 16px;
+    background: var(--color-bg-field);
+    color: var(--color-action-secondary-text);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+// Empty until a file is chosen, so it takes no space and announces nothing.
+.spartrak-instapay__chosen {
+    margin: 6px 0 0;
+    font-size: var(--text-14);
+    line-height: 1.5;
+    color: var(--color-text-success);
+    font-family: var(--font-numeral);
+
+    &:empty {
+        display: none;
+    }
+}
+
+.spartrak-instapay__submit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 48px;
+    padding-inline: 24px;
+    border: 0;
+    border-radius: 0;
+    background: var(--color-action-primary);
+    color: var(--color-action-primary-text);
+    font-family: inherit;
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    cursor: pointer;
+
+    &:hover {
+        background: var(--color-action-primary-hover);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
+    }
+}
+
+.spartrak-instapay__note {
+    margin: 0;
+    width: 100%;
+    font-size: var(--text-14);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+}
+
+// ===========================================================================
+// CHECKOUT — MOBILE
+// ===========================================================================
+// Figma's mobile frames are 440 wide: 675:21226 (shipping, empty address),
+// 687:16474 (payment), 687:17805 / 687:18104 (promo), 687:18468 (processing),
+// 687:18900 (success), 687:20856 / 687:21319 (pickup), 687:21691 (InstaPay),
+// 687:15189 (the add-address sheet).
+//
+// ===========================================================================
+// WHAT ACTUALLY CHANGES, MEASURED RATHER THAN ASSUMED
+// ===========================================================================
+// This is not a CSS collapse of the desktop layout. Four things are genuinely
+// different, and each is listed here with the frame it came from:
+//
+//  1. ONE COLUMN, and the order summary moves BELOW the step content rather
+//     than beside it (687:16474). Source order already has the steps first, so
+//     this is the grid falling to a single track — no re-parenting.
+//
+//  2. THE SUMMARY DROPS ITS LINE ITEMS. The desktop summary lists every
+//     product; the mobile one goes straight from the title to the subtotal
+//     (687:16474). On a 440-wide screen the items would push the totals and the
+//     CTA off the bottom of a long page, which is the one thing a checkout
+//     cannot afford.
+//
+//  3. THE CTA IS INLINE, NOT STICKY. Worth stating because the mobile CART
+//     (669:13034) DOES pin one to the bottom, and it would be easy to assume
+//     the checkout does the same. It does not: 687:16474 draws a single CTA at
+//     the end of the summary, where the cart draws two.
+//
+//  4. THE ADD-ADDRESS DIALOG BECOMES A BOTTOM SHEET (687:15189). Magento's own
+//     modal widget already does this — `responsive: true` swaps the popup for a
+//     slide-up panel — so the work is styling that panel, not building one.
+//
+// The progress bar's own mobile rules live earlier in this file, from the phase
+// that built it, and are unchanged.
+
+@media (max-width: (@breakpoint-desktop - 1px)) {
+    // Between the mobile frame and the desktop frame the two columns simply
+    // narrow. The 48px gutters go with them — at 1000px wide, 48 either side
+    // of two columns is most of the screen.
+    .spartrak-checkout-summary,
+    .spartrak-payment {
+        padding: 24px;
+    }
+}
+
+@media (max-width: @breakpoint-header-collapse) {
+    .checkout-container {
+        // One track. The steps come first in source, so the summary lands
+        // underneath with no `order` and no re-parenting.
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .spartrak-checkout-summary,
+    .spartrak-payment {
+        padding: 16px;
+    }
+
+    .spartrak-summary__inner {
+        padding: 16px;
+        gap: 20px;
+    }
+
+    // See note 2 above. `display: none` rather than removing them from the
+    // template, because the same component serves both viewports and the
+    // desktop still needs them.
+    .spartrak-summary__items {
+        display: none;
+    }
+
+    // ---------------------------------------------------------------------
+    // Payment rows at 440 (687:16474)
+    // ---------------------------------------------------------------------
+    // The row keeps its structure — radio at the reading start, marks at the
+    // reading end — because that is what the mobile frame draws too. Only the
+    // padding and the mark size come down, so three overlapping 44px tiles
+    // still fit beside a two-line description.
+    .spartrak-pay-method__row {
+        gap: 12px;
+        padding: 16px;
+    }
+
+    .spartrak-pay-method__logo {
+        width: 36px;
+        height: 36px;
+
+        & + & {
+            margin-inline-start: -10px;
+        }
+    }
+
+    .spartrak-pay-method__desc {
+        font-size: var(--text-12);
+    }
+
+    // ---------------------------------------------------------------------
+    // The address book
+    // ---------------------------------------------------------------------
+    .spartrak-address-book__header {
+        // The title and the "new address" control stop fitting on one line
+        // well before 440.
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .spartrak-address-book__title {
+        font-size: var(--text-18);
+    }
+
+    .spartrak-address {
+        // The edit button moves under the address rather than beside it: at
+        // this width a 78px button beside the text squeezes an Egyptian
+        // address into four or five lines.
+        flex-wrap: wrap;
+    }
+
+    .spartrak-address__edit {
+        order: 2;
+        width: 100%;
+        justify-content: center;
+    }
+
+    // ---------------------------------------------------------------------
+    // The promo panel
+    // ---------------------------------------------------------------------
+    // Figma 687:17805 stacks the field above the button and runs the button
+    // full width. Its fill is the same ink as the desktop's — noted because an
+    // earlier reading of these frames recorded the two as different colours,
+    // and the variable on both nodes is action/inverse.
+    .spartrak-promo {
+        padding: 16px;
+        gap: 16px;
+    }
+
+    .spartrak-promo__row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .spartrak-promo__apply {
+        width: 100%;
+    }
+
+    .spartrak-promo__title {
+        font-size: var(--text-18);
+    }
+
+    // ---------------------------------------------------------------------
+    // The order note
+    // ---------------------------------------------------------------------
+    .spartrak-order-note__submit {
+        width: 100%;
+    }
+
+    // ---------------------------------------------------------------------
+    // Totals and the CTA
+    // ---------------------------------------------------------------------
+    .spartrak-total--grand {
+        .spartrak-total__label {
+            font-size: var(--text-16);
+        }
+
+        .spartrak-total__value {
+            font-size: var(--text-18);
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // The add-address BOTTOM SHEET — Figma 687:15189
+    // ---------------------------------------------------------------------
+    // Magento's modal widget adds `_show` and the `custom-slide` treatment at
+    // this width by itself. These rules turn its slide-in panel into the sheet
+    // Figma draws: anchored to the bottom, rounded at the top only, capped at
+    // 90% of the viewport so the page behind stays visible, and scrolling
+    // inside itself so the header and the actions never leave the screen.
+    .spartrak-address-modal {
+        .modal-inner-wrap {
+            position: fixed;
+            inset-block-end: 0;
+            inset-inline: 0;
+            width: 100%;
+            max-width: none;
+            max-height: 90vh;
+            margin: 0;
+            border-start-start-radius: var(--radius-16);
+            border-start-end-radius: var(--radius-16);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-content {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            padding: 16px;
+            // Momentum scrolling inside the sheet on iOS, which otherwise
+            // scrolls the page behind it instead.
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .modal-header {
+            flex: 0 0 auto;
+            padding: 16px 16px 0;
+        }
+
+        .modal-footer {
+            flex: 0 0 auto;
+            flex-direction: column-reverse;
+            gap: 12px;
+            padding: 16px;
+        }
+
+        .modal-footer button {
+            width: 100%;
+            min-width: 0;
+        }
+
+        // One column: two 368px fields do not fit at 440.
+        #shipping-new-address-form {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Order success — Figma 687:18900
+    // ---------------------------------------------------------------------
+    .spartrak-success {
+        padding-block: 24px;
+    }
+
+    .spartrak-success__card {
+        padding: 24px 12px 12px;
+        gap: 24px;
+    }
+
+    .spartrak-success__art {
+        width: 120px;
+        height: 120px;
+    }
+
+    .spartrak-success__title {
+        font-size: var(--text-24);
+    }
+
+    .spartrak-success__fact {
+        // A long address and its label stop fitting on one line.
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .spartrak-success__fact-value {
+        text-align: start;
+    }
+
+    // ---------------------------------------------------------------------
+    // InstaPay transfer — Figma 687:21691
+    // ---------------------------------------------------------------------
+    .spartrak-instapay__bar-inner {
+        height: 64px;
+        padding-inline: 16px;
+    }
+
+    .spartrak-instapay__bar-title {
+        font-size: var(--text-16);
+    }
+
+    .spartrak-instapay__card {
+        margin: 16px;
+        padding: 16px 12px 12px;
+        gap: 16px;
+    }
+
+    .spartrak-instapay__brand {
+        width: 80px;
+        height: 80px;
+    }
+
+    .spartrak-instapay__fact {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .spartrak-instapay__dropzone {
+        height: 180px;
+    }
+
+    // ---------------------------------------------------------------------
+    // Processing — Figma 687:18468
+    // ---------------------------------------------------------------------
+    // The same modal as the desktop, narrowed so it cannot touch the edges.
+    .checkout-index-index .loading-mask .loader {
+        min-width: 0;
+        width: calc(100vw - 64px);
+        max-width: 320px;
+        padding: 24px;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// The toggle in the address dialog — Figma 721:29548
+// ---------------------------------------------------------------------------
+// 44 x 24 track, a 20px knob inset 2, radius pill. The track's off colour and
+// the knob's shadow are the exported asset's own values (#E4E3E5, and a 1px/2px
+// drop shadow at 5%), read out of the SVG rather than guessed.
+//
+// ===========================================================================
+// IT IS BUILT IN CSS, NOT DRAWN FROM THE FIGMA ASSET, AND THAT IS THE ONE
+// PLACE IN THIS PASS WHERE THAT IS THE RIGHT ANSWER
+// ===========================================================================
+// The exported SVG contains the OFF state only. A control with two states
+// cannot be an image that has one, and inventing the ON state as artwork would
+// be exactly the kind of substitution the asset rules forbid. So the geometry
+// and both colours come from the design, and CSS assembles them.
+//
+// ===========================================================================
+// WHAT IT IS ATTACHED TO, AND WHAT IT IS NOT
+// ===========================================================================
+// Core's `save_in_address_book` checkbox — "keep this address for next time".
+//
+// Figma labels its toggle `العنوان الافتراضي`, "the default address", which is
+// a DIFFERENT thing: it would set default_shipping on the customer. Magento's
+// checkout has no native path for that — a new address is copied into the
+// address book when the order is placed, and nothing in that path takes a
+// default flag — so wiring this control to it would need a bespoke address-save
+// controller that this pass did not build.
+//
+// The control is therefore styled as Figma draws it and labelled for what it
+// actually does. A toggle that looked like Figma's and set the wrong flag would
+// be worse than one that is honest about which flag it sets.
+.spartrak-address-modal {
+    // Figma 557:10445. The pair sits against the RIGHT edge of the 752 row
+    // (x=583..752), which on an RTL canvas is the reading START - so
+    // flex-start, not flex-end.
+    //
+    // Within the pair, the toggle is at the higher x (125..169) and the words
+    // at the lower (0..109). Higher x is further toward the reading start in
+    // RTL, so the toggle comes FIRST and the label follows. That is the source
+    // order already, which is why there is no `order` here: the markup says it,
+    // and the whole row mirrors correctly under an LTR locale for free.
+    .field.choice {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        justify-content: flex-start;
+    }
+
+    .field.choice > .label {
+        margin: 0;
+        font-size: var(--text-16);
+        font-weight: 500;
+        line-height: 1.5;
+        color: var(--color-text-primary);
+        cursor: pointer;
+    }
+
+    input[type='checkbox'] {
+        // The real input keeps its semantics, its keyboard behaviour and its
+        // announced state; only its paint is replaced. `appearance: none` is
+        // what makes that possible without hiding it.
+        appearance: none;
+        -webkit-appearance: none;
+        position: relative;
+        flex: 0 0 auto;
+        width: 44px;
+        height: 24px;
+        margin: 0;
+        border: 0;
+        border-radius: var(--radius-pill);
+        background: var(--color-border-default);
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+
+        &::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            inset-inline-start: 2px;
+            width: 20px;
+            height: 20px;
+            border-radius: var(--radius-pill);
+            background: var(--color-bg-surface);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            transition: transform 0.15s ease;
+        }
+
+        &:checked {
+            background: var(--color-action-primary);
+        }
+
+        // 44 - 20 - 2 - 2 = 20. translateX along the INLINE axis, so the knob
+        // travels the right way in both directions without a mirrored rule.
+        &:checked::after {
+            transform: translateX(20px);
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--color-border-focus);
+            outline-offset: 2px;
+        }
+    }
+
+    // In RTL the knob must travel the other way; `transform` is not a logical
+    // property, so this is the one place the direction is named explicitly.
+    &[dir='rtl'] input[type='checkbox']:checked::after,
+    [dir='rtl'] & input[type='checkbox']:checked::after {
+        transform: translateX(-20px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spartrak-address-modal input[type='checkbox'],
+    .spartrak-address-modal input[type='checkbox']::after {
+        transition: none;
+    }
+}
+
+// The address dialog's own failure line — a save the fields cannot explain
+// (the session expired, the address was not found, the server refused).
+// Field-level validation still renders under each field, as core's does.
+.spartrak-address-form__error {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 16px 0 0;
+    padding: 0;
+    background: none;
+    border: 0;
+    font-size: var(--text-14);
+    line-height: 1.5;
+    color: var(--color-feedback-danger);
+
+    &::before {
+        content: '';
+        .spartrak-icon('error-warning-line.svg'; 16px; var(--color-feedback-danger));
+    }
+}

@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!--
+  The presentation map is a rendered-page concern - it is read once, when
+  window.checkoutConfig is built - so the provider is registered in the
+  frontend area only. Registering it globally would add a config read to every
+  REST request that happens to build a checkout config, for data no API
+  consumer asks for.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Magento\Checkout\Model\CompositeConfigProvider">
+        <arguments>
+            <argument name="configProviders" xsi:type="array">
+                <item name="spartrak_payment_presentation" xsi:type="object">
+                    Spartrak\Payment\Model\ConfigProvider
+                </item>
+            </argument>
+        </arguments>
+    </type>
+</config>

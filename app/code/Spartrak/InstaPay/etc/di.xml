@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  THE PAYMENT METHOD IS BUILT FROM Magento\Payment\Model\Method\Adapter
+  ===========================================================================
+  NOT from AbstractMethod. Extending AbstractMethod is how every offline method
+  used to be written and it is how several still are in core, but it has been
+  deprecated since 2.3 and this project targets 2.4.8 with a standing rule
+  against deprecated APIs (CLAUDE.md section 1).
+
+  The Adapter is the supported replacement: a method is assembled from virtual
+  types rather than subclassed, so there is no PHP class here at all for the
+  method itself.
+
+  ===========================================================================
+  THERE IS NO COMMAND POOL, AND THAT IS CORRECT
+  ===========================================================================
+  A command pool is where authorize, capture, void and refund live. This method
+  performs none of them: no request leaves the server, because the shopper moves
+  the money themselves in their own banking app. The Adapter takes a null
+  command pool, and a method with an empty one would merely be pretending to
+  have a gateway.
+
+  Capture happens when a human approves the receipt - see the admin controller.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <preference for="Spartrak\InstaPay\Api\Data\TransferInterface"
+                type="Spartrak\InstaPay\Model\Transfer"/>
+    <preference for="Spartrak\InstaPay\Api\TransferRepositoryInterface"
+                type="Spartrak\InstaPay\Model\TransferRepository"/>
+
+    <!-- Reads payment/spartrak_instapay/* out of core_config_data. -->
+    <virtualType name="SpartrakInstaPayConfig" type="Magento\Payment\Gateway\Config\Config">
+        <arguments>
+            <argument name="methodCode" xsi:type="const">Spartrak\InstaPay\Model\Ui\ConfigProvider::CODE</argument>
+        </arguments>
+    </virtualType>
+
+    <virtualType name="SpartrakInstaPayValueHandler" type="Magento\Payment\Gateway\Config\ConfigValueHandler">
+        <arguments>
+            <argument name="configInterface" xsi:type="object">SpartrakInstaPayConfig</argument>
+        </arguments>
+    </virtualType>
+
+    <virtualType name="SpartrakInstaPayValueHandlerPool" type="Magento\Payment\Gateway\Config\ValueHandlerPool">
+        <arguments>
+            <argument name="handlers" xsi:type="array">
+                <item name="default" xsi:type="string">SpartrakInstaPayValueHandler</item>
+            </argument>
+        </arguments>
+    </virtualType>
+
+    <virtualType name="SpartrakInstaPayFacade" type="Magento\Payment\Model\Method\Adapter">
+        <arguments>
+            <argument name="code" xsi:type="const">Spartrak\InstaPay\Model\Ui\ConfigProvider::CODE</argument>
+            <argument name="formBlockType" xsi:type="string">Magento\Payment\Block\Form</argument>
+            <argument name="infoBlockType" xsi:type="string">Spartrak\InstaPay\Block\Info</argument>
+            <argument name="valueHandlerPool" xsi:type="object">SpartrakInstaPayValueHandlerPool</argument>
+        </arguments>
+    </virtualType>
+
+    <!--
+      Publishes the merchant's transfer number and masked name into
+      window.checkoutConfig, so the transfer page can render them without a
+      second round trip.
+    -->
+    <type name="Magento\Checkout\Model\CompositeConfigProvider">
+        <arguments>
+            <argument name="configProviders" xsi:type="array">
+                <item name="spartrak_instapay" xsi:type="object">
+                    Spartrak\InstaPay\Model\Ui\ConfigProvider
+                </item>
+            </argument>
+        </arguments>
+    </type>
+</config>

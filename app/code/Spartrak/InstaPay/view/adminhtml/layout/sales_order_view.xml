@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!--
+  Adds the InstaPay review panel to the order view.
+
+  It goes into `order_additional_info`, the container Magento provides for
+  exactly this - extra per-order detail from a module - rather than replacing or
+  wrapping any of core's own blocks. The block renders nothing at all when the
+  order was not paid with InstaPay, or when the viewer lacks the ACL, so adding
+  it unconditionally here is safe: see the block's shouldRender().
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="order_additional_info">
+            <block class="Spartrak\InstaPay\Block\Adminhtml\Order\View\Transfer"
+                   name="spartrak.instapay.order.transfer"
+                   template="Spartrak_InstaPay::order/transfer.phtml"
+                   cacheable="false"/>
+        </referenceContainer>
+    </body>
+</page>

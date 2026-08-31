@@ -1,0 +1,37 @@
+<!--
+/**
+ * Spartrak summary totals - Figma 551:11170.
+ *
+ * ===========================================================================
+ * A LIST, NOT A TABLE
+ * ===========================================================================
+ * Core renders <table class="table-totals"> and every total ships a <tr>.
+ * Figma's totals are label/value pairs in a flex column with dividers between
+ * groups, which a table cannot express without fighting it.
+ *
+ * So this becomes a <div> - and every total template overridden alongside it
+ * (subtotal, shipping, grand-total, and Spartrak's savings row) had to change
+ * from <tr> to <div> in the same pass, because a <tr> outside a table is
+ * dropped by the HTML parser and the row silently vanishes.
+ *
+ * ===========================================================================
+ * WHY elems() IS STILL THE SOURCE
+ * ===========================================================================
+ * It would have been shorter to read quote.totals() directly and print four
+ * fixed rows. That would also have deleted every total this store does not yet
+ * have: tax, gift wrapping, store credit, a third-party fee. Magento's order
+ * for these rows is admin-configurable (Stores > Configuration > Sales >
+ * Checkout Totals Sort Order) and that has to keep working.
+ *
+ * Rendering elems() means an unstyled total still appears rather than
+ * disappearing; it inherits the row's base styling and can be given its own
+ * template later.
+ */
+-->
+<!-- ko if: isDisplayed() -->
+<div class="spartrak-summary-totals">
+    <!-- ko foreach: elems() -->
+    <!-- ko template: getTemplate() --><!-- /ko -->
+    <!-- /ko -->
+</div>
+<!-- /ko -->

@@ -1,0 +1,37 @@
+<!--
+/**
+ * Spartrak order summary card - Figma 551:11106 (528 x auto).
+ *
+ * The card: white, no border, Shadow/Medium Darker, 8px outer padding, and an
+ * inner block padded 24 with a 28px rhythm between title, body and CTA - all
+ * measured off the frame, where the inner container's 664px height is exactly
+ * 24 + 26 + 28 + 486 + 28 + 48 + 24.
+ *
+ * `blockLoader: isLoading` is kept from core. It is what dims this column while
+ * totals are being recollected after a coupon or a shipping change, and it
+ * renders through the project's global loader (see _loader.less), so removing
+ * it would lose the only feedback the summary gives during a totals refresh.
+ */
+-->
+<div class="opc-block-summary spartrak-summary" data-bind="blockLoader: isLoading">
+    <div class="spartrak-summary__inner">
+        <!--
+          `Order summary`, not `Order details`.
+
+          The desktop frame (551:11109) labels this card `تفاصيل الطلب` and the
+          mobile one (687:16474) labels it `ملخص الطلب`. Two names for one
+          element across two mocks of the same screen is drift, not intent, so
+          one string is used - and it is the mobile one, because the CART's
+          summary card uses the same words and a shopper meets that first.
+        -->
+        <p class="spartrak-summary__title" data-bind="i18n: 'Order summary'"></p>
+
+        <!-- ko foreach: elems() -->
+        <!-- ko template: getTemplate() --><!-- /ko -->
+        <!-- /ko -->
+
+        <!-- ko foreach: getRegion('spartrak-place-order') -->
+        <!-- ko template: getTemplate() --><!-- /ko -->
+        <!-- /ko -->
+    </div>
+</div>

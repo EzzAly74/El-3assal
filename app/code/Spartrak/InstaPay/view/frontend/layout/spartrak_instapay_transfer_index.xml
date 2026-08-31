@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<!--
+  The transfer page.
+
+  ===========================================================================
+  IT KEEPS THE SITE CHROME, LIKE THE REST OF THIS CHECKOUT
+  ===========================================================================
+  `1column`, not Magento's stripped `checkout` layout - the same decision, for
+  the same reason, as Spartrak's checkout_index_index.xml: Figma's frame
+  (586:7352) carries the full SpareTrak header and footer.
+
+  The mega-menu row is removed here too. This is the most payment-critical page
+  on the site and a category link on it is an invitation to leave mid-transfer.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      layout="1column"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="spartrak.primary_nav" remove="true"/>
+        <referenceBlock name="page.main.title" remove="true"/>
+
+        <referenceContainer name="content">
+            <block class="Magento\Framework\View\Element\Template"
+                   name="spartrak.instapay.transfer"
+                   template="Spartrak_InstaPay::transfer.phtml"
+                   cacheable="false">
+                <arguments>
+                    <argument name="transfer_view_model" xsi:type="object">
+                        Spartrak\InstaPay\ViewModel\Transfer
+                    </argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+    </body>
+</page>

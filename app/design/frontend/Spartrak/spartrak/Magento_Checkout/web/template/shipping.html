@@ -56,19 +56,69 @@
         <each if="!quoteIsVirtual" args="getRegion('customer-email')" render=""></each>
 
         <!-- ko if: spartrakMode.isDelivery() -->
-        <each args="getRegion('address-list')" render=""></each>
-        <each args="getRegion('address-list-additional-addresses')" render=""></each>
+        <!--
+          ===================================================================
+          THE ADDRESS BOOK — Figma 549:26266 (list) / 557:4898 (empty)
+          ===================================================================
+          One header over two mutually exclusive bodies. The header - title at
+          the reading start, "عنوان شحن جديد" at the reading end - is present in
+          BOTH frames, so it sits outside the branch rather than being written
+          twice.
+
+          `showFormPopUp` is core's own method, unchanged: it is what opens the
+          address form, and it is the same call core's own "New Address" button
+          made. Only the button's appearance moved.
+        -->
+        <div class="spartrak-address-book">
+            <div class="spartrak-address-book__header">
+                <h2 class="spartrak-address-book__title" translate="'Choose your shipping address'"></h2>
+
+                <if args="!isFormInline">
+                    <button type="button" class="spartrak-address-book__add" click="showFormPopUp">
+                        <span translate="'New shipping address'"></span>
+                    </button>
+                </if>
+            </div>
+
+            <!-- ko if: spartrakHasAddresses() -->
+            <each args="getRegion('address-list')" render=""></each>
+            <each args="getRegion('address-list-additional-addresses')" render=""></each>
+            <!-- /ko -->
+
+            <!-- ko ifnot: spartrakHasAddresses() -->
+            <div class="spartrak-address-empty">
+                <!--
+                  Figma 721:29400, drawn as a CSS background rather than an
+                  <img>.
+
+                  A Knockout template is fetched as plain text and never passes
+                  through PHP, so it has no way to ask Magento where a theme
+                  asset ended up - there is no getViewFileUrl() here. The two
+                  honest options are to publish the URL from the component, or
+                  to let LESS resolve it at compile time. LESS wins: the path is
+                  resolved once at deploy instead of on every render, and it
+                  costs no JavaScript at all.
+
+                  A CSS background is only acceptable BECAUSE the van is purely
+                  decorative - the heading beside it carries the meaning, so
+                  there is nothing for alt text to say. It is a fixed 176 square,
+                  so it reserves its own space and cannot shift the panel.
+                -->
+                <span class="spartrak-address-empty__art" aria-hidden="true"></span>
+                <div class="spartrak-address-empty__body">
+                    <p class="spartrak-address-empty__title" translate="'You have no shipping address!'"></p>
+                    <p class="spartrak-address-empty__lead"
+                       translate="'Start by adding your shipping addresses so you can receive your products easily.'"></p>
+                    <button type="button" class="spartrak-address-empty__cta" click="showFormPopUp">
+                        <span translate="'Add a new shipping address'"></span>
+                    </button>
+                </div>
+            </div>
+            <!-- /ko -->
+        </div>
 
         <!-- Address form pop up -->
         <if args="!isFormInline">
-            <div class="new-address-popup">
-                <button type="button"
-                        class="action action-show-popup"
-                        click="showFormPopUp"
-                        visible="!isNewAddressAdded()">
-                    <span translate="'New Address'"></span>
-                </button>
-            </div>
             <div id="opc-new-shipping-address"
                  visible="isFormPopUpVisible()"
                  render="shippingFormTemplate"></div>

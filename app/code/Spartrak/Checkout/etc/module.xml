@@ -17,6 +17,15 @@
                  setting so the struck-through price shares a tax basis with the
                  live price core renders beside it. -->
             <module name="Magento_Tax"/>
+            <!-- Sales: ViewModel\OrderSuccess reads the placed order — its
+                 items, its payment and its shipping address. -->
+            <module name="Magento_Sales"/>
+            <!-- PickupLocation: the success card asks OrderPickup whether the
+                 order is being collected, so it can print the branch instead of
+                 a shipping address. A hard sequence, not a soft one: the class
+                 is type-hinted in OrderSuccess's constructor, so DI must be able
+                 to resolve it. -->
+            <module name="Spartrak_PickupLocation"/>
         </sequence>
     </module>
 </config>

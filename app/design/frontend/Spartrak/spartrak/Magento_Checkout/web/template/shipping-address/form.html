@@ -1,0 +1,79 @@
+<!--
+/**
+ * Spartrak address form - Figma 557:5178 (desktop) / 687:15189 (mobile sheet).
+ *
+ * The fields themselves are still Magento's, rendered from the customer-address
+ * attributes through `additional-fieldsets`. Their labels, order, visibility and
+ * the single-textarea street are shaped by
+ * Spartrak\Checkout\Plugin\Checkout\AddressFormLayout - NOT here - so a field
+ * another module adds still appears, with its own validation.
+ *
+ * ===========================================================================
+ * THE `العنوان الافتراضي` TOGGLE IS `default_shipping`. IT IS NOT
+ * `save_in_address_book`.
+ * ===========================================================================
+ * They are different questions and they are kept apart:
+ *
+ *   default_shipping       "send here unless I say otherwise" - a pointer on
+ *                          the CUSTOMER to one address. Setting it on one
+ *                          address necessarily clears it from another.
+ *   save_in_address_book   "keep this for next time" - core's own flag,
+ *                          untouched, still at its default of 1.
+ *
+ * Figma draws only the first, so only the first is rendered. Core's
+ * save-in-address-book checkbox is not shown because for a signed-in shopper
+ * this form now writes straight to the address book through
+ * AddressRepositoryInterface - the address is saved either way, and a checkbox
+ * that cannot change the outcome would be a lie.
+ *
+ * ===========================================================================
+ * WHY A REAL CHECKBOX
+ * ===========================================================================
+ * It is painted as Figma's 44x24 toggle in _checkout.less, but it is an
+ * <input type="checkbox"> with `appearance: none`. That keeps the space bar,
+ * the tab order, and the "checked / not checked" a screen reader announces -
+ * none of which a <div role="switch"> gets without being rebuilt by hand.
+ *
+ * It is bound to an observable on the shipping component, so its value is read
+ * at save time from one place. See js/view/shipping-address-mixin.js.
+ */
+-->
+<form class="form form-shipping-address" id="co-shipping-form"
+      data-bind="attr: {'data-hasrequired': $t('* Required Fields')}">
+
+    <!-- ko foreach: getRegion('before-fields') -->
+    <!-- ko template: getTemplate() --><!-- /ko -->
+    <!--/ko-->
+
+    <div id="shipping-new-address-form" class="fieldset address">
+        <!-- ko foreach: getRegion('additional-fieldsets') -->
+        <!-- ko template: getTemplate() --><!-- /ko -->
+        <!--/ko-->
+
+        <!-- ko if: (isCustomerLoggedIn) -->
+        <div class="field choice" data-bind="visible: !isFormInline">
+            <input type="checkbox"
+                   class="checkbox"
+                   id="spartrak-default-shipping"
+                   data-bind="checked: spartrakIsDefaultShipping"/>
+            <label class="label" for="spartrak-default-shipping">
+                <span data-bind="i18n: 'Default address'"></span>
+            </label>
+        </div>
+        <!-- /ko -->
+    </div>
+
+    <!--
+      A save that failed for a reason the fields cannot show - the session
+      expired, the address was not found, the server refused. Field-level
+      validation still renders under each field, as core's.
+
+      role="alert" so it is announced when it appears; the shopper's focus is
+      on the save button at that moment and would otherwise never reach it.
+    -->
+    <!-- ko if: spartrakSaveError() -->
+    <div class="message error spartrak-address-form__error" role="alert">
+        <span data-bind="text: spartrakSaveError()"></span>
+    </div>
+    <!-- /ko -->
+</form>

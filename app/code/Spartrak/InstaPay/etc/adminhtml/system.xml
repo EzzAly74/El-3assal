@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <section id="payment">
+            <group id="spartrak_instapay" translate="label comment" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>InstaPay (manual transfer)</label>
+                <comment><![CDATA[
+                    The customer transfers the amount themselves in their InstaPay
+                    app, then uploads a screenshot of the receipt. A member of staff
+                    reviews it on the order and approves or rejects it — nothing is
+                    captured automatically, because nothing here talks to a bank.
+                ]]></comment>
+
+                <field id="active" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" canRestore="1">
+                    <label>Enabled</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <config_path>payment/spartrak_instapay/active</config_path>
+                </field>
+
+                <field id="title" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Title</label>
+                    <comment>What the customer sees on the payment row.</comment>
+                    <config_path>payment/spartrak_instapay/title</config_path>
+                </field>
+
+                <field id="merchant_number" translate="label comment" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Transfer number</label>
+                    <comment><![CDATA[
+                        <strong>The number customers will send money to.</strong>
+                        Check it character by character before enabling the method —
+                        a wrong digit here sends real transfers to a stranger, and
+                        there is no automatic reconciliation to catch it.
+                    ]]></comment>
+                    <validate>required-entry</validate>
+                    <config_path>payment/spartrak_instapay/merchant_number</config_path>
+                </field>
+
+                <field id="merchant_name" translate="label comment" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Name shown in InstaPay</label>
+                    <comment><![CDATA[
+                        The account name the customer will see in their app when they
+                        enter the number — InstaPay shows it partly masked, e.g.
+                        <code>E**** F**** T**** A***</code>. Enter it exactly as their
+                        app displays it, masking included, so they can confirm they are
+                        paying the right account. Do not enter the full unmasked name.
+                    ]]></comment>
+                    <validate>required-entry</validate>
+                    <config_path>payment/spartrak_instapay/merchant_name</config_path>
+                </field>
+
+                <field id="order_status" translate="label comment" type="select" sortOrder="50" showInDefault="1" showInWebsite="1">
+                    <label>New order status</label>
+                    <comment>Leave this as Pending Payment unless you have a reason not to — it is what keeps an unpaid order out of the customer's order list and out of the confirmation email.</comment>
+                    <source_model>Magento\Sales\Model\Config\Source\Order\Status\NewStatus</source_model>
+                    <config_path>payment/spartrak_instapay/order_status</config_path>
+                </field>
+
+                <field id="sort_order" translate="label" type="text" sortOrder="60" showInDefault="1" showInWebsite="1">
+                    <label>Sort order</label>
+                    <frontend_class>validate-number</frontend_class>
+                    <config_path>payment/spartrak_instapay/sort_order</config_path>
+                </field>
+
+                <field id="allowspecific" translate="label" type="allowspecific" sortOrder="70" showInDefault="1" showInWebsite="1">
+                    <label>Payment from applicable countries</label>
+                    <source_model>Magento\Payment\Model\Config\Source\Allspecificcountries</source_model>
+                    <config_path>payment/spartrak_instapay/allowspecific</config_path>
+                </field>
+
+                <field id="specificcountry" translate="label" type="multiselect" sortOrder="80" showInDefault="1" showInWebsite="1">
+                    <label>Payment from specific countries</label>
+                    <source_model>Magento\Directory\Model\Config\Source\Country</source_model>
+                    <can_be_empty>1</can_be_empty>
+                    <config_path>payment/spartrak_instapay/specificcountry</config_path>
+                    <depends>
+                        <field id="allowspecific">1</field>
+                    </depends>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>

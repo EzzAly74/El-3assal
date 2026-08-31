@@ -1,0 +1,43 @@
+<!--
+/**
+ * Spartrak summary item list - Figma 551:11110.
+ *
+ * ===========================================================================
+ * WHAT CORE'S VERSION DID THAT THIS DOES NOT
+ * ===========================================================================
+ * Core wraps the list in a `collapsible` widget behind an "N Items in Cart"
+ * heading, and caps the list at `maxCartItemsToDisplay` with a "View and Edit
+ * Cart" link underneath. Figma shows the items open, in full, with no heading
+ * of their own - the card's single title (`تفاصيل الطلب`) covers them.
+ *
+ * The cap is kept, because it is not decoration: a quote with two hundred lines
+ * would otherwise render two hundred images into the summary column. When it
+ * bites, the link out to the cart stays - dropping it would leave a shopper
+ * with a silently truncated list and no way to see the rest.
+ *
+ * ===========================================================================
+ * THE ITEM ROW IS STILL CORE'S COMPONENT TREE
+ * ===========================================================================
+ * `$parent.elems()` renders the `details` child, whose `before_details` region
+ * renders the thumbnail - both overridden alongside this file. Keeping that
+ * tree, rather than inlining the markup here, is what leaves the extension
+ * points other modules hook into (item options, gift messages, item-level
+ * notices) working.
+ */
+-->
+<div class="spartrak-summary__items">
+    <ol class="spartrak-summary-items">
+        <each args="items()">
+            <li class="spartrak-summary-item">
+                <each args="$parent.elems()" render=""></each>
+            </li>
+        </each>
+    </ol>
+
+    <div class="spartrak-summary__truncated" if="maxCartItemsToDisplay < getCartLineItemsCount()">
+        <span data-bind="text: getCartSummaryItemsCount()"></span>
+        <a class="spartrak-summary__viewcart" data-bind="attr: {href: cartUrl}">
+            <span data-bind="i18n: 'View and Edit Cart'"></span>
+        </a>
+    </div>
+</div>

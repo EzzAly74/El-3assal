@@ -1,0 +1,94 @@
+<!--
+/**
+ * Spartrak payment row - Figma 554:10524 / 554:10131 / 554:10500 / 554:10512.
+ *
+ * ONE template for EVERY payment method. What differs between the four rows
+ * Figma draws is only data: the title (Magento's), the description and the
+ * brand marks (this module's admin config). Nothing here knows what a bank
+ * card or a wallet is, so a method nobody has thought of yet renders correctly
+ * the day it is enabled.
+ *
+ * ===========================================================================
+ * WHY THE WHOLE ROW IS A <label>
+ * ===========================================================================
+ * Figma's hit target is the entire 720x86 card, not the 20px radio. A <label>
+ * wrapping a real <input type="radio"> gives that for free, natively: click
+ * anywhere, the input is selected; arrow keys move between rows because the
+ * radios share a name; and a screen reader announces "radio, selected, pay by
+ * bank card". Rebuilding that on a <div> with click handlers and aria-checked
+ * is more JavaScript for a worse result.
+ *
+ * The visible circle is a sibling <span>; the input itself is clipped rather
+ * than `display:none`, which would take it out of the tab order entirely.
+ */
+-->
+<div class="spartrak-pay-method"
+     data-bind="css: { 'spartrak-pay-method--selected': isChecked() === getCode() },
+                attr: { 'data-method': getCode() }">
+
+    <label class="spartrak-pay-method__row" data-bind="attr: { 'for': getCode() }">
+
+        <!--
+          DOM ORDER IS THE RENDERED ORDER, AND IT IS NOT FIGMA'S NODE ORDER.
+          Measured off 554:10524, the radio sits at x=680 and the logo cluster
+          at x=20 - so on the RTL canvas the radio is at the reading start
+          (right) and the marks at the reading end (left). In a flex row the
+          first child lands at the inline start, so the radio comes first here
+          and the marks last. Under an LTR locale the whole row mirrors, which
+          is the correct behaviour rather than a side effect.
+        -->
+        <input type="radio"
+               class="spartrak-pay-method__input"
+               name="payment[method]"
+               data-bind="attr: { id: getCode() },
+                          value: getCode(),
+                          checked: isChecked,
+                          click: selectPaymentMethod"/>
+        <span class="spartrak-pay-method__radio" aria-hidden="true"></span>
+
+        <span class="spartrak-pay-method__body">
+            <span class="spartrak-pay-method__title" data-bind="text: getTitle()"></span>
+            <!-- ko if: spartrakDescription() -->
+            <span class="spartrak-pay-method__desc" data-bind="text: spartrakDescription()"></span>
+            <!-- /ko -->
+        </span>
+
+        <!-- ko if: spartrakBrands().length -->
+        <span class="spartrak-pay-method__logos"
+              data-bind="css: { 'spartrak-pay-method__logos--single': spartrakBrands().length === 1 }">
+            <!-- ko foreach: { data: spartrakBrands(), as: 'brand' } -->
+            <span class="spartrak-pay-method__logo">
+                <!--
+                  A real brand mark at its real colours. Never a CSS mask and
+                  never re-tinted: these are third-party trademarks.
+                  Dimensions are on the element so the row cannot shift as the
+                  marks decode.
+                -->
+                <img data-bind="attr: { src: brand.url, alt: brand.label }"
+                     width="44" height="44" loading="lazy" decoding="async"/>
+            </span>
+            <!-- /ko -->
+        </span>
+        <!-- /ko -->
+    </label>
+
+    <!--
+      Anything the method itself needs to draw once chosen - an agreement
+      checkbox, a card form a gateway injects. Figma shows none of it for the
+      four methods drawn, but the region has to exist or a method that DOES
+      need it would silently lose its UI.
+
+      The place-order button is NOT here. This design has exactly one CTA, in
+      the order summary; see Spartrak_Checkout/js/view/place-order.
+    -->
+    <!-- ko if: isChecked() === getCode() -->
+    <div class="spartrak-pay-method__extra">
+        <!-- ko foreach: getRegion('messages') -->
+        <!-- ko template: getTemplate() --><!-- /ko -->
+        <!-- /ko -->
+        <!-- ko foreach: $parent.getRegion('before-place-order') -->
+        <!-- ko template: getTemplate() --><!-- /ko -->
+        <!-- /ko -->
+    </div>
+    <!-- /ko -->
+</div>

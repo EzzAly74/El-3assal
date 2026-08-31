@@ -741,3 +741,80 @@
         z-index: 2;
     }
 }
+
+// ---------------------------------------------------------------------------
+// FIGMA CART PASS (2026-08-31) — two gaps closed against the mobile frame
+// ---------------------------------------------------------------------------
+
+// The ship-to row's pin and chevron — Figma 817:22691.
+//
+// The row already had its layout; what was missing were the two glyphs that
+// make it read as a place and as something you can open. Both are pseudo
+// elements on the title, because the title IS core's collapsible toggle and
+// wrapping it in extra markup would mean overriding the estimator's template
+// for two icons.
+.spartrak-cart-summary #block-shipping .title {
+    // The pin sits in a 56px circle at the reading start.
+    &::before {
+        content: '';
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        border-radius: var(--radius-pill);
+        background-color: var(--color-bg-field);
+        // Verified as the same glyph as the address pin already in the theme
+        // (a scale-normalised path comparison scored 1.000), so it is reused
+        // rather than exported a second time under another name.
+        background-image: url('../images/icons/account-addresses.svg');
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 20px 20px;
+    }
+
+    // The chevron at the reading end. `margin-inline-start: auto` pushes it
+    // there without the row needing space-between, which would also have
+    // separated the pin from the words.
+    &::after {
+        content: '';
+        margin-inline-start: auto;
+        .spartrak-icon('chevron-down-20.svg'; 20px; var(--color-icon-default));
+        transition: transform 0.15s ease;
+    }
+}
+
+// Core adds `active` to the block when the estimator is open.
+.spartrak-cart-summary #block-shipping.active .title::after {
+    transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spartrak-cart-summary #block-shipping .title::after {
+        transition: none;
+    }
+}
+
+// The savings row — Figma 669:13034.
+//
+// Reached through the `totals-discount` class added in this theme's override of
+// Magento_SalesRule/cart/totals/discount.html; core gives every totals row the
+// same class, so there was nothing else to hook on. See that file for why the
+// row is shown on the cart at all.
+.spartrak-cart-summary__card .table.totals tr.totals-discount {
+    td,
+    td .price {
+        color: var(--color-text-success);
+    }
+
+    // The info icon Figma puts before the word `وفرت`, at the reading start of
+    // the label.
+    th .title::before {
+        content: '';
+        display: inline-block;
+        vertical-align: -3px;
+        margin-inline-end: 8px;
+        .spartrak-icon('savings-info.svg'; 16px; var(--color-text-disabled));
+    }
+}

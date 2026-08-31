@@ -1,0 +1,48 @@
+<!--
+/**
+ * Spartrak checkout summary column - Figma 551:11105.
+ *
+ * ===========================================================================
+ * CORE'S MODAL WIRING IS DELIBERATELY GONE
+ * ===========================================================================
+ * Magento turns this column into a Magento_Ui modal with `responsive: true`,
+ * which on a narrow viewport collapses it behind a "Show order summary"
+ * button and slides it in.
+ *
+ * Figma's mobile checkout (687:16474) does not do that: the summary is a plain
+ * block below the step content, always visible, with the CTA sticky at the
+ * bottom. Keeping the modal would have meant styling a slide-in panel nobody
+ * asked for and then hiding it.
+ *
+ * `afterRender: setModalElement` went with it. It exists only to hand the
+ * element to Magento_Checkout/js/model/sidebar so show()/hide() can drive the
+ * modal; both of those guard on `if (this.popUp)`, so leaving it unset is a
+ * supported state, not a silent breakage. Verified in that model's source.
+ *
+ * ===========================================================================
+ * THE PROMO PANEL IS A SIBLING, NOT A CHILD OF THE SUMMARY
+ * ===========================================================================
+ * Magento_SalesRule puts the coupon form inside the payment step. Figma puts it
+ * in THIS column, below the summary card, as its own bordered panel
+ * (554:11806). The component is unchanged - it is still
+ * Magento_SalesRule/js/view/payment/discount, with Magento's coupon logic
+ * intact - it is only mounted somewhere else. See Spartrak_Checkout's
+ * checkout_index_index.xml for that move.
+ */
+-->
+<div id="opc-sidebar" class="spartrak-checkout-summary">
+
+    <!-- ko foreach: getRegion('summary') -->
+    <!-- ko template: getTemplate() --><!-- /ko -->
+    <!--/ko-->
+
+    <!-- ko foreach: getRegion('spartrak-promo') -->
+    <!-- ko template: getTemplate() --><!-- /ko -->
+    <!--/ko-->
+
+    <div class="opc-block-shipping-information">
+        <!-- ko foreach: getRegion('shipping-information') -->
+        <!-- ko template: getTemplate() --><!-- /ko -->
+        <!--/ko-->
+    </div>
+</div>

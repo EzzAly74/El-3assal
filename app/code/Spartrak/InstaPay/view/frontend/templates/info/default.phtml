@@ -1,0 +1,10 @@
+<?php
+/**
+ * @var \Spartrak\InstaPay\Block\Info $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+?>
+<dl class="payment-method spartrak-instapay-info">
+    <dt><?= $escaper->escapeHtml($block->getMethod()->getTitle()) ?></dt>
+    <dd><?= $escaper->escapeHtml(__('Paid by manual transfer. Your order will be confirmed once we have checked the transfer.')) ?></dd>
+</dl>

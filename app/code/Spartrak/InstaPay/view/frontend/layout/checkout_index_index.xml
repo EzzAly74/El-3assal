@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<!--
+  Registers the InstaPay renderer with the checkout's payment list.
+
+  The renderer exists for ONE reason: to send the shopper to the transfer page
+  after the order is created, instead of straight to the success page. It draws
+  nothing of its own - Spartrak_Payment's mixin gives it the same Figma row
+  every other method gets, so InstaPay's description and logo are admin
+  configuration like everything else's, not markup in this module.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="checkout.root">
+            <arguments>
+                <argument name="jsLayout" xsi:type="array">
+                    <item name="components" xsi:type="array">
+                        <item name="checkout" xsi:type="array">
+                            <item name="children" xsi:type="array">
+                                <item name="steps" xsi:type="array">
+                                    <item name="children" xsi:type="array">
+                                        <item name="billing-step" xsi:type="array">
+                                            <item name="children" xsi:type="array">
+                                                <item name="payment" xsi:type="array">
+                                                    <item name="children" xsi:type="array">
+                                                        <item name="renders" xsi:type="array">
+                                                            <item name="children" xsi:type="array">
+                                                                <item name="spartrak-instapay" xsi:type="array">
+                                                                    <item name="component" xsi:type="string">Spartrak_InstaPay/js/view/payment/instapay</item>
+                                                                    <item name="methods" xsi:type="array">
+                                                                        <item name="spartrak_instapay" xsi:type="array">
+                                                                            <item name="isBillingAddressRequired" xsi:type="boolean">false</item>
+                                                                        </item>
+                                                                    </item>
+                                                                </item>
+                                                            </item>
+                                                        </item>
+                                                    </item>
+                                                </item>
+                                            </item>
+                                        </item>
+                                    </item>
+                                </item>
+                            </item>
+                        </item>
+                    </item>
+                </argument>
+            </arguments>
+        </referenceBlock>
+    </body>
+</page>

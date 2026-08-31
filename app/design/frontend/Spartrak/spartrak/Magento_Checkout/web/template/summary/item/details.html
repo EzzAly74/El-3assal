@@ -1,0 +1,54 @@
+<!--
+/**
+ * Spartrak summary item row - Figma 551:11112.
+ *
+ * Name at Heading/H4 18/500 and price at Price/Base 18/700 in `text/brand`,
+ * both aligned to the reading start, with the thumbnail region rendered first
+ * so the image lands at the reading start of the row (right, in Arabic).
+ *
+ * ===========================================================================
+ * THE PRICE SHOWN IS THE LINE TOTAL, NOT THE UNIT PRICE
+ * ===========================================================================
+ * `getValue($parents[1])` on the `subtotal` child is the row subtotal, which is
+ * what a summary should total to - and it is what makes the column's own
+ * subtotal add up. That differs from the CART page, where Figma shows the unit
+ * price beside a quantity control; see Spartrak\Checkout\ViewModel\
+ * CartItemPricing for the evidence behind that one.
+ *
+ * The `subtotal` child renders through `after_details`, so it is reached the
+ * same way core reaches it, not by reimplementing the sum here.
+ */
+-->
+<!-- ko foreach: getRegion('before_details') -->
+<!-- ko template: getTemplate() --><!-- /ko -->
+<!-- /ko -->
+
+<div class="spartrak-summary-item__body">
+    <span class="spartrak-summary-item__name" data-bind="html: getNameUnsanitizedHtml($parent)"></span>
+
+    <!-- ko foreach: getRegion('after_details') -->
+    <!-- ko template: getTemplate() --><!-- /ko -->
+    <!-- /ko -->
+
+    <!-- ko if: (JSON.parse($parent.options).length > 0) -->
+    <dl class="spartrak-summary-item__options">
+        <!-- ko foreach: JSON.parse($parent.options) -->
+        <dt data-bind="text: label"></dt>
+        <!-- ko if: ($data.full_view) -->
+        <!-- ko with: {full_viewUnsanitizedHtml: $data.full_view} -->
+        <dd data-bind="html: full_viewUnsanitizedHtml"></dd>
+        <!-- /ko -->
+        <!-- /ko -->
+        <!-- ko ifnot: ($data.full_view) -->
+        <!-- ko with: {valueUnsanitizedHtml: $data.value} -->
+        <dd data-bind="html: valueUnsanitizedHtml"></dd>
+        <!-- /ko -->
+        <!-- /ko -->
+        <!-- /ko -->
+    </dl>
+    <!-- /ko -->
+</div>
+
+<!-- ko foreach: getRegion('item_message') -->
+<!-- ko template: getTemplate() --><!-- /ko -->
+<!-- /ko -->

@@ -13,6 +13,22 @@
 
     <!--
       ===================================================================
+      THE ADDRESS FORM'S SHAPE
+      ===================================================================
+      Frontend-only on purpose. LayoutProcessor builds the STOREFRONT
+      checkout's jsLayout and has no counterpart in the admin, whose order
+      -create form is a different block entirely and must keep every field
+      this hides — an agent taking an order by phone may well need to type a
+      company name or a postcode.
+    -->
+    <type name="Magento\Checkout\Block\Checkout\LayoutProcessor">
+        <plugin name="spartrak_address_form_layout"
+                type="Spartrak\Checkout\Plugin\Checkout\AddressFormLayout"
+                sortOrder="100"/>
+    </type>
+
+    <!--
+      ===================================================================
       THE CART LINE'S QUANTITY OPTIONS, HANDED TO EVERY ITEM RENDERER
       ===================================================================
       Declared on the BASE renderer rather than on each block in layout XML.

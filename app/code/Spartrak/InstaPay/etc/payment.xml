@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<!--
+  Declares the method to Magento's payment configuration.
+
+  The root element is <payment>, not <config> - payment.xsd is one of the few
+  Magento config schemas that does not use a <config> root, and getting it wrong
+  produces "No matching global declaration available for the validation root"
+  rather than anything that names the real problem.
+
+  ===========================================================================
+  IT JOINS THE `offline` GROUP
+  ===========================================================================
+  Because that is what it is: no request leaves the server, and the money moves
+  between two banking apps with no involvement from this store. Grouping it with
+  the gateways would put it beside methods that behave nothing like it in the
+  admin's Payment Methods screen.
+
+  The group is not redeclared here - Magento_OfflinePayments already defines it,
+  and payment.xml files merge.
+
+  ===========================================================================
+  allow_multiple_address = 0
+  ===========================================================================
+  Multi-address checkout splits one order across several shipping addresses and
+  therefore several orders. This method takes one manual transfer for one total,
+  reviewed by one person - there is no sensible way to divide a single receipt
+  across three orders, so it declines to appear there at all.
+-->
+<payment xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Payment:etc/payment.xsd">
+    <methods>
+        <method name="spartrak_instapay">
+            <allow_multiple_address>0</allow_multiple_address>
+        </method>
+    </methods>
+</payment>

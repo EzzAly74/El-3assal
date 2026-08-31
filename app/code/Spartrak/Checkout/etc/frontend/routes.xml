@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!--
+  One front name for the module's own frontend controllers. Currently just the
+  order-note endpoint; anything else Spartrak_Checkout needs to POST to lands
+  under the same route rather than borrowing another module's.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:App/etc/routes.xsd">
+    <router id="standard">
+        <route id="spartrak_checkout" frontName="spartrak_checkout">
+            <module name="Spartrak_Checkout"/>
+        </route>
+    </router>
+</config>

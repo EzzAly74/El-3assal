@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<!--
+  A manual InstaPay payment method: the shopper transfers the money in their own
+  banking app and uploads a receipt, and a human approves it.
+
+  ===========================================================================
+  ON THE OVERLAP WITH Paymob_Payment
+  ===========================================================================
+  Paymob is this store's gateway and will carry most card and wallet traffic,
+  possibly including InstaPay once it is configured. This module is the MANUAL
+  fallback drawn in Figma (586:7352) - transfer to a number, upload a
+  screenshot, wait for a person to check it.
+
+  The two can coexist: they are separate methods with separate codes, and a
+  merchant switches this one off in Stores > Configuration > Sales > Payment
+  Methods the day Paymob covers it. Nothing here assumes it is the only way to
+  pay, and nothing in the checkout hardcodes either of them - see
+  Spartrak_Payment.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/module.xsd">
+    <module name="Spartrak_InstaPay">
+        <sequence>
+            <module name="Magento_Payment"/>
+            <module name="Magento_Sales"/>
+            <module name="Magento_Checkout"/>
+            <!-- The transfer page renders the Spartrak chrome and reuses the
+                 checkout's own vocabulary and styles. -->
+            <module name="Spartrak_Checkout"/>
+        </sequence>
+    </module>
+</config>

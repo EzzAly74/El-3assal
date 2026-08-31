@@ -1,0 +1,18 @@
+<!--
+/**
+ * Spartrak subtotal row - Figma 551:11173.
+ *
+ * Figma's label reads `المجموع الفرعي (3 منتجات)` - the count is part of the
+ * label. It comes from the quote, via Spartrak_Checkout's subtotal mixin, so
+ * it is the real number of items and not a fixed string.
+ */
+-->
+<div class="spartrak-total spartrak-total--subtotal">
+    <span class="spartrak-total__label">
+        <span data-bind="text: title"></span>
+        <!-- ko if: spartrakItemCount() -->
+        <span data-bind="text: spartrakItemCountLabel()"></span>
+        <!-- /ko -->
+    </span>
+    <span class="spartrak-total__value" data-bind="text: getValue()"></span>
+</div>

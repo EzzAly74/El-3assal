@@ -1,0 +1,37 @@
+<!--
+/**
+ * Spartrak summary item thumbnail + quantity badge - Figma 551:11122 / 551:11128.
+ *
+ * The badge lives HERE, not in details.html, because Figma pins it to the
+ * image's corner (image at x=332, badge at x=333, y=2 against the image's
+ * y=8). Positioning it from the row would mean re-deriving the image's edge in
+ * CSS; anchoring it to the image is one `position: relative` and survives the
+ * image changing size.
+ *
+ * `$parents[1]` is the quote item - the same context core's own thumbnail
+ * template reads its src, width and height from.
+ *
+ * ===========================================================================
+ * NO toLocaleString ON THE QUANTITY
+ * ===========================================================================
+ * Core writes `qty.toLocaleString(window.LOCALE)`. Under ar_EG that renders
+ * Arabic-Indic digits (٢ rather than 2), which this project has explicitly
+ * rejected - the whole reason Spartrak_Locale exists. The raw number is
+ * already a plain integer, so it needs no formatting at all.
+ */
+-->
+<span class="spartrak-summary-item__media">
+    <img class="spartrak-summary-item__image"
+         data-bind="attr: {
+            'src': getSrc($parents[1]),
+            'width': getWidth($parents[1]),
+            'height': getHeight($parents[1]),
+            'alt': getAlt($parents[1])
+         }"
+         loading="lazy" decoding="async"/>
+
+    <span class="spartrak-summary-item__qty">
+        <span data-bind="text: $parents[1].qty"></span>
+        <span class="spartrak-visually-hidden" data-bind="i18n: 'in cart'"></span>
+    </span>
+</span>

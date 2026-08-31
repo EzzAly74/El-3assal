@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!--
+  A transfer receipt is a screenshot of somebody's banking app, so viewing one
+  is a privilege in its own right and not something every admin role should get
+  by default. It sits under Sales > Operations > Orders, because that is where
+  the person who needs it is already working.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
+    <acl>
+        <resources>
+            <resource id="Magento_Backend::admin">
+                <resource id="Magento_Sales::sales">
+                    <resource id="Magento_Sales::sales_operation">
+                        <resource id="Magento_Sales::actions">
+                            <resource id="Spartrak_InstaPay::proof" title="View InstaPay transfer receipts" sortOrder="90"/>
+                        </resource>
+                    </resource>
+                </resource>
+            </resource>
+        </resources>
+    </acl>
+</config>

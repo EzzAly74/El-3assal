@@ -1,0 +1,164 @@
+<?php
+/**
+ * Spartrak InstaPay transfer page - Figma 586:7352 / 586:7420.
+ *
+ * The shopper has just placed an order in `pending_payment`. This screen tells
+ * them where to send the money and takes their account of having sent it.
+ *
+ * ===========================================================================
+ * A PLAIN FORM, POSTED
+ * ===========================================================================
+ * No Knockout, no AJAX, no upload library. It is one form with a text field and
+ * a file input, and a native multipart POST does it with zero JavaScript in the
+ * critical path - which matters here more than almost anywhere, because this
+ * page is reached mid-payment on whatever connection the shopper happens to be
+ * on (CLAUDE.md section 4).
+ *
+ * The one script on the page is fifteen lines that echo the chosen file's name
+ * back, so somebody can see their upload registered before they submit. Without
+ * it a native file input in a styled dropzone gives no feedback at all. It is
+ * progressive: with JavaScript off the form still submits and still works.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+/** @var \Spartrak\InstaPay\ViewModel\Transfer $transfer */
+$transfer = $block->getData('transfer_view_model');
+$inputId = 'spartrak-instapay-proof';
+?>
+<div class="spartrak-instapay">
+
+    <!--
+      Figma 586:7714 - a row below the navbar carrying the page's name and a way
+      back. It is part of the page rather than the site header because it is
+      specific to this step; putting it in the header would mean a header that
+      knows about InstaPay.
+    -->
+    <div class="spartrak-instapay__bar">
+        <div class="spartrak-instapay__bar-inner">
+            <span class="spartrak-instapay__bar-title">
+                <?= $escaper->escapeHtml(__('Pay with InstaPay')) ?>
+            </span>
+            <a class="spartrak-instapay__back"
+               href="<?= $escaper->escapeUrl($block->getUrl('checkout/onepage/success')) ?>"
+               aria-label="<?= $escaper->escapeHtmlAttr(__('Back')) ?>"></a>
+        </div>
+    </div>
+
+    <form class="spartrak-instapay__card"
+          action="<?= $escaper->escapeUrl($block->getUrl('spartrak_instapay/transfer/save')) ?>"
+          method="post"
+          enctype="multipart/form-data">
+        <?= $block->getBlockHtml('formkey') ?>
+
+        <!-- Figma 586:7751 - the InstaPay brand mark in a 100px ring. -->
+        <span class="spartrak-instapay__brand" aria-hidden="true"></span>
+
+        <dl class="spartrak-instapay__facts">
+            <div class="spartrak-instapay__fact">
+                <dt class="spartrak-instapay__fact-label">
+                    <?= $escaper->escapeHtml(__('Transfer to this number — ElAssal')) ?>
+                </dt>
+                <dd class="spartrak-instapay__fact-value">
+                    <?= $escaper->escapeHtml($transfer->getMerchantNumber()) ?>
+                </dd>
+            </div>
+            <?php if ($transfer->getMerchantName() !== '') : ?>
+                <div class="spartrak-instapay__fact">
+                    <dt class="spartrak-instapay__fact-label">
+                        <?= $escaper->escapeHtml(__('The name shown in InstaPay')) ?>
+                    </dt>
+                    <dd class="spartrak-instapay__fact-value">
+                        <?= $escaper->escapeHtml($transfer->getMerchantName()) ?>
+                    </dd>
+                </div>
+            <?php endif; ?>
+        </dl>
+
+        <div class="spartrak-instapay__form">
+            <h2 class="spartrak-instapay__title"><?= $escaper->escapeHtml(__('Transfer details')) ?></h2>
+
+            <div class="spartrak-instapay__field">
+                <label class="spartrak-instapay__label" for="spartrak-instapay-phone">
+                    <?= $escaper->escapeHtml(__('The phone number registered with InstaPay')) ?>
+                    <span class="spartrak-instapay__required" aria-hidden="true">*</span>
+                </label>
+                <div class="spartrak-instapay__control">
+                    <input type="tel"
+                           id="spartrak-instapay-phone"
+                           name="customer_phone"
+                           class="spartrak-instapay__input"
+                           required
+                           autocomplete="tel"
+                           inputmode="tel"
+                           placeholder="<?= $escaper->escapeHtmlAttr(__('Please enter the phone number')) ?>"/>
+                    <span class="spartrak-instapay__input-icon" aria-hidden="true"></span>
+                </div>
+            </div>
+
+            <div class="spartrak-instapay__field">
+                <label class="spartrak-instapay__label" for="<?= $escaper->escapeHtmlAttr($inputId) ?>">
+                    <?= $escaper->escapeHtml(__('A picture of the transfer')) ?>
+                    <span class="spartrak-instapay__required" aria-hidden="true">*</span>
+                </label>
+
+                <!--
+                  Figma 586:13007 - a dashed 200px dropzone with a 12px radius.
+                  The <label> IS the drop target, so the whole panel is
+                  clickable natively and the real <input type="file"> keeps its
+                  keyboard behaviour instead of being replaced by a button that
+                  pretends.
+                -->
+                <label class="spartrak-instapay__dropzone" for="<?= $escaper->escapeHtmlAttr($inputId) ?>">
+                    <span class="spartrak-instapay__dropzone-icon" aria-hidden="true"></span>
+                    <span class="spartrak-instapay__dropzone-text">
+                        <span class="spartrak-instapay__dropzone-title">
+                            <?= $escaper->escapeHtml(__('Upload the picture of your transfer here.')) ?>
+                        </span>
+                        <span class="spartrak-instapay__dropzone-hint">
+                            <?= $escaper->escapeHtml(
+                                __(
+                                    'Accepted formats: %1. Up to %2 MB.',
+                                    $transfer->getAllowedFormatsLabel(),
+                                    $transfer->getMaxUploadMegabytes()
+                                )
+                            ) ?>
+                        </span>
+                    </span>
+                    <span class="spartrak-instapay__choose">
+                        <?= $escaper->escapeHtml(__('Choose a picture')) ?>
+                    </span>
+                    <input type="file"
+                           id="<?= $escaper->escapeHtmlAttr($inputId) ?>"
+                           name="proof"
+                           class="spartrak-instapay__file"
+                           required
+                           accept="<?= $escaper->escapeHtmlAttr($transfer->getAcceptAttribute()) ?>"/>
+                </label>
+                <p class="spartrak-instapay__chosen" data-role="chosen" role="status"></p>
+            </div>
+        </div>
+
+        <button type="submit" class="spartrak-instapay__submit">
+            <?= $escaper->escapeHtml(__('Complete the purchase')) ?>
+        </button>
+
+        <p class="spartrak-instapay__note">
+            <?= $escaper->escapeHtml(
+                __('Note: we will contact you after you complete the purchase, and you will receive a text message confirming your order details.')
+            ) ?>
+        </p>
+    </form>
+</div>
+
+<script type="text/x-magento-init">
+{
+    ".spartrak-instapay__card": {
+        "Spartrak_InstaPay/js/file-name": {
+            "inputSelector": "#<?= $escaper->escapeJs($inputId) ?>",
+            "outputSelector": "[data-role=chosen]"
+        }
+    }
+}
+</script>
