@@ -15,6 +15,7 @@ use Magento\Customer\Api\Data\RegionInterfaceFactory;
 use Magento\Customer\Model\Address\Mapper as AddressMapper;
 use Magento\Customer\Model\Metadata\FormFactory;
 use Magento\Customer\Model\Session as CustomerSession;
+use Magento\Directory\Helper\Data as DirectoryHelper;
 use Magento\Directory\Model\RegionFactory;
 use Magento\Framework\Api\DataObjectHelper;
 use Magento\Framework\App\Action\HttpPostActionInterface;
@@ -81,6 +82,7 @@ class Save implements HttpPostActionInterface
         private readonly RegionInterfaceFactory $regionDataFactory,
         private readonly RegionFactory $regionFactory,
         private readonly AddressMapper $addressMapper,
+        private readonly DirectoryHelper $directoryHelper,
         private readonly FormFactory $formFactory,
         private readonly DataObjectHelper $dataObjectHelper,
         private readonly CheckoutAddressList $checkoutAddressList,
@@ -188,7 +190,9 @@ class Save implements HttpPostActionInterface
         $extracted = $addressForm->extractData($this->request);
         $values = $addressForm->compactData($extracted);
 
+        $this->assertRegionChosen($values, $existing);
         $this->updateRegionData($values);
+        $this->fillCityFromGovernorate($values);
 
         $addressObject = $this->addressFactory->create();
 
@@ -243,6 +247,96 @@ class Save implements HttpPostActionInterface
         }
 
         return $this->addressMapper->toFlatArray($existing);
+    }
+
+    /**
+     * Refuse to save an address whose country needs a governorate and has none.
+     *
+     * ===========================================================================
+     * THIS EXISTS BECAUSE OF A REAL, SILENT DATA-LOSS BUG
+     * ===========================================================================
+     * If the region select is submitted empty, everything "works": the address
+     * saves, the modal closes, the card still looks right because the street and
+     * the name are unchanged. The damage only surfaces at the very end, when
+     * placing the order fails with Magento's own
+     *
+     *     Please specify a regionId in shipping address.
+     *
+     * - a message that names a field the shopper cannot see, on a screen that is
+     * not the one they broke. Worse, an EDIT is how it happens: opening a saved
+     * address whose stored region is not one of the configured governorates
+     * shows an empty select, and pressing save then wipes the region that WAS
+     * there.
+     *
+     * So an empty region is rejected at the point of the mistake, in words that
+     * name the field on screen. The check only fires where Magento itself says a
+     * region is required (general/region/state_required), so a country that does
+     * not use them is unaffected.
+     *
+     * @param array<string, mixed> $values
+     * @param array<string, mixed> $existing
+     * @throws InputException
+     */
+    private function assertRegionChosen(array $values, array $existing): void
+    {
+        $countryId = (string) ($values['country_id'] ?? $existing['country_id'] ?? '');
+
+        if ($countryId === '' || !$this->directoryHelper->isRegionRequired($countryId)) {
+            return;
+        }
+
+        if (!empty($values['region_id'])) {
+            return;
+        }
+
+        $exception = new InputException();
+        $exception->addError(__('Please choose a governorate.'));
+
+        throw $exception;
+    }
+
+    /**
+     * Fill `city` from the chosen governorate BEFORE the address is saved.
+     *
+     * ===========================================================================
+     * WHY NOT THE OBSERVER THAT ALREADY DOES THIS
+     * ===========================================================================
+     * Spartrak\CustomerAddress\Observer\FillCityFromGovernorate fills city on
+     * `customer_address_save_before`, and for every other path in the system it
+     * is the right place. It is too late for this one.
+     *
+     * AddressRepository::save() validates and then saves, in that order:
+     *
+     *     $errors = $addressModel->validate();   // line 23 - city checked here
+     *     if ($errors !== true) { throw ... }
+     *     $addressModel->save();                 // line 31 - the event fires in here
+     *
+     * Magento\Customer\Model\Address\Validator\General requires a non-empty city,
+     * so the exception is thrown eight lines before the observer would have
+     * supplied one. The visible symptom was a form that had no city field
+     * rejecting the address with `"city" is required. Enter and try again.`
+     *
+     * The observer stays: it still covers the quote address and every other
+     * save path, and having both is not duplication - they guard different
+     * moments, and this one has to be before validation by definition.
+     *
+     * @param array<string, mixed> $values
+     */
+    private function fillCityFromGovernorate(array &$values): void
+    {
+        if (trim((string) ($values['city'] ?? '')) !== '') {
+            return;
+        }
+
+        // updateRegionData has already resolved the name onto the array by the
+        // time this runs, so no second lookup is needed.
+        $name = $values['region'] instanceof RegionInterface
+            ? (string) $values['region']->getRegion()
+            : (string) ($values['region'] ?? '');
+
+        if ($name !== '') {
+            $values['city'] = $name;
+        }
     }
 
     /**

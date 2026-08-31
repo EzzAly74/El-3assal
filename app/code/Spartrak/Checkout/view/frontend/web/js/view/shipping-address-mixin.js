@@ -129,6 +129,40 @@ define([
                 if (popUp && typeof popUp.setTitle === 'function') {
                     popUp.setTitle(this.spartrakFormTitle());
                 }
+
+                this.spartrakSyncSaveLabel();
+            },
+
+            /**
+             * Relabel the dialog's save button for what it is about to do.
+             *
+             * ===================================================================
+             * WHY THIS POKES THE DOM
+             * ===================================================================
+             * Core builds the modal's buttons ONCE, into a module-scoped `popUp`,
+             * from the static text in the layout - and the modal widget exposes
+             * `setTitle` but nothing equivalent for a button. There is no API to
+             * ask.
+             *
+             * The alternative was leaving it reading `اضف عنوان جديد` ("add a new
+             * address") while editing one, which is what it did: the heading said
+             * edit, the button said add, and a shopper reasonably expected a
+             * second address to appear.
+             *
+             * Scoped to this dialog by the class the layout puts on the button,
+             * so it cannot reach any other button on the page.
+             */
+            spartrakSyncSaveLabel: function () {
+                var label = this.spartrakEditingAddressId()
+                        ? $t('Save changes')
+                        : $t('Add a new address'),
+                    $button = $('.spartrak-address-modal__save');
+
+                // The span is core's own markup; writing to it rather than the
+                // button keeps whatever else the widget put inside.
+                if ($button.length) {
+                    ($button.find('span').first().length ? $button.find('span').first() : $button).text(label);
+                }
             },
 
             /**
