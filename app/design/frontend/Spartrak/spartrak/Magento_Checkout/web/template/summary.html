@@ -26,11 +26,21 @@
         -->
         <p class="spartrak-summary__title" data-bind="i18n: 'Order summary'"></p>
 
-        <!-- ko foreach: elems() -->
-        <!-- ko template: getTemplate() --><!-- /ko -->
-        <!-- /ko -->
+        <!--
+          `elems()` renders EVERY child of the summary, whatever displayArea it
+          declares - the item list, the totals, and the CTA alike.
 
-        <!-- ko foreach: getRegion('spartrak-place-order') -->
+          There was a second `getRegion('spartrak-place-order')` loop here, and
+          it was wrong: the CTA is a child of this component, so it was already
+          in elems(), and the page drew two identical buttons stacked on top of
+          each other.
+
+          Its position is settled by `sortOrder` in Spartrak_Checkout's
+          checkout_index_index.xml instead - which is how every other total in
+          this column orders itself, and is the value a merchant's own
+          "Checkout Totals Sort Order" setting already speaks to.
+        -->
+        <!-- ko foreach: elems() -->
         <!-- ko template: getTemplate() --><!-- /ko -->
         <!-- /ko -->
     </div>

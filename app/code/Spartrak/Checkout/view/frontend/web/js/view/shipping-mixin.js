@@ -17,7 +17,11 @@
  */
 define([
     'ko',
-    'Magento_Checkout/js/model/address-list',
+    // Magento_CUSTOMER, not Magento_Checkout. The address book belongs to the
+    // customer module even though only the checkout reads it here, and the
+    // wrong namespace 404s - which RequireJS reports as a script error that
+    // aborts the whole component, leaving the checkout on its spinner forever.
+    'Magento_Customer/js/model/address-list',
     'Spartrak_Checkout/js/model/delivery-mode'
 ], function (ko, addressList, deliveryMode) {
     'use strict';

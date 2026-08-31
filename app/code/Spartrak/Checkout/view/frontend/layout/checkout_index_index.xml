@@ -215,9 +215,28 @@
                                     <item name="children" xsi:type="array">
                                         <item name="summary" xsi:type="array">
                                             <item name="children" xsi:type="array">
+                                                <!--
+                                                  The CTA is the LAST thing in the
+                                                  summary card, under the totals
+                                                  (Figma 551:11152).
+
+                                                  Its position comes from sortOrder
+                                                  and not from a second render in
+                                                  the template: the summary renders
+                                                  elems(), which already contains
+                                                  every child, so asking for it
+                                                  again by displayArea drew the
+                                                  button twice.
+
+                                                  200 leaves room for a total a
+                                                  merchant or a module inserts after
+                                                  the grand total, which must still
+                                                  land above the button.
+                                                -->
                                                 <item name="spartrak-place-order" xsi:type="array">
                                                     <item name="component" xsi:type="string">Spartrak_Checkout/js/view/place-order</item>
                                                     <item name="displayArea" xsi:type="string">spartrak-place-order</item>
+                                                    <item name="sortOrder" xsi:type="string">200</item>
                                                 </item>
                                             </item>
                                         </item>
