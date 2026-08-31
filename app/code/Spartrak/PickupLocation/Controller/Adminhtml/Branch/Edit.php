@@ -17,7 +17,7 @@ use Spartrak\PickupLocation\Model\BranchRepository;
 
 class Edit extends Action implements HttpGetActionInterface
 {
-    public const ADMIN_RESOURCE = 'Spartrak\PickupLocation::branch';
+    public const ADMIN_RESOURCE = 'Spartrak_PickupLocation::branch';
 
     public function __construct(
         Context $context,
@@ -40,7 +40,7 @@ class Edit extends Action implements HttpGetActionInterface
         }
 
         $page = $this->pageFactory->create();
-        $page->setActiveMenu('Spartrak\PickupLocation::branch');
+        $page->setActiveMenu('Spartrak_PickupLocation::branch');
         $page->getConfig()->getTitle()->prepend(__('Edit Branch'));
 
         return $page;

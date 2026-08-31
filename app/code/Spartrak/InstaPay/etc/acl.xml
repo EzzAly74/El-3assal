@@ -2,8 +2,36 @@
 <!--
   A transfer receipt is a screenshot of somebody's banking app, so viewing one
   is a privilege in its own right and not something every admin role should get
-  by default. It sits under Sales > Operations > Orders, because that is where
-  the person who needs it is already working.
+  by default. It sits under Sales > Operations > Orders > Actions, because that
+  is where the person who needs it is already working.
+
+  ===========================================================================
+  THE PARENT CHAIN MUST MATCH CORE'S EXACTLY
+  ===========================================================================
+  Magento merges every acl.xml into ONE tree. Nesting an existing resource id
+  under a different parent than core declares does not move it - it puts the
+  same id at two positions, and the builder refuses:
+
+      Could not create an acl object:
+      Resource id 'Magento_Sales::actions' already exists in the ACL
+
+  That is not a broken page. It is thrown while the admin session refreshes its
+  ACL, so it takes down the ENTIRE admin, including the pages that would let you
+  fix it.
+
+  This file originally skipped `Magento_Sales::sales_order` and hung
+  `Magento_Sales::actions` straight off `sales_operation`, which is what caused
+  exactly that. Core's real chain, from vendor/magento/module-sales/etc/acl.xml:
+
+      Magento_Backend::admin
+        Magento_Sales::sales
+          Magento_Sales::sales_operation
+            Magento_Sales::sales_order
+              Magento_Sales::actions
+
+  Only the LAST resource here is ours. The four above it are re-stated purely to
+  reach the right place in the tree, and carry no title or sortOrder - core owns
+  those, and repeating them would be a second copy to keep in step.
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
     <acl>
@@ -11,8 +39,10 @@
             <resource id="Magento_Backend::admin">
                 <resource id="Magento_Sales::sales">
                     <resource id="Magento_Sales::sales_operation">
-                        <resource id="Magento_Sales::actions">
-                            <resource id="Spartrak_InstaPay::proof" title="View InstaPay transfer receipts" sortOrder="90"/>
+                        <resource id="Magento_Sales::sales_order">
+                            <resource id="Magento_Sales::actions">
+                                <resource id="Spartrak_InstaPay::proof" title="View InstaPay transfer receipts" translate="title" sortOrder="90"/>
+                            </resource>
                         </resource>
                     </resource>
                 </resource>

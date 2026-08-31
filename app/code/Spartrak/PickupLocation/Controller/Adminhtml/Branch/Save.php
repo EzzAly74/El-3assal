@@ -19,7 +19,7 @@ use Spartrak\PickupLocation\Model\BranchRepository;
 
 class Save extends AbstractSave
 {
-    public const ADMIN_RESOURCE = 'Spartrak\PickupLocation::branch';
+    public const ADMIN_RESOURCE = 'Spartrak_PickupLocation::branch';
 
     public function __construct(
         Context $context,

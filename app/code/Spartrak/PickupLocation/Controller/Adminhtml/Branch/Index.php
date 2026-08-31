@@ -15,7 +15,7 @@ use Magento\Framework\View\Result\PageFactory;
 
 class Index extends Action implements HttpGetActionInterface
 {
-    public const ADMIN_RESOURCE = 'Spartrak\PickupLocation::branch';
+    public const ADMIN_RESOURCE = 'Spartrak_PickupLocation::branch';
 
     public function __construct(
         Context $context,
@@ -27,7 +27,7 @@ class Index extends Action implements HttpGetActionInterface
     public function execute(): Page
     {
         $page = $this->pageFactory->create();
-        $page->setActiveMenu('Spartrak\PickupLocation::branch');
+        $page->setActiveMenu('Spartrak_PickupLocation::branch');
         $page->getConfig()->getTitle()->prepend(__('Branches'));
 
         return $page;

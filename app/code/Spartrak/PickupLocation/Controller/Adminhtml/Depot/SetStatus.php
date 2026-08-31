@@ -24,7 +24,7 @@ use Spartrak\PickupLocation\Model\DepotRepository;
  */
 class SetStatus extends Action implements HttpPostActionInterface
 {
-    public const ADMIN_RESOURCE = 'Spartrak\PickupLocation::depot';
+    public const ADMIN_RESOURCE = 'Spartrak_PickupLocation::depot';
 
     public function __construct(
         Context $context,

@@ -21,7 +21,7 @@ use Spartrak\PickupLocation\Model\BranchRepository;
  */
 class Delete extends Action implements HttpPostActionInterface
 {
-    public const ADMIN_RESOURCE = 'Spartrak\PickupLocation::branch';
+    public const ADMIN_RESOURCE = 'Spartrak_PickupLocation::branch';
 
     public function __construct(
         Context $context,

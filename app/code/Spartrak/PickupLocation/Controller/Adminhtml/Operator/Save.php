@@ -19,7 +19,7 @@ use Spartrak\PickupLocation\Model\OperatorRepository;
 
 class Save extends AbstractSave
 {
-    public const ADMIN_RESOURCE = 'Spartrak\PickupLocation::operator';
+    public const ADMIN_RESOURCE = 'Spartrak_PickupLocation::operator';
 
     public function __construct(
         Context $context,

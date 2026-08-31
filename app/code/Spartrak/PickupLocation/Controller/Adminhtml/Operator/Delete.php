@@ -21,7 +21,7 @@ use Spartrak\PickupLocation\Model\OperatorRepository;
  */
 class Delete extends Action implements HttpPostActionInterface
 {
-    public const ADMIN_RESOURCE = 'Spartrak\PickupLocation::operator';
+    public const ADMIN_RESOURCE = 'Spartrak_PickupLocation::operator';
 
     public function __construct(
         Context $context,

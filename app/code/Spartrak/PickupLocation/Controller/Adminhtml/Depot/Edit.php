@@ -17,7 +17,7 @@ use Spartrak\PickupLocation\Model\DepotRepository;
 
 class Edit extends Action implements HttpGetActionInterface
 {
-    public const ADMIN_RESOURCE = 'Spartrak\PickupLocation::depot';
+    public const ADMIN_RESOURCE = 'Spartrak_PickupLocation::depot';
 
     public function __construct(
         Context $context,
@@ -40,7 +40,7 @@ class Edit extends Action implements HttpGetActionInterface
         }
 
         $page = $this->pageFactory->create();
-        $page->setActiveMenu('Spartrak\PickupLocation::depot');
+        $page->setActiveMenu('Spartrak_PickupLocation::depot');
         $page->getConfig()->getTitle()->prepend(__('Edit Depot'));
 
         return $page;

@@ -15,7 +15,7 @@ use Magento\Framework\View\Result\PageFactory;
 
 class NewAction extends Action implements HttpGetActionInterface
 {
-    public const ADMIN_RESOURCE = 'Spartrak\PickupLocation::operator';
+    public const ADMIN_RESOURCE = 'Spartrak_PickupLocation::operator';
 
     public function __construct(
         Context $context,
@@ -27,7 +27,7 @@ class NewAction extends Action implements HttpGetActionInterface
     public function execute(): Page
     {
         $page = $this->pageFactory->create();
-        $page->setActiveMenu('Spartrak\PickupLocation::operator');
+        $page->setActiveMenu('Spartrak_PickupLocation::operator');
         $page->getConfig()->getTitle()->prepend(__('New Transport Operator'));
 
         return $page;
