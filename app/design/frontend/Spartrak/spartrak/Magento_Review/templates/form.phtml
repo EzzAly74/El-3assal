@@ -1,0 +1,232 @@
+<?php
+/**
+ * Copyright © ElAssal for Trading & Supply. All rights reserved.
+ *
+ * The `تقييم المنتج` dialog.
+ * Figma 1207:30485 (desktop, over the 1207:28688 overlay) / 1204:27392
+ * (mobile) — 400 x 574 at BOTH widths, measured, which is why there is no
+ * responsive variant of the panel in the stylesheet.
+ *
+ * The `أترك تقييمك` button that opens it is not here: it belongs to the panel
+ * (Figma draws it inside the tab), and it is rendered by review.phtml. This
+ * block is moved to page level by the theme's own catalog_product_view.xml —
+ * see there for why a dialog cannot live inside a tab panel.
+ *
+ * ===========================================================================
+ * WHAT THIS REPLACES
+ * ===========================================================================
+ * Core's form.phtml renders an INLINE form inside the reviews tab, with five
+ * fields: a rating, a nickname, a summary, the review text, and a submit. The
+ * design has a dialog with three controls — stars, a comment, and a submit —
+ * plus a dismiss. So:
+ *
+ *   nickname   supplied server-side from the signed-in customer's first name
+ *   title      derived server-side from the opening of the comment
+ *
+ * both by Spartrak\Review\Plugin\Review\SupplyFieldsFigmaDoesNotCollect, which
+ * carries the full reasoning for each. Magento's own Review::validate() refuses
+ * a review without them and both columns are NOT NULL, so they are supplied
+ * rather than dropped — the alternative was adding two fields the design does
+ * not have, or forking core's validation.
+ *
+ * ===========================================================================
+ * A NATIVE <dialog>, NOT Magento_Ui/js/modal
+ * ===========================================================================
+ * The platform's modal component is what components/_modal.less already
+ * restyles, and it was the first candidate. `<dialog>` wins here on the terms
+ * CLAUDE.md section 13 sets out, because the BROWSER already implements what
+ * that component ships JavaScript to do: the top layer (so nothing can stack
+ * over it), the ::backdrop scrim, Escape to dismiss, focus containment, and
+ * making the rest of the page inert. Reaching for the component would have
+ * meant loading Magento_Ui's modal, jQuery UI dialog and the underscore
+ * templates it depends on, to reproduce behaviour that is already native.
+ *
+ * What is left for JavaScript is opening it, and one line of validation
+ * presentation — see js/spartrak-review-dialog.js.
+ *
+ * ===========================================================================
+ * THE FORM POSTS. IT DOES NOT NEED JAVASCRIPT TO WORK.
+ * ===========================================================================
+ * A plain multipart-less POST to core's own `review/product/post`, with core's
+ * own form key, core's own rating option ids and core's own field names. With
+ * JavaScript off the dialog cannot be opened by the CTA — but the form inside
+ * it is still a real form, native constraint validation still refuses an empty
+ * comment, and the server still validates everything again. Nothing about the
+ * submission depends on the enhancement.
+ *
+ * ===========================================================================
+ * THE TWO EXTENSION CONTAINERS ARE RENDERED
+ * ===========================================================================
+ * `form_fields_before` and `form_additional_review_info` are core's slots and
+ * they are NOT decoration: Magento_ReCaptchaReview injects its widget into the
+ * second one. Dropping them would leave the captcha unrendered, the token
+ * absent, and every review rejected server-side by a validator the shopper
+ * cannot see.
+ *
+ * @var \Magento\Review\Block\Form $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+$canWrite = (bool) $block->getAllowWriteReviewFlag();
+$ratings = $block->getRatings();
+$dimensions = $ratings && $ratings->getSize() ? $ratings : [];
+// Figma draws ONE row of five stars, which is the single-rating-dimension
+// store this design was made for. Magento allows several (Quality, Value,
+// Price side by side), and a second one would otherwise be silently dropped —
+// leaving a configured rating with no votes and a histogram that disagrees with
+// the admin. So each active dimension gets its own control, and when there is
+// exactly one the result is the Figma frame unchanged.
+$isSingleDimension = is_object($dimensions) && $dimensions->getSize() === 1;
+
+if (!$canWrite) {
+    // A signed-out shopper on a store that does not allow guest reviews gets
+    // no dialog at all — the panel's CTA opens the sign-in modal instead. See
+    // ViewModel\ProductReviews::canWriteReview() and review.phtml.
+    return;
+}
+?>
+<dialog id="spartrak-review-dialog"
+        class="spartrak-review-dialog"
+        aria-labelledby="spartrak-review-dialog-title"
+        data-mage-init='<?= $escaper->escapeHtmlAttr(json_encode([
+            'spartrakReviewDialog' => [
+                // Magento's own rating summary in the product info column links
+                // to `#review-form`, which core renders and this design does
+                // not. Listed here so that link opens the dialog rather than
+                // jumping to an anchor that no longer exists.
+                'externalTriggers' => '.product-reviews-summary .action.add',
+            ],
+        ])) ?>'>
+    <form class="spartrak-review-dialog__panel"
+          action="<?= $escaper->escapeUrl($block->getAction()) ?>"
+          method="post"
+          id="spartrak-review-form">
+        <?= $block->getBlockHtml('formkey') ?>
+        <?= $block->getChildHtml('form_fields_before') ?>
+
+        <div class="spartrak-review-dialog__header">
+            <h2 class="spartrak-review-dialog__title" id="spartrak-review-dialog-title">
+                <?= $escaper->escapeHtml(__('Rate this product')) ?>
+            </h2>
+            <button type="button"
+                    class="spartrak-review-dialog__close"
+                    data-review-dialog-close
+                    aria-label="<?= $escaper->escapeHtmlAttr(__('Close')) ?>"></button>
+        </div>
+
+        <div class="spartrak-review-dialog__content">
+            <div class="spartrak-review-dialog__group">
+                <?php foreach ($dimensions as $dimension): ?>
+                    <?php
+                    $groupId = 'spartrak-review-rating-' . (int) $dimension->getId();
+                    $promptId = $groupId . '-prompt';
+                    // getOptions() is a plain array once the collection has run
+                    // addOptionToItems(); counted once so the accessible name of
+                    // each star can say "3 of 5" without asking five times.
+                    $options = $dimension->getOptions() ?: [];
+                    $optionCount = count($options);
+                    ?>
+                    <?php /*
+                      role="radiogroup" and not <fieldset><legend>, because
+                      Figma puts the prompt BELOW the stars (stars at y=36.6,
+                      the question at y=102.4 of the 180px box) and a <legend>
+                      is only the accessible name of a fieldset when it is that
+                      fieldset's FIRST child. The alternatives were a hidden
+                      legend duplicating the visible question — two copies of
+                      one string to keep in step — or CSS reordering a <legend>,
+                      whose rendering is inconsistent inside a flex container.
+                      This names the group once, from the text the shopper can
+                      actually see (CLAUDE.md section 15: ARIA to fill a
+                      genuine gap).
+                    */ ?>
+                    <div class="spartrak-review-dialog__rating"
+                         role="radiogroup"
+                         aria-labelledby="<?= $escaper->escapeHtmlAttr($promptId) ?>">
+                        <div class="spartrak-review-dialog__stars">
+                            <?php foreach ($options as $option): ?>
+                                <?php
+                                $inputId = $groupId . '-' . (int) $option->getValue();
+                                ?>
+                                <input class="spartrak-review-dialog__star-input"
+                                       type="radio"
+                                       id="<?= $escaper->escapeHtmlAttr($inputId) ?>"
+                                       name="ratings[<?= $escaper->escapeHtmlAttr($dimension->getId()) ?>]"
+                                       value="<?= $escaper->escapeHtmlAttr($option->getId()) ?>"
+                                       required>
+                                <label class="spartrak-review-dialog__star"
+                                       for="<?= $escaper->escapeHtmlAttr($inputId) ?>">
+                                    <span class="spartrak-visually-hidden"><?= $escaper->escapeHtml(
+                                        __('Rating %1 of %2', (int) $option->getValue(), $optionCount)
+                                    ) ?></span>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <p class="spartrak-review-dialog__prompt" id="<?= $escaper->escapeHtmlAttr($promptId) ?>">
+                            <?php /*
+                              One dimension: the design's own question. More
+                              than one: that dimension's own name, because
+                              "what is your rating?" five times over names
+                              nothing.
+                            */ ?>
+                            <?= $escaper->escapeHtml(
+                                $isSingleDimension
+                                    ? __('How would you rate this product?')
+                                    : __($dimension->getRatingCode())
+                            ) ?>
+                        </p>
+                    </div>
+                <?php endforeach; ?>
+
+                <div class="spartrak-review-dialog__field">
+                    <label class="spartrak-review-dialog__label" for="spartrak-review-detail">
+                        <?= $escaper->escapeHtml(__('Your comment on the product')) ?>
+                    </label>
+                    <textarea class="spartrak-review-dialog__input"
+                              id="spartrak-review-detail"
+                              name="detail"
+                              rows="3"
+                              required
+                              aria-describedby="spartrak-review-detail-error"></textarea>
+                    <?php /*
+                      The design's own error slot — the "Hint Error" frame in
+                      the mobile dialog (1204:27430), drawn but switched off.
+                      Rendered empty and hidden; js/spartrak-review-dialog.js
+                      fills it from the browser's own constraint validation, so
+                      the message is native and the presentation is Figma's.
+                      role="alert" so it is announced when it appears.
+                    */ ?>
+                    <p class="spartrak-review-dialog__hint"
+                       id="spartrak-review-detail-error"
+                       data-review-dialog-error
+                       role="alert"
+                       hidden>
+                        <span class="spartrak-review-dialog__hint-icon" aria-hidden="true"></span>
+                        <span class="spartrak-review-dialog__hint-text"></span>
+                    </p>
+                </div>
+            </div>
+
+            <?= $block->getChildHtml('form_additional_review_info') ?>
+
+            <div class="spartrak-review-dialog__actions">
+                <button type="submit" class="spartrak-review-dialog__submit">
+                    <?= $escaper->escapeHtml(__('Leave your comment')) ?>
+                </button>
+                <?php /*
+                  `متابعة التسوق` is an <a> in the frame, and it is a BUTTON
+                  here. Figma gives it no destination, and the only honest
+                  reading of "continue shopping" from a dialog on the page the
+                  shopper is already shopping on is "close this" — inventing a
+                  URL for it would send them somewhere the design never asked
+                  for.
+                */ ?>
+                <button type="button"
+                        class="spartrak-review-dialog__dismiss"
+                        data-review-dialog-close>
+                    <?= $escaper->escapeHtml(__('Continue shopping')) ?>
+                </button>
+            </div>
+        </div>
+    </form>
+</dialog>

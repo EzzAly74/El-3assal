@@ -1,0 +1,202 @@
+<?php
+/**
+ * Copyright © ElAssal for Trading & Supply. All rights reserved.
+ *
+ * `جميع التقييمات` — the reviews tab panel.
+ * Figma 535:10083 (desktop, inside 534:9527) / 1204:27098 (mobile, inside
+ * 1204:27061).
+ *
+ * ===========================================================================
+ * WHAT THIS REPLACES, AND WHY THE PANEL IS SERVER-RENDERED
+ * ===========================================================================
+ * Core's review.phtml is two lines of markup and a script: an empty
+ * `#product-review-container` and `Magento_Review/js/process-reviews`, which
+ * fetches the review LIST over AJAX after the page has painted.
+ *
+ * Figma's panel is not a list. It is an aggregate — an average, two counts and
+ * a five-row distribution (535:10097) — and it draws no individual review
+ * anywhere. So there is nothing for that request to fetch, and it is gone:
+ * one fewer network request on the PDP, no post-paint layout shift where the
+ * list used to arrive, and no JavaScript in the panel's critical path
+ * (CLAUDE.md section 13).
+ *
+ * The cost of rendering aggregates server-side is that they are baked into the
+ * full page cache. That is paid for — see
+ * Spartrak\Review\Plugin\Review\InvalidateProductPageCache, which purges the
+ * PDP whenever a review changes what this panel says.
+ *
+ * ===========================================================================
+ * READING ORDER, NOT LEFT AND RIGHT
+ * ===========================================================================
+ * Every position in the Figma frame is physical, and this storefront renders
+ * in both directions. Read off the Arabic frame and expressed logically:
+ *
+ *   summary      inline-START  (x=1006 of 1344 in the desktop frame, i.e. the
+ *                RIGHT edge, which is where reading begins in Arabic)
+ *   bars         fill the rest, toward the inline-end
+ *   bar row      value, then the track, then the count — the value at the
+ *                inline-start (x=942) and the count at the inline-end (x=0)
+ *   bar fill     grows FROM the inline-start edge of its track
+ *
+ * The DOM is written in that logical order and the stylesheet does the rest
+ * with logical properties, so one implementation is correct in Arabic and in
+ * English rather than one plus an RTL patch (CLAUDE.md section 16).
+ *
+ * ===========================================================================
+ * THE CTA IS HERE. THE DIALOG IS NOT.
+ * ===========================================================================
+ * Figma puts `أترك تقييمك` inside the panel (759:4786 desktop, 1204:27138
+ * mobile), so it is rendered here. The dialog it opens is a separate block
+ * moved to page level — see the theme's Magento_Review/layout/
+ * catalog_product_view.xml for the reason, which is that an inactive tab panel
+ * is `display: none` and a <dialog> inside a display:none subtree cannot be
+ * shown at all.
+ *
+ * @var \Magento\Review\Block\Product\Review $block
+ * @var \Magento\Framework\Escaper $escaper
+ * @var \Spartrak\Review\ViewModel\ProductReviews $reviews
+ */
+
+$reviews = $block->getViewModel();
+
+if (!$reviews instanceof \Spartrak\Review\ViewModel\ProductReviews || !$reviews->isEnabled()) {
+    return;
+}
+
+$hasRatings = $reviews->hasRatings();
+?>
+<section class="spartrak-reviews">
+    <h2 class="spartrak-reviews__title"><?= $escaper->escapeHtml(__('All ratings')) ?></h2>
+
+    <?php if ($hasRatings): ?>
+        <div class="spartrak-reviews__overview">
+            <?php /*
+              RATING SUMMARY — 535:10086 desktop, 1204:27101 mobile.
+
+              The 48px star is DECORATIVE and is marked so. It carries no
+              value: the exported node is a whole star at 40% opacity — which
+              resolves to #f8e5a5, the hex this theme already holds as
+              --color-rating-empty from an earlier Figma pass — and it sits
+              above a mock average of 4.5. The numeral below it is what states
+              the rating, and repeating that in an alt text would make a
+              screen reader say it twice.
+            */ ?>
+            <div class="spartrak-reviews__summary">
+                <span class="spartrak-reviews__summary-star" aria-hidden="true"></span>
+
+                <div class="spartrak-reviews__summary-detail">
+                    <p class="spartrak-reviews__average">
+                        <?= $escaper->escapeHtml(
+                            __('%1 of %2', $reviews->getAverageLabel(), $reviews->getScaleLabel())
+                        ) ?>
+                    </p>
+                    <p class="spartrak-reviews__counts">
+                        <span><?= $escaper->escapeHtml(
+                            __('%1 ratings', $reviews->getRatingsCountLabel())
+                        ) ?></span>
+                        <?php /*
+                          The 4px separator dot (535:10095). Drawn in CSS
+                          rather than fetched as the 4px SVG the export offers,
+                          which is the one place this implementation
+                          deliberately does not use the Figma asset file: a
+                          filled circle is EXACTLY representable in CSS, so the
+                          rendered result is identical to the asset down to the
+                          pixel, and an <img> here would cost a request and a
+                          DOM node on the PDP for no visual gain (CLAUDE.md
+                          sections 3 and 13 read together — the technically
+                          superior implementation that preserves both). Its
+                          colour is the asset's own #6d6c79, held as
+                          --color-text-muted.
+                        */ ?>
+                        <span class="spartrak-reviews__counts-sep" aria-hidden="true"></span>
+                        <span><?= $escaper->escapeHtml(
+                            __('%1 reviews', $reviews->getReviewsCountLabel())
+                        ) ?></span>
+                    </p>
+                </div>
+            </div>
+
+            <?php /*
+              RATING BARS — 535:10097 desktop, 1204:27112 mobile.
+
+              A <ul>, because it is five rows of the same kind of fact and
+              nothing more. The list is named for assistive tech and each row's
+              count carries its unit as an accessible label, so the row is
+              announced as "5.0, 843 ratings" rather than as two bare numbers.
+              The track itself is presentational — the bar SHOWS the count that
+              is already printed beside it — so it is not announced twice.
+            */ ?>
+            <ul class="spartrak-reviews__bars" aria-label="<?= $escaper->escapeHtmlAttr(__('Rating distribution')) ?>">
+                <?php foreach ($reviews->getBars() as $bar): ?>
+                    <li class="spartrak-reviews__bar">
+                        <span class="spartrak-reviews__bar-value"><?= $escaper->escapeHtml($bar['valueLabel']) ?></span>
+                        <span class="spartrak-reviews__bar-track" aria-hidden="true">
+                            <span class="spartrak-reviews__bar-fill"
+                                  style="inline-size: <?= $escaper->escapeHtmlAttr((string) $bar['percent']) ?>%"></span>
+                        </span>
+                        <span class="spartrak-reviews__bar-count"
+                              aria-label="<?= $escaper->escapeHtmlAttr(__('%1 ratings', $bar['votesLabel'])) ?>">
+                            <?= $escaper->escapeHtml($bar['votesLabel']) ?>
+                        </span>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    <?php else: ?>
+        <?php /*
+          NO FIGMA FRAME EXISTS FOR THIS STATE — recorded rather than passed
+          off as designed. The file draws the panel only with data in it, and
+          8,908 SKUs cannot all have been reviewed, so the state is
+          unavoidable. It is built from the panel's OWN measurements and
+          tokens — the same bordered surface, the same padding, the design's
+          Body/Base type — and introduces no colour, spacing or shape that is
+          not already on this panel. The invitation to be the first to write one
+          is the CTA the design already draws, immediately below.
+        */ ?>
+        <p class="spartrak-reviews__empty">
+            <?= $escaper->escapeHtml(__('This product has no ratings yet.')) ?>
+        </p>
+    <?php endif; ?>
+
+    <div class="spartrak-reviews__actions">
+        <?php if ($reviews->canWriteReview()): ?>
+            <button type="button"
+                    class="spartrak-reviews__cta"
+                    data-review-dialog-open
+                    aria-haspopup="dialog">
+                <?= $escaper->escapeHtml(__('Leave your rating')) ?>
+            </button>
+        <?php else: ?>
+            <?php /*
+              A GUEST IS ASKED TO SIGN IN, NOT GIVEN A FORM.
+              ---------------------------------------------------------------
+              `canWriteReview()` is false only when the shopper is signed out
+              AND the store does not allow guest reviews, which is this store's
+              configuration. Offering the dialog anyway would produce a review
+              with no identity behind it — and the nickname plugin deliberately
+              supplies nothing for a guest rather than inventing a name for a
+              public page.
+
+              `data-auth-open` is the theme's existing trigger contract,
+              handled by js/spartrak-auth.js, so this reuses the storefront's
+              one sign-in flow instead of adding a second (CLAUDE.md section 9).
+
+              `id="review-form"` is core's own anchor, kept on purpose: the
+              rating summary in the product-info column links to
+              `<product url>#review-form`, and core's guest branch puts that id
+              on its "only registered users can write reviews" notice. Keeping
+              it here gives that link the same target it has always had. (For a
+              SIGNED-IN shopper the same link opens the dialog instead — see
+              js/spartrak-review-dialog.js — which is strictly better than the
+              anchor jump core offers.)
+            */ ?>
+            <button type="button"
+                    id="review-form"
+                    class="spartrak-reviews__cta"
+                    data-auth-open
+                    data-auth-step="login">
+                <?= $escaper->escapeHtml(__('Leave your rating')) ?>
+            </button>
+        <?php endif; ?>
+    </div>
+</section>

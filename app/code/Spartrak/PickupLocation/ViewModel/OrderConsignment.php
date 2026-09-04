@@ -112,12 +112,15 @@ class OrderConsignment implements ArgumentInterface
     }
 
     /**
-     * `الي الموقف` — from the order, not from the consignment. It is the
-     * customer's choice, made at checkout, and the admin does not retype it.
+     * `الي الموقف` — the customer's checkout choice, or the destination the
+     * dispatcher recorded when that choice never reached the order or the
+     * station proved unreachable on the route.
      *
-     * (§7 question 5 asks whether an admin may override it when the chosen
-     * station is unreachable on that route. Unanswered, so nothing here offers
-     * the override — the value stays the customer's.)
+     * §9 question 5 is now decided, and Model\OrderDestination resolves the two
+     * into one answer (`override ?? snapshot`). Nothing changes here as a
+     * result: this method asks ViewModel\OrderPickup, which asks that resolver,
+     * so the card's title and its `الي الموقف` row still cannot disagree —
+     * which was the point of routing both through one call in the first place.
      */
     public function getDestinationStation(?OrderInterface $order): ?string
     {

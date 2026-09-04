@@ -114,9 +114,23 @@ Required at that moment:
 | 4 | **`من الموقف`** origin station | Written per order: it depends on which vehicle is going, and from where. |
 | 5 | **Car image** | A photo of the **actual vehicle**, not a stock photo. Required — see §9 Q7. |
 
-`الي الموقف` is **displayed, never retyped**: it is the customer's checkout
-choice and a second editable copy is how the card ends up naming one station in
-its title and another in its rows.
+`الي الموقف` is **displayed, and selected only when it has to be**. It is
+the customer's checkout choice, so it is shown in full — name, street,
+governorate, transport operator — rather than collected.
+
+But it is not read-only, and the reason it stopped being read-only is worth
+recording. The original rule was "displayed, never retyped: a second editable
+copy is how the card ends up naming one station in its title and another in its
+rows". That was right about *retyping* and wrong about the consequence — on an
+order whose snapshot never landed there was nothing to display and no way to
+supply it, so the one fact the customer needs most was unrecoverable.
+
+What answers the original objection is that the control is a **list of the
+admin-maintained depots**, not a text box: the value can only ever be a station
+checkout itself offers, and every screen resolves `override ?? snapshot` through
+one function, so the title and the rows still cannot disagree. Recording a
+destination the checkout never saved needs no reason; **replacing** one the
+customer chose does. See §9 Q5.
 
 **Why the gate is a hard gate:** there is no notification (§6). If the status
 flips without the form, the customer sees "your shipment is on its way" and
@@ -181,10 +195,10 @@ Ordered by what they need first, not by what the database holds:
 
 | Situation | Behaviour | Reasoning |
 |---|---|---|
-| **Depot order, no location snapshot** | Panel still renders; a prominent error names the fault and tells the dispatcher to phone the customer. Dispatch is **not** blocked. | The channel is known from the carrier, so the parcel still has to travel and the driver's number is still the customer's lifeline. Blocking the dispatch over a column *we* failed to write punishes the customer for our fault. |
+| **Depot order, no location snapshot** | Panel still renders; a prominent error names the fault, tells the dispatcher to phone the customer, and the **To station** field records the answer (§9 Q5). Dispatch is **not** blocked. Placement now also rebuilds the snapshot when the id survived anywhere, so this should only be reachable on an admin-created order. | The channel is known from the carrier, so the parcel still has to travel and the driver's number is still the customer's lifeline. Blocking the dispatch over a column *we* failed to write punishes the customer for our fault. |
 | **Incomplete consignment** | Named checklist in the panel; the gate refuses and names the same fields. | One list, two consumers, so they cannot disagree. |
-| **Driver or vehicle swapped after dispatch** | The consignment is updated and the change is written to the order's history. | The customer's card changes under them with no notification; the history is the only trace of why. |
-| **`الي الموقف` unreachable on the route** | Needs the override in §9 Q5. **Not yet built.** | Requires a decision on whether we may redirect a shipment the customer chose. |
+| **Driver or vehicle swapped after dispatch** | The consignment is updated and the change is written to the order's history, field by field, not as "saved". **Built.** | The customer's card changes under them with no notification; the history is the only trace of why, and "saved" cannot tell a corrected typo from a different vehicle. |
+| **`الي الموقف` unreachable on the route** | The dispatcher selects another station on the consignment panel. A **reason is required**, and both go to the order history. **Built — §9 Q5.** | We may redirect, but not silently: the customer's own choice survives on the order, and the reason is the record of why it was not honoured. |
 | **Cancelled after dispatch** | The card **stays visible**. | The goods are physically with a driver. The moment of cancellation is the worst possible time to hide his phone number. |
 | **On hold** | Rail replaced by `الطلب موقوف مؤقتاً`. | A pause the customer can do nothing about; pretending to be at a station would be worse. |
 | **Payment rejected (InstaPay)** | Order stays open, comment added, customer contacted by phone. | Nothing in the flow may claim money arrived. |
@@ -243,7 +257,7 @@ a depot is renamed or removed. An order is a financial record.
 | 2 | Where does the `موقف` list come from? Filtered by governorate? | **Admin-maintained depot records, one flat searchable list.** The picker searches name, address, governorate and operator with Arabic orthographic folding, which does the work a governorate filter would without a second control the design does not draw. |
 | 3 | Does pickup change the shipping fee? | **Per-carrier configuration, currently zero.** Each pickup carrier has its own price field in Delivery Methods, so this is a merchant setting rather than a code decision. |
 | 4 | Plate-number validation — free text or structured? | **Free text.** A structured Egyptian input (3 Arabic letters + 4 Arabic-Indic digits) would reject the legitimate variants a dispatcher copies off a real plate. The field is read by a human at a station, not parsed. |
-| 5 | Can the admin override `الي الموقف`? | **Yes, and it needs building — ⬜ NOT DONE.** Design: a nullable override on the consignment, defaulting to the snapshot, requiring a reason, written to the order history. The card reads `override ?? snapshot`, so title and rows still cannot disagree. **Needs sign-off** — it encodes the policy that we may redirect a shipment the customer chose. |
+| 5 | Can the admin override `الي الموقف`? | **Yes — ✅ BUILT 2026-09-04.** A nullable override on the consignment (`destination_id`, `destination_name`, `destination_address`, `destination_reason`), defaulting to the snapshot, written to the order history. Every consumer reads `override ?? snapshot` through one resolver (`Model\OrderDestination`), so title and rows still cannot disagree. **The policy it encodes:** recording a destination the checkout never saved needs no reason — nothing is being overruled; *replacing* a station the customer chose does, and the reason is the customer's only record of the change. The field is a **list of admin-maintained depots**, not free text, so the value can only ever be a station checkout itself offers. |
 | 6 | Is the card retained after collection? | **Retained.** It is the customer's record of who handed the goods over, and disputes happen after collection. De-emphasised, not removed. |
 | 7 | *(new)* Must the vehicle photo block dispatch? | **Currently yes.** §4 is explicit that the photo exists so the customer can identify one vehicle in a yard of near-identical ones, and the plate alone is a poor substitute. **Worth revisiting:** it is also the field a dispatcher is most likely to be unable to supply on time, and refusing an otherwise-complete dispatch has its own cost. |
 
@@ -267,15 +281,23 @@ coding slip:
    customer's rail showed "pending" on an invoiced order.
 6. **The gate named no fields**, so the only way to find the missing one was to
    guess and re-save.
+7. **A missing destination was unfixable.** The panel asked whether the
+   CHECKOUT snapshot had landed — an answer that can never change once it is
+   false, because nothing rewrites a placed order's address. So the red
+   "the destination station is missing from this order" box stood on the order
+   for ever, told the dispatcher to phone the customer, and offered nowhere to
+   put what they were told.
 
 ### Still outstanding
 
 | Piece | State |
 |---|---|
-| `الي الموقف` admin override + reason + history (§9 Q5) | ⬜ needs sign-off, then building |
-| Driver/vehicle swap written to order history (§6) | ⬜ |
-| Any notification at all (§7) | ⬜ business decision |
+| `الي الموقف` admin override + reason + history (§9 Q5) | ✅ built 2026-09-04 |
+| Driver/vehicle swap written to order history (§6) | ✅ built 2026-09-04 |
+| Snapshot rebuilt at order placement so the fault stops recurring | ✅ built 2026-09-04 |
+| Any notification at all (§7) | ⬜ business decision — **now the single weakest point in the model** |
 | `سوبر جيت` (§9 Q1) | ⬜ out of scope |
+| A destination on an **admin-created** depot order | ⬜ the admin order-create screen offers the depot carrier but no station picker, so such an order lands with no destination and is repaired by hand on the consignment panel. Acceptable today because admin-raised depot orders are rare; worth a picker if that changes. |
 
 ---
 

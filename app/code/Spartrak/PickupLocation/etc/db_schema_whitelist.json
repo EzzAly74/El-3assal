@@ -91,12 +91,20 @@
             "origin_station": true,
             "vehicle_photo": true,
             "created_at": true,
-            "updated_at": true
+            "updated_at": true,
+            "destination_id": true,
+            "destination_name": true,
+            "destination_address": true,
+            "destination_reason": true
         },
         "constraint": {
             "PRIMARY": true,
             "SPARTRAK_PICKUP_CONSIGNMENT_ORDER_ID_SALES_ORDER_ENTITY_ID": true,
-            "SPARTRAK_PICKUP_CONSIGNMENT_ORDER_ID": true
+            "SPARTRAK_PICKUP_CONSIGNMENT_ORDER_ID": true,
+            "SPRTRK_PCKP_CNSGNMNT_DSTNTN_ID_SPRTRK_PCKP_DEPOT_DEPOT_ID": true
+        },
+        "index": {
+            "SPARTRAK_PICKUP_CONSIGNMENT_DESTINATION_ID": true
         }
     }
 }

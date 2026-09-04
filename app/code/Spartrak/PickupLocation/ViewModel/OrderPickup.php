@@ -11,7 +11,7 @@ use Magento\Framework\Phrase;
 use Magento\Framework\View\Element\Block\ArgumentInterface;
 use Magento\Sales\Api\Data\OrderInterface;
 use Spartrak\PickupLocation\Model\FulfilmentChannel;
-use Spartrak\PickupLocation\Model\OrderPickupSnapshot;
+use Spartrak\PickupLocation\Model\OrderDestination;
 use Spartrak\PickupLocation\Model\PickupType;
 
 /**
@@ -22,8 +22,10 @@ use Spartrak\PickupLocation\Model\PickupType;
  *
  *   Model\FulfilmentChannel      WHICH CHANNEL - delivery, branch or depot -
  *                                derived from core's own `shipping_method`
- *   Model\OrderPickupSnapshot    WHICH PLACE - the four `spartrak_pickup_*`
- *                                columns snapshotted onto the order
+ *   Model\OrderDestination       WHICH PLACE - the customer's checkout
+ *                                snapshot, or the destination the dispatcher
+ *                                recorded when that snapshot never landed or
+ *                                the station proved unreachable
  *
  * ===========================================================================
  * WHAT CHANGED, AND WHY IT MATTERED
@@ -37,8 +39,10 @@ use Spartrak\PickupLocation\Model\PickupType;
  * feature disappeared in exactly the case that needed it.
  *
  * The channel now comes from the carrier, which core writes on every order and
- * this module cannot fail to populate. A missing snapshot is reported as such
- * (`hasLocationSnapshot()`) rather than being allowed to change the answer.
+ * this module cannot fail to populate. A missing destination is reported as
+ * such (`hasDestination()`) rather than being allowed to change the answer —
+ * and it is now FIXABLE, which the first version of this class had no way to
+ * express.
  *
  * A view model rather than a block because it carries no markup and every
  * consumer already has its own block hierarchy (CLAUDE.md section 8: consume
@@ -48,7 +52,7 @@ class OrderPickup implements ArgumentInterface
 {
     public function __construct(
         private readonly FulfilmentChannel $channel,
-        private readonly OrderPickupSnapshot $snapshot
+        private readonly OrderDestination $destination
     ) {
     }
 
@@ -82,34 +86,69 @@ class OrderPickup implements ArgumentInterface
     }
 
     /**
-     * The chosen location's name, or null when the snapshot did not land.
+     * The location's name — the customer's checkout choice, or the destination
+     * the dispatcher recorded in its place. See Model\OrderDestination for the
+     * precedence and for why the customer's own snapshot is never overwritten.
      *
      * Callers must handle null on a pickup order. It is not "no pickup" — it is
-     * "we know they are collecting and we have lost track of where", which is
-     * an operational problem with a human fix, and the admin says so out loud.
+     * "we know they are collecting and nobody knows where", which is an
+     * operational problem with a human fix, and the admin says so out loud and
+     * offers the field that fixes it.
      */
     public function getName(?OrderInterface $order): ?string
     {
-        return $this->snapshot->getName($order);
+        return $this->destination->getName($order);
     }
 
     public function getAddress(?OrderInterface $order): ?string
     {
-        return $this->snapshot->getAddress($order);
+        return $this->destination->getAddress($order);
     }
 
     public function getLocationId(?OrderInterface $order): ?int
     {
-        return $this->snapshot->getLocationId($order);
+        return $this->destination->getLocationId($order);
     }
 
     /**
-     * True when the channel says pickup and the location snapshot is intact.
-     * False is the fault state described on getName().
+     * Do we know where this order is going?
+     *
+     * This REPLACED `hasLocationSnapshot()`, and the difference is the whole
+     * point. That method asked whether the CHECKOUT snapshot had landed — a
+     * question whose answer can never change once it is false, because nothing
+     * rewrites a placed order's address. So the dispatcher's panel showed
+     * "the destination station is missing from this order" for ever, with no
+     * way to resolve it, on precisely the orders that most needed resolving.
      */
-    public function hasLocationSnapshot(?OrderInterface $order): bool
+    public function hasDestination(?OrderInterface $order): bool
     {
-        return $this->channel->hasLocationSnapshot($order);
+        return $this->destination->isKnown($order);
+    }
+
+    /**
+     * Was the destination CHANGED from the one the customer chose, rather than
+     * recorded into a blank? A redirect, not a repair.
+     */
+    public function isDestinationRedirected(?OrderInterface $order): bool
+    {
+        return $this->destination->isRedirected($order);
+    }
+
+    /**
+     * The station the customer chose at checkout, whether or not it is still
+     * where the order is going.
+     */
+    public function getOriginalDestinationName(?OrderInterface $order): ?string
+    {
+        return $this->destination->getOriginalName($order);
+    }
+
+    /**
+     * Why the destination was recorded or changed, as the dispatcher wrote it.
+     */
+    public function getDestinationReason(?OrderInterface $order): ?string
+    {
+        return $this->destination->getReason($order);
     }
 
     /**

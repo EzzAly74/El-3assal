@@ -17,10 +17,27 @@
   never touches the repository, so a repository plugin would have been bypassed
   by the exact screen the rule exists for. The observer class records the
   verified trace through core.
+
+  ===========================================================================
+  THE SNAPSHOT CHECK AT PLACEMENT
+  ===========================================================================
+  `sales_model_service_quote_submit_before` is the one moment where the quote
+  and the order both exist and neither has been written yet — so it is the last
+  point at which "this order says it is collected from a station" and "this
+  order names no station" can be reconciled instead of being left to disagree
+  for the life of the order.
+
+  It repairs and never refuses; the observer's own header carries the reasoning,
+  including why throwing here would make an admin-created depot order
+  impossible to raise at all.
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
     <event name="sales_order_save_before">
         <observer name="spartrak_pickup_require_consignment_before_dispatch"
                   instance="Spartrak\PickupLocation\Observer\RequireConsignmentBeforeDispatch"/>
+    </event>
+    <event name="sales_model_service_quote_submit_before">
+        <observer name="spartrak_pickup_complete_snapshot_on_placement"
+                  instance="Spartrak\PickupLocation\Observer\CompletePickupSnapshotOnPlacement"/>
     </event>
 </config>

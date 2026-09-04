@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/module.xsd">
+    <module name="Spartrak_Review" setup_version="1.0.0">
+        <sequence>
+            <!--
+              Magento_Review: this module plugs its POST controller and its
+              review resource model, and the theme overrides two of its
+              templates. Sequenced so both di.xml merges land after it.
+            -->
+            <module name="Magento_Review"/>
+            <!--
+              Magento_Catalog: the cache plugin publishes the product cache tag
+              (Catalog\Model\Product::CACHE_TAG) that the full page cache and
+              Varnish key a PDP on.
+            -->
+            <module name="Magento_Catalog"/>
+            <!--
+              Magento_Customer: the nickname comes off the signed-in customer's
+              own record.
+            -->
+            <module name="Magento_Customer"/>
+            <!--
+              Spartrak_Locale: every count in the panel is formatted through
+              Framework\Locale\LocaleFormatter, which THAT module replaces so
+              Arabic store views render Latin digits (see its own README). The
+              sequence makes sure its preference is merged before this module's
+              view model resolves the class.
+            -->
+            <module name="Spartrak_Locale"/>
+        </sequence>
+    </module>
+</config>

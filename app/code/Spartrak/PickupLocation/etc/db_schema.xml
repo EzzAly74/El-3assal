@@ -203,6 +203,66 @@
                 comment="Origin station, written per order by the admin - من الموقف"/>
         <column xsi:type="varchar" name="vehicle_photo" length="255" nullable="false"
                 comment="Vehicle photograph, relative to the pickup media directory"/>
+        <!--
+          ===========================================================================
+          `الي الموقف` — THE DESTINATION OVERRIDE (section 9, question 5)
+          ===========================================================================
+          NULLABLE, and null is the normal case. The destination of a `موقف`
+          order is the customer's own checkout choice, snapshotted onto
+          sales_order_address.spartrak_pickup_* — and it stays there,
+          untouched, because an order is a record of what somebody bought.
+
+          These four columns exist for the two situations where that record is
+          not enough to dispatch against:
+
+            1. THE SNAPSHOT NEVER LANDED. The order was placed against the
+               depot carrier — core's own shipping_method says so — but the
+               station is not on it. Nobody can dispatch honestly against a
+               blank destination and nobody can type one onto the order, so
+               the dispatcher phones the customer, confirms where they expect
+               to collect, and RECORDS it here.
+
+            2. THE CHOSEN STATION IS UNREACHABLE ON THE ROUTE (§6). The vehicle
+               that is going does not serve it, so the shipment is redirected —
+               and that is a policy decision about a shipment the customer
+               chose, which is why `destination_reason` exists and is required
+               in this case but not in the first.
+
+          WHY THE OVERRIDE IS HERE AND NOT WRITTEN OVER THE ORDER ADDRESS
+          ===========================================================================
+          Overwriting sales_order_address would destroy the distinction between
+          what the customer chose and what we changed it to, on a financial
+          record, with no trace. Keeping it beside the driver — the other fact
+          the dispatcher supplies at the same moment, in the same form — means
+          the original survives, the change is attributable, and every consumer
+          reads `override ?? snapshot` through ONE resolver
+          (Model\OrderDestination) so the card's title and its rows cannot
+          disagree.
+
+          WHY A DEPOT ID AND NOT FREE TEXT
+          ===========================================================================
+          Unlike `origin_station` directly above — which is free text because
+          §4 says the admin writes it per order and it depends on which vehicle
+          is going — a DESTINATION can only ever be one of the stations this
+          store offers: the customer's checkout list is exactly
+          spartrak_pickup_depot (§9 question 2). Selecting from that list is
+          what makes the customer's card carry a real name, street, governorate
+          and operator instead of one typed string, and it keeps a station that
+          is missing from the network fixable in the one place that also fixes
+          checkout.
+
+          The name and address are snapshotted alongside the id for the same
+          reason the order's own are: an order must still read correctly after
+          the depot it names is renamed or removed.
+        -->
+        <column xsi:type="int" name="destination_id" unsigned="true" nullable="true"
+                comment="Destination depot chosen by the admin - overrides the order snapshot"/>
+        <column xsi:type="varchar" name="destination_name" length="255" nullable="true"
+                comment="Destination station name as recorded - الي الموقف"/>
+        <column xsi:type="text" name="destination_address" nullable="true"
+                comment="Destination station address as recorded"/>
+        <column xsi:type="varchar" name="destination_reason" length="255" nullable="true"
+                comment="Why the destination was recorded or changed - required when it replaces a customer choice"/>
         <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false"
                 default="CURRENT_TIMESTAMP" comment="Created At"/>
         <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false"
@@ -222,6 +282,19 @@
         <constraint xsi:type="unique" referenceId="SPARTRAK_PICKUP_CONSIGNMENT_ORDER_ID">
             <column name="order_id"/>
         </constraint>
+        <!--
+          SET NULL, like this module's other location references and unlike the
+          order key above: deleting a depot must not delete a driver record, and
+          it must not delete the ORDER. The id stops being joinable; the
+          snapshotted destination_name and destination_address are what keep the
+          card readable, which is exactly why they are stored beside it.
+        -->
+        <constraint xsi:type="foreign" referenceId="SPRTRK_PCKP_CNSGNMNT_DSTNTN_ID_SPRTRK_PCKP_DEPOT_DEPOT_ID"
+                    table="spartrak_pickup_consignment" column="destination_id"
+                    referenceTable="spartrak_pickup_depot" referenceColumn="depot_id" onDelete="SET NULL"/>
+        <index referenceId="SPARTRAK_PICKUP_CONSIGNMENT_DESTINATION_ID" indexType="btree">
+            <column name="destination_id"/>
+        </index>
     </table>
 
     <table name="quote_address">

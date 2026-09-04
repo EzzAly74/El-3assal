@@ -1,0 +1,81 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  THE REVIEWS TAB — Figma 534:9527 (desktop) / 1204:27061 (mobile)
+  ===========================================================================
+  Two changes, and no restructuring. The block tree Magento_Review declares is
+  kept exactly as it is — `reviews.tab` with `product.review.form` beneath it,
+  and that form's two extension containers beneath THAT — because the shape of
+  that tree is what third-party modules attach to. Magento_ReCaptchaReview, for
+  one, injects its widget into `form.additional.review.info`; a flatter tree of
+  our own would silently drop the captcha and every review submission would then
+  fail server-side validation with nothing on screen to explain it.
+
+  The two TEMPLATES are theme overrides at the same paths core uses
+  (templates/review.phtml, templates/form.phtml), so they need no layout
+  instruction at all. What follows is the three things that do.
+
+  ===========================================================================
+  1. THE VIEW MODEL
+  ===========================================================================
+  Spartrak\Review\ViewModel\ProductReviews is what the panel prints — the
+  average, the two counts and the five bars. Handed to the block as an argument
+  rather than reached for inside the template, so the template holds no
+  business logic (CLAUDE.md section 8) and the aggregate query has one caller.
+
+  ===========================================================================
+  2. THE require-cookie TRIGGER
+  ===========================================================================
+  Magento_Cookie's `require-cookie` block watches a SELECTOR and warns the
+  shopper that their review will not post while cookies are off — the review
+  POST needs a form key, and a form key needs a session. Core points it at
+  `.review .action.submit`, which are core's own class names on core's own
+  review form. This theme's dialog does not carry them, so the notice would
+  have quietly stopped working: cookies off, press the button, nothing happens,
+  no explanation.
+
+  Repointed at the real submit control rather than adding core's class names to
+  Spartrak markup, because the selector is the configuration and the markup is
+  the design.
+
+  ===========================================================================
+  3. THE DIALOG MOVES OUT OF THE TAB PANEL
+  ===========================================================================
+  `product.review.form` renders the <dialog>, and it CANNOT stay a child of
+  `reviews.tab`, because Magento's tabs widget hides an inactive panel with
+  `display: none` — and a <dialog> inside a display:none subtree cannot be
+  shown at all. Left in place, the review dialog would work only while the
+  reviews tab happened to be the open one, and Magento's own rating summary in
+  the product-info column (which links to the review form from the top of the
+  page, where the description tab is usually the active one) would open
+  nothing.
+
+  MOVED AS A BLOCK, NOT RELOCATED IN JAVASCRIPT. Appending the node to <body>
+  on init was the first fix and was rejected: Magento_ReCaptchaReview mounts a
+  Knockout component and a Google widget INSIDE this form, and the order of
+  `data-mage-init` against `x-magento-init` is not guaranteed — so a DOM move
+  can race a captcha that has already mounted. A layout move happens before any
+  of it renders, and it keeps the block tree intact, so
+  `form.additional.review.info` still resolves and the captcha still lands
+  exactly where its own layout file puts it.
+
+  The CTA is unaffected: it lives in review.phtml, inside the panel, where
+  Figma draws it.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <move element="product.review.form" destination="content"/>
+        <referenceBlock name="reviews.tab">
+            <arguments>
+                <argument name="view_model" xsi:type="object">Spartrak\Review\ViewModel\ProductReviews</argument>
+            </arguments>
+        </referenceBlock>
+        <referenceBlock name="require-cookie">
+            <arguments>
+                <argument name="triggers" xsi:type="array">
+                    <item name="submitReviewButton" xsi:type="string">.spartrak-review-dialog__submit</item>
+                </argument>
+            </arguments>
+        </referenceBlock>
+    </body>
+</page>

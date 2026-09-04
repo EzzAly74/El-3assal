@@ -94,16 +94,125 @@ class Consignment extends AbstractOrder
     }
 
     /**
-     * Did the customer's chosen station survive onto the order?
+     * Do we know where this order is going — from the customer's checkout
+     * choice, or from a destination somebody recorded here?
      *
-     * False is a data fault, not a delivery. It is surfaced rather than
-     * silently tolerated because it is the one required fact on the customer's
-     * card that the dispatcher CANNOT type in — it has to be established by
-     * asking, and somebody has to notice.
+     * False is a data fault, not a delivery, and it is surfaced rather than
+     * silently tolerated. It used to be UNFIXABLE as well: the question asked
+     * was whether the CHECKOUT snapshot had landed, which is an answer that can
+     * never change once it is false, so the panel showed "the destination
+     * station is missing from this order" for ever on precisely the orders that
+     * most needed resolving. The field below is now the resolution, and this
+     * asks a question that field can answer (§9 question 5).
      */
     public function hasDestination(): bool
     {
-        return $this->pickup->hasLocationSnapshot($this->getOrder());
+        return $this->pickup->hasDestination($this->getOrder());
+    }
+
+    /**
+     * Is the destination something recorded HERE rather than the customer's own
+     * choice — and if so, was it a redirect or a repair?
+     *
+     * The panel says which, because they are different facts about the order:
+     * one is "we lost their choice and re-established it", the other is "we
+     * sent it somewhere else".
+     */
+    public function isDestinationRedirected(): bool
+    {
+        return $this->pickup->isDestinationRedirected($this->getOrder());
+    }
+
+    /**
+     * The station the CUSTOMER chose, whether or not it is still the
+     * destination. Null when the checkout snapshot never landed.
+     */
+    public function getCustomerChoice(): ?string
+    {
+        return $this->pickup->getOriginalDestinationName($this->getOrder());
+    }
+
+    public function getDestinationReason(): ?string
+    {
+        return $this->pickup->getDestinationReason($this->getOrder());
+    }
+
+    /**
+     * The depot the destination field should be showing as selected — the
+     * override's own, or nothing when the order is running on the customer's
+     * choice.
+     *
+     * Deliberately NOT the customer's own depot id: the empty option means
+     * "use the customer's choice", so pre-selecting their station would make
+     * the control claim an override that does not exist, and saving the form
+     * untouched would then write one.
+     */
+    public function getSelectedDestinationId(): ?int
+    {
+        $consignment = $this->getConsignment();
+
+        return $consignment !== null && $consignment->hasDestination()
+            ? $consignment->getDestinationId()
+            : null;
+    }
+
+    /**
+     * The stations the dispatcher can choose from — the ACTIVE depot network,
+     * in the admin's own order.
+     *
+     * Read through the same LocationCatalog the checkout reads, so the two
+     * cannot offer different networks. A station missing from this list is a
+     * station to add under Pickup Locations, which fixes checkout at the same
+     * time — see the controller's applyDestination() for why this is a list and
+     * not a free-text field.
+     *
+     * Each row is enriched with its governorate and operator in the label,
+     * because `موقف السلام` on its own does not identify a station: several
+     * governorates have similarly-named yards, and the operator decides which
+     * vehicles run there.
+     *
+     * @return array<int, array{id: int, label: string}>
+     */
+    public function getDestinationOptions(): array
+    {
+        $options = [];
+
+        foreach ($this->locations->getDepots() as $depot) {
+            $label = (string) $depot['name'];
+            $qualifiers = array_filter([
+                $this->nonEmpty($depot['region'] ?? null),
+                $this->nonEmpty($depot['operator'] ?? null),
+            ]);
+
+            if ($qualifiers !== []) {
+                $label .= ' — ' . implode(', ', $qualifiers);
+            }
+
+            $options[] = ['id' => (int) $depot['id'], 'label' => $label];
+        }
+
+        return $options;
+    }
+
+    /**
+     * True when a destination is recorded here whose depot is no longer in the
+     * list above — disabled or deleted since.
+     *
+     * Worth saying out loud: the select cannot show it as selected, so without
+     * this notice the panel would look as though nothing had been recorded
+     * while the customer's card was printing a station.
+     */
+    public function isRecordedDestinationUnselectable(): bool
+    {
+        $consignment = $this->getConsignment();
+
+        if ($consignment === null || !$consignment->hasDestination()) {
+            return false;
+        }
+
+        $id = $consignment->getDestinationId();
+
+        return $id === null || $this->locations->getDepotById($id) === null;
     }
 
     /**
@@ -119,12 +228,14 @@ class Consignment extends AbstractOrder
      * vehicles run there, and the street is what a driver is actually told. A
      * dispatcher choosing a driver for a route needs to know the route.
      *
-     * THE SNAPSHOT IS THE SOURCE OF TRUTH FOR NAME AND STREET, because an order
-     * is a record and a depot renamed next year must not rewrite what the
-     * shopper chose (db_schema.xml). The LIVE record is consulted only for the
-     * facts the snapshot does not carry — governorate and operator — and only
-     * to enrich, never to override. A depot deleted since the order was placed
-     * therefore still shows its name and street, with the extra rows absent.
+     * THE RECORD IS THE SOURCE OF TRUTH FOR NAME AND STREET — the customer's
+     * checkout snapshot, or the destination recorded here in its place (see
+     * Model\OrderDestination for the precedence). Either way it is a stored
+     * value, because an order is a record and a depot renamed next year must
+     * not rewrite it (db_schema.xml). The LIVE record is consulted only for the
+     * facts neither snapshot carries — governorate and operator — and only to
+     * enrich, never to override. A depot deleted since therefore still shows
+     * its name and street, with the extra rows absent.
      *
      * @return array{name: ?string, address: ?string, region: ?string, operator: ?string}
      */
@@ -176,15 +287,6 @@ class Consignment extends AbstractOrder
             'spartrak_pickup/consignment/save',
             ['order_id' => $this->getOrder()?->getEntityId()]
         );
-    }
-
-    /**
-     * `الي الموقف` — the depot the customer chose. Shown, never collected: it
-     * is already on the order and retyping it is how the two drift apart.
-     */
-    public function getDestinationStation(): ?string
-    {
-        return $this->pickup->getName($this->getOrder());
     }
 
     private function nonEmpty(mixed $value): ?string

@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!--
+  The storefront review POST, completed before core validates it.
+
+  `before` and not `around`: see the plugin's own header for why the request —
+  not the review model — is what it writes to, and why that has to happen
+  before Post::execute() reads the post value.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Magento\Review\Controller\Product\Post">
+        <plugin name="spartrak_review_supply_missing_fields"
+                type="Spartrak\Review\Plugin\Review\SupplyFieldsFigmaDoesNotCollect"
+                sortOrder="10"/>
+    </type>
+</config>

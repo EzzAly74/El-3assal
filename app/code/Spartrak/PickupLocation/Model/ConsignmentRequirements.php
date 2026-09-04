@@ -61,16 +61,21 @@ use Spartrak\PickupLocation\Api\Data\ConsignmentInterface;
  * A MISSING DESTINATION IS A WARNING, NOT A BLOCK
  * ===========================================================================
  * `الي الموقف` comes from the customer's checkout choice, not from this form,
- * so it cannot be "filled in" by the dispatcher and it is deliberately NOT in
- * the missing-fields list. When it is absent (see
- * FulfilmentChannel::hasLocationSnapshot) the panel says so prominently and
- * dispatch still proceeds.
+ * and it is deliberately NOT in the missing-fields list. When it is absent (see
+ * Model\OrderDestination::isKnown) the panel says so prominently and dispatch
+ * still proceeds.
  *
  * The reasoning is that the parcel physically has to travel, and the driver's
  * phone number is the customer's real lifeline — withholding the whole dispatch
  * over a bookkeeping column that this module failed to write would punish the
  * customer for our own data fault. The warning is aimed at the one person who
  * can resolve it by picking the phone up.
+ *
+ * Since §9 question 5 was settled, that person can also RECORD what they are
+ * told: the panel's destination field writes an override. It is still not a
+ * required field, because the dispatcher may not have reached the customer yet
+ * and the vehicle may already be leaving — a rule that stops a dispatch until
+ * somebody answers their phone would be a worse rule than the one it replaced.
  */
 class ConsignmentRequirements
 {

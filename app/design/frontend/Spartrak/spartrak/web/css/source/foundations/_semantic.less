@@ -29,6 +29,20 @@
   ); // Figma: action.accent-text = neutral.1000
   --color-callout-soft: var(--primitive-yellow-soft);
   --color-rating-empty: var(--primitive-star-empty);
+  // FIGMA REVIEWS PASS (2026-09-04). Figma: rating/star-full.
+  //
+  // The counterpart --color-rating-empty had been missing since the PDP pass,
+  // which is why the rating meter reached for --primitive-yellow directly.
+  // Both halves of the pair are real published Figma variables — confirmed by
+  // get_variable_defs on the rating dialog (1204:27391), which returns
+  // `rating/star-full: #eebd1d` — so this is a name that had no consumer, not
+  // a new design decision.
+  //
+  // Kept apart from --color-action-accent even though both alias the same
+  // primitive, for the reason this file states elsewhere: one is "a button the
+  // shopper presses", the other is "a star that carries a score". A palette
+  // change could reasonably move one without the other.
+  --color-rating-full: var(--primitive-yellow);
   --color-border-focus: var(--primitive-navy); // Figma: border.focus = blue.500
 
   --color-text-primary: var(--primitive-ink);

@@ -1,0 +1,802 @@
+// ===========================================================================
+// PDP REVIEWS — the `جميع التقييمات` panel and the `تقييم المنتج` dialog
+// ===========================================================================
+// Figma, read live 2026-09-04 (file 6FRlQfPIncVUvNiJLn2kbT):
+//
+//   535:10083   the panel, desktop, inside the tab content 535:10082
+//   535:10086   rating summary  |  535:10097  rating bars
+//   759:4786    the `أترك تقييمك` CTA
+//   1204:27098  the panel, mobile, inside 1204:27096
+//   1207:30485  the dialog, desktop, over the 1207:28688 overlay
+//   1204:27392  the dialog, mobile — 400 x 574, THE SAME SIZE as desktop
+//
+// This file does NOT touch the tab row, the tab panel or the PDP's own rating
+// meter. All three are already built in components/_pdp.less (sections 5 and
+// 6) and the design has not changed them — the panel's 24px desktop / 16px
+// mobile inset is that file's `.item.content` padding, and this component
+// simply sits inside it.
+//
+// ---------------------------------------------------------------------------
+// DESKTOP-FIRST, LIKE THE FILE IT SITS BESIDE
+// ---------------------------------------------------------------------------
+// components/_pdp.less writes the desktop rule and overrides it inside
+// `@media (max-width: @breakpoint-header-collapse)`. Inverting that here would
+// mean two adjacent stylesheets for one page with opposite cascades, and a
+// reader would have to work out which way round each one is. There are only
+// three real differences between the two frames anyway (below).
+//
+// ---------------------------------------------------------------------------
+// WHAT ACTUALLY DIFFERS BETWEEN THE TWO FRAMES — measured, not assumed
+// ---------------------------------------------------------------------------
+//   1. the overview is a ROW on desktop (summary at the inline-start, bars
+//      filling the rest) and a COLUMN on mobile (summary above bars)
+//   2. the CTA is 156px wide on desktop and full width on mobile
+//   3. mobile adds 12px of padding inside the panel and 24px above the CTA,
+//      where desktop has neither
+// Everything else — every colour, every type step, every gap inside the two
+// boxes, the 180px summary, the 4px bars, the whole dialog — is identical in
+// both frames.
+//
+// ---------------------------------------------------------------------------
+// READING ORDER, NOT LEFT AND RIGHT
+// ---------------------------------------------------------------------------
+// Figma reports PHYSICAL positions and the frames are Arabic, so every one was
+// converted before it was written down. In the desktop frame the summary is at
+// x=1006 of 1344 — the right-hand edge, which in Arabic is where reading
+// BEGINS — so it is at the inline-START, and the same conversion applies to
+// the bar row (value at the inline-start, count at the inline-end, fill
+// growing from the inline-start edge) and to the CTA. Expressed with logical
+// properties throughout, so one implementation is correct in both directions
+// rather than one plus an RTL patch (CLAUDE.md section 16).
+
+// Figma authors every size border-box. `.item.content` gives this component no
+// wrapper reset, so it brings its own — the same thing _pdp.less does for the
+// related-products rail, and for the same reason.
+.spartrak-reviews,
+.spartrak-reviews *,
+.spartrak-reviews *::before,
+.spartrak-reviews *::after,
+.spartrak-review-dialog,
+.spartrak-review-dialog *,
+.spartrak-review-dialog *::before,
+.spartrak-review-dialog *::after {
+    box-sizing: border-box;
+}
+
+// ===========================================================================
+// 1. The panel — 535:10083 / 1204:27098
+// ===========================================================================
+.spartrak-reviews {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+// Heading/H4 — thmanyah sans Medium 18/1.3 on text/primary (535:10084).
+.spartrak-reviews__title {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-18);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+    text-align: start;
+}
+
+// 535:10085 — the two boxes as one card, carrying the Shadow/Input lift.
+//
+// `align-items: stretch` rather than Figma's literal `items-start` plus a
+// `self-stretch` on the summary: the two declarations produce the same result
+// (the bars are the taller of the pair, and the summary matches them) and one
+// rule cannot fall out of step with itself.
+.spartrak-reviews__overview {
+    display: flex;
+    align-items: stretch;
+    background: var(--color-bg-surface);
+    box-shadow: var(--shadow-input);
+}
+
+// ---------------------------------------------------------------------------
+// Rating summary — 535:10086 / 1204:27101
+// ---------------------------------------------------------------------------
+// 290px wide in the desktop frame, and that number is NOT written here: it is
+// 48 + 194 + 48, i.e. the padding plus the content's own hug width, so it
+// falls out of the box rather than being pinned to a value the content could
+// outgrow in another language.
+//
+// `min-block-size` and not `height`: the mobile frame fixes 180px and the
+// desktop frame lets the bars (200px) set the height. A minimum satisfies both
+// with one declaration — 200 already exceeds 180 — where a fixed height would
+// need a media query to release it.
+.spartrak-reviews__summary {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    min-block-size: 180px;
+    padding: 16px 48px;
+    border: 1px solid var(--color-border-default);
+    background: var(--color-bg-surface);
+}
+
+// 535:10087 — 48 x 45.8417, and DECORATIVE.
+//
+// The exported node is a whole star at 40% opacity, which resolves over white
+// to #f8e5a5 — the hex this theme already holds as --color-rating-empty. So
+// the asset is painted as a MASK and the colour comes from the token, which is
+// how every other icon in this theme works and means the same one file serves
+// the dialog's interactive stars (at full strength) and this one.
+//
+// Not written through the .spartrak-icon() mixin: that mixin assumes a SQUARE
+// glyph (`width: @size; height: @size`) and this one is 48 x 45.8417. Forcing
+// it square would squash the star by 4.4%.
+.spartrak-reviews__summary-star {
+    flex: 0 0 auto;
+    display: block;
+    inline-size: 48px;
+    block-size: 45.8417px;
+    background-color: var(--color-rating-empty);
+    -webkit-mask-image: url('../images/icons/star-48.svg');
+    mask-image: url('../images/icons/star-48.svg');
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
+// 535:10091
+.spartrak-reviews__summary-detail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+// Heading/H2 — Bold 24/1.3 on text/primary (535:10092).
+.spartrak-reviews__average {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-24);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+    text-align: center;
+    white-space: nowrap;
+}
+
+// Body/Small — Regular 14/1.5 on text/secondary (535:10093), gap 8.
+.spartrak-reviews__counts {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+}
+
+// The 4px separator (535:10095). See review.phtml for why this is CSS and not
+// the 4px SVG the export offers. #6d6c79 is the asset's own fill, held here as
+// --color-text-muted.
+.spartrak-reviews__counts-sep {
+    flex: 0 0 auto;
+    inline-size: 4px;
+    block-size: 4px;
+    border-radius: var(--radius-pill);
+    background: var(--color-text-muted);
+}
+
+// ---------------------------------------------------------------------------
+// Rating bars — 535:10097 / 1204:27112
+// ---------------------------------------------------------------------------
+.spartrak-reviews__bars {
+    flex: 1 1 auto;
+    // A flex item's min-width defaults to auto, which on this list means "as
+    // wide as the widest row wants to be" and stops the track ever shrinking.
+    min-inline-size: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    padding: 16px;
+    border: 1px solid var(--color-border-default);
+    background: var(--color-bg-surface);
+    list-style: none;
+}
+
+// `margin: 0` is not decoration: Magento's own lib/_typography.less puts
+// `margin-bottom: 1rem` on every `li` in the storefront, which would sit on top
+// of the 12px gap and give the five rows a 22px rhythm the frame does not have.
+.spartrak-reviews__bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+}
+
+// Both labels are 32px wide with three characters in them, and BOTH hug the
+// track: the value sits at the inline-start of the row and is pushed toward
+// the track by `text-align: end`, the count sits at the inline-end and is
+// pushed the other way. Read straight off the frame — Figma's value box is at
+// x=942..974 with its text left-aligned (i.e. against the track, which ends at
+// 930) and its count box at x=0..32 with the text right-aligned (against the
+// track, which starts at 44).
+.spartrak-reviews__bar-value,
+.spartrak-reviews__bar-count {
+    flex: 0 0 auto;
+    min-inline-size: 32px;
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+
+.spartrak-reviews__bar-value {
+    color: var(--color-text-primary);
+    text-align: end;
+}
+
+.spartrak-reviews__bar-count {
+    color: var(--color-text-secondary);
+    text-align: start;
+}
+
+.spartrak-reviews__bar-track {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    display: block;
+    block-size: 4px;
+    background: var(--color-bg-field);
+}
+
+// The fill is a plain block child, so it starts at the track's inline-start
+// edge with no flex or alignment rule at all — which is the edge Figma grows
+// it from (the Bar is right-aligned in its container on an Arabic frame). Its
+// inline-size is the one piece of geometry the template supplies, as a
+// percentage of all votes; see ViewModel\ProductReviews::getBars() for why a
+// share of the total and not a share of the largest bucket.
+.spartrak-reviews__bar-fill {
+    display: block;
+    block-size: 100%;
+    background: var(--color-action-primary);
+}
+
+// ---------------------------------------------------------------------------
+// No ratings yet — NO FIGMA FRAME EXISTS FOR THIS STATE
+// ---------------------------------------------------------------------------
+// Built from the panel's own measurements: the same bordered surface, the same
+// 16px padding as the bars box, the same Body/Base type. It introduces no
+// colour, spacing or shape that is not already on this panel, so it cannot
+// drift away from a design it was never drawn from. Recorded here and in
+// review.phtml rather than presented as measured.
+.spartrak-reviews__empty {
+    margin: 0;
+    padding: 16px;
+    border: 1px solid var(--color-border-default);
+    background: var(--color-bg-surface);
+    box-shadow: var(--shadow-input);
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+    text-align: start;
+}
+
+// ---------------------------------------------------------------------------
+// The CTA — 759:4786 desktop / 1204:27138 mobile
+// ---------------------------------------------------------------------------
+// 759:4801 is a column with `items-end`, i.e. the button against the frame's
+// RIGHT edge — the inline-START in Arabic.
+//
+// MOBILE DRAWS THIS BUTTON TWICE (1204:27138 and 1204:27152), identical in
+// every respect: same 384x40 box, same bg/field fill, same label, same node
+// structure. Desktop draws one. Rendered once, because two identical
+// full-width buttons stacked 24px apart are a duplication artefact rather than
+// a design — there is no second thing for the second one to do, and the
+// desktop frame is the one that agrees with itself.
+//
+// The two frames also disagree on the LABEL — `أترك تقييمك` (leave your
+// rating) on desktop, `أترك تعليقك` (leave your comment) on mobile. The
+// desktop wording is used at both widths: this control opens a dialog whose
+// own primary action is already `اترك تعليقك`, so naming them the same thing
+// would make the second press look like the first one having failed.
+.spartrak-reviews__actions {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.spartrak-reviews__cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    inline-size: 156px;
+    block-size: 40px;
+    margin: 0;
+    padding-block: 0;
+    padding-inline: 20px;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    background: var(--color-bg-field);
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-action-secondary-text);
+    text-align: center;
+    cursor: pointer;
+
+    // Figma draws no hover or focus state for this control. The hover is the
+    // theme's own quiet-button treatment, already used elsewhere on this page;
+    // the focus ring is not optional (CLAUDE.md section 15) and reuses the
+    // same border-focus token every other Spartrak control focuses with.
+    &:hover {
+        background: var(--color-border-default);
+        color: var(--color-action-secondary-text);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
+    }
+}
+
+// ===========================================================================
+// 2. The dialog — 1207:30485 / 1204:27392
+// ===========================================================================
+// A native <dialog>. See Magento_Review/templates/form.phtml for why, and
+// js/spartrak-review-dialog.js for the little that is left for JavaScript.
+//
+// THE ELEMENT ITSELF IS A TRANSPARENT SHELL. Every visual — the white fill,
+// the shadow, the 24px padding — belongs to the <form> inside it. That is not
+// tidiness: the dismiss-on-scrim-click test in the widget is
+// `event.target === dialog`, and it is only sound while the dialog element has
+// no paintable area of its own for a click to land on.
+.spartrak-review-dialog {
+    position: fixed;
+    inset: 0;
+    // `margin: auto` against `inset: 0` on an auto-sized box is what centres
+    // it on BOTH axes at any height — the same reasoning recorded on
+    // components/_login-modal.less's overlay, where a margin-based offset
+    // broke once the mobile keyboard shrank the visual viewport.
+    margin: auto;
+    // 400px at both widths, measured. The mobile frame places it at x=20 in a
+    // 440 viewport, so the cap is the viewport less those two 20px margins.
+    inline-size: 400px;
+    max-inline-size: calc(100% - 40px);
+    // A dialog taller than the viewport scrolls itself rather than being
+    // clipped at both ends.
+    max-block-size: calc(100% - 48px);
+    overflow: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    // The UA stylesheet's own `dialog:not([open]) { display: none }` is relied
+    // on by browsers that implement <dialog>. Stated explicitly so that a
+    // browser that does NOT implement it renders nothing either, instead of
+    // dropping the whole form inline at the end of the page.
+    &:not([open]) {
+        display: none;
+    }
+}
+
+// bg/scrim #0c0a2033 — byte-identical to --color-scrim, confirmed by
+// get_variable_defs on 1204:27391. The blur is Figma's effect "OVerlay/Popup"
+// (BACKGROUND_BLUR), the same named effect the mega-nav flyout carries, and it
+// is written at the same 6px this theme already uses for it rather than at a
+// second value for one effect.
+//
+// It degrades to a plain scrim where backdrop-filter is unsupported, which is
+// the correct fallback rather than something to feature-query around.
+.spartrak-review-dialog::backdrop {
+    background-color: var(--color-scrim);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+}
+
+// The page behind a modal must not scroll. <dialog> puts the panel in the top
+// layer and makes the rest of the document inert, but it does NOT lock the
+// scroll — so the class the widget sets does, on <html>, which is what
+// actually stops a mobile Safari page moving under an overlay.
+.spartrak-review-dialog-open {
+    overflow: hidden;
+}
+
+// 1207:30485 — the panel proper.
+.spartrak-review-dialog__panel {
+    display: flex;
+    flex-direction: column;
+    // Figma's `items-center` with two full-width children; stretch says the
+    // same thing without either child having to opt back out of it.
+    align-items: stretch;
+    gap: 24px;
+    padding: 24px;
+    background: var(--color-bg-surface);
+    box-shadow: var(--shadow-container);
+}
+
+// ---------------------------------------------------------------------------
+// Header — 1207:30486
+// ---------------------------------------------------------------------------
+// Title at the inline-start, close at the inline-end. In the frame those are
+// x=259 and x=0 respectively — right and left — which is that same pair read
+// in Arabic.
+.spartrak-review-dialog__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+// Bold 18/1.3 on text/primary (1207:30491).
+.spartrak-review-dialog__title {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-18);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+    text-align: start;
+}
+
+// 1207:30487 — a 32px bg/field disc with a 20px glyph.
+//
+// The GLYPH is this theme's existing close.svg, painted with the colour Figma
+// binds here (text/primary #0c0a20). Figma's own export of this node differs
+// from the theme's asset by 0.25px on ONE of its two strokes — 1.5 against
+// 1.25, the other identical — which is an authoring slip rather than a design,
+// and shipping a second near-identical file to reproduce a quarter of a pixel
+// would be asset duplication for no visible gain.
+.spartrak-review-dialog__close {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 32px;
+    block-size: 32px;
+    margin: 0;
+    padding: 6px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--color-bg-field);
+    cursor: pointer;
+
+    &::after {
+        content: '';
+        .spartrak-icon('close.svg'; 20px; var(--color-text-primary));
+    }
+
+    &:hover {
+        background: var(--color-border-default);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Content — 1207:30492 / 1207:30493
+// ---------------------------------------------------------------------------
+// Three gaps of 32 in the frame, at two nesting levels: content container to
+// button container, and rating box to comment field inside it. One value on
+// both containers.
+.spartrak-review-dialog__content,
+.spartrak-review-dialog__group {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+// ---------------------------------------------------------------------------
+// The stars — 1207:30494
+// ---------------------------------------------------------------------------
+.spartrak-review-dialog__rating {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    min-block-size: 180px;
+    padding: 16px 48px;
+    border: 1px solid var(--color-border-default);
+    background: var(--color-bg-surface);
+}
+
+// 1207:30495 — five 48px stars, 20px apart.
+//
+// The FIRST star is the 1-star option and it renders at the inline-start,
+// which on an Arabic store view is the right — so the scale grows leftwards,
+// which is the direction an Arabic reader counts in. That falls out of the
+// document order; nothing here reverses anything.
+.spartrak-review-dialog__stars {
+    // `position: relative` is not decoration: the radios below are visually
+    // hidden with `position: absolute`, and without a positioned ancestor they
+    // resolve against the page instead of this row — so the browser scrolling
+    // a focused radio into view would scroll to the wrong place.
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+// The radios stay in the accessibility tree and stay focusable — they are the
+// control; the labels are only its skin. `display: none` would take them out
+// of the tab order and out of native constraint validation, which is what
+// refuses a review with no rating.
+.spartrak-review-dialog__star-input {
+    .spartrak-visually-hidden();
+}
+
+.spartrak-review-dialog__star {
+    flex: 0 0 auto;
+    display: block;
+    inline-size: 48px;
+    block-size: 45.8417px;
+    background-color: var(--color-rating-empty);
+    cursor: pointer;
+    transition: background-color 120ms ease-out;
+    -webkit-mask-image: url('../images/icons/star-48.svg');
+    mask-image: url('../images/icons/star-48.svg');
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
+// THE CHOSEN VALUE, AND EVERY STAR BEFORE IT.
+//
+// Two selectors and no JavaScript. `:checked + label` paints the star that was
+// chosen; `:has(~ input:checked)` paints every label that has a checked input
+// LATER in the row, which is exactly the set below the chosen value. The
+// document order is 1..5, so no reversed markup is needed and the accessible
+// name of each control still matches the value it submits.
+.spartrak-review-dialog__star-input:checked + .spartrak-review-dialog__star,
+.spartrak-review-dialog__star:has(~ .spartrak-review-dialog__star-input:checked) {
+    background-color: var(--color-rating-full);
+}
+
+// THE HOVER PREVIEW OUTRANKS THE CHOSEN VALUE, deliberately: while the pointer
+// is over the row the row shows what a click WOULD select, so the whole row is
+// reset first and then filled up to the hovered star. Without the reset, a
+// shopper lowering a 5 to a 2 would see no change at all.
+.spartrak-review-dialog__stars:hover .spartrak-review-dialog__star {
+    background-color: var(--color-rating-empty);
+}
+
+.spartrak-review-dialog__stars:hover .spartrak-review-dialog__star:hover,
+.spartrak-review-dialog__stars:hover
+    .spartrak-review-dialog__star:has(~ .spartrak-review-dialog__star:hover) {
+    background-color: var(--color-rating-full);
+}
+
+// A keyboard user moves through the row with the arrow keys and must be able
+// to see where they are. The ring is drawn on the LABEL because the input it
+// belongs to is visually hidden.
+.spartrak-review-dialog__star-input:focus-visible + .spartrak-review-dialog__star {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+}
+
+// Heading/H2 — Bold 24/1.3 (1207:30517).
+//
+// NOT `white-space: nowrap`, which is what the frame carries. The Arabic
+// string fits the 256px content box at 24px bold; its English counterpart does
+// not, and nowrap would push it straight out of the dialog on the LTR store
+// view. Wrapping is the one thing here that deviates from the frame, and the
+// box's 180px minimum already has room for the second line.
+.spartrak-review-dialog__prompt {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-24);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+    text-align: center;
+}
+
+// A 4px ellipse (1207:30518) sits under this heading in the frame, alone, with
+// no text beside it — and it is named "Rating breakdown", which is the name of
+// the two-count row in the PANEL. It is the residue of a duplicated component,
+// not a design element: there is nothing for a lone 4px dot to separate. It is
+// deliberately not rendered, and this note is the record of that decision.
+
+// ---------------------------------------------------------------------------
+// The comment — 1207:30520
+// ---------------------------------------------------------------------------
+.spartrak-review-dialog__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+// Body/Small Medium — Medium 14/1.5 on text/primary (1207:30521).
+.spartrak-review-dialog__label {
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    text-align: start;
+}
+
+// 1207:30522 — 91px tall, and the padding is ASYMMETRIC in the frame:
+// 12px on the left, 16px on the right, 8px block. On an Arabic frame the right
+// edge is the inline-START, so it is 16px at the start and 12px at the end.
+.spartrak-review-dialog__input {
+    inline-size: 100%;
+    block-size: 91px;
+    padding-block: 8px;
+    padding-inline: 16px 12px;
+    border: 1px solid var(--color-border-default);
+    border-radius: 0;
+    background: var(--color-bg-surface);
+    box-shadow: var(--shadow-input);
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    text-align: start;
+    // The frame clips this box and fixes its height. A drag handle would be a
+    // control the design does not draw; the textarea keeps its native
+    // scrolling, so nothing a shopper types is unreachable.
+    resize: none;
+
+    &::placeholder {
+        color: var(--color-text-muted);
+        opacity: 1; // Firefox dims placeholders; Figma's are full strength.
+    }
+
+    // The border IS the focus indication, matching the auth modal's controls —
+    // see the note there on why an outline produced a double ring against
+    // core's own `input:focus` box-shadow.
+    &:focus {
+        border-color: var(--color-border-focus);
+        box-shadow: var(--shadow-input);
+        outline: none;
+    }
+
+    // Set by the browser's own constraint validation once a submit has been
+    // attempted, so the field is only marked after the shopper has acted — not
+    // while an empty form is still being filled in.
+    &:user-invalid {
+        border-color: var(--color-feedback-danger);
+    }
+}
+
+// The design's own error slot — the "Hint Error" frame drawn and switched off
+// in the mobile dialog (1204:27430): a 16px glyph, a 6px gap, Body/Small.
+// Filled from the browser's native validationMessage; see the widget.
+.spartrak-review-dialog__hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-feedback-danger);
+    text-align: start;
+
+    // (0,0,2), because the class above sets `display: flex` and the UA sheet's
+    // `[hidden] { display: none }` is only (0,0,1) — without this the empty
+    // slot would occupy a row from first paint.
+    &[hidden] {
+        display: none;
+    }
+}
+
+.spartrak-review-dialog__hint-icon {
+    margin-block-start: 3px; // Figma insets the glyph 2.5px inside a 21px line
+    .spartrak-icon('error-warning-line.svg'; 16px; var(--color-feedback-danger));
+}
+
+// ---------------------------------------------------------------------------
+// Actions — 1207:30528
+// ---------------------------------------------------------------------------
+.spartrak-review-dialog__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.spartrak-review-dialog__submit,
+.spartrak-review-dialog__dismiss {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    inline-size: 100%;
+    block-size: 48px;
+    margin: 0;
+    padding-block: 0;
+    padding-inline: 24px;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    text-align: center;
+    cursor: pointer;
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
+    }
+}
+
+.spartrak-review-dialog__submit {
+    background: var(--color-action-primary);
+    color: var(--color-action-primary-text);
+
+    &:hover {
+        background: var(--color-action-primary-hover);
+        color: var(--color-action-primary-text);
+    }
+}
+
+.spartrak-review-dialog__dismiss {
+    background: var(--color-bg-field);
+    color: var(--color-action-secondary-text);
+
+    &:hover {
+        background: var(--color-border-default);
+        color: var(--color-action-secondary-text);
+    }
+}
+
+// ===========================================================================
+// 3. Mobile — 1204:27096 / 1204:27392
+// ===========================================================================
+@media (max-width: @breakpoint-header-collapse) {
+    // 1204:27097 — the panel gets 12px of its own inside the tab panel's 16px
+    // (_pdp.less already drops `.item.content` from 24 to 16 at this width),
+    // which is the 28px total inset the frame draws.
+    .spartrak-reviews {
+        padding: 12px;
+    }
+
+    // 1204:27100 — summary above bars.
+    .spartrak-reviews__overview {
+        flex-direction: column;
+    }
+
+    // The frame's two nesting levels put 16px between the title and the
+    // overview and 24px between the overview and the CTA. This DOM is flat —
+    // three siblings, one `gap` — so the extra 8px is added where the frame
+    // adds it rather than a container being introduced to hold one number.
+    .spartrak-reviews__actions {
+        margin-block-start: 8px;
+    }
+
+    // 1204:27138 — full width.
+    .spartrak-reviews__cta {
+        inline-size: 100%;
+    }
+}
+
+// ===========================================================================
+// 4. Reduced motion
+// ===========================================================================
+@media (prefers-reduced-motion: reduce) {
+    .spartrak-review-dialog__star {
+        transition: none;
+    }
+}

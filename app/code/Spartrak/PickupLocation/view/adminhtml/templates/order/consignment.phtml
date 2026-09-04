@@ -10,10 +10,15 @@
  * the layout attaches it unconditionally.
  *
  * A plain multipart form using Magento's own admin form classes rather than a
- * UI component: it is six controls on an existing page with one submit, and a
+ * UI component: it is seven controls on an existing page with one submit, and a
  * ui_component would mean a form declaration, a data provider and a modal for
  * the same result. See Controller\Adminhtml\Consignment\Save for why it is a
  * form of its own and not part of the status dropdown.
+ *
+ * Six of the seven are the driver, the vehicle and the journey. The seventh is
+ * `الي الموقف`, which is the customer's own choice and used to be display-only
+ * — see the note above that field for why it had to become settable, and
+ * Model\OrderDestination for how it stays an override rather than a rewrite.
  *
  * @var \Spartrak\PickupLocation\Block\Adminhtml\Order\View\Consignment $block
  * @var \Magento\Framework\Escaper $escaper
@@ -29,6 +34,10 @@ $destination = $block->getDestination();
 $missing = $block->getMissingFields();
 $isReady = $block->isReady();
 $isDispatched = $block->isDispatched();
+$customerChoice = $block->getCustomerChoice();
+$isRedirected = $block->isDestinationRedirected();
+$destinationReason = $block->getDestinationReason();
+$selectedDestinationId = $block->getSelectedDestinationId();
 ?>
 <section class="admin__page-section spartrak-order-consignment">
     <div class="admin__page-section-title">
@@ -86,16 +95,22 @@ $isDispatched = $block->isDispatched();
             <?php endif; ?>
 
             <?php /*
-              THE DESTINATION IS A DATA FAULT WHEN IT IS ABSENT, AND IT SAYS SO.
+              THE DESTINATION IS A DATA FAULT WHEN IT IS ABSENT — AND IT NOW
+              HAS SOMEWHERE TO BE FIXED.
 
-              `الي الموقف` is the shopper's checkout choice. It is the one
-              required fact on their card that the dispatcher cannot type in, so
-              a missing value is not a field to fill — it is something to go and
-              find out. Dispatch is deliberately NOT blocked on it: the parcel
-              still has to travel and the driver's number is the customer's real
-              lifeline, so withholding the whole dispatch over a column this
-              module failed to write would punish the customer for our fault.
-              The reasoning is recorded in Model\ConsignmentRequirements.
+              `الي الموقف` is normally the shopper's checkout choice. When it is
+              missing, this message used to be the end of the story: it told the
+              dispatcher to phone the customer and then offered nothing to do
+              with the answer, so the same red box stood on the order for ever
+              and the customer's order page could never show a destination.
+              §9 question 5 settles that — the "To station" field below records
+              it, and this message now points at it.
+
+              Dispatch is still deliberately NOT blocked: the parcel has to
+              travel and the driver's number is the customer's real lifeline, so
+              withholding a whole dispatch over a column this module failed to
+              write would punish the customer for our fault. The reasoning is
+              recorded in Model\ConsignmentRequirements.
             */ ?>
             <?php if (!$block->hasDestination()): ?>
                 <div class="message message-error">
@@ -103,9 +118,9 @@ $isDispatched = $block->isDispatched();
                     <?= $escaper->escapeHtml(
                         __(
                             'This order was placed against the station-pickup carrier, but the station the '
-                            . 'customer chose was not recorded. Contact the customer to confirm where they '
-                            . 'expect to collect before the vehicle leaves — their order page cannot show a '
-                            . 'destination until it is on the order.'
+                            . 'customer chose was never saved onto it. Phone the customer, confirm where they '
+                            . 'expect to collect, and record it in "To station" below — their order page cannot '
+                            . 'show a destination until it is on the order. You can still dispatch without it.'
                         )
                     ) ?>
                 </div>
@@ -188,24 +203,37 @@ $isDispatched = $block->isDispatched();
 
                     <?php /*
                       ===============================================================
-                      `الي الموقف` — THE WHOLE STATION, NOT JUST ITS NAME
+                      `الي الموقف` — THE WHOLE STATION, AND NOW SETTABLE
                       ===============================================================
-                      Displayed, never edited: it is already on the order, and a
-                      second editable copy is how the card ends up naming one
-                      station in its title and another in its rows — precisely
-                      the mock bug §8 of the spec records.
+                      It was DISPLAY-ONLY, on the rule that "it is already on
+                      the order and retyping it is how the two drift apart".
+                      That rule was right about retyping and wrong about the
+                      consequence: on an order whose checkout snapshot never
+                      landed there was nothing to display and no way to supply
+                      it, so the one fact the customer needs most — where to go
+                      — was unrecoverable. §9 question 5 is the decision that
+                      changes it.
 
-                      But it is displayed in FULL now. "موقف السلام" alone does
-                      not tell a dispatcher which station that is: several
-                      governorates have similarly-named yards, the operator
-                      decides which vehicles run there, and the street is what a
-                      driver is actually told. The person choosing a driver for
-                      this route has to be able to see the route — see the
-                      block's getDestination() for where each row comes from and
-                      why the snapshot outranks the live record.
+                      IT IS A LIST, NOT A TEXT FIELD, and that is what answers
+                      the drift objection: the value can only ever be one of the
+                      stations the checkout itself offers, so the two sides
+                      cannot invent different spellings of one place, and the
+                      customer's card gets a real name, street, governorate and
+                      operator rather than one typed string.
+
+                      SELECTING NOTHING MEANS "use the customer's choice". The
+                      override is only ever written when a station is picked, and
+                      picking the customer's own clears it again — see
+                      Controller\Adminhtml\Consignment\Save::applyDestination().
+
+                      The station is still shown in FULL above the control:
+                      "موقف السلام" alone does not tell a dispatcher which
+                      station that is, since several governorates have
+                      similarly-named yards and the operator decides which
+                      vehicles run there.
                     */ ?>
                     <div class="admin__field">
-                        <label class="admin__field-label">
+                        <label class="admin__field-label" for="spartrak-destination">
                             <span><?= $escaper->escapeHtml(__('To station')) ?></span>
                         </label>
                         <div class="admin__field-control">
@@ -237,8 +265,114 @@ $isDispatched = $block->isDispatched();
                                     </p>
                                 <?php endif; ?>
                             <?php endif; ?>
+
+                            <?php /*
+                              WHERE THIS VALUE CAME FROM — three different facts,
+                              said differently, because they mean different
+                              things to whoever reads the order next.
+                            */ ?>
+                            <?php if ($isRedirected): ?>
+                                <p class="admin__field-note">
+                                    <strong><?= $escaper->escapeHtml(
+                                        __('Redirected. The customer chose %1.', $customerChoice)
+                                    ) ?></strong>
+                                    <?php if ($destinationReason !== null): ?>
+                                        <?= $escaper->escapeHtml(__('Reason: %1', $destinationReason)) ?>
+                                    <?php endif; ?>
+                                </p>
+                            <?php elseif ($customerChoice !== null): ?>
+                                <p class="admin__field-note">
+                                    <?= $escaper->escapeHtml(__('Chosen by the customer at checkout.')) ?>
+                                </p>
+                            <?php elseif ($destination['name'] !== null): ?>
+                                <p class="admin__field-note">
+                                    <?= $escaper->escapeHtml(
+                                        __('Recorded here, because the checkout did not save it onto this order.')
+                                    ) ?>
+                                    <?php if ($destinationReason !== null): ?>
+                                        <?= $escaper->escapeHtml(__('Reason: %1', $destinationReason)) ?>
+                                    <?php endif; ?>
+                                </p>
+                            <?php endif; ?>
+
+                            <?php /*
+                              A recorded station whose depot has since been
+                              disabled or deleted cannot be shown as selected,
+                              so without this the panel would look as though
+                              nothing had been recorded while the customer's
+                              card was printing a station.
+                            */ ?>
+                            <?php if ($block->isRecordedDestinationUnselectable()): ?>
+                                <div class="message message-warning">
+                                    <?= $escaper->escapeHtml(
+                                        __(
+                                            'The station recorded here is no longer in the active list, so it '
+                                            . 'cannot be shown as selected below. It is kept on the order until '
+                                            . 'you choose another one. Re-enable it under Pickup Locations if it '
+                                            . 'is still in service.'
+                                        )
+                                    ) ?>
+                                </div>
+                            <?php endif; ?>
+
+                            <select id="spartrak-destination"
+                                    name="destination_id"
+                                    class="admin__control-select">
+                                <option value=""><?= $escaper->escapeHtml(
+                                    $customerChoice !== null
+                                        ? __('Keep the choice the customer made (%1)', $customerChoice)
+                                        : __('Not recorded — choose the station the customer confirms')
+                                ) ?></option>
+                                <?php foreach ($block->getDestinationOptions() as $option): ?>
+                                    <option value="<?= $escaper->escapeHtmlAttr((string) $option['id']) ?>"
+                                        <?= $selectedDestinationId === $option['id'] ? 'selected' : '' ?>>
+                                        <?= $escaper->escapeHtml($option['label']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                             <p class="admin__field-note">
-                                <?= $escaper->escapeHtml(__('Chosen by the customer at checkout.')) ?>
+                                <?= $escaper->escapeHtml(
+                                    __(
+                                        'The customer chooses this at checkout. Change it only to record a '
+                                        . 'station the checkout did not save, or to redirect a shipment whose '
+                                        . 'station this vehicle cannot reach. The list is the active depot '
+                                        . 'network — add a missing station under Pickup Locations, which fixes '
+                                        . 'it for checkout too.'
+                                    )
+                                ) ?>
+                            </p>
+                        </div>
+                    </div>
+
+                    <?php /*
+                      THE REASON IS REQUIRED ONLY WHEN THIS REPLACES A CHOICE
+                      THE CUSTOMER MADE, and that condition is enforced on the
+                      SERVER (see the controller), not with a `required`
+                      attribute here. The rule depends on which station is
+                      selected against what the order already carries, which is
+                      a comparison the browser cannot make — and a field that is
+                      required by JavaScript only is a field that is not
+                      required.
+                    */ ?>
+                    <div class="admin__field">
+                        <label class="admin__field-label" for="spartrak-destination-reason">
+                            <span><?= $escaper->escapeHtml(__('Reason for the destination')) ?></span>
+                        </label>
+                        <div class="admin__field-control">
+                            <input type="text"
+                                   id="spartrak-destination-reason"
+                                   name="destination_reason"
+                                   class="admin__control-text"
+                                   maxlength="255"
+                                   value="<?= $escaper->escapeHtmlAttr($destinationReason ?? '') ?>">
+                            <p class="admin__field-note">
+                                <?= $escaper->escapeHtml(
+                                    __(
+                                        'Required when you send an order to a station other than the one the '
+                                        . 'customer chose. It is written to the order history, which is the only '
+                                        . 'record of the change the customer will ever have.'
+                                    )
+                                ) ?>
                             </p>
                         </div>
                     </div>

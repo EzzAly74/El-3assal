@@ -388,6 +388,7 @@ return [
         'Spartrak_InstaPay' => 1,
         'Spartrak_Search' => 1,
         'Spartrak_CustomerAccount' => 1,
-        'Spartrak_Wishlist' => 1
+        'Spartrak_Wishlist' => 1,
+        'Spartrak_Review' => 1
     ]
 ];

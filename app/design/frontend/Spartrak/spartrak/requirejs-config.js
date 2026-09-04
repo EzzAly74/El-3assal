@@ -21,7 +21,8 @@ var config = {
             spartrakCascadeSearch: 'js/spartrak-cascade-search',
             spartrakQuickSearch: 'js/spartrak-quick-search',
             spartrakToast: 'js/spartrak-toast',
-            spartrakCartQty: 'js/spartrak-cart-qty'
+            spartrakCartQty: 'js/spartrak-cart-qty',
+            spartrakReviewDialog: 'js/spartrak-review-dialog'
         }
     },
     /*

@@ -80,6 +80,12 @@
 // vocabulary (the rating mask, the discount pill) and, where it needs to
 // differ — 22px stars against the card's 20px — must be the later word.
 @import "source/components/_pdp.less";
+// The PDP reviews panel and the rating dialog. AFTER _pdp.less, which owns the
+// tab row and the tab panel this component renders inside — so where the two
+// touch (the panel's own padding at each width) this file is the later word.
+// It shares _pdp.less's rating vocabulary and adds no colour or type step of
+// its own that is not already a token.
+@import "source/components/_reviews.less";
 // The cart drawer. Imported after the header component that styles its trigger,
 // and grouped here with the other components that claim CORE Magento classes
 // (.block-minicart, .ui-dialog) rather than Spartrak ones.
