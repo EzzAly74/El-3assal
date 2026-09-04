@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  THE TRANSFER PAGE'S STYLES WERE WRITTEN BUT NEVER LOADED
+  ===========================================================================
+  components/_checkout.less has carried the whole `.spartrak-instapay__*` block
+  since the page was built (Figma 586:7352 / 586:7420, with the 440 rules in the
+  mobile section). It compiles into css/spartrak-checkout.css — which was
+  enqueued on checkout_index_index and checkout_onepage_success and on nothing
+  else, so this handle rendered the markup with no stylesheet behind it: an
+  unstyled native file input, no dropzone, no brand ring.
+
+  Only the page bundle was missing. spartrak-components.css and the foundations
+  load globally, which is why the header and footer looked correct while
+  everything between them did not.
+
+  ===========================================================================
+  IT SHARES THE CHECKOUT'S STYLESHEET RATHER THAN GETTING ITS OWN
+  ===========================================================================
+  The `.spartrak-instapay__*` rules are ~370 of the 3,270 lines in
+  _checkout.less, about 750 bytes gzipped, and they match nothing outside this
+  page — so splitting them into a fourth bundle looks like the tidier answer.
+  It measures worse.
+
+  This page is only ever reached by redirect from the checkout, immediately
+  after place-order. spartrak-checkout.css is therefore already in cache,
+  under the identical URL, every single time: sharing it costs ZERO requests
+  and ZERO bytes here. A dedicated bundle would instead cost one cold request
+  on a page the shopper hits mid-payment, on whatever connection they happen to
+  be on, to save the checkout page 750 bytes it had already paid for.
+
+  Fewer requests on the critical page wins (CLAUDE.md section 13). It is also
+  the precedent already set one handle over: checkout_onepage_success.xml
+  enqueues this same file for the same reason.
+
+  If this page ever becomes reachable cold — a link in the confirmation SMS,
+  say, or a "finish your payment" link from the account area — that premise
+  breaks and the split becomes the right call.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <css src="css/spartrak-checkout.css"/>
+    </head>
+</page>

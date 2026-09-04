@@ -22,8 +22,9 @@ define([
     // wrong namespace 404s - which RequireJS reports as a script error that
     // aborts the whole component, leaving the checkout on its spinner forever.
     'Magento_Customer/js/model/address-list',
+    'Magento_Checkout/js/model/shipping-service',
     'Spartrak_Checkout/js/model/delivery-mode'
-], function (ko, addressList, deliveryMode) {
+], function (ko, addressList, shippingService, deliveryMode) {
     'use strict';
 
     return function (Shipping) {
@@ -57,6 +58,42 @@ define([
              */
             spartrakHasAddresses: ko.computed(function () {
                 return addressList().length > 0;
+            }),
+
+            /**
+             * The rates the shipping-method CARDS are allowed to show.
+             *
+             * ===================================================================
+             * WHY THE FULL RATE LIST IS THE WRONG SOURCE
+             * ===================================================================
+             * The pickup carriers are ordinary Magento carriers - that is the
+             * whole reason choosing a branch produces a real shipping method and
+             * core's validation and totals work untouched (see
+             * js/model/delivery-mode.js). The price of that is that
+             * `shippingService.getShippingRates()` returns them alongside
+             * `شحن عادي` and `شحن اكسبريس`, and the card list rendered every one
+             * it was given.
+             *
+             * So the الشحن segment showed four cards: the two delivery tiers plus
+             * `استلام من الفرع` and `استلام من الموقف` - the same two options the
+             * segments above already offer, as cards that silently switch the
+             * shopper out of the segment they are looking at. Figma's delivery
+             * frame (549:26262) draws two.
+             *
+             * Filtered through `modeForCarrier`, not against a hardcoded pair of
+             * codes, so a delivery carrier a merchant adds later is included and
+             * a third pickup carrier is excluded without touching this file.
+             *
+             * `rates` itself is left alone. It is core's, the step's own
+             * `rates().length` guards read it, and a pickup rate genuinely IS an
+             * available rate - it is only the CARD LIST that must not offer it.
+             *
+             * @return {Array}
+             */
+            spartrakDeliveryRates: ko.computed(function () {
+                return shippingService.getShippingRates()().filter(function (rate) {
+                    return deliveryMode.modeForCarrier(rate['carrier_code']) === deliveryMode.DELIVERY;
+                });
             })
         });
     };

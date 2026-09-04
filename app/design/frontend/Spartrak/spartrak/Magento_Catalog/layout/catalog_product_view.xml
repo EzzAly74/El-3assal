@@ -46,6 +46,30 @@ depends on Porto's layout surviving unchanged.
         <move
             element="catalog.product.related"
             destination="content"
-            after="product.info.main"/>
+            after="product.info.details"/>
+
+        <!--
+          RELATED PRODUCTS — Figma 535:12047 (desktop) / 655:19767 (mobile).
+
+          The <move> above is what makes the block render at all. This only
+          changes how it LOOKS: the class and the template. The block is still
+          Magento's own related-products block, so what it shows stays exactly
+          what an admin picked under a product's "Related Products" tab, in
+          their order — and the template it now points at is the SAME rail the
+          homepage renders (same header partial, same card, same CSS, same
+          carousel widget).
+
+          `limit` caps how many cards reach the HTML; related products are
+          unbounded in the admin, and forty linked products would otherwise be
+          forty cards, images and add-to-cart forms in the PDP's response.
+          Changing it is this one line, no PHP.
+        -->
+        <referenceBlock name="catalog.product.related"
+                        class="Spartrak\Catalog\Block\Product\RelatedRail"
+                        template="Spartrak_Catalog::product/related-rail.phtml">
+            <arguments>
+                <argument name="limit" xsi:type="number">12</argument>
+            </arguments>
+        </referenceBlock>
     </body>
 </page>

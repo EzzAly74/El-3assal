@@ -378,8 +378,16 @@ return [
         'Smartwave_Socialfeeds' => 1,
         'Spartrak_Catalog' => 1,
         'Spartrak_CustomerAuth' => 1,
+        'Spartrak_CustomerAddress' => 1,
+        'Spartrak_Locale' => 1,
+        'Spartrak_PickupLocation' => 1,
         'Spartrak_Homepage' => 1,
+        'Spartrak_Checkout' => 1,
+        'Spartrak_Payment' => 1,
+        'Spartrak_Shipping' => 1,
+        'Spartrak_InstaPay' => 1,
         'Spartrak_Search' => 1,
+        'Spartrak_CustomerAccount' => 1,
         'Spartrak_Wishlist' => 1
     ]
 ];

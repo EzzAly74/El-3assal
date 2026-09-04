@@ -17,6 +17,28 @@
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
     <default>
+        <!--
+          THE EGYPTIAN WEEK.
+
+          Magento_Store ships `0,6` here — Sunday and Saturday, a US week. In
+          Egypt the weekend is Friday and Saturday, and Sunday is a full working
+          day. Left at core's default, every delivery estimate this module
+          produces would skip the busiest day of the local week and count a
+          working one, quoting arrival dates one to two days late.
+
+          It is Magento's own field (Stores > Configuration > General > Locale
+          Options > Weekend), not a Spartrak setting: Model\EstimatedArrival
+          reads it, and so does the admin's calendar widget. A merchant serving
+          a different market changes it in one place.
+
+          A DEFAULT, not a lock. Everything in this file is.
+        -->
+        <general>
+            <locale>
+                <weekend>5,6</weekend>
+            </locale>
+        </general>
+
         <carriers>
             <spartrak>
                 <active>1</active>

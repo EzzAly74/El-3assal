@@ -12,70 +12,93 @@
 // custom properties), so they don't carry over from spartrak-foundations's
 // separately-compiled CSS output. Re-import just the LESS-variable file
 // here so every component below can use @breakpoint-mobile/@breakpoint-desktop.
-@import 'source/foundations/_breakpoints.less';
+@import "source/foundations/_breakpoints.less";
+// Page gutters. Same rationale as _breakpoints.less above — plain LESS
+// variables that must resolve at build time, so they are re-imported into this
+// bundle rather than carried over from spartrak-foundations's separately
+// compiled CSS. Imported here, ahead of every component, because TWO
+// components have to agree on the number: _plp.less pads .page-main with it
+// and _category-top.less applies its negative to go full bleed. See that file
+// for why the declarations are not in _plp.less any more.
+@import "source/foundations/_page-metrics.less";
 // Icon mixin — must be imported before any component that calls .spartrak-icon().
-@import 'source/foundations/_icons.less';
+@import "source/foundations/_icons.less";
 // Spinner mixin + its @keyframes — same rationale as _icons.less above. Must
 // be imported before any component that calls .spartrak-spinner().
-@import 'source/foundations/_spinner.less';
+@import "source/foundations/_spinner.less";
+
 // Accessibility utilities - the visually-hidden mixin and its utility class.
 // Must be imported before any component that calls .spartrak-visually-hidden(),
 // same rule as the icon and spinner mixins above.
-@import 'source/foundations/_a11y.less';
+@import "source/foundations/_a11y.less";
 
 // Porto chrome that is still load-bearing, migrated out of the DB-stored
 // porto_settings/custom_settings/custom_style blob. Imported FIRST so it can
 // never outrank a Spartrak component on equal specificity.
-@import 'source/components/_porto-chrome.less';
+@import "source/components/_porto-chrome.less";
 
-@import 'source/components/_top-banner.less';
-@import 'source/components/_utility-header.less';
-@import 'source/components/_support-strip.less';
-@import 'source/components/_mega-nav.less';
+// Breadcrumbs. Page chrome rather than a page component, so it sits with
+// _porto-chrome.less above it: that file owns the container widths this
+// component aligns the crumb band to. Global on every page - see the file for
+// why the three Porto copies it replaces are now inert.
+@import "source/components/_breadcrumbs.less";
+
+@import "source/components/_top-banner.less";
+@import "source/components/_utility-header.less";
+@import "source/components/_support-strip.less";
+@import "source/components/_mega-nav.less";
 // Imported after _utility-header: that file positions the panel container
 // (.spartrak-search__autocomplete); this one styles the fragment inside it.
-@import 'source/components/_search-suggest.less';
-@import 'source/components/_mobile-drawer.less';
-@import 'source/components/_login-modal.less';
+@import "source/components/_search-suggest.less";
+@import "source/components/_mobile-drawer.less";
+@import "source/components/_login-modal.less";
 // Every OTHER dialog in the project. Claims core's .modal-popup / .modal-slide
 // classes so one stylesheet covers the cart's remove confirmation, the
 // wishlist, checkout's address forms and any module that uses the platform's
 // own modal — imported after the auth modal, which owns its own markup and
 // must not be reached by these rules.
-@import 'source/components/_modal.less';
+@import "source/components/_modal.less";
 // "Nothing here yet" — one component, shared by the cart drawer and the cart
 // page. Imported before both so either can add its own placement on top.
-@import 'source/components/_empty-state.less';
-@import 'source/components/_footer.less';
-@import 'source/components/_homepage-sections.less';
-@import 'source/components/_product-card.less';
-@import 'source/components/_plp.less';
+@import "source/components/_empty-state.less";
+@import "source/components/_footer.less";
+@import "source/components/_homepage-sections.less";
+@import "source/components/_product-card.less";
+// Pagination — the shared control, not a PLP part. Imported BEFORE _plp.less
+// so that file stays the later word on the spacing it still owns around it.
+// Also imported by spartrak-account.less, which is the whole point: the order
+// list and the wishlist page the same Magento pager markup.
+@import "source/components/_pagination.less";
+@import "source/components/_plp.less";
+// The two bands above the PLP's product area (hero + "تسوق بالمنتجات" rail).
+// Kept directly after _plp.less because the two describe one page: this file
+// applies the negative of the page gutter that one applies, so a reader
+// changing either should see the other immediately. Both take the number from
+// foundations/_page-metrics.less above, not from each other.
+@import "source/components/_category-top.less";
 // The PDP. Imported after _product-card and _plp because it shares their
 // vocabulary (the rating mask, the discount pill) and, where it needs to
 // differ — 22px stars against the card's 20px — must be the later word.
-@import 'source/components/_pdp.less';
+@import "source/components/_pdp.less";
 // The cart drawer. Imported after the header component that styles its trigger,
 // and grouped here with the other components that claim CORE Magento classes
 // (.block-minicart, .ui-dialog) rather than Spartrak ones.
-@import 'source/components/_minicart-drawer.less';
+@import "source/components/_minicart-drawer.less";
+// NOTE: components/_cart.less and components/_checkout.less are deliberately
+// NOT imported here. Together they are ~76KB uncompiled (~7KB gzipped) and
+// apply to exactly three page handles, so putting them in this bundle would
+// put the whole funnel's CSS in the render-blocking critical path of the
+// homepage, PLP and PDP — the pages whose LCP actually matters. They are
+// compiled as their own entry points (spartrak-cart.less, spartrak-checkout.less)
+// and enqueued per page. See those files.
 // Magento's own loader chrome, restyled onto the Spartrak spinner. Imported
 // last: it claims core/Porto loader classes rather than Spartrak ones, so it
 // must not sit ahead of a Spartrak component on equal specificity.
 // Page messages as toasts. Imported before the loader for the same reason
 // the loader is last: both claim core/Porto classes rather than Spartrak
 // ones, and the loader must stay the final word on its own.
-// The checkout funnel. Imported after _minicart-drawer because the two share
-// the cart-line vocabulary (image tile, qty badge, price) and, where checkout
-// diverges, must be the later word; and before the toast/loader pair for the
-// same reason every Spartrak component is — those two claim core classes.
-@import 'source/components/_checkout.less';
-// The cart PAGE. Imported straight after _checkout.less because the two share
-// the cart-line vocabulary and the summary-card shape, and before the
-// toast/loader pair for the same reason every Spartrak component is - those two
-// claim core/Porto classes rather than Spartrak ones.
-@import 'source/components/_cart.less';
-@import 'source/components/_toast.less';
-@import 'source/components/_loader.less';
+@import "source/components/_toast.less";
+@import "source/components/_loader.less";
 
 // NOTE: the design-system ownership layer that used to be imported here has
 // MOVED to Magento_Theme/web/css/source/_extend.less. A rule in this bundle

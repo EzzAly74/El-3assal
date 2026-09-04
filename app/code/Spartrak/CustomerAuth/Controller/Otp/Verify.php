@@ -60,7 +60,15 @@ class Verify extends AbstractJsonAction implements HttpPostActionInterface
 
         return [
             'verification_token' => $proofToken,
-            'next_step' => $purpose === Purpose::SIGNUP ? 'registration' : 'set_password',
+            // Which endpoint the caller should spend the token at. A match
+            // rather than a ternary now that there are three purposes — the
+            // ternary silently sent a phone-change token to the set-password
+            // step, which is the one mistake this field exists to prevent.
+            'next_step' => match ($purpose) {
+                Purpose::SIGNUP => 'registration',
+                Purpose::PHONE_CHANGE => 'phone_change',
+                default => 'set_password',
+            },
             'message' => (string) __('Your phone number is verified.'),
         ];
     }

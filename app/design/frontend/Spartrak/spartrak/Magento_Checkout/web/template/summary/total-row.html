@@ -1,0 +1,26 @@
+<!--
+/**
+ * Spartrak generic totals row.
+ *
+ * NOT A FIGMA NODE. Figma's summary (551:11170) draws exactly four rows -
+ * subtotal, savings, shipping and the grand total - and each of those has its
+ * own template because each has its own treatment.
+ *
+ * This is the row every OTHER total gets: tax, a fixed product fee, store
+ * credit, a gift-wrapping charge, whatever a merchant switches on or a third
+ * party adds. Magento's totals are admin-orderable and open-ended, and
+ * summary/totals.html renders elems() precisely so an unforeseen total still
+ * appears. Without a row template it would appear as core's `<tr>` root inside
+ * a flex column - blockified, shrink-wrapped, and visibly broken.
+ *
+ * It reads only what EVERY total component carries: isDisplayed(), title and
+ * getValue(). Nothing here knows which total it is rendering, which is what
+ * makes it safe to point a new one at.
+ */
+-->
+<!-- ko if: isDisplayed() -->
+<div class="spartrak-total">
+    <span class="spartrak-total__label" data-bind="i18n: title"></span>
+    <span class="spartrak-total__value" data-bind="text: getValue()"></span>
+</div>
+<!-- /ko -->

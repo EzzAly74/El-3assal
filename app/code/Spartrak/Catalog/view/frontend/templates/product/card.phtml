@@ -162,6 +162,17 @@ $ratingPercent = (int) $product->getRatingSummary();
 $reviewsCount = (int) $product->getReviewsCount();
 $ratingValue = $ratingPercent > 0 ? number_format($ratingPercent / 20, 1) : '';
 
+// The star row renders on EVERY card, rated or not. Figma's own PLP frames
+// show it that way: all five stars sit in the component's empty state
+// (--color-rating-empty) on every instance, so an unrated product is not a
+// missing row, it is the row at 0% fill. Keeping it always-present also
+// stops the card body reflowing by ~21px between rated and unrated products,
+// which was making grid rows ragged.
+$hasRating = $ratingPercent > 0;
+$ratingLabel = $hasRating
+    ? __('Rated %1 out of 5', $ratingValue)
+    : __('No reviews yet');
+
 $priceHtml = '';
 try {
     $priceRender = $block->getLayout()->getBlock('product.price.render.default');
@@ -189,6 +200,7 @@ $wishlistHtml = '';
 try {
     $wishlistHtml = $block->getLayout()
         ->createBlock(\Magento\Wishlist\Block\Catalog\Product\ProductList\Item\AddTo\Wishlist::class)
+        ->setTemplate('Magento_Wishlist::catalog/product/list/addto/wishlist.phtml')
         ->setProduct($product)
         ->toHtml();
 } catch (\Exception $e) {
@@ -218,18 +230,18 @@ try {
                         <?= $block->escapeHtml($product->getName()) ?>
                     </a>
                 </div>
-                <?php if ($ratingPercent > 0) : ?>
-                    <div class="spartrak-card__rating">
-                        <span class="spartrak-card__stars"
-                              style="--spartrak-rating-fill: <?= (int) $ratingPercent ?>%"
-                              role="img"
-                              aria-label="<?= $block->escapeHtmlAttr(__('Rated %1 out of 5', $ratingValue)) ?>"></span>
+                <div class="spartrak-card__rating">
+                    <span class="spartrak-card__stars"
+                          style="--spartrak-rating-fill: <?= (int) $ratingPercent ?>%"
+                          role="img"
+                          aria-label="<?= $block->escapeHtmlAttr($ratingLabel) ?>"></span>
+                    <?php if ($hasRating) : ?>
                         <span class="spartrak-card__rating-value"><?= $block->escapeHtml($ratingValue) ?></span>
                         <?php if ($reviewsCount > 0) : ?>
                             <span class="spartrak-card__rating-count" dir="auto"><?= $block->escapeHtml(__('(%1 reviews)', $reviewsCount)) ?></span>
                         <?php endif; ?>
-                    </div>
-                <?php endif; ?>
+                    <?php endif; ?>
+                </div>
                 <div class="spartrak-card__price"><?= /* @noEscape */ $priceHtml ?></div>
             </div>
         </div>
@@ -294,18 +306,18 @@ try {
                         <?= $block->escapeHtml($product->getName()) ?>
                     </a>
                 </div>
-                <?php if ($ratingPercent > 0) : ?>
-                    <div class="spartrak-card__rating">
-                        <span class="spartrak-card__stars"
-                              style="--spartrak-rating-fill: <?= (int) $ratingPercent ?>%"
-                              role="img"
-                              aria-label="<?= $block->escapeHtmlAttr(__('Rated %1 out of 5', $ratingValue)) ?>"></span>
+                <div class="spartrak-card__rating">
+                    <span class="spartrak-card__stars"
+                          style="--spartrak-rating-fill: <?= (int) $ratingPercent ?>%"
+                          role="img"
+                          aria-label="<?= $block->escapeHtmlAttr($ratingLabel) ?>"></span>
+                    <?php if ($hasRating) : ?>
                         <span class="spartrak-card__rating-value"><?= $block->escapeHtml($ratingValue) ?></span>
                         <?php if ($reviewsCount > 0) : ?>
                             <span class="spartrak-card__rating-count" dir="auto"><?= $block->escapeHtml(__('(%1 reviews)', $reviewsCount)) ?></span>
                         <?php endif; ?>
-                    </div>
-                <?php endif; ?>
+                    <?php endif; ?>
+                </div>
             </div>
             <div class="spartrak-card__price-row">
                 <div class="spartrak-card__price"><?= /* @noEscape */ $priceHtml ?></div>

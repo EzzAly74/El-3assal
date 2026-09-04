@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<!--
+  FRONTEND scope, not global. The only consumer is the storefront account card
+  (Figma 821:17286), and the plugin's target — Magento\Customer\Controller\
+  Account\EditPost — is a frontend controller that does not exist in the admin
+  or in a CLI request. Declaring it globally would load the class into every
+  area for a form only one of them serves.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Magento\Customer\Controller\Account\EditPost">
+        <plugin name="spartrak_split_account_full_name"
+                type="Spartrak\CustomerAccount\Plugin\Customer\SplitFullName"
+                sortOrder="10"/>
+    </type>
+
+    <!--
+      Core redirects an empty address book to /customer/address/new and shows
+      Magento's stock address form there. Figma's address book is a card with
+      its own empty state and its own "اضف عنوان جديد" action, so the page is
+      rendered instead of jumped over. Full reasoning in the plugin.
+    -->
+    <type name="Magento\Customer\Controller\Address\Index">
+        <plugin name="spartrak_show_empty_address_book"
+                type="Spartrak\CustomerAccount\Plugin\Customer\ShowEmptyAddressBook"/>
+    </type>
+</config>

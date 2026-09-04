@@ -7,105 +7,135 @@ declare(strict_types=1);
 
 namespace Spartrak\PickupLocation\ViewModel;
 
+use Magento\Framework\Phrase;
 use Magento\Framework\View\Element\Block\ArgumentInterface;
-use Magento\Sales\Api\Data\OrderAddressInterface;
 use Magento\Sales\Api\Data\OrderInterface;
+use Spartrak\PickupLocation\Model\FulfilmentChannel;
+use Spartrak\PickupLocation\Model\OrderPickupSnapshot;
 use Spartrak\PickupLocation\Model\PickupType;
 
 /**
- * "Where is this order being collected from?" - asked by the success page and
- * by the admin order view.
+ * "Where is this order being collected from?" - asked by the success page, the
+ * customer's order page and the admin order view.
  *
- * Both surfaces need the same three facts and neither should be reaching into
- * a column name itself. A view model rather than a block because it carries no
- * markup and both consumers already have their own block hierarchy (CLAUDE.md
- * section 8: consume view models, do not duplicate logic).
+ * A thin view-model face over two models that do the actual thinking:
  *
- * Reads the ORDER's snapshot, never the live branch record. An order placed
- * against a branch that has since been renamed must still print what the
- * shopper chose - see db_schema.xml.
+ *   Model\FulfilmentChannel      WHICH CHANNEL - delivery, branch or depot -
+ *                                derived from core's own `shipping_method`
+ *   Model\OrderPickupSnapshot    WHICH PLACE - the four `spartrak_pickup_*`
+ *                                columns snapshotted onto the order
+ *
+ * ===========================================================================
+ * WHAT CHANGED, AND WHY IT MATTERED
+ * ===========================================================================
+ * This class used to answer "is this a pickup?" from the SNAPSHOT alone, and
+ * every getter short-circuited to null when `spartrak_pickup_type` was empty.
+ * A depot order whose snapshot had not landed therefore reported itself as a
+ * home delivery, and the consequence was severe rather than cosmetic: the admin
+ * "Station consignment" form is gated on this answer, so the ONE screen where a
+ * dispatcher records the driver the customer needs did not render at all. The
+ * feature disappeared in exactly the case that needed it.
+ *
+ * The channel now comes from the carrier, which core writes on every order and
+ * this module cannot fail to populate. A missing snapshot is reported as such
+ * (`hasLocationSnapshot()`) rather than being allowed to change the answer.
+ *
+ * A view model rather than a block because it carries no markup and every
+ * consumer already has its own block hierarchy (CLAUDE.md section 8: consume
+ * view models, do not duplicate logic).
  */
 class OrderPickup implements ArgumentInterface
 {
+    public function __construct(
+        private readonly FulfilmentChannel $channel,
+        private readonly OrderPickupSnapshot $snapshot
+    ) {
+    }
+
     public function isPickup(?OrderInterface $order): bool
     {
-        return $this->address($order) !== null;
+        return $this->channel->isPickup($order);
     }
 
     /**
-     * 'branch' or 'depot', or null when the order was delivered.
+     * 'branch' or 'depot', or null for a home delivery.
+     *
+     * Null still means "not a pickup", as it always did — but it now means it
+     * because the CARRIER is a delivery carrier, not because a column this
+     * module owns happened to be empty.
      */
     public function getType(?OrderInterface $order): ?string
     {
-        $address = $this->address($order);
+        $channel = $this->channel->get($order);
 
-        return $address !== null ? (string) $address->getData('spartrak_pickup_type') : null;
+        return $channel === FulfilmentChannel::DELIVERY ? null : $channel;
     }
 
     public function isBranch(?OrderInterface $order): bool
     {
-        return $this->getType($order) === PickupType::BRANCH;
+        return $this->channel->isBranch($order);
     }
 
+    public function isDepot(?OrderInterface $order): bool
+    {
+        return $this->channel->isDepot($order);
+    }
+
+    /**
+     * The chosen location's name, or null when the snapshot did not land.
+     *
+     * Callers must handle null on a pickup order. It is not "no pickup" — it is
+     * "we know they are collecting and we have lost track of where", which is
+     * an operational problem with a human fix, and the admin says so out loud.
+     */
     public function getName(?OrderInterface $order): ?string
     {
-        return $this->field($order, 'spartrak_pickup_name');
+        return $this->snapshot->getName($order);
     }
 
     public function getAddress(?OrderInterface $order): ?string
     {
-        return $this->field($order, 'spartrak_pickup_address');
+        return $this->snapshot->getAddress($order);
+    }
+
+    public function getLocationId(?OrderInterface $order): ?int
+    {
+        return $this->snapshot->getLocationId($order);
+    }
+
+    /**
+     * True when the channel says pickup and the location snapshot is intact.
+     * False is the fault state described on getName().
+     */
+    public function hasLocationSnapshot(?OrderInterface $order): bool
+    {
+        return $this->channel->hasLocationSnapshot($order);
     }
 
     /**
      * The heading a shopper should read above the location.
      *
-     * Two labels rather than one because "collect from our branch" and "collect
-     * from a coach depot" are genuinely different promises, and the success
-     * page is where a shopper decides whether they understood what they bought.
+     * Three labels, not two. "Collect from branch" and "collect from a
+     * transport station" are genuinely different promises — one is a counter of
+     * ours, the other a public station the shopper travels to and meets a
+     * stranger at — and the success page is where a shopper finds out whether
+     * they understood what they bought.
      */
     public function getLabel(?OrderInterface $order): ?string
     {
         return match ($this->getType($order)) {
-            PickupType::BRANCH => (string) __('Collect from branch'),
-            PickupType::DEPOT => (string) __('Collect from depot'),
+            PickupType::BRANCH, PickupType::DEPOT => (string) $this->channel->getLabel($order),
             default => null,
         };
     }
 
-    private function field(?OrderInterface $order, string $key): ?string
-    {
-        $address = $this->address($order);
-
-        if ($address === null) {
-            return null;
-        }
-
-        $value = trim((string) $address->getData($key));
-
-        return $value !== '' ? $value : null;
-    }
-
     /**
-     * The shipping address, but only when it actually carries a pickup choice.
-     *
-     * Returning null for a delivered order is what lets every method above be
-     * called unguarded from a template.
+     * The heading for the panel naming WHERE the order goes — three answers,
+     * one per channel. Exposed here so consumers need one dependency and not
+     * two; the wording itself belongs to FulfilmentChannel.
      */
-    private function address(?OrderInterface $order): ?OrderAddressInterface
+    public function getDestinationHeading(?OrderInterface $order): Phrase
     {
-        if ($order === null) {
-            return null;
-        }
-
-        $address = $order->getShippingAddress();
-
-        if ($address === null) {
-            return null;
-        }
-
-        $type = $address->getData('spartrak_pickup_type');
-
-        return PickupType::isValid(is_string($type) ? $type : null) ? $address : null;
+        return $this->channel->getDestinationHeading($order);
     }
 }

@@ -40,9 +40,9 @@
 // belongs in source/components/.
 
 //  Brand / action ---------------------------------------------------------
-@theme-color: #063196;                          // --primitive-navy
-@spartrak-navy-hover: #044776;                  // --primitive-navy-hover
-@spartrak-accent: #eebd1d;                      // --primitive-yellow
+@theme-color: #063196; // --primitive-navy
+@spartrak-navy-hover: #044776; // --primitive-navy-hover
+@spartrak-accent: #eebd1d; // --primitive-yellow
 
 //  Typography -------------------------------------------------------------
 //  Overrides Porto's `@font-family-name__base: 'Open Sans'` in its own
@@ -52,12 +52,18 @@
 //  — so these win globally without editing Porto's file.
 //  Families mirror foundations/_typography.less exactly; see that file's note
 //  on why the thmanyah sans files are not yet in hand.
-@font-family-name__base: 'thmanyah sans';
-@font-family__base: 'thmanyah sans', system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
+@font-family-name__base: "thmanyah sans";
+@font-family__base:
+  "thmanyah sans",
+  system-ui,
+  -apple-system,
+  "Segoe UI",
+  Tahoma,
+  sans-serif;
 @base-font-family: @font-family__base;
 
 //  Text -------------------------------------------------------------------
-@base-font-color: #0c0a20;                      // --primitive-ink
+@base-font-color: #0c0a20; // --primitive-ink
 @primary__color: @base-font-color;
 @text__color: @base-font-color;
 
@@ -73,7 +79,7 @@
 //  are the ones the audit flagged on the live storefront.
 @button-primary__background: @theme-color;
 @button-primary__border: 1px solid @theme-color;
-@button-primary__color: #ffffff;                // --primitive-surface
+@button-primary__color: #ffffff; // --primitive-surface
 @button-primary__hover__background: @spartrak-navy-hover;
 @button-primary__hover__border: 1px solid @spartrak-navy-hover;
 @button-primary__hover__color: #ffffff;
@@ -119,16 +125,42 @@
 @button__hover__border: false;
 
 //  Forms ------------------------------------------------------------------
-@form-element-input__border-color: #e4e3e5;     // --primitive-border
-@form-element-input__background: #f3f3f4;       // --primitive-field-bg
-@form-element-input__color: #0c0a20;            // --primitive-ink
+@form-element-input__border-color: #e4e3e5; // --primitive-border
+@form-element-input__background: #f3f3f4; // --primitive-field-bg
+@form-element-input__color: #0c0a20; // --primitive-ink
 @form-element-input-placeholder__color: #6d6c79; // --primitive-text-muted
-@focus__color: @theme-color;                    // --color-border-focus
+@focus__color: @theme-color; // --color-border-focus
+
+//  THE 3px NAVY GLOW ON EVERY FOCUSED FIELD — REMOVED AT THE SOURCE.
+//
+//  lib/web/css/source/lib/_resets.less:105 emits
+//
+//      ._keyfocus *, input:not([disabled]), textarea:not([disabled]),
+//      select:not([disabled]) { &:focus { box-shadow: 0 0 3px 1px @focus__color } }
+//
+//  which, with @focus__color rebound to the brand navy above, put a 3px
+//  #063196 halo around every input, textarea and select — on MOUSE clicks as
+//  well as keyboard focus, and on top of whatever focus treatment the Spartrak
+//  component had already drawn. It is not in any Figma frame.
+//
+//  `false`, not `none`: Magento's own .lib-css() mixin skips the declaration
+//  entirely for a false value, so core emits no box-shadow rule at all rather
+//  than emitting one that has to be overridden. Same idiom as
+//  @button__hover__background above.
+//
+//  The KEYBOARD focus indicator is not lost with it — it moves. The same reset
+//  block also sets `* { &:focus { outline: 0 } }`, so the glow was the only
+//  thing left, and dropping it alone would leave a keyboard user with nothing
+//  (CLAUDE.md §15). Magento_Theme/web/css/source/_extend.less replaces it with
+//  the design system's own `:focus-visible` outline, which is what every
+//  Spartrak component already draws — and `:focus-visible` is why a mouse click
+//  no longer lights the field up.
+@focus__box-shadow: false; // was 0 0 3px 1px @focus__color
 
 //  Surfaces / borders -----------------------------------------------------
-@body_background-color: #ffffff;                // --primitive-surface
+@body_background-color: #ffffff; // --primitive-surface
 @page__background-color: #ffffff;
-@border-color__base: #e4e3e5;                   // --primitive-border
+@border-color__base: #e4e3e5; // --primitive-border
 @color-gray80: #e4e3e5;
 @minicart__border-color: #e4e3e5;
 @tab-control__border-color: #e4e3e5;
@@ -137,10 +169,10 @@
 //  the design system treats breadcrumbs as quiet secondary text on the page
 //  surface (see components/_plp.less).
 @breadcrumbs__background-color: transparent;
-@breadcrumbs__font-color: #555463;              // --primitive-text-secondary
+@breadcrumbs__font-color: #555463; // --primitive-text-secondary
 
 //  Pager — live on PLP.
-@pager__color: #555463;                         // --primitive-text-secondary
+@pager__color: #555463; // --primitive-text-secondary
 @pager-action__color: #555463;
 @pager__active__color: #ffffff;
 @pager-current__color: #ffffff;
@@ -151,21 +183,21 @@
 @pager-action__active__color: #ffffff;
 
 //  Ratings ----------------------------------------------------------------
-@rating-icon__active__color: #eebd1d;           // --primitive-yellow
-@rating-icon__color: #f8e5a5;                   // --primitive-star-empty
+@rating-icon__active__color: #eebd1d; // --primitive-yellow
+@rating-icon__color: #f8e5a5; // --primitive-star-empty
 
 //  Price / product --------------------------------------------------------
-@product-info-price: #0c0a20;                   // --primitive-ink
+@product-info-price: #0c0a20; // --primitive-ink
 @product-view-product-info-price: #0c0a20;
 @product-info-page-title: #0c0a20;
 @cart-price-color: #0c0a20;
-@product-info-old-price: #9e9da6;               // --primitive-text-disabled
+@product-info-old-price: #9e9da6; // --primitive-text-disabled
 @product-view-product-info-old-price: #9e9da6;
-@product-reviews-summary-links: #555463;        // --primitive-text-secondary
+@product-reviews-summary-links: #555463; // --primitive-text-secondary
 
 //  Feedback ---------------------------------------------------------------
-@addto-wishlist-icon: #d54033;                  // --primitive-danger
-@addto-compare-icon: #049228;                   // --primitive-success
+@addto-wishlist-icon: #d54033; // --primitive-danger
+@addto-compare-icon: #049228; // --primitive-success
 
 //  Loaders ----------------------------------------------------------------
 //  The Spartrak spinner is drawn in CSS (components/_loader.less, built on
@@ -183,8 +215,8 @@
 //  `none` (not '') on purpose: an empty value would collapse the shorthand
 //  into `background: transparent no-repeat 50% 50%`, which is still valid
 //  but leaves nothing marking that the slot was intentionally emptied.
-@loader-icon__background-image: none;           // was url('images/loader-2.gif')
-@loading__background-image: none;               // was @loader-icon__background-image
+@loader-icon__background-image: none; // was url('images/loader-2.gif')
+@loading__background-image: none; // was @loader-icon__background-image
 
 //  NOT rebound: @loader-overlay__background-color. The translucent white
 //  scrim is Magento's own functional chrome, has no Figma counterpart, and

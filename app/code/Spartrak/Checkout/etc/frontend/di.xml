@@ -48,25 +48,70 @@
       getData('qty_options_view_model'), exactly as it would an argument set in
       layout.
     -->
-    <type name="Magento\Checkout\Block\Cart\Item\Renderer">
+    <!--
+      ===================================================================
+      "REMOVE THIS PRODUCT?" ON EVERY CART LINE
+      ===================================================================
+      Frontend-only: the admin's order-create screen removes items through a
+      different path entirely, and an agent on the phone does not want a
+      confirmation dialog between them and a customer.
+
+      One plugin covers every product type, because every cart item renderer
+      builds its bin's `data-post` from this one helper method. See the class
+      for why the dialog needs no JavaScript of its own.
+    -->
+    <type name="Magento\Checkout\Helper\Cart">
+        <plugin name="spartrak_confirm_cart_item_removal"
+                type="Spartrak\Checkout\Plugin\Checkout\ConfirmCartItemRemoval"/>
+    </type>
+
+    <!--
+      ===================================================================
+      HOW MANY QUANTITIES THE CART LINE'S DROPDOWN OFFERS
+      ===================================================================
+      The same 10 the cart DRAWER offers - see the theme's
+      Magento_Checkout/layout/default.xml, which sets `maxQtyOptions: 10` on
+      the minicart item renderer. Stated here rather than inside the view
+      model so the two surfaces' lengths sit in configuration and a merchant
+      changing one can see the other.
+
+      Stock is deliberately NOT a factor in this number; the view model's
+      header explains why, and why it used to be.
+    -->
+    <type name="Spartrak\Checkout\ViewModel\CartQtyOptions">
         <arguments>
-            <argument name="data" xsi:type="array">
-                <item name="qty_options_view_model" xsi:type="object">
-                    Spartrak\Checkout\ViewModel\CartQtyOptions
-                </item>
-                <item name="pricing_view_model" xsi:type="object">
-                    Spartrak\Checkout\ViewModel\CartItemPricing
-                </item>
-                <!--
-                  Injected rather than fetched with $this->helper() inside the
-                  template. Core's own cart item template does the latter and
-                  suppresses the Magento2.Templates.ThisInTemplate sniff to do
-                  it; passing the helper in keeps the override free of both the
-                  service locator and the suppression.
-                -->
-                <item name="msrp_helper" xsi:type="object">Magento\Msrp\Helper\Data</item>
-            </argument>
+            <argument name="maxOptions" xsi:type="number">10</argument>
         </arguments>
+    </type>
+
+    <!--
+      ===================================================================
+      THE CART LINE'S VIEW MODELS
+      ===================================================================
+      A PLUGIN, not `<argument name="data">`. This block used to read
+
+          <type name="Magento\Checkout\Block\Cart\Item\Renderer">
+              <arguments><argument name="data" xsi:type="array"> ... </argument></arguments>
+          </type>
+
+      and it was discarded at construction on every request: layout creates
+      blocks with an explicit `data` argument, and ObjectManager merges di.xml
+      arguments with array_replace(), which is shallow. The runtime `data`
+      replaced the configured one wholesale, all three view models arrived as
+      null, and the cart line rendered its quantity as dead text.
+
+      See the plugin class for the full trace and for why one plugin on the
+      base renderer is the right shape where seven <referenceBlock> entries
+      are not.
+
+      Injected rather than fetched with $this->helper() inside the template:
+      core's own cart item template does the latter and suppresses the
+      Magento2.Templates.ThisInTemplate sniff to do it; passing them in keeps
+      the override free of both the service locator and the suppression.
+    -->
+    <type name="Magento\Checkout\Block\Cart\Item\Renderer">
+        <plugin name="spartrak_cart_item_view_models"
+                type="Spartrak\Checkout\Plugin\Checkout\CartItemViewModels"/>
     </type>
 
 </config>

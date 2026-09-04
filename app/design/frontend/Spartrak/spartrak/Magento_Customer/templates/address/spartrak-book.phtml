@@ -1,0 +1,252 @@
+<?php
+/**
+ * "عناويني" — the address card grid. Figma 562:18590.
+ *
+ * ===========================================================================
+ * THE DELETE BUTTON USES CORE'S OWN WIDGET
+ * ===========================================================================
+ * `role="delete-address"` + `data-address` + the x-magento-init at the bottom
+ * are Magento_Customer/js/address's contract, verbatim. It shows the platform's
+ * confirmation dialog (which this theme already styles — components/_modal.less)
+ * and then navigates to customer/address/delete with the form key appended from
+ * the cookie.
+ *
+ * Writing a Spartrak delete instead would have meant a second confirmation
+ * dialog, a second way of getting the form key onto the request, and a second
+ * thing to get wrong about the only irreversible action on this page. The
+ * widget is 40 lines of core JavaScript that already does it.
+ *
+ * ===========================================================================
+ * "تعيين كافتراضي" IS A FORM, NOT A LINK
+ * ===========================================================================
+ * It changes state, so it is a POST — which is also what puts it behind
+ * Magento's automatic form-key validation (the controller is a plain
+ * HttpPostActionInterface, so the framework rejects a request without a valid
+ * key before execute() runs). A GET link would have been one crawler visit away
+ * from silently repointing a shopper's default address.
+ *
+ * One tiny form per card rather than one form around the grid: the address id
+ * has to travel with the button that was pressed, and nested forms are invalid
+ * HTML.
+ *
+ * ===========================================================================
+ * WHY THE CARD IS TITLED WITH THE RECIPIENT NAME
+ * ===========================================================================
+ * Figma's cards read "عنوان العمل" / "المنزل" / "عنوان المكتب", which look like
+ * nicknames — but the address form Figma draws (the checkout modal, 557:5173,
+ * which this page's add/edit reuses) collects six fields and none of them is a
+ * label, and no frame in the file collects one. See
+ * Spartrak\CustomerAccount\ViewModel\AddressBook for the full reasoning.
+ *
+ * @var \Magento\Customer\Block\Address\Grid $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+use Spartrak\CustomerAccount\ViewModel\AddressBook;
+
+/** @var AddressBook|null $addressBook */
+$addressBook = $block->getData('address_book');
+$addresses = $addressBook !== null ? $addressBook->getAddresses() : [];
+?>
+<div class="spartrak-account-card">
+    <div class="spartrak-account-card__header">
+        <div class="spartrak-account-card__heading">
+            <h1 class="spartrak-account-card__title"><?= $escaper->escapeHtml(__('My addresses')) ?></h1>
+            <p class="spartrak-account-card__subtitle">
+                <?= $escaper->escapeHtml(
+                    __('Manage your saved shipping addresses and add a new one for future orders')
+                ) ?>
+            </p>
+        </div>
+        <a class="spartrak-account-card__cta"
+           href="<?= $escaper->escapeUrl($addressBook?->getAddUrl() ?? $block->getAddAddressUrl()) ?>"
+           data-spartrak-address-new>
+            <?= $escaper->escapeHtml(__('Add a new address')) ?>
+        </a>
+    </div>
+
+    <div class="spartrak-account-card__body spartrak-address-book">
+        <?php if ($addresses !== []): ?>
+            <h2 class="spartrak-address-book__count">
+                <?= $escaper->escapeHtml(__('My addresses (%1)', count($addresses))) ?>
+            </h2>
+
+            <ul class="spartrak-address-book__grid">
+                <?php foreach ($addresses as $address): ?>
+                    <?php
+                    $addressId = (int) $address->getId();
+                    $isDefault = $addressBook->isDefault($address);
+                    $phone = $addressBook->getPhone($address);
+                    ?>
+                    <li class="spartrak-address-card<?= $isDefault ? ' spartrak-address-card--default' : '' ?>">
+                        <div class="spartrak-address-card__head">
+                            <h3 class="spartrak-address-card__title">
+                                <?= $escaper->escapeHtml($addressBook->getTitle($address)) ?>
+                            </h3>
+                            <?php if ($isDefault): ?>
+                                <span class="spartrak-address-card__badge">
+                                    <?= $escaper->escapeHtml(__('Default address')) ?>
+                                </span>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="spartrak-address-card__details">
+                            <p class="spartrak-address-card__row spartrak-address-card__row--location">
+                                <span class="spartrak-address-card__icon" aria-hidden="true"></span>
+                                <span><?= $escaper->escapeHtml($addressBook->getAddressLine($address)) ?></span>
+                            </p>
+                            <?php if ($phone !== null): ?>
+                                <p class="spartrak-address-card__row spartrak-address-card__row--phone">
+                                    <span class="spartrak-address-card__icon" aria-hidden="true"></span>
+                                    <span dir="ltr"><?= $escaper->escapeHtml($phone) ?></span>
+                                </p>
+                            <?php endif; ?>
+                        </div>
+
+                        <!--
+                          Delete first in the DOM so an RTL row puts it at the
+                          reading start, matching Figma (721:35518 sits at x=0
+                          in a mirrored frame). It is also the narrow
+                          icon-only control, so the two text buttons keep the
+                          flexible width.
+                        -->
+                        <div class="spartrak-address-card__actions">
+                            <a class="spartrak-address-card__delete"
+                               href="#"
+                               role="delete-address"
+                               data-address="<?= $escaper->escapeHtmlAttr($addressId) ?>"
+                               title="<?= $escaper->escapeHtmlAttr(__('Delete this address')) ?>">
+                                <span class="spartrak-address-card__delete-icon" aria-hidden="true"></span>
+                                <span class="spartrak-visually-hidden">
+                                    <?= $escaper->escapeHtml(__('Delete this address')) ?>
+                                </span>
+                            </a>
+
+                            <?php if (!$isDefault): ?>
+                                <form class="spartrak-address-card__default-form"
+                                      action="<?= $escaper->escapeUrl($addressBook->getSetDefaultUrl()) ?>"
+                                      method="post">
+                                    <?= $block->getBlockHtml('formkey') ?>
+                                    <input type="hidden" name="id"
+                                           value="<?= $escaper->escapeHtmlAttr($addressId) ?>">
+                                    <button type="submit" class="spartrak-address-card__default-button">
+                                        <?= $escaper->escapeHtml(__('Set as default')) ?>
+                                    </button>
+                                </form>
+                            <?php endif; ?>
+
+                            <?php /*
+                              The href STAYS. `data-spartrak-address-edit` is
+                              what the dialog binds to, and it intercepts the
+                              click — but with script unavailable this is still
+                              a link to the page it always pointed at, which is
+                              the whole reason the form is a real form with a
+                              real action (see address/spartrak-form.phtml).
+                            */ ?>
+                            <a class="spartrak-address-card__edit"
+                               href="<?= $escaper->escapeUrl($addressBook->getEditUrl($address)) ?>"
+                               data-spartrak-address-edit="<?= $escaper->escapeHtmlAttr($addressId) ?>">
+                                <span class="spartrak-address-card__edit-icon" aria-hidden="true"></span>
+                                <span><?= $escaper->escapeHtml(__('Edit')) ?></span>
+                            </a>
+                        </div>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php else: ?>
+            <?php /*
+              ===================================================================
+              THE EMPTY STATE IS THE CHECKOUT'S, DELIBERATELY
+              ===================================================================
+              Figma has no empty-address frame for THIS page — only for the
+              checkout's address book (557:4898). Rather than invent one (§3),
+              this renders that frame: the same van, the same wording, the same
+              26px-gap panel, from the same shared component
+              (components/_empty-state.less). It is also the honest choice for
+              the shopper, who meets the identical screen in both places.
+
+              WHAT WAS HERE: a bare sentence, "You have not saved any addresses
+              yet." — with nothing to press. The one thing somebody on an empty
+              address book wants to do had no control on the page apart from the
+              small header link.
+
+              THE CTA OPENS THE DIALOG, IT DOES NOT NAVIGATE.
+              `data-spartrak-address-new` is the hook js/address-dialog.js binds,
+              delegated from the document, so it needs no registration of its
+              own — the same attribute the header link carries. With no script it
+              is still a real link to `customer/address/new`, which is why it is
+              an <a> and not a <button>: the degradation is a working page, not a
+              dead control.
+            */ ?>
+            <div class="spartrak-empty-state spartrak-empty-state--panel spartrak-empty-state--spaced">
+                <span class="spartrak-empty-state__art spartrak-empty-state__art--address"
+                      aria-hidden="true"></span>
+                <div class="spartrak-empty-state__copy">
+                    <p class="spartrak-empty-state__title">
+                        <?= $escaper->escapeHtml(__('You have no shipping address!')) ?>
+                    </p>
+                    <p class="spartrak-empty-state__text">
+                        <?= $escaper->escapeHtml(
+                            __('Start by adding your shipping addresses so you can receive your products easily.')
+                        ) ?>
+                    </p>
+                    <a class="spartrak-empty-state__action"
+                       href="<?= $escaper->escapeUrl($addressBook?->getAddUrl() ?? $block->getAddAddressUrl()) ?>"
+                       data-spartrak-address-new>
+                        <?= $escaper->escapeHtml(__('Add a new shipping address')) ?>
+                    </a>
+                </div>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<?php /*
+  ===========================================================================
+  THE DIALOG HOST — Figma 557:5173
+  ===========================================================================
+  Empty on render. The form is fetched from
+  `spartrak_account/address/form` when the shopper opens it, so the page does
+  not carry one six-field form per address — with a full governorate <select>
+  in each — for a dialog that starts closed. See Controller\Address\Form for
+  the alternatives that were weighed.
+
+  `hidden` rather than a CSS class: inert and out of the tab order before the
+  script runs, and for a shopper who has no script at all, where the links
+  above simply navigate as they always did.
+
+  Magento's own modal widget wraps this at open time and emits
+  `.modal-inner-wrap` / `.modal-header` / `.modal-title` / `.action-close`,
+  which is the DOM components/_checkout.less already dresses as the 800px
+  Figma dialog. That is the reuse the design asks for: the same box, from the
+  same stylesheet, on a page that is not the checkout.
+*/ ?>
+<div class="spartrak-address-dialog" data-spartrak-address-dialog hidden></div>
+
+<script type="text/x-magento-init">
+    {
+        ".spartrak-address-book": {
+            "address": {
+                "deleteAddress": "a[role='delete-address']",
+                "deleteUrlPrefix": "<?= $escaper->escapeJs($escaper->escapeUrl(
+                    $addressBook?->getDeleteUrlPrefix() ?? $block->getDeleteUrl()
+                )) ?>id/"
+            }
+        },
+        "[data-spartrak-address-dialog]": {
+            "Spartrak_CustomerAccount/js/address-dialog": {
+                "formUrl": "<?= $escaper->escapeJs($escaper->escapeUrl(
+                    $block->getUrl('spartrak_account/address/form', ['_secure' => true])
+                )) ?>",
+                "newUrl": "<?= $escaper->escapeJs($escaper->escapeUrl(
+                    $addressBook?->getAddUrl() ?? $block->getAddAddressUrl()
+                )) ?>",
+                "editUrlPrefix": "<?= $escaper->escapeJs($escaper->escapeUrl(
+                    $block->getUrl('customer/address/edit', ['_secure' => true])
+                )) ?>id/",
+                "addTitle": "<?= $escaper->escapeJs(__('Add a new shipping address')) ?>",
+                "editTitle": "<?= $escaper->escapeJs(__('Edit shipping address')) ?>"
+            }
+        }
+    }
+</script>

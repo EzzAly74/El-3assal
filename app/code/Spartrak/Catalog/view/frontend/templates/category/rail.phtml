@@ -1,0 +1,92 @@
+<?php
+/**
+ * Spartrak — "تسوق بالمنتجات" category tile rail (Figma 507:5234).
+ *
+ * A 28px heading (507:5240) over a scrolling row of 134.779px square tiles,
+ * 16px apart, each a category image on a neutral plate with the category's
+ * name beneath (507:5241 / 507:5242 / 507:5243 / 507:5244).
+ *
+ * ===========================================================================
+ * THE CAROUSEL IS THE HOMEPAGE'S. NOT A COPY OF IT.
+ * ===========================================================================
+ * Same widget, same data-carousel-* contract, same reasoning as every other
+ * Spartrak rail: the track is a plain `overflow-x: auto` scroller with
+ * scroll-snap, so it is already swipeable, already keyboard-scrollable,
+ * already momentum-scrolled and already correct in RTL with NO JavaScript at
+ * all. Requesting spartrakHomeCarousel on top adds exactly one thing the
+ * browser does not provide — click-and-drag with a held mouse — and if the
+ * widget never loads, nothing here breaks.
+ *
+ * NO ARROWS, NO DOTS, NO PROGRESS BAR, deliberately. Figma's Categories
+ * Header (507:5235) carries the title and nothing else, and the list itself
+ * (507:5241, 1392 wide inside a 1344 measure) is drawn deliberately running
+ * off the inline-end edge — the bleed IS the scroll affordance. The homepage
+ * rails draw a progress bar because Figma draws them one; this one does not,
+ * so it does not get one.
+ *
+ * The widget is requested only when there is more than one tile: with a
+ * single child there is nothing to scroll, so the page never downloads it.
+ *
+ * ===========================================================================
+ * IMAGES
+ * ===========================================================================
+ * Lazy and low priority, on purpose: the hero directly above is this page's
+ * LCP element (CLAUDE.md section 12) and nothing here may compete with it for
+ * the connection. width/height are the tile's real rendered size, so each
+ * plate is reserved before its file arrives and the rail contributes nothing
+ * to CLS.
+ *
+ * A child with no image renders its plate EMPTY rather than borrowing a
+ * placeholder or the parent's artwork (CLAUDE.md section 3). alt="" is
+ * correct: the category name is real text inside the same anchor, so the
+ * picture carries nothing a screen reader is missing.
+ *
+ * @var \Spartrak\Catalog\Block\Category\Rail $block
+ */
+
+$tiles = $block->getTiles();
+
+/*
+ * A leaf category renders NOTHING — not a heading, not an empty band. Beyond
+ * being the honest outcome, a section that still reserved its heading height
+ * would push the product grid down for no content.
+ */
+if ($tiles === []) {
+    return;
+}
+
+$isCarousel = $block->isCarousel();
+$tileSize = $block->getTileSize();
+$headingId = $block->getHeadingId();
+?>
+<section class="spartrak-cat-rail"
+         aria-labelledby="<?= $block->escapeHtmlAttr($headingId) ?>"
+    <?php if ($isCarousel) : ?>data-mage-init='{"spartrakHomeCarousel":{"mode":"rail"}}'<?php endif; ?>>
+
+    <div class="spartrak-cat-rail__head">
+        <h2 class="spartrak-cat-rail__title" id="<?= $block->escapeHtmlAttr($headingId) ?>">
+            <?= $block->escapeHtml($block->getHeading()) ?>
+        </h2>
+    </div>
+
+    <ul class="spartrak-cat-rail__track" data-carousel-track>
+        <?php foreach ($tiles as $tile) : ?>
+            <li class="spartrak-cat-rail__item" data-carousel-slide>
+                <a class="spartrak-cat-rail__card" href="<?= $block->escapeUrl($tile['url']) ?>">
+                    <span class="spartrak-cat-rail__media">
+                        <?php if ($tile['image'] !== '') : ?>
+                            <img class="spartrak-cat-rail__image"
+                                 src="<?= $block->escapeUrl($tile['image']) ?>"
+                                 alt=""
+                                 width="<?= (int) $tileSize ?>"
+                                 height="<?= (int) $tileSize ?>"
+                                 loading="lazy"
+                                 decoding="async">
+                        <?php endif; ?>
+                    </span>
+                    <span class="spartrak-cat-rail__name"><?= $block->escapeHtml($tile['name']) ?></span>
+                </a>
+            </li>
+        <?php endforeach; ?>
+    </ul>
+</section>

@@ -33,6 +33,21 @@ class Transfer implements ArgumentInterface
     ) {
     }
 
+    /**
+     * The order this transfer belongs to, IF there is one.
+     *
+     * ===================================================================
+     * ON THE NORMAL PATH THERE IS NOT, AND THAT IS THE CHANGE
+     * ===================================================================
+     * The order used to be created before this page rendered. It is now created
+     * by Controller\Transfer\Save when the receipt is uploaded, so while this
+     * page is on screen there is a live quote and nothing else.
+     *
+     * The method is kept, and kept honest by returning null, because a legacy
+     * order from the previous behaviour can still be in the session and the
+     * template's order-number line is written to print nothing when there is
+     * no number yet.
+     */
     public function getOrder(): ?OrderInterface
     {
         if (!$this->orderResolved) {
@@ -44,11 +59,34 @@ class Transfer implements ArgumentInterface
         return $this->order;
     }
 
+    /**
+     * The scope the merchant's banking details are read in.
+     *
+     * ===================================================================
+     * THE QUOTE, NOT THE ORDER
+     * ===================================================================
+     * This asked the order, and on the normal path the order does not exist
+     * yet - so it returned null and getMerchantNumber() fell back to the
+     * DEFAULT scope. On a single-store install that is the same value by luck;
+     * on a multi-store one it is the wrong merchant's number on the page a
+     * shopper is about to send money to.
+     *
+     * The quote carries the store the shopper is checking out in and is present
+     * for the whole life of this page, so it is the right thing to ask. The
+     * order is still preferred when there is one - the legacy path - because an
+     * order's store is a fact and a session's quote is a state.
+     */
     private function getStoreId(): ?int
     {
         $order = $this->getOrder();
 
-        return $order !== null ? (int) $order->getStoreId() : null;
+        if ($order !== null) {
+            return (int) $order->getStoreId();
+        }
+
+        $quote = $this->checkoutSession->getQuote();
+
+        return $quote->getId() ? (int) $quote->getStoreId() : null;
     }
 
     /**

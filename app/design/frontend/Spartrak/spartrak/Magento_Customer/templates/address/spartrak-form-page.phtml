@@ -1,0 +1,75 @@
+<?php
+/**
+ * The account card around the address form when it is a PAGE and not a dialog.
+ * Figma 557:5173 (the form) inside 562:11026 (the card header band).
+ *
+ * ===========================================================================
+ * WHY THIS FILE EXISTS AND IS AS SMALL AS IT IS
+ * ===========================================================================
+ * On the address book the form opens in a modal, and the modal widget supplies
+ * the box, the title and the close control (components/_checkout.less dresses
+ * that DOM as the 800px Figma dialog). /customer/address/new and
+ * /customer/address/edit have no modal — see the layout file for the four ways
+ * a shopper still reaches them — so the same form needs the section's own
+ * chrome instead.
+ *
+ * That chrome is `.spartrak-account-card`, unchanged, exactly as حسابي,
+ * طلباتي, عناويني and مفضلاتي use it. This template adds a header band and
+ * nothing else: the form is rendered as the `form` child, so the markup, the
+ * fields, the save URL and the validation are all the one
+ * address/spartrak-form.phtml the dialog uses. There is one address form on
+ * this site.
+ *
+ * ===========================================================================
+ * THE HEADING IS THE DIALOG'S HEADING
+ * ===========================================================================
+ * Not core's `Address\Edit::getTitle()`, which returns "Add New Address" /
+ * "Edit Address". The two strings below are the ones address/spartrak-book.phtml
+ * already passes to the dialog as `addTitle` / `editTitle`, so a shopper who
+ * arrives here without JavaScript reads the same words as one who opened the
+ * modal — rather than a third wording for the same task.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+/** @var \Magento\Customer\Block\Address\Edit|null $form */
+$form = $block->getChildBlock('form');
+
+if (!$form) {
+    return;
+}
+
+$isNew = (int) $form->getAddress()->getId() === 0;
+?>
+<?php /*
+  The modifier restores the form's TOP inset. `.spartrak-address-form` pads
+  itself on three edges only, because in the dialog the modal's own header owns
+  the fourth; here the card header owns it and stops at its own border, so
+  without this the first label sits flush against that line. One declaration,
+  in components/_account.less, rather than a second copy of the form's padding.
+*/ ?>
+<div class="spartrak-account-card spartrak-account-card--address-form">
+    <div class="spartrak-account-card__header">
+        <div class="spartrak-account-card__heading">
+            <h1 class="spartrak-account-card__title">
+                <?= $escaper->escapeHtml(
+                    $isNew ? __('Add a new shipping address') : __('Edit shipping address')
+                ) ?>
+            </h1>
+            <p class="spartrak-account-card__subtitle">
+                <?= $escaper->escapeHtml(
+                    __('Manage your saved shipping addresses and add a new one for future orders')
+                ) ?>
+            </p>
+        </div>
+    </div>
+
+    <?php /*
+      No `__body` wrapper. `.spartrak-address-form` is already a 24px-inset
+      flex column — it has to be, because in the dialog it is the only thing
+      inside the modal wrap — so nesting it in the card's own 24px body would
+      double the inset on every edge.
+    */ ?>
+    <?= $block->getChildHtml('form') ?>
+</div>

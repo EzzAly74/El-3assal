@@ -1,17 +1,15 @@
 {
-    "name": "spartrak/module-wishlist",
-    "description": "Adds a numeric item count to the wishlist customer-data section, so the header badge can render the numeral Figma draws instead of Magento's translated \"N items\" phrase.",
-    "type": "magento2-module",
-    "license": "proprietary",
-    "require": {
-        "magento/module-wishlist": "*"
-    },
-    "autoload": {
-        "files": [
-            "registration.php"
-        ],
-        "psr-4": {
-            "Spartrak\\Wishlist\\": ""
-        }
+  "name": "spartrak/module-wishlist",
+  "description": "Wishlist support for the Spartrak storefront: a numeric item count on the wishlist customer-data section, so the header badge renders the numeral Figma draws instead of Magento's translated \"N items\" phrase, and the view model behind the wishlist page's product rows (Figma 817:18852) - the image role to draw and whether the product can still be bought.",
+  "type": "magento2-module",
+  "license": "proprietary",
+  "require": {
+    "magento/module-wishlist": "*"
+  },
+  "autoload": {
+    "files": ["registration.php"],
+    "psr-4": {
+      "Spartrak\\Wishlist\\": ""
     }
+  }
 }

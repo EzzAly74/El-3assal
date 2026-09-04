@@ -1,0 +1,98 @@
+<?xml version="1.0"?>
+<!--
+  "تتبع الطلب" — the order page. Figma 562:18903 (processing), 562:19640
+  (shipped), 572:15611 (InstaPay), and their mobile companions 690:34858 /
+  690:36711.
+
+  ===========================================================================
+  THE ACCOUNT RAIL IS NOT ON THIS PAGE
+  ===========================================================================
+  Every other account frame carries the "الملف الشخصي" rail. This one does not
+  — it replaces it with a back link (562:20236) and gives the freed width to a
+  360px order-summary column. So `sidebar.main.account_nav` is removed here and
+  only here; the handle it comes from (customer_account) is untouched.
+
+  ===========================================================================
+  WHY CORE'S ITEM TABLE AND INFO BLOCK GO
+  ===========================================================================
+  `order_items` renders a <table class="table-order-items"> through the
+  per-product-type renderer list, and `sales.order.info` renders the
+  payment/address boxes. Figma draws neither shape: items are cards
+  (562:19402) and the addresses and totals are four panels in a side column.
+
+  Nothing is lost that the design draws. What IS deliberately not carried over
+  is the renderer list's per-type option lines (configurable selections, bundle
+  children): Figma's item row has a name node and a price node, and the option
+  slot beside them (721:34921) is hidden in the design. If those lines are
+  wanted, they need a Figma frame first.
+
+  The PAYMENT panel keeps Magento's mechanism: the template renders the payment
+  method's own info block via Payment\Helper\Data::getInfoBlock(), so every
+  method — cash on delivery, card, Spartrak_InstaPay with its transfer receipt —
+  contributes its own detail without this layout naming any of them.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <!--
+          The rail is gone from this page (below), but core's `sidebar.main`
+          CONTAINER is not — a container with no children still occupies its
+          grid track, which would leave a 264px hole where the rail used to be.
+          This class collapses the account grid to a single column for this
+          handle only; see components/_account.less.
+        -->
+        <attribute name="class" value="spartrak-account--no-rail"/>
+
+        <referenceBlock name="sidebar.main.account_nav" remove="true"/>
+
+        <referenceBlock name="order_items" remove="true"/>
+        <referenceBlock name="sales.order.info" remove="true"/>
+        <referenceBlock name="order.comments" remove="true"/>
+        <!--
+          "Print Order" / "Reorder", added by the sales_order_info_links handle.
+          Figma's page has one action, the back link, and it is rendered by the
+          template below.
+        -->
+        <referenceBlock name="sales.order.info.links" remove="true"/>
+
+        <referenceBlock name="sales.order.view" template="Spartrak_CustomerAccount::order/view.phtml">
+            <arguments>
+                <!--
+                  One argument, not two. OrderView already consumes
+                  Spartrak_PickupLocation's OrderPickup itself — the template
+                  asks "is this collected?" and "where from?" through it — so
+                  injecting the pickup view model here as well would be a
+                  second route to the same answer.
+                -->
+                <argument name="order_view" xsi:type="object">Spartrak\CustomerAccount\ViewModel\OrderView</argument>
+                <!--
+                  The `موقف` driver card (Figma 573:21642, rules in
+                  BUSINESS.md section 12). A second view model rather than more
+                  methods on OrderView, because it belongs to
+                  Spartrak_PickupLocation — the module that owns the data, the
+                  admin form that fills it and the gate that requires it. The
+                  account module has no business knowing what a consignment is.
+                -->
+                <argument name="consignment" xsi:type="object">Spartrak\PickupLocation\ViewModel\OrderConsignment</argument>
+                <!--
+                  The 44px logo on the `وسيلة الدفع` card (Figma 573:21506),
+                  read from Spartrak_Payment's admin-managed brand catalogue —
+                  the same rows the checkout's payment list uses, so the two
+                  cannot disagree about what a method looks like.
+
+                  A third view model rather than a method on OrderView, for the
+                  reason the second one has: the data belongs to the module that
+                  owns the configuration behind it. The account module has no
+                  business knowing which logos this store has licensed.
+
+                  The rest of that card is the payment method's OWN info block,
+                  which the template renders via
+                  Payment\Helper\Data::getInfoBlock() — so nothing here names a
+                  payment method, and a method-specific extra (InstaPay's
+                  receipt row) arrives as a child block that module declares
+                  itself.
+                -->
+                <argument name="payment_brand" xsi:type="object">Spartrak\Payment\ViewModel\OrderPaymentBrand</argument>
+            </arguments>
+        </referenceBlock>
+    </body>
+</page>

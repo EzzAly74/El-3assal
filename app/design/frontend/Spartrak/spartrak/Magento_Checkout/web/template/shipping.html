@@ -27,8 +27,8 @@
  *                               on this store, but removing the region would
  *                               break the moment a merchant turns it on.
  *   address-list regions        the saved-address cards
- *   isFormInline / showFormPopUp the add-address modal's own trigger and
- *                               visibility, which the desktop modal and the
+ *   showFormPopUp /             the add-address modal's own trigger and
+ *   isFormPopUpVisible          visibility, which the desktop modal and the
  *                               mobile bottom sheet both go through
  *   #co-shipping-method-form + submit="setShippingInformation"
  *                               the ONLY path to the next step. The pickup
@@ -41,14 +41,39 @@
  *                               pickup location" from
  *                               ApplyPickupLocation::resolveLocation
  *
+ * ===========================================================================
+ * ONE WAY TO ADD AN ADDRESS: THE POP-UP. `isFormInline` IS GONE FROM HERE.
+ * ===========================================================================
+ * Core keeps two renderings of the address form and picks between them with
+ * `isFormInline`, which is simply `addressList().length === 0` — so a shopper
+ * with no saved address got the form printed into the page and no "new address"
+ * button, and everyone else got the modal.
+ *
+ * On this storefront that produced the state the design does not have: Figma's
+ * empty address book (557:4898) draws the van, the sentence and ONE button, and
+ * the shopper saw all three with a full six-field form stacked underneath them.
+ * Two competing ways to do the same thing, on the screen where it matters most.
+ *
+ * It was also the reason the checkout CTA appeared dead on a first order. Core's
+ * `validateShippingInformation()` branches on the same flag: with the form
+ * inline it validates THAT FORM before advancing — so a shopper who chose
+ * `استلام من الفرع`, where Figma draws no address form at all and the address is
+ * synthesised from the branch (see Spartrak\PickupLocation's
+ * ApplyPickupLocation), pressed `المتابعة الي الدفع` and got a silent
+ * `focusInvalid()` on fields the design had already replaced.
+ *
+ * So Spartrak_Checkout/js/view/shipping-address-mixin pins `isFormInline` to
+ * false and this template renders only the pop-up. Nothing is lost: the pop-up
+ * is the same `shippingFormTemplate`, the same fields, the same validation and
+ * the same save — see that mixin for why the flag is pinned there rather than
+ * being conditioned around here.
+ *
  * `spartrakMode` is added to this component by js/view/shipping-mixin.js.
  */
 -->
 <li id="shipping" class="checkout-shipping-address" data-bind="fadeVisible: visible()">
     <div class="step-title" translate="'Shipping Address'" data-role="title"></div>
-    <div id="checkout-step-shipping"
-         class="step-content"
-         data-role="content">
+    <div id="checkout-step-shipping" class="step-content" data-role="content">
 
         <!-- Figma 554:13250 — the segmented control, above everything. -->
         <each args="getRegion('spartrak-delivery-mode')" render=""></each>
@@ -73,11 +98,9 @@
             <div class="spartrak-address-book__header">
                 <h2 class="spartrak-address-book__title" translate="'Choose your shipping address'"></h2>
 
-                <if args="!isFormInline">
-                    <button type="button" class="spartrak-address-book__add" click="showFormPopUp">
-                        <span translate="'New shipping address'"></span>
-                    </button>
-                </if>
+                <button type="button" class="spartrak-address-book__add" click="showFormPopUp">
+                    <span translate="'New shipping address'"></span>
+                </button>
             </div>
 
             <!-- ko if: spartrakHasAddresses() -->
@@ -86,30 +109,34 @@
             <!-- /ko -->
 
             <!-- ko ifnot: spartrakHasAddresses() -->
-            <div class="spartrak-address-empty">
-                <!--
-                  Figma 721:29400, drawn as a CSS background rather than an
-                  <img>.
+            <!--
+              557:4898, rendered with the storefront's shared empty state
+              (components/_empty-state.less) - the same component the cart, the
+              minicart drawer and the wishlist use. `--panel` is the in-a-card
+              box this frame draws and `--spaced` its 26px gap.
 
-                  A Knockout template is fetched as plain text and never passes
-                  through PHP, so it has no way to ask Magento where a theme
-                  asset ended up - there is no getViewFileUrl() here. The two
-                  honest options are to publish the URL from the component, or
-                  to let LESS resolve it at compile time. LESS wins: the path is
-                  resolved once at deploy instead of on every render, and it
-                  costs no JavaScript at all.
+              The van is a CSS background rather than an <img>, and that is a
+              constraint rather than a preference: a Knockout template is
+              fetched as plain text and never passes through PHP, so it has no
+              getViewFileUrl() and no way to ask Magento where a theme asset
+              ended up. The two honest options are to publish the URL from the
+              component or to let LESS resolve it at compile time; LESS wins on
+              both counts - resolved once at deploy instead of on every render,
+              and no JavaScript at all.
 
-                  A CSS background is only acceptable BECAUSE the van is purely
-                  decorative - the heading beside it carries the meaning, so
-                  there is nothing for alt text to say. It is a fixed 176 square,
-                  so it reserves its own space and cannot shift the panel.
-                -->
-                <span class="spartrak-address-empty__art" aria-hidden="true"></span>
-                <div class="spartrak-address-empty__body">
-                    <p class="spartrak-address-empty__title" translate="'You have no shipping address!'"></p>
-                    <p class="spartrak-address-empty__lead"
-                       translate="'Start by adding your shipping addresses so you can receive your products easily.'"></p>
-                    <button type="button" class="spartrak-address-empty__cta" click="showFormPopUp">
+              It is only acceptable BECAUSE the van is decorative: the heading
+              beside it carries the meaning, so there is nothing for alt text to
+              say. Fixed at 176 square, so it reserves its own space and cannot
+              shift the panel.
+            -->
+            <div class="spartrak-empty-state spartrak-empty-state--panel spartrak-empty-state--spaced">
+                <span class="spartrak-empty-state__art spartrak-empty-state__art--address" aria-hidden="true"></span>
+                <div class="spartrak-empty-state__copy">
+                    <p class="spartrak-empty-state__title" translate="'You have no shipping address!'"></p>
+                    <p class="spartrak-empty-state__text"
+                        translate="'Start by adding your shipping addresses so you can receive your products easily.'">
+                    </p>
+                    <button type="button" class="spartrak-empty-state__action" click="showFormPopUp">
                         <span translate="'Add a new shipping address'"></span>
                     </button>
                 </div>
@@ -117,17 +144,13 @@
             <!-- /ko -->
         </div>
 
-        <!-- Address form pop up -->
-        <if args="!isFormInline">
-            <div id="opc-new-shipping-address"
-                 visible="isFormPopUpVisible()"
-                 render="shippingFormTemplate"></div>
-        </if>
+        <!--
+          The address form. One rendering, always the pop-up - see the header.
+          `isFormPopUpVisible` and `shippingFormTemplate` are both core's.
+        -->
+        <div id="opc-new-shipping-address" visible="isFormPopUpVisible()" render="shippingFormTemplate"></div>
 
         <each args="getRegion('before-form')" render=""></each>
-
-        <!-- Inline address form -->
-        <render if="isFormInline" args="shippingFormTemplate"></render>
         <!-- /ko -->
 
         <!-- Figma 554:13119 / 554:13750 — branch and depot replace the above. -->
@@ -136,27 +159,50 @@
 </li>
 
 <!--Shipping method template-->
-<li id="opc-shipping_method"
-    class="checkout-shipping-method"
-    data-bind="fadeVisible: visible(), blockLoader: isLoading"
+<li id="opc-shipping_method" class="checkout-shipping-method" data-bind="fadeVisible: visible(), blockLoader: isLoading"
     role="presentation">
     <div class="checkout-shipping-method">
-        <div class="step-title"
-             translate="'Shipping Methods'"
-             data-role="title"></div>
+        <!--
+          ===================================================================
+          THE HEADING BELONGS TO THE DELIVERY SEGMENT, LIKE THE CARDS UNDER IT
+          ===================================================================
+          Figma's pickup frames (554:13119 branch, 554:13750 depot) draw no
+          shipping-method section at all - the location IS the method, which is
+          why the card list below is already behind this same condition.
+
+          The heading was not, so on a pickup segment `وسيلة الشحن` stood over
+          an empty form: a section title with nothing beneath it and no way for
+          the shopper to tell what it was for.
+
+          The condition wraps the TITLE ONLY. `#co-shipping-method-form` and its
+          `setShippingInformation` submit stay outside it and stay mounted,
+          because the pickup flows advance the checkout through that same form -
+          they change what is selected, never how it is submitted.
+
+          IT ASKS THE SAME QUESTION THE CARD LIST ASKS, AND ONE MORE. A heading
+          exists to head something, so its condition is "is there a card list
+          below me" rather than a second, independent guess at the mode:
+
+            spartrakMode.isDelivery()        the list is hidden on a pickup
+                                             segment - the location IS the method
+            spartrakDeliveryRates().length   there is at least one delivery rate
+                                             to draw a card for
+
+          The second half matters on its own: a merchant with no delivery
+          carrier enabled, or an address no delivery carrier will quote for,
+          leaves the list empty while the mode is still `delivery`. Without it
+          the heading would stand over nothing again, for a different reason.
+        -->
+        <!-- ko if: spartrakMode.isDelivery() && spartrakDeliveryRates().length -->
+        <div class="step-title" translate="'Shipping Methods'" data-role="title"></div>
+        <!-- /ko -->
 
         <each args="getRegion('before-shipping-method-form')" render=""></each>
 
-        <div id="checkout-step-shipping_method"
-             class="step-content"
-             data-role="content"
-             role="tabpanel"
-             aria-hidden="false">
-            <form id="co-shipping-method-form"
-                  class="form methods-shipping"
-                  if="rates().length"
-                  submit="setShippingInformation"
-                  novalidate="novalidate">
+        <div id="checkout-step-shipping_method" class="step-content" data-role="content" role="tabpanel"
+            aria-hidden="false">
+            <form id="co-shipping-method-form" class="form methods-shipping" if="rates().length"
+                submit="setShippingInformation" novalidate="novalidate">
 
                 <!--
                   The method cards are a DELIVERY concern. Figma's pickup
@@ -172,9 +218,7 @@
                 <div id="onepage-checkout-shipping-method-additional-load">
                     <each args="getRegion('shippingAdditional')" render=""></each>
                 </div>
-                <div role="alert"
-                     if="errorValidationMessage().length"
-                     class="message notice">
+                <div role="alert" if="errorValidationMessage().length" class="message notice">
                     <span text="errorValidationMessage()"></span>
                 </div>
                 <div class="actions-toolbar" id="shipping-method-buttons-container">
@@ -185,9 +229,8 @@
                     </div>
                 </div>
             </form>
-            <div class="no-quotes-block"
-                 ifnot="rates().length > 0"
-                 translate="'Sorry, no quotes are available for this order at this time'"></div>
+            <div class="no-quotes-block" ifnot="rates().length > 0"
+                translate="'Sorry, no quotes are available for this order at this time'"></div>
         </div>
     </div>
 </li>

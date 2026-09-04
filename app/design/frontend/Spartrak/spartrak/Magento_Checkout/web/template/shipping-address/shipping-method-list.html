@@ -20,10 +20,25 @@
  * Geometry (Figma): the row is 720 wide with a 16px gap, so each card is 352 —
  * expressed here as an equal-fraction grid rather than a fixed width, because
  * the number of rates is whatever Magento returns, not always two.
+ *
+ * ===========================================================================
+ * `spartrakDeliveryRates`, NOT `rates`
+ * ===========================================================================
+ * The pickup carriers quote through Magento like any other carrier, so core's
+ * `rates()` contains `استلام من الفرع` and `استلام من الموقف` as well as the two
+ * delivery tiers. Bound to `rates()` this list drew all four on the الشحن
+ * segment — offering, as cards, the same two choices the segments above the
+ * list already offer, and switching the shopper out of the segment they were
+ * looking at if they picked one.
+ *
+ * The delivery-only view is computed in js/view/shipping-mixin.js rather than
+ * filtered here: a Knockout template that decides which of Magento's rates
+ * count is business logic in markup (CLAUDE.md §8), and the same question is
+ * asked by the delivery-mode segments.
  */
 -->
 <div id="checkout-shipping-method-load">
-    <ol class="spartrak-ship-methods" data-bind="foreach: { data: rates(), as: 'method' }">
+    <ol class="spartrak-ship-methods" data-bind="foreach: { data: spartrakDeliveryRates(), as: 'method' }">
         <li class="spartrak-ship-methods__item">
             <!-- ko template: { name: element.shippingMethodItemTemplate } --><!-- /ko -->
         </li>

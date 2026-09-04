@@ -12,6 +12,7 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Controller\ResultInterface;
+use Magento\Quote\Model\ResourceModel\Quote as QuoteResource;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -55,6 +56,7 @@ class Save implements HttpPostActionInterface
         private readonly RequestInterface $request,
         private readonly CheckoutSession $checkoutSession,
         private readonly JsonFactory $resultJsonFactory,
+        private readonly QuoteResource $quoteResource,
         private readonly LoggerInterface $logger
     ) {
     }
@@ -88,9 +90,38 @@ class Save implements HttpPostActionInterface
             }
 
             $quote->setCustomerNote($note);
-            // Only the note changed; a full quote save would re-run the totals
-            // collector and could reset a shipping selection mid-checkout.
-            $quote->getResource()->saveAttribute($quote, 'customer_note');
+
+            /**
+             * ===============================================================
+             * THE RESOURCE MODEL, NOT CartRepositoryInterface
+             * ===============================================================
+             * `CartRepositoryInterface::save()` calls `$quote->collectTotals()`
+             * on the way in. Recollecting mid-checkout re-runs every total
+             * collector for the sake of one text column, and can drop a
+             * shipping selection the shopper has already made — so the note
+             * button would quietly undo part of the step it sits in.
+             *
+             * The resource's save() writes the row and nothing else: no totals,
+             * no rate re-quote. `Magento\Quote\Model\ResourceModel\Quote`
+             * extends the VersionControl AbstractDb, so it also skips the write
+             * entirely when the note has not actually changed.
+             *
+             * ===============================================================
+             * WHAT THIS REPLACED, AND WHY IT WAS A FATAL
+             * ===============================================================
+             * It was `$quote->getResource()->saveAttribute($quote, 'customer_note')`,
+             * which threw
+             *
+             *     Error: Call to undefined method
+             *     Magento\Quote\Model\ResourceModel\Quote::saveAttribute()
+             *
+             * on every note save — a 500 on POST spartrak_checkout/note/save.
+             * `saveAttribute()` is a Magento_Sales method
+             * (Magento\Sales\Model\ResourceModel\Attribute); Magento_Quote has
+             * no single-column writer, and there is nothing to add one for
+             * here — the snapshot diff already keeps the write small.
+             */
+            $this->quoteResource->save($quote);
         } catch (\Exception $e) {
             // Logged rather than swallowed: a note that silently fails to save
             // is a delivery instruction the warehouse never sees.

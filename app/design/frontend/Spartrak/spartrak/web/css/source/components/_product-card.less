@@ -71,6 +71,18 @@
     // rails went from scrollHeight 317 / clientHeight 315 to an exact match on
     // every one of them.
     box-sizing: border-box;
+    // The card fills its cell rather than shrinking to its own content.
+    //
+    // Both places a card appears wrap it in a flex parent whose only child it
+    // is — .spartrak-plp__item in the PLP grid, .spartrak-home-rail__item in
+    // every rail. A flex item with no width sizes to its CONTENT, so a card
+    // holding a short product name rendered narrower than the column it sits
+    // in and the grid looked ragged. The parent already owns the column
+    // width; this makes the card take all of it.
+    //
+    // Safe with the border because of the border-box above: 100% is the
+    // cell's width including the 1px, not 2px more than it.
+    width: 100%;
     height: 100%;
     padding: 0;
     border: 1px solid var(--color-border-subtle);

@@ -1,0 +1,325 @@
+<?php
+/**
+ * The address form — Figma 557:5173.
+ *
+ * Rendered on its own by Spartrak\CustomerAccount\Controller\Address\Form and
+ * injected into the address book's dialog. It is the SAME form the checkout's
+ * add-address modal draws; see Spartrak\CustomerAccount\ViewModel\AddressForm
+ * for why that one is reshaped by a plugin and this one is a template.
+ *
+ * ===========================================================================
+ * IT POSTS TO CORE, NOT TO US
+ * ===========================================================================
+ * `action` is `Magento\Customer\Block\Address\Edit::getSaveUrl()`, i.e. core's
+ * own `customer/address/formPost`. So validation, the address repository, the
+ * success/error messages and the CSRF form-key check are all Magento's — this
+ * feature adds no save path of its own and cannot drift from the one the
+ * platform maintains.
+ *
+ * That also decides the no-JavaScript behaviour: this is a real form with a
+ * real action, so it submits and redirects on its own. The dialog is an
+ * enhancement over a working page, not the thing that makes it work.
+ *
+ * ===========================================================================
+ * THE THREE FIELDS FIGMA DOES NOT DRAW
+ * ===========================================================================
+ * `country_id` is posted as a hidden field from configuration — one country,
+ * so asking would be a question with one answer. `city` and `postcode` are not
+ * posted at all: Spartrak_CustomerAddress fills the city from the chosen
+ * governorate, and postcode is optional for Egypt (its config.xml widens
+ * general/country/optional_zip_countries). Omitting country_id as well would
+ * produce an address Magento's own validator rejects, from a form with no
+ * field to fix it in.
+ *
+ * THE CITY IS FILLED BY A REPOSITORY PLUGIN, NOT BY THE SAVE-BEFORE OBSERVER.
+ * This form posts to core's `customer/address/formPost`, which goes through
+ * AddressRepositoryInterface::save() — and that method VALIDATES before it
+ * saves, so `customer_address_save_before` fires after the "city is required"
+ * rejection, not before it. That is why saving from here used to fail and
+ * bounce to /customer/address/edit/. See
+ * Spartrak\CustomerAddress\Plugin\FillCityOnAddressRepositorySave.
+ *
+ * ===========================================================================
+ * THE FIELD PRIMITIVES ARE THE ACCOUNT SECTION'S OWN
+ * ===========================================================================
+ * `.spartrak-account-field` already renders a 21px label, a 6px gap and a 48px
+ * bordered band — which is, to the pixel, what 557:10372 specifies here. So
+ * this form reuses that component rather than defining a second set of inputs
+ * that would have to be kept in step with it (CLAUDE.md section 9). Only the
+ * two shapes this form introduces are new: the 120px textarea band and the
+ * select.
+ *
+ * @var \Magento\Customer\Block\Address\Edit $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+use Spartrak\CustomerAccount\ViewModel\AddressForm;
+
+/** @var AddressForm|null $addressForm */
+$addressForm = $block->getData('address_form');
+$address = $block->getAddress();
+$addressId = (int) $address->getId();
+$isNew = $addressId === 0;
+
+$governorates = $addressForm !== null ? $addressForm->getGovernorateOptions() : [];
+$selectedRegion = (string) ($address->getRegionId() ?? '');
+$streetText = $addressForm !== null ? $addressForm->getStreetText($address) : '';
+$additionalPhone = $addressForm !== null ? $addressForm->getAdditionalPhone($address) : '';
+$isDefault = $addressForm !== null && $addressForm->isDefault($address);
+?>
+<?php /*
+  `novalidate` + `data-mage-init="validation"` is Magento's own pairing: the
+  browser's native bubbles are switched off so the platform's widget owns the
+  messages, which is what renders them inline in the styles this theme already
+  has.
+
+  THE WIDGET WAS NEVER TURNED ON BEFORE. Measured on the deployed store: this
+  fragment carried no `data-mage-init` at all, so every `required` and every
+  `data-validate` below was decoration — with native validation suppressed by
+  `novalidate` and nothing else listening, an empty required field submitted,
+  and the shopper got a server round trip and a redirect instead of an inline
+  message.
+
+  ONE DECLARATION, BOTH RENDERS. Magento scans for `data-mage-init` once at
+  page load, which covers the standalone render (Controller\Address\Form's own
+  route, and the no-JavaScript path). The dialog injects this markup afterwards,
+  by AJAX, so js/address-dialog.js re-runs that same initialiser over the
+  fragment — it reads this attribute rather than naming the widget again in
+  JavaScript, so the rules live here and only here.
+*/ ?>
+<form class="spartrak-address-form"
+      action="<?= $escaper->escapeUrl($block->getSaveUrl()) ?>"
+      method="post"
+      id="spartrak-address-form"
+      data-spartrak-address-form
+      data-mage-init='{"validation":{}}'
+      novalidate>
+    <?= $block->getBlockHtml('formkey') ?>
+
+    <?php if (!$isNew) : ?>
+        <input type="hidden" name="id" value="<?= (int) $addressId ?>">
+    <?php endif; ?>
+
+    <?php /* Configuration, not a question. See the header. */ ?>
+    <input type="hidden"
+           name="country_id"
+           value="<?= $escaper->escapeHtmlAttr($addressForm?->getCountryId() ?? '') ?>">
+
+    <div class="spartrak-address-form__grid">
+        <div class="spartrak-account-field">
+            <label class="spartrak-account-field__label" for="spartrak-address-firstname">
+                <?= $escaper->escapeHtml(__('First name')) ?>
+                <span class="spartrak-account-field__required" aria-hidden="true">*</span>
+            </label>
+            <div class="spartrak-account-field__band">
+                <input type="text"
+                       class="spartrak-account-field__input"
+                       id="spartrak-address-firstname"
+                       name="firstname"
+                       value="<?= $escaper->escapeHtmlAttr($address->getFirstname() ?? '') ?>"
+                       placeholder="<?= $escaper->escapeHtmlAttr(__('Please enter your first name')) ?>"
+                       autocomplete="given-name"
+                       required
+                       data-validate="{'required':true}">
+            </div>
+        </div>
+
+        <div class="spartrak-account-field">
+            <label class="spartrak-account-field__label" for="spartrak-address-lastname">
+                <?= $escaper->escapeHtml(__('Last name')) ?>
+                <span class="spartrak-account-field__required" aria-hidden="true">*</span>
+            </label>
+            <div class="spartrak-account-field__band">
+                <input type="text"
+                       class="spartrak-account-field__input"
+                       id="spartrak-address-lastname"
+                       name="lastname"
+                       value="<?= $escaper->escapeHtmlAttr($address->getLastname() ?? '') ?>"
+                       placeholder="<?= $escaper->escapeHtmlAttr(__('Please enter your last name')) ?>"
+                       autocomplete="family-name"
+                       required
+                       data-validate="{'required':true}">
+            </div>
+        </div>
+
+        <?php /*
+          Full width (557:10340). A real <select> rather than a scripted list:
+          it is a single choice from a fixed set, which is what the element is
+          for — the design's chevron is drawn on the band by the stylesheet and
+          the native control keeps keyboard, screen-reader and mobile-wheel
+          behaviour for free (CLAUDE.md: native behaviour over JavaScript).
+        */ ?>
+        <div class="spartrak-account-field spartrak-address-form__field--wide">
+            <label class="spartrak-account-field__label" for="spartrak-address-region">
+                <?= $escaper->escapeHtml(__('Governorate')) ?>
+                <span class="spartrak-account-field__required" aria-hidden="true">*</span>
+            </label>
+            <div class="spartrak-account-field__band spartrak-account-field__band--select">
+                <select class="spartrak-account-field__select"
+                        id="spartrak-address-region"
+                        name="region_id"
+                        required
+                        data-validate="{'required':true}">
+                    <option value=""><?= $escaper->escapeHtml(__('Choose a region or governorate')) ?></option>
+                    <?php foreach ($governorates as $option) : ?>
+                        <option value="<?= $escaper->escapeHtmlAttr($option['value']) ?>"
+                            <?= $option['value'] === $selectedRegion ? ' selected' : '' ?>>
+                            <?= $escaper->escapeHtml($option['label']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </div>
+
+        <?php /*
+          ONE textarea for the whole address (721:29509, 120px tall), where
+          Magento stores street as an ordered list of lines. Posted as
+          `street[0]`, and read back joined on newlines by
+          AddressForm::getStreetText() — so a two-line address written by an
+          admin or the API survives a save from here instead of losing every
+          line but the first.
+        */ ?>
+        <div class="spartrak-account-field spartrak-address-form__field--wide">
+            <label class="spartrak-account-field__label" for="spartrak-address-street">
+                <?= $escaper->escapeHtml(__('Address details')) ?>
+                <span class="spartrak-account-field__required" aria-hidden="true">*</span>
+            </label>
+            <div class="spartrak-account-field__band spartrak-account-field__band--textarea">
+                <textarea class="spartrak-account-field__input spartrak-account-field__input--textarea"
+                          id="spartrak-address-street"
+                          name="street[0]"
+                          rows="4"
+                          placeholder="<?= $escaper->escapeHtmlAttr(__('Please write your address in full')) ?>"
+                          required
+                          data-validate="{'required':true}"><?= $escaper->escapeHtml($streetText) ?></textarea>
+            </div>
+        </div>
+
+        <div class="spartrak-account-field">
+            <label class="spartrak-account-field__label" for="spartrak-address-telephone">
+                <?= $escaper->escapeHtml(__('Mobile number')) ?>
+                <span class="spartrak-account-field__required" aria-hidden="true">*</span>
+            </label>
+            <div class="spartrak-account-field__band">
+                <input type="tel"
+                       class="spartrak-account-field__input"
+                       id="spartrak-address-telephone"
+                       name="telephone"
+                       value="<?= $escaper->escapeHtmlAttr($address->getTelephone() ?? '') ?>"
+                       placeholder="01xxxxxxxxxx"
+                       autocomplete="tel"
+                       dir="ltr"
+                       required
+                       data-validate="{'required':true}">
+            </div>
+        </div>
+
+        <?php /*
+          The one optional field in the form — no asterisk, and no `required`.
+          A custom attribute (Spartrak_CustomerAddress's AddAdditionalPhoneAttribute
+          patch), which is why its value is read through the custom-attribute bag
+          rather than a getter.
+
+          OPTIONAL, BUT NOT UNCHECKED. When a value IS given it has to be a real
+          Egyptian mobile number, enforced by
+          Spartrak\CustomerAddress\Model\Validator\AdditionalPhone on Magento's
+          own address-validator composite — so it holds for this form, for the
+          checkout's modal, for the admin customer form and for the REST API
+          alike. Until that class existed the field accepted any 32 characters:
+          a name, an email, half a sentence.
+
+          NO `data-validate` FORMAT RULE HERE, deliberately. The rule is
+          Spartrak_CustomerAuth's Phone\Normalizer — the store's single
+          definition of a usable mobile number, shared with sign-up and sign-in.
+          It folds Arabic-Indic and Persian digits, accepts `01…`, `+20…` and
+          `0020…`, and then requires a reachable NSN. A hand-written regex in
+          this attribute could not do the digit folding without becoming
+          unreadable, and one that got it wrong would reject the Arabic keyboard
+          this store's primary locale is typed on. So the format is checked in
+          the one place that already knows the answer, and the message comes
+          back naming the field with an example.
+        */ ?>
+        <div class="spartrak-account-field">
+            <label class="spartrak-account-field__label" for="spartrak-address-additional-phone">
+                <?= $escaper->escapeHtml(__('Additional number')) ?>
+            </label>
+            <div class="spartrak-account-field__band">
+                <input type="tel"
+                       class="spartrak-account-field__input"
+                       id="spartrak-address-additional-phone"
+                       name="additional_phone"
+                       value="<?= $escaper->escapeHtmlAttr($additionalPhone) ?>"
+                       placeholder="01xxxxxxxxxx"
+                       dir="ltr">
+            </div>
+        </div>
+    </div>
+
+    <?php /*
+      "العنوان الافتراضي" (557:10445) — ONE control where Magento keeps two
+      defaults, so it posts both.
+
+      The mirror is a second real checkbox, visually hidden and kept in step by
+      the dialog's script. Without JavaScript only the SHIPPING default is set,
+      which is the honest degradation for a shipping address book — the shopper
+      still gets the default they asked for on the axis this storefront
+      actually uses. See Controller\Address\SetDefault for why the two flags are
+      never allowed to diverge deliberately.
+    */ ?>
+    <div class="spartrak-address-form__default">
+        <label class="spartrak-address-form__toggle" for="spartrak-address-default">
+            <span class="spartrak-address-form__toggle-label">
+                <?= $escaper->escapeHtml(__('Default address')) ?>
+            </span>
+            <input type="checkbox"
+                   class="spartrak-address-form__toggle-input"
+                   id="spartrak-address-default"
+                   name="default_shipping"
+                   value="1"
+                   data-spartrak-address-default
+                <?= $isDefault ? ' checked' : '' ?>>
+            <span class="spartrak-address-form__toggle-track" aria-hidden="true"></span>
+        </label>
+        <input type="checkbox"
+               class="spartrak-visually-hidden"
+               name="default_billing"
+               value="1"
+               tabindex="-1"
+               aria-hidden="true"
+               data-spartrak-address-default-mirror
+            <?= $isDefault ? ' checked' : '' ?>>
+    </div>
+
+    <div class="spartrak-address-form__actions">
+        <button type="submit" class="spartrak-address-form__save">
+            <?= $escaper->escapeHtml($isNew ? __('Add a new address') : __('Save address')) ?>
+        </button>
+        <?php /*
+          "تجاهل" — AN ANCHOR, AND IT HAS TO BE ONE.
+
+          This template renders in two places: inside the address book's dialog,
+          and as a page at /customer/address/new|edit (see
+          Magento_Customer/layout/customer_address_form.xml for the four ways
+          that page is reached). A <button type="button"> is inert on the page —
+          it was a dead control there, with nothing to cancel to.
+
+          One element serves both. In the dialog, js/address-dialog binds
+          `[data-spartrak-address-cancel]` on the dialog host, calls
+          preventDefault() and closes the modal, so the href is never followed.
+          On the page the form is not inside that host, no handler exists, and
+          the link simply goes back to the address book — which is also the
+          behaviour a shopper with no JavaScript gets in either place.
+
+          The address book rather than Address\Edit::getBackUrl(): that method
+          answers `customer/account` when the customer has no addresses yet,
+          which was correct while an empty book redirected away and is wrong now
+          that it renders (Plugin\Customer\ShowEmptyAddressBook). "تجاهل" means
+          "take me back to my addresses" on both paths.
+        */ ?>
+        <a class="spartrak-address-form__cancel"
+           href="<?= $escaper->escapeUrl($block->getUrl('customer/address')) ?>"
+           data-spartrak-address-cancel>
+            <?= $escaper->escapeHtml(__('Discard')) ?>
+        </a>
+    </div>
+</form>

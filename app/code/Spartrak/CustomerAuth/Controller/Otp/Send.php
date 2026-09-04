@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Spartrak\CustomerAuth\Controller\Otp;
 
+use Magento\Customer\Model\Session as CustomerSession;
 use Magento\Framework\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\JsonFactory;
@@ -15,6 +16,8 @@ use Magento\Framework\HTTP\PhpEnvironment\RemoteAddress;
 use Magento\Store\Model\StoreManagerInterface;
 use Psr\Log\LoggerInterface;
 use Spartrak\CustomerAuth\Controller\AbstractJsonAction;
+use Spartrak\CustomerAuth\Exception\FieldValidationException;
+use Spartrak\CustomerAuth\Exception\OtpVerificationException;
 use Spartrak\CustomerAuth\Model\Customer\PhoneLocator;
 use Spartrak\CustomerAuth\Model\Otp\Purpose;
 use Spartrak\CustomerAuth\Model\Otp\Service as OtpService;
@@ -23,9 +26,9 @@ use Spartrak\CustomerAuth\Model\Phone\Normalizer;
 /**
  * POST /phone-auth/otp/send
  *
- * Body: phone, purpose (signup|password_reset), form_key
+ * Body: phone, purpose (signup|password_reset|phone_change), form_key
  *
- * The two purposes get deliberately asymmetric treatment, and the asymmetry is
+ * The purposes get deliberately asymmetric treatment, and the asymmetry is
  * the interesting part of this class:
  *
  *   SIGNUP tells the caller when a number is already registered. That is an
@@ -42,6 +45,14 @@ use Spartrak\CustomerAuth\Model\Phone\Normalizer;
  *   password believes they have an account) and a clear downside: it would turn
  *   this endpoint into "is this phone number a SpareTrak customer?", answerable
  *   for any number in Egypt.
+ *
+ *   PHONE_CHANGE discloses, like SIGNUP, and requires a session. A shopper
+ *   moving their account to a new number has to be told when that number is
+ *   already somebody else's, because `phone_number` is the login identifier and
+ *   is uniquely indexed — the alternative is a code that arrives, verifies, and
+ *   then fails to save with nothing useful to say. The exposure is narrower than
+ *   SIGNUP's: it answers only to a signed-in customer, and the rate limiter
+ *   applies per number and per IP exactly as it does to the other two.
  */
 class Send extends AbstractJsonAction implements HttpPostActionInterface
 {
@@ -53,7 +64,8 @@ class Send extends AbstractJsonAction implements HttpPostActionInterface
         LoggerInterface $logger,
         RemoteAddress $remoteAddress,
         private readonly OtpService $otpService,
-        private readonly PhoneLocator $phoneLocator
+        private readonly PhoneLocator $phoneLocator,
+        private readonly CustomerSession $customerSession
     ) {
         parent::__construct($context, $jsonFactory, $phoneNormalizer, $storeManager, $logger, $remoteAddress);
     }
@@ -72,6 +84,10 @@ class Send extends AbstractJsonAction implements HttpPostActionInterface
             throw new InputMismatchException(
                 __('An account already exists for this phone number. Please sign in instead.')
             );
+        }
+
+        if ($purpose === Purpose::PHONE_CHANGE) {
+            $this->assertPhoneChangeAllowed($phone, $isRegistered);
         }
 
         if ($purpose === Purpose::PASSWORD_RESET && !$isRegistered) {
@@ -105,6 +121,48 @@ class Send extends AbstractJsonAction implements HttpPostActionInterface
             'real_delivery' => $result['real_delivery'],
             'message' => (string) __('We sent a verification code to your phone.'),
         ];
+    }
+
+    /**
+     * The three things that have to be true before a code is sent to a number a
+     * signed-in customer wants to move to.
+     *
+     * ORDER MATTERS. A customer re-entering their OWN number is also
+     * "registered", so that case is answered first — otherwise the honest
+     * "nothing to change" turns into the alarming "somebody else has this".
+     *
+     * @throws OtpVerificationException  Not signed in.
+     * @throws FieldValidationException  Unusable number, with the field hint the
+     *                                   form needs to mark the input.
+     */
+    private function assertPhoneChangeAllowed(string $phone, bool $isRegistered): void
+    {
+        if (!$this->customerSession->isLoggedIn()) {
+            // 403 via AbstractJsonAction's OtpVerificationException arm. Not a
+            // FieldValidationException: nothing the shopper typed is wrong, and
+            // a `field` hint would put this message under the phone input where
+            // it reads as a validation failure. The real answer is "this request
+            // needs a session", which is what a 403 says.
+            throw new OtpVerificationException(
+                __('Please sign in before changing the phone number on your account.')
+            );
+        }
+
+        $current = (string) $this->customerSession->getCustomer()->getData('phone_number');
+
+        if ($current !== '' && $current === $phone) {
+            throw new FieldValidationException(
+                __('This is already the phone number on your account.'),
+                'phone'
+            );
+        }
+
+        if ($isRegistered) {
+            throw new FieldValidationException(
+                __('Another account already uses this phone number.'),
+                'phone'
+            );
+        }
     }
 
     /**

@@ -55,7 +55,8 @@
                     `customer` section had never been fetched.
                   -->
                   <arguments>
-                      <argument name="customer_state" xsi:type="object">Spartrak\CustomerAuth\ViewModel\CustomerState</argument>
+                        <argument name="customer_state" xsi:type="object">Spartrak\CustomerAuth\ViewModel\CustomerState</argument>
+                        <argument name="account_menu" xsi:type="object">Spartrak\CustomerAccount\ViewModel\AccountMenu</argument>
                   </arguments>
                   <!--
                     `header.links` REMOVED 2026-08-27.

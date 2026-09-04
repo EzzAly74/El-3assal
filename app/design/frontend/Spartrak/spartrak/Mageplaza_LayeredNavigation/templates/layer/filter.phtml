@@ -104,23 +104,110 @@ $priceHelper = $this->helper(\Magento\Framework\Pricing\Helper\Data::class);
 $formId = 'spartrak-price-range-' . $attributeCode;
 
 /*
- * Input values. Preferred source is the histogram block (it knows the real
- * catalogue bounds); if that could not be built for any reason the fields
- * still render, seeded from Magento's own applied `price=from-to`
- * parameter, so the range inputs keep working on their own.
+ * ===========================================================================
+ * TWO DIFFERENT THINGS, DELIBERATELY KEPT APART
+ * ===========================================================================
+ * `price=from-to` is the filter Magento is APPLYING right now. It is what the
+ * two fields display, so that choosing "under 1,000" visibly puts 0 and 1,000
+ * into them.
+ *
+ * `sp_pmin` / `sp_pmax` are the bounds the SHOPPER TYPED. They are what the
+ * three range rows are built from, so those rows keep offering
+ * under-1,000 / 1,000-5,000 / above-5,000 after one of them has been chosen.
+ *
+ * These used to be one storage doing both jobs, which cannot work: the moment
+ * "under 1,000" was applied the fields read 0 and 1,000, so the rows rebuilt
+ * themselves as "under 0.00" — a row that means nothing and selects nothing.
+ * Splitting them is the whole fix.
+ *
+ * `sp_` prefixed so neither can ever collide with a real attribute code.
+ * Magento ignores request parameters that are not filters, so they cost a
+ * query string and nothing else.
  */
 $appliedRange = (string) $block->getRequest()->getParam($attributeCode, '');
 [$appliedFrom, $appliedTo] = array_pad(explode('-', $appliedRange, 2), 2, '');
 
-$fromValue = null;
-$toValue = null;
-if ($histogram !== null) {
-    $fromValue = $histogram->getSelectedFrom();
-    $toValue = $histogram->getSelectedTo();
-} else {
-    $fromValue = is_numeric($appliedFrom) ? (float) $appliedFrom : null;
-    $toValue = is_numeric($appliedTo) ? (float) $appliedTo : null;
-}
+/*
+ * THE FIELDS ARE SEEDED FROM THE APPLIED FILTER AND NOTHING ELSE.
+ *
+ * They used to be filled from the catalogue's own min and max. That looked
+ * like a helpful default and was actively wrong: on a catalogue still priced
+ * at 0.00 both fields read "0.00", which reads as a broken control, and it
+ * stated a filter the shopper had not chosen. No parameter now means no
+ * value — the placeholder says 0.00 instead.
+ */
+$fromValue = is_numeric($appliedFrom) ? (float) $appliedFrom : null;
+$toValue = is_numeric($appliedTo) ? (float) $appliedTo : null;
+
+/*
+ * A usable pair of reference points is two numbers with a POSITIVE low below
+ * a higher high. Both halves of that matter: "under L" is not a range when L
+ * is zero, and the middle band collapses when high <= low.
+ */
+$usablePair = static function ($low, $high): ?array {
+    if (!is_numeric($low) || !is_numeric($high)) {
+        return null;
+    }
+
+    $low = (float) $low;
+    $high = (float) $high;
+
+    return ($low > 0 && $high > $low) ? [$low, $high] : null;
+};
+
+/*
+ * `sp_*` first. Falling back to the applied range keeps a shared or
+ * hand-typed `?price=1000-5000` link showing its rows — that is the shape
+ * every link this file wrote before the two parameters existed.
+ */
+$refPair = $usablePair(
+    $block->getRequest()->getParam('sp_pmin'),
+    $block->getRequest()->getParam('sp_pmax')
+) ?? $usablePair($appliedFrom, $appliedTo);
+
+[$refLow, $refHigh] = $refPair ?? [null, null];
+
+/*
+ * The catalogue's real bounds, handed to the inline script so that filling in
+ * one field can complete the other. Zero when the histogram could not be
+ * built, and the script then falls back rather than inventing a number.
+ */
+$catalogMin = $histogram !== null ? (float) $histogram->getMinPrice() : 0.0;
+$catalogMax = $histogram !== null ? (float) $histogram->getMaxPrice() : 0.0;
+
+/*
+ * ===========================================================================
+ * HOW THE TWO OPEN ENDS ARE WRITTEN
+ * ===========================================================================
+ * "Under L" is `price=0-L` and "H and above" is `price=H-999999`.
+ *
+ * Zero is literal, and there is no trick to it. An earlier version of this
+ * file used 0.01 on the belief that core's validateFilter() rejects a zero
+ * bound. It does not — 2.4.8 reads:
+ *
+ *     if ($v !== '' && $v !== '0' && (!is_numeric($v) || (double)$v <= 0 || ...
+ *
+ * and that `$v !== '0'` short-circuits, so '0' is explicitly allowed.
+ *
+ * The ceiling is NOT cosmetic. An EMPTY half really is fatal: Mageplaza's own
+ * Model\Layer\Filter\Price::apply() does `$to / $this->getCurrencyRate()`, and
+ * under PHP 8 dividing the empty string is a TypeError, not 0. So `price=H-`,
+ * the natural way to say "and above" and a shape core's validator accepts,
+ * takes the whole page down with "An error has happened during application
+ * run". Core never divides, so this is Mageplaza's bug; their file says not
+ * to edit it and it is third-party, so it is worked around here.
+ *
+ * Both values are shared by the PHP rows and the inline script below, which
+ * MUST agree: they are compared as strings to decide which row is chosen.
+ */
+$priceFloor = 0;
+$priceCeil = 999999;
+
+/*
+ * The currently applied range, used to mark one row as chosen. Compared as a
+ * TRIMMED STRING against the same `from-to` shape the hrefs carry.
+ */
+$appliedKey = trim($appliedRange);
 ?>
 <?php if ($isSlider) : ?>
     <?php
@@ -150,15 +237,30 @@ if ($histogram !== null) {
          */
         ?>
         <form class="spartrak-price-inputs" id="<?= $block->escapeHtmlAttr($formId) ?>" action="#" method="get">
+                <?php /*
+                  PLAIN DECIMALS, NOT FORMATTED CURRENCY.
+                  These fields used to be seeded through the price helper, so
+                  under ar_EG they held "١٬٠٠٠٫٠٠ ج.م" — and the script below
+                  read that back by converting Arabic-Indic digits and then
+                  stripping everything else, which silently threw away the
+                  decimal mark ٫ (U+066B) and the group mark ٬ (U+066C) and
+                  turned 1,000.00 into 100000. A hundred times the price.
+
+                  A plain "1000.00" has no symbol and no separators to lose,
+                  round-trips through the field byte for byte, and is what a
+                  shopper would type anyway. The ROW LABELS below still use
+                  the price helper — those are display, not input.
+                */ ?>
                 <label class="spartrak-price-inputs__field">
                     <span class="spartrak-price-inputs__label"><?= $block->escapeHtml(__('Lowest')) ?></span>
                     <input class="spartrak-price-inputs__input"
                            type="text"
                            inputmode="decimal"
                            autocomplete="off"
+                           placeholder="0.00"
                            data-role="price-from"
                            value="<?= $fromValue !== null
-                               ? $block->escapeHtmlAttr($priceHelper->currency($fromValue, true, false))
+                               ? $block->escapeHtmlAttr(number_format($fromValue, 2, '.', ''))
                                : '' ?>" />
                 </label>
                 <label class="spartrak-price-inputs__field">
@@ -167,80 +269,577 @@ if ($histogram !== null) {
                            type="text"
                            inputmode="decimal"
                            autocomplete="off"
+                           placeholder="0.00"
                            data-role="price-to"
                            value="<?= $toValue !== null
-                               ? $block->escapeHtmlAttr($priceHelper->currency($toValue, true, false))
+                               ? $block->escapeHtmlAttr(number_format($toValue, 2, '.', ''))
                                : '' ?>" />
                 </label>
                 <button type="submit" class="spartrak-price-inputs__submit"><?= $block->escapeHtml(__('Apply')) ?></button>
             </form>
+            <?php
+            /*
+             * Two jobs, both small, both about the two price fields.
+             *
+             * 1. SUBMIT -> navigate to `price=low-high`. That is Magento's own
+             *    parameter, the same one the slider and the three range rows
+             *    write, so the fields are a third way into ONE filter.
+             *
+             * 2. TYPING -> rewrite the three range rows live, so "تحت 500" and
+             *    "500 - 5000" track what is in the fields before the shopper
+             *    commits. Without this the rows only catch up after a reload,
+             *    which reads as the fields not working.
+             *
+             * THE ARABIC-INDIC DIGIT BUG THIS ALSO FIXES. The old handler read
+             * the fields with `value.replace(/[^\d.]/g, '')`. In JavaScript
+             * `\d` is ASCII 0-9 ONLY — it does not match ٠١٢٣٤٥٦٧٨٩. The fields
+             * are seeded through Magento's price helper, which renders
+             * Arabic-Indic digits under ar_EG, so on this storefront that strip
+             * returned an EMPTY STRING and the form submitted nothing. Digits
+             * are now normalised to ASCII first, covering both the Arabic-Indic
+             * (U+0660-0669) and Extended Arabic-Indic (U+06F0-06F9) blocks.
+             *
+             * The label patterns come from PHP rather than being rebuilt in JS,
+             * so the Arabic word order and the currency's own placement stay
+             * with the translation instead of being hardcoded here.
+             */
+            $moneySample = (string) $priceHelper->currency(0, true, false);
+            $rangeConfig = [
+                'param' => (string) $attributeCode,
+                'moneySample' => $moneySample,
+                'under' => (string) __('Under %1', '@'),
+                'above' => (string) __('%1 and above', '@'),
+                /*
+                 * The same two open-end values the PHP rows use. Hardcoding
+                 * them a second time in JS is how the two sides last drifted
+                 * apart: PHP was corrected to a numeric ceiling and the script
+                 * kept writing an empty one, so every keystroke rewrote the
+                 * hrefs back into the shape that 500s the page.
+                 */
+                'floor' => (string) $priceFloor,
+                'ceil' => (string) $priceCeil,
+                // Marks the chosen row as the script rebuilds them.
+                'applied' => $appliedKey,
+                /*
+                 * The catalogue's own bounds, used to COMPLETE the other field
+                 * when only one is filled. Zero when the histogram could not
+                 * be built; the script then falls back rather than guessing.
+                 */
+                'catalogMin' => $catalogMin,
+                'catalogMax' => $catalogMax,
+            ];
+            ?>
             <script>
                 (function () {
                     'use strict';
+
                     var form = document.getElementById('<?= $block->escapeJs($formId) ?>');
+
                     if (!form || form.getAttribute('data-spartrak-bound')) {
                         return;
                     }
+
                     form.setAttribute('data-spartrak-bound', '1');
-                    form.addEventListener('submit', function (event) {
-                        event.preventDefault();
-                        var read = function (role) {
-                            var field = form.querySelector('[data-role="' + role + '"]');
-                            // Strip the currency symbol, grouping separators and
-                            // any Arabic-Indic digits back to a plain number.
-                            return field ? field.value.replace(/[^\d.]/g, '') : '';
-                        };
-                        var from = read('price-from');
-                        var to = read('price-to');
-                        if (from === '' && to === '') {
+
+                    var cfg = <?= /* @noEscape */ json_encode(
+                        $rangeConfig,
+                        JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+                    ) ?>;
+
+                    // Arabic-Indic and Extended Arabic-Indic digits -> ASCII.
+                    // See the PHP note above: without this the fields read as
+                    // empty on an Arabic store view.
+                    function toAscii(text) {
+                        return String(text)
+                            .replace(/[\u0660-\u0669]/g, function (d) {
+                                return d.charCodeAt(0) - 0x0660;
+                            })
+                            .replace(/[\u06F0-\u06F9]/g, function (d) {
+                                return d.charCodeAt(0) - 0x06F0;
+                            });
+                    }
+
+                    function read(role) {
+                        var field = form.querySelector('[data-role="' + role + '"]');
+
+                        if (!field) {
+                            return '';
+                        }
+
+                        /*
+                         * The Arabic decimal mark ٫ becomes a point and the
+                         * group mark ٬ is dropped BEFORE the catch-all strip.
+                         * Letting the strip eat them turned ١٬٠٠٠٫٠٠ into
+                         * 100000 — a hundred times the price. They are not
+                         * noise: one of the two IS the decimal point.
+                         */
+                        return toAscii(field.value)
+                            .replace(/٫/g, '.')
+                            .replace(/[٬,\s]/g, '')
+                            .replace(/[^0-9.]/g, '');
+                    }
+
+                    /*
+                     * A field as a NUMBER, or null when it holds nothing
+                     * usable. Everything downstream needs numbers, and
+                     * "1000.00" and "1000" have to be the same thing: the row
+                     * hrefs are compared as strings against what PHP wrote,
+                     * and PHP writes (string)(float) — that is "1000".
+                     */
+                    function num(role) {
+                        var raw = read(role);
+
+                        if (raw === '') {
+                            return null;
+                        }
+
+                        var value = Number(raw);
+
+                        return isFinite(value) ? value : null;
+                    }
+
+                    /*
+                     * The currency's own shape, learnt from a formatted zero
+                     * rather than hardcoded: everything that is not a digit or a
+                     * separator is the symbol, and whether it leads or trails is
+                     * read off the same sample. That keeps this correct for a
+                     * second store view without a second code path.
+                     */
+                    var sample = toAscii(cfg.moneySample || '');
+                    var symbol = sample.replace(/[0-9.,\u066B\u066C\s]/g, '');
+                    var symbolLeads = /^[^0-9]/.test(sample.trim());
+
+                    function money(value) {
+                        var n = Number(value);
+
+                        if (!isFinite(n)) {
+                            return String(value);
+                        }
+
+                        var num = n.toLocaleString(document.documentElement.lang || undefined);
+
+                        if (!symbol) {
+                            return num;
+                        }
+
+                        return symbolLeads ? symbol + ' ' + num : num + ' ' + symbol;
+                    }
+
+                    /*
+                     * `refLow`/`refHigh` are the bounds the shopper typed, and
+                     * they ride along on every link so the rows still read
+                     * 1,000 / 5,000 on the page that loads. Without them the
+                     * next render rebuilds the rows from the APPLIED range and
+                     * "under 1,000" turns into "under 0.00".
+                     */
+                    function rangeHref(from, to, refLow, refHigh) {
+                        var url = new URL(window.location.href);
+
+                        url.searchParams.set(cfg.param, from + '-' + to);
+
+                        /*
+                         * Same test the PHP applies: a positive low under a
+                         * higher high, or the pair is not worth carrying. The
+                         * `delete` branch matters — this URL is built from the
+                         * CURRENT one, so an unusable pair has to clear any
+                         * stale reference points rather than leave them to
+                         * contradict what the shopper just typed.
+                         */
+                        if (refLow > 0 && refHigh > refLow) {
+                            url.searchParams.set('sp_pmin', String(refLow));
+                            url.searchParams.set('sp_pmax', String(refHigh));
+                        } else {
+                            url.searchParams.delete('sp_pmin');
+                            url.searchParams.delete('sp_pmax');
+                        }
+
+                        // A new filter always starts at page 1, or a shopper on
+                        // page 4 of the old result set lands on an empty page.
+                        url.searchParams.delete('p');
+
+                        return url.toString();
+                    }
+
+                    /*
+                     * Fills the three rows from the current field values and
+                     * SHOWS them — that second half is what was missing. PHP
+                     * renders three empty shells whenever there are no
+                     * reference points, so this only has to populate and
+                     * unhide them. Before, it bailed on `rows.length !== 3`
+                     * against a list PHP had not rendered at all, so typing
+                     * 1,000 and 5,000 produced nothing whatsoever.
+                     *
+                     * Scoped to the document rather than the form: the rows are
+                     * siblings of the form, not children of it.
+                     */
+                    function syncRows() {
+                        var list = document.querySelector('[data-price-ranges]');
+
+                        if (!list) {
                             return;
                         }
-                        var url = new URL(window.location.href);
-                        url.searchParams.set('<?= $block->escapeJs($attributeCode) ?>', (from || '0') + '-' + to);
-                        url.searchParams.delete('p');
-                        window.location.assign(url.toString());
+
+                        var rows = list.querySelectorAll('[data-range-index]');
+
+                        if (rows.length !== 3) {
+                            return;
+                        }
+
+                        var low = num('price-from'),
+                            high = num('price-to');
+
+                        // The same rule the PHP applies: a positive low under a
+                        // higher high. "Under 0" is not a range.
+                        if (low === null || high === null || low <= 0 || high <= low) {
+                            list.hidden = true;
+
+                            return;
+                        }
+
+                        var lowText = money(low),
+                            highText = money(high),
+                            labels = [
+                                (cfg.under || '@').replace('@', lowText),
+                                lowText + ' - ' + highText,
+                                (cfg.above || '@').replace('@', highText)
+                            ],
+                            bounds = [
+                                [cfg.floor, low],
+                                [low, high],
+                                [high, cfg.ceil]
+                            ];
+
+                        Array.prototype.forEach.call(rows, function (row, i) {
+                            var label = row.querySelector('[data-range-label]'),
+                                from = bounds[i][0],
+                                to = bounds[i][1],
+                                chosen = from + '-' + to === cfg.applied;
+
+                            if (label) {
+                                label.textContent = labels[i];
+                            }
+
+                            row.setAttribute('href', rangeHref(from, to, low, high));
+                            row.classList.toggle('spartrak-price-range--chosen', chosen);
+
+                            if (chosen) {
+                                row.setAttribute('aria-current', 'true');
+                            } else {
+                                row.removeAttribute('aria-current');
+                            }
+                        });
+
+                        list.hidden = false;
+                    }
+
+                    /*
+                     * ONE FIELD COMPLETES THE OTHER.
+                     *
+                     * Only a lower bound means "from here upwards", only an
+                     * upper bound means "up to here". Rather than leave the
+                     * pair half-stated — which shows no rows, because the rows
+                     * need both numbers — the empty side is filled in.
+                     *
+                     * On `change`, not `input`: completing the other field
+                     * mid-keystroke fights the shopper while they are still
+                     * typing. `change` fires on blur or Enter, which is the
+                     * point at which they have finished with that field. It
+                     * never OVERWRITES a value they put there themselves.
+                     */
+                    function autofill(event) {
+                        var changed = event.target,
+                            role = changed && changed.getAttribute
+                                ? changed.getAttribute('data-role')
+                                : null;
+
+                        if (role !== 'price-from' && role !== 'price-to') {
+                            return;
+                        }
+
+                        if (num(role) === null) {
+                            return;
+                        }
+
+                        var otherRole = role === 'price-from' ? 'price-to' : 'price-from';
+
+                        if (read(otherRole) !== '') {
+                            return;
+                        }
+
+                        /*
+                         * The high side falls back to the ceiling when the
+                         * catalogue maximum is unknown. The low side has no
+                         * fallback: the only candidate would be 0, and "under
+                         * 0" is not a range — so on a catalogue with no
+                         * positive minimum the shopper types the low bound
+                         * themselves rather than being handed an invented one.
+                         */
+                        var catalogMin = Number(cfg.catalogMin),
+                            catalogMax = Number(cfg.catalogMax),
+                            value;
+
+                        if (role === 'price-from') {
+                            value = isFinite(catalogMax) && catalogMax > 0
+                                ? catalogMax
+                                : Number(cfg.ceil);
+                        } else {
+                            value = isFinite(catalogMin) && catalogMin > 0 ? catalogMin : null;
+                        }
+
+                        if (value === null) {
+                            return;
+                        }
+
+                        var field = form.querySelector('[data-role="' + otherRole + '"]');
+
+                        if (field) {
+                            field.value = value.toFixed(2);
+                        }
+                    }
+
+                    form.addEventListener('submit', function (event) {
+                        event.preventDefault();
+
+                        var low = num('price-from'),
+                            high = num('price-to');
+
+                        if (low === null && high === null) {
+                            return;
+                        }
+
+                        /*
+                         * A half-filled form still applies: an open low end is
+                         * the floor and an open high end the ceiling. Both
+                         * halves are always sent as numbers — an empty one is
+                         * the TypeError described at the top of this file.
+                         */
+                        var from = low === null ? Number(cfg.floor) : low,
+                            to = high === null ? Number(cfg.ceil) : high;
+
+                        if (to <= from) {
+                            return;
+                        }
+
+                        window.location.assign(rangeHref(from, to, from, to));
                     });
+
+                    form.addEventListener('input', syncRows);
+                    form.addEventListener('change', function (event) {
+                        autofill(event);
+                        syncRows();
+                    });
+
+                    /*
+                     * NOT called on load, deliberately. PHP has already
+                     * rendered the rows from the reference points; running
+                     * this now would immediately rebuild them from the FIELDS,
+                     * which hold the applied range, and undo exactly the split
+                     * the two `sp_*` parameters exist to create.
+                     */
                 }());
             </script>
     </div>
 <?php endif; ?>
 <?php
 /*
- * Figma's price filter shows the slider AND the price-range option rows
- * (569:14205 — "تحت 500 ج.م" / "500 ج.م - 2000 ج.م" / "2500 ج.م فأعلي" with
- * their count pills), which Mageplaza's own template never does: its
- * slider branch replaces the rows entirely. Both are rendered here.
+ * ===========================================================================
+ * THE PRICE FILTER'S THREE RANGES ARE DERIVED FROM THE TWO FIELDS.
+ * ===========================================================================
+ * The business rule, and it is not Magento's:
  *
- * The 2+ guard is the honest part: in slider mode Magento hands back a
- * single degenerate range whenever the catalogue has no price spread (which
- * is today's state — every product is 0.00), and one lone radio labelled
- * "0.00 - 0.00" is not what the design shows. Real price data produces real
- * ranges and they appear automatically.
+ *   الاقل = L,  الاعلي = H   ->   three choices
+ *     1. تحت L ج.م          price=0-L        everything below the low field
+ *     2. L ج.م - H ج.م      price=L-H        the band between the two
+ *     3. H ج.م فأعلي        price=H-999999   everything above the high field
+ *
+ * L and H come from `sp_pmin`/`sp_pmax`, NOT from the applied filter, so the
+ * three rows stay put once one of them has been chosen. See the top of this
+ * file for why those two parameters exist and why 999999 rather than an empty
+ * upper half.
+ *
+ * Figma 569:14205 / 864:20665 draws exactly that. Its own numbers are
+ * internally inconsistent (the fields read 500 and 5000 while the rows read
+ * 500, 2000 and 2500), so the CONCEPT is taken from the frame and the values
+ * come from the two fields — which is the only way the rows can ever agree
+ * with what the shopper typed.
+ *
+ * WHAT THIS REPLACED, AND WHY THE OLD ONE COULD NOT WORK
+ * ---------------------------------------------------------------------------
+ * It used to render Magento's OWN $filterItems — the ranges Magento computes
+ * off the price index. Two things were wrong with that:
+ *
+ *   1. THE RADIO DID NOTHING. Each row was a bare <input type="radio"> next
+ *      to a separate <a>. A radio outside a form with no JS bound to it is
+ *      inert: clicking it checked a dot and navigated nowhere, which is
+ *      exactly the "click a range and the page just refreshes" symptom.
+ *      Every row is now a LINK, so a click anywhere on it filters. The radio
+ *      is drawn in CSS inside that link rather than being a form control,
+ *      because the control's job here is navigation and <a> is the element
+ *      for navigation.
+ *
+ *   2. THE RANGES WERE NOT THE ONES ASKED FOR. Magento's buckets are
+ *      derived from its own index, not from the two fields, so the rows
+ *      never matched what the shopper had typed.
+ *
+ * NON-PRICE filters still render Magento's own items, unchanged, further
+ * down — only the slider (price) filter takes this branch.
+ *
+ * NO COUNT PILLS. Figma draws one per row (820 / 1,320 / 410). A truthful
+ * count needs its own aggregate query per range against
+ * catalog_product_index_price, and the histogram's 19 buckets cannot be
+ * summed into these three without landing on approximate numbers — which is
+ * worse than none (CLAUDE.md section 9 forbids invented data). The row is
+ * built so a `count` span drops straight in once that query exists.
  */
-$renderOptionRows = !$isSlider || count($filterItems) > 1;
+/*
+ * THREE ROW SHELLS ARE ALWAYS RENDERED WHEN THIS IS THE PRICE FILTER.
+ *
+ * Empty ones when there are no reference points yet, and the whole list is
+ * then `hidden`. That is not padding: the inline script above fills these in
+ * as the shopper types, and it can only fill rows that exist. When the list
+ * was rendered conditionally the script found nothing, bailed, and typing
+ * 1,000 and 5,000 produced no rows at all until the form was submitted —
+ * which is the "nothing happens" this file is being changed to fix.
+ *
+ * An empty shell carries NO `href`. An <a> without one is not a link and is
+ * not focusable, so a hidden empty row is inert for keyboard and screen
+ * reader alike, with no `tabindex` juggling.
+ */
+$emptyRange = ['label' => '', 'from' => '', 'to' => ''];
+$priceRanges = $isSlider ? [$emptyRange, $emptyRange, $emptyRange] : [];
+
+if ($isSlider && $refLow !== null && $refHigh !== null) {
+    $low = $refLow;
+    $high = $refHigh;
+
+    $money = static function (float $value) use ($priceHelper): string {
+        return (string) $priceHelper->currency($value, true, false);
+    };
+
+    /*
+     * `from` and `to` are the halves of Magento's OWN `price=from-to`
+     * parameter — the same one the slider and the two fields already write,
+     * so these rows are a third way into one existing filter rather than a
+     * parallel mechanism. $priceFloor / $priceCeil are defined at the top of
+     * this file, next to the explanation of why the open ends are written the
+     * way they are; the inline script is handed the same two values so both
+     * sides produce byte-identical URLs.
+     */
+    $priceRanges = [
+        [
+            'label' => __('Under %1', $money($low)),
+            'from' => (string) $priceFloor,
+            'to' => (string) $low,
+        ],
+        [
+            'label' => $money($low) . ' - ' . $money($high),
+            'from' => (string) $low,
+            'to' => (string) $high,
+        ],
+        [
+            'label' => __('%1 and above', $money($high)),
+            'from' => (string) $high,
+            'to' => (string) $priceCeil,
+        ],
+    ];
+}
+
+/*
+ * Every link keeps the shopper's typed bounds alive across the click, which
+ * is what stops the rows collapsing into "under 0.00" the moment one of them
+ * is chosen. Only the price rows carry them — a colour or brand link has no
+ * reason to.
+ */
+$rangeUrl = static function (
+    string $from,
+    string $to,
+    ?float $refLow,
+    ?float $refHigh
+) use ($block, $attributeCode): string {
+    $params = $block->getRequest()->getParams();
+    // `p` is the page number: a new filter always starts at page 1, or a
+    // shopper on page 4 of the old result set lands on an empty page.
+    unset($params['p']);
+    $params[$attributeCode] = $from . '-' . $to;
+
+    if ($refLow !== null && $refHigh !== null) {
+        $params['sp_pmin'] = (string) $refLow;
+        $params['sp_pmax'] = (string) $refHigh;
+    }
+
+    return '?' . http_build_query($params);
+};
+
+// Nothing to show until the shopper has given us two bounds to work from.
+$rangesHidden = $refLow === null || $refHigh === null;
 ?>
-<?php if ($renderOptionRows) : ?>
+<?php if ($priceRanges !== []) : ?>
+    <ol class="items spartrak-price-ranges" data-price-ranges <?= $rangesHidden ? 'hidden' : '' ?>>
+        <?php foreach ($priceRanges as $index => $range) : ?>
+            <?php
+            $isEmptyShell = $range['to'] === '';
+            $key = $range['from'] . '-' . $range['to'];
+            $isChosen = !$isEmptyShell && $appliedKey !== '' && $appliedKey === $key;
+            ?>
+            <li class="item">
+                <?php /*
+                  A LINK, not a radio-plus-link. See the header: the previous
+                  shape put an inert form control beside the only clickable
+                  thing in the row.
+
+                  The radio is the <span> — drawn in CSS to Figma 864:20681,
+                  and `aria-hidden` because it is decoration: the link's own
+                  text is its accessible name and `aria-current` is what
+                  announces which one is active.
+                */ ?>
+                <a class="spartrak-price-range<?= $isChosen ? ' spartrak-price-range--chosen' : '' ?>"
+                   <?php if (!$isEmptyShell) : ?>
+                       href="<?= $block->escapeUrl($rangeUrl($range['from'], $range['to'], $refLow, $refHigh)) ?>"
+                   <?php endif; ?>
+                   data-range-index="<?= (int) $index ?>"
+                    <?= $isChosen ? 'aria-current="true"' : '' ?>>
+                    <span class="spartrak-price-range__radio" aria-hidden="true"></span>
+                    <span class="spartrak-price-range__label" data-range-label><?= $block->escapeHtml($range['label']) ?></span>
+                </a>
+            </li>
+        <?php endforeach; ?>
+    </ol>
+<?php endif; ?>
+<?php
+/*
+ * NON-PRICE filters keep Magento's own items, and the same fix applies to
+ * their rows: the whole row is the link. Mageplaza's multi-select filters
+ * are still multi-select — the URL its getItemUrl() returns already toggles
+ * the value, so a link is the right element for those too.
+ */
+?>
+<?php if (!$isSlider && $filterItems !== []) : ?>
     <ol class="items">
         <?php foreach ($filterItems as $filterItem) : ?>
+            <?php
+            /*
+             * An option with nothing behind it is skipped entirely. It used to
+             * render as a DISABLED radio beside a still-LIVE link — a control
+             * that looked switched off next to text that navigated anyway, to
+             * a filtered page guaranteed to be empty.
+             */
+            if ((int) $filterItem->getCount() < 1) {
+                continue;
+            }
+
+            $isChosen = (bool) $filterModel->isSelected($filterItem);
+            ?>
             <li class="item">
-                <?php if ($filterItem->getCount() > 0) : ?>
-                    <input type="<?= $isMultiple ? 'checkbox' : 'radio' ?>"
-                        <?= $isMultiple ? '' : 'name="' . $block->escapeHtmlAttr($attributeCode) . '"' ?>
-                        <?= $filterModel->isSelected($filterItem) ? 'checked="checked"' : '' ?>
-                           aria-label="<?= $block->escapeHtmlAttr(strip_tags((string) $filterItem->getLabel())) ?>" />
-                <?php else : ?>
-                    <input type="<?= $isMultiple ? 'checkbox' : 'radio' ?>" disabled="disabled" aria-hidden="true" />
-                <?php endif; ?>
-                <a href="<?= $block->escapeUrl($filterModel->getItemUrl($filterItem)) ?>">
-                    <?= /* @noEscape */ $filterItem->getLabel() ?>
+                <a class="spartrak-price-range<?= $isChosen ? ' spartrak-price-range--chosen' : '' ?>"
+                   href="<?= $block->escapeUrl($filterModel->getItemUrl($filterItem)) ?>"
+                    <?= $isChosen ? 'aria-current="true"' : '' ?>>
+                    <span class="spartrak-price-range__radio<?= $isMultiple ? ' spartrak-price-range__radio--box' : '' ?>"
+                          aria-hidden="true"></span>
+                    <span class="spartrak-price-range__label">
+                        <?= /* @noEscape */ $filterItem->getLabel() ?>
+                    </span>
                     <?php if ($showCounter) : ?>
-                        <span class="count"><?= (int) $filterItem->getCount() ?>
-                            <span class="filter-count-label">
-                                <?= $block->escapeHtml(
-                                    (int) $filterItem->getCount() === 1 ? __('item') : __('items')
-                                ) ?>
-                            </span>
-                        </span>
+                        <span class="count"><?= (int) $filterItem->getCount() ?></span>
                     <?php endif; ?>
                 </a>
             </li>

@@ -134,6 +134,48 @@ class Review extends Action implements HttpPostActionInterface
             $order->addRelatedObject($invoice);
         }
 
+        /**
+         * =================================================================
+         * THE ORDER HAS TO LEAVE `new`, AND ONLY THIS FLAG MOVES IT
+         * =================================================================
+         * Registering an invoice does NOT change the order's state. It records
+         * the money and the items; the transition is a separate, deliberate
+         * step, and Magento's own invoice controller
+         * (Sales\Controller\Adminhtml\Order\Invoice\Save) takes it with exactly
+         * this line:
+         *
+         *     $invoice->getOrder()->setIsInProcess(true);
+         *
+         * `Sales\Model\ResourceModel\Order::save()` calls
+         * `Handler\State::check()`, which reads the flag and - for an order
+         * whose state is still `new` - sets state `processing` and stamps that
+         * state's DEFAULT status.
+         *
+         * Without it, approving a transfer invoiced the order and left it
+         * sitting in `new` / `pending`: the admin's own status field still read
+         * "Pending" beside fully invoiced items, and on the storefront
+         * Spartrak\CustomerAccount\Model\OrderProgress read state `new` and
+         * parked the shopper's tracker at `بانتظار الموافقة` forever - for an
+         * order somebody had just approved. That is the bug this line fixes,
+         * and it is why the moment of approval is also the moment the tracker
+         * advances.
+         *
+         * SET UNCONDITIONALLY, not inside the `canInvoice()` branch above. An
+         * order that cannot be invoiced (a zero total, an invoice already
+         * raised by hand) has still just had its payment accepted by a person,
+         * and that is what takes it out of `new`.
+         *
+         * THE STATUS IS THE MERCHANT'S TO NAME, not this module's. `check()`
+         * assigns whatever is configured as the default status for
+         * `processing`, so a merchant who wants `تم التعبئة` on approval sets it
+         * in Stores > Order Status. Hardcoding one of Spartrak_PickupLocation's
+         * four fulfilment statuses here would have this controller claim the
+         * goods were packed, which approving a bank transfer says nothing
+         * about - see Spartrak\PickupLocation\Model\DeliveryStatus for why none
+         * of them is a state default in the first place.
+         */
+        $order->setIsInProcess(true);
+
         $order->addCommentToStatusHistory(
             __(
                 'InstaPay: the transfer from %1 was approved by %2.',

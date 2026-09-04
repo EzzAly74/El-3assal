@@ -1,0 +1,219 @@
+<?php
+/**
+ * "طلباتي" — the order history card list. Figma 562:17527 / card 562:17887.
+ *
+ * ===========================================================================
+ * READING ORDER IS DOM ORDER, AND FIGMA'S EXPORT IS NOT
+ * ===========================================================================
+ * Figma's generated code lists children in canvas order, i.e. left to right.
+ * This document is `dir="rtl"` (see the spartrak_rtl theme's
+ * Magento_Theme/layout/default.xml), where the FIRST child of a flex row sits
+ * at the right. So every row here is written in the reverse of the export's
+ * order — icon before its label, the meta group before the status chip, the
+ * facts before the buttons.
+ *
+ * That is what makes the same markup mirror correctly for the English store
+ * view with no second stylesheet, which is CLAUDE.md section 16's actual
+ * requirement. Reversing it in CSS with `row-reverse` instead would hard-code
+ * one direction and break the other.
+ *
+ * ===========================================================================
+ * "عرض المنتج" IS CONDITIONAL, ON PURPOSE
+ * ===========================================================================
+ * Figma's card shows one product and a button that views it. A real order has
+ * n products and no single "the" product, so the button renders only when
+ * there IS one — and only when its product is still viewable, so it never
+ * offers a 404 for something delisted since the order was placed. A multi-item
+ * order shows تتبع الطلب alone, which leads to the page that lists all of them.
+ *
+ * @var \Magento\Sales\Block\Order\History $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+use Spartrak\CustomerAccount\ViewModel\OrderView;
+
+/** @var OrderView|null $orderView */
+$orderView = $block->getData('order_view');
+$orders = $block->getOrders();
+
+/*
+ * ===========================================================================
+ * THE PAGER, AND THE FOUR THINGS IT SHIPS THAT FIGMA DOES NOT DRAW
+ * ===========================================================================
+ * Magento\Sales\Block\Order\History builds this pager in _prepareLayout() with
+ * createBlock(), NOT from layout XML — so there is no `<referenceBlock>` to
+ * configure it from, and the only place left to do it is here. That is the same
+ * place, and the same lines, the PLP's own toolbar.phtml already uses for
+ * its copy of this block; see that file.
+ *
+ * THESE FLAGS ARE MAGENTO'S OWN IDIOM FOR A BARE PAGINATION CONTROL, not a
+ * local invention: Catalog\Block\Product\ProductList\Toolbar::getPagerHtml()
+ * calls `setUseContainer(false)->setShowPerPage(false)->setShowAmounts(false)`
+ * on its pager for exactly this reason. Core just never applied it to the
+ * account section's pagers, which is why they arrived dressed as toolbars.
+ *
+ *   AMOUNTS      "Items 1 to 10 of 34 total" — English on this store, because
+ *                the string is not in the theme's ar_EG.csv, and absent from
+ *                Figma's pagination (569:14143) either way. Off.
+ *   PER PAGE     the "عرض [10] لكل صفحة" limiter. Also not in 569:14143 — the
+ *                PLP records the same omission for the same reason.
+ *   CONTAINER    core's own `<div class="pager">` wrapper — confirmed present
+ *                on this page in the browser. The markup below supplies the
+ *                wrapper (with the component class on it), so leaving core's
+ *                on as well would emit an empty div on a single-page list,
+ *                which the `trim()` guard could not then detect.
+ *   ANCHOR TEXT  without it, core renders the prev/next controls with
+ *                `class="action"` and Porto styles THAT as an icon-font glyph
+ *                with its label hidden. With the glyph unavailable the control
+ *                came out as a blank square box with no text at all — the empty
+ *                fifth box in the report. Setting the text switches core to
+ *                `class="link"` AND gives the pill the word Figma draws, from a
+ *                translatable string rather than CSS content.
+ */
+$pager = $block->getChildBlock('pager');
+
+if ($pager) {
+    $pager->setShowAmounts(false)
+        ->setShowPerPage(false)
+        ->setUseContainer(false)
+        ->setAnchorTextForPrevious(__('Previous'))
+        ->setAnchorTextForNext(__('Next'));
+}
+?>
+<div class="spartrak-account-card">
+    <div class="spartrak-account-card__header">
+        <div class="spartrak-account-card__heading">
+            <h1 class="spartrak-account-card__title"><?= $escaper->escapeHtml(__('My orders')) ?></h1>
+            <p class="spartrak-account-card__subtitle">
+                <?= $escaper->escapeHtml(__('Track your orders and review everything you have bought.')) ?>
+            </p>
+        </div>
+    </div>
+
+    <div class="spartrak-account-card__body spartrak-order-history">
+        <?php if ($orders && count($orders) && $orderView !== null): ?>
+            <ul class="spartrak-order-history__list">
+                <?php foreach ($orders as $order): ?>
+                    <?php
+                    $items = $orderView->getVisibleItems($order);
+                    $eta = $orderView->getEstimatedArrival($order);
+                    $paymentTitle = $orderView->getPaymentTitle($order);
+                    $shipTo = $orderView->getShipToSummary($order);
+                    $singleProductUrl = count($items) === 1
+                        ? $orderView->getItemProductUrl($items[0])
+                        : null;
+                    ?>
+                    <li class="spartrak-order-card">
+                        <div class="spartrak-order-card__head">
+                            <div class="spartrak-order-card__meta">
+                                <span class="spartrak-order-card__meta-icon" aria-hidden="true"></span>
+                                <div class="spartrak-order-card__ids">
+                                    <p class="spartrak-order-card__id">
+                                        <?= $escaper->escapeHtml(__('ID')) ?> :
+                                        <span dir="ltr">#<?= $escaper->escapeHtml($order->getIncrementId()) ?></span>
+                                    </p>
+                                    <?php if ($eta !== null): ?>
+                                        <p class="spartrak-order-card__eta">
+                                            <?= $escaper->escapeHtml(__('Estimated arrival %1', $eta)) ?>
+                                        </p>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <span class="spartrak-order-card__status">
+                                <span class="spartrak-order-card__status-icon" aria-hidden="true"></span>
+                                <span><?= $escaper->escapeHtml($orderView->getStatusLabel($order)) ?></span>
+                            </span>
+                        </div>
+
+                        <div class="spartrak-order-card__items">
+                            <?php foreach ($items as $item): ?>
+                                <?php $image = $orderView->getItemImage($item); ?>
+                                <div class="spartrak-order-card__item">
+                                    <span class="spartrak-order-card__thumb">
+                                        <?php if ($image !== null): ?>
+                                            <img src="<?= $escaper->escapeUrl($image->getUrl()) ?>"
+                                                 alt=""
+                                                 width="<?= $escaper->escapeHtmlAttr($image->getWidth()) ?>"
+                                                 height="<?= $escaper->escapeHtmlAttr($image->getHeight()) ?>"
+                                                 loading="lazy"
+                                                 decoding="async">
+                                        <?php endif; ?>
+                                    </span>
+                                    <div class="spartrak-order-card__item-content">
+                                        <p class="spartrak-order-card__item-name">
+                                            <?= $escaper->escapeHtml($item->getName()) ?>
+                                        </p>
+                                        <p class="spartrak-order-card__item-price">
+                                            <?= $escaper->escapeHtml($orderView->getItemRowTotal($order, $item)) ?>
+                                        </p>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <div class="spartrak-order-card__foot">
+                            <div class="spartrak-order-card__facts">
+                                <?php if ($paymentTitle !== null): ?>
+                                    <p class="spartrak-order-card__fact">
+                                        <span class="spartrak-order-card__fact-label
+                                                     spartrak-order-card__fact-label--payment">
+                                            <?= $escaper->escapeHtml(__('Payment method')) ?>
+                                        </span>
+                                        <span class="spartrak-order-card__fact-value">
+                                            <?= $escaper->escapeHtml($paymentTitle) ?>
+                                        </span>
+                                    </p>
+                                <?php endif; ?>
+                                <?php if ($shipTo !== null): ?>
+                                    <p class="spartrak-order-card__fact">
+                                        <span class="spartrak-order-card__fact-label
+                                                     spartrak-order-card__fact-label--shipping">
+                                            <?= $escaper->escapeHtml(
+                                                $orderView->isPickup($order) ? __('Collect from') : __('Shipping to')
+                                            ) ?>
+                                        </span>
+                                        <span class="spartrak-order-card__fact-value">
+                                            <?= $escaper->escapeHtml($shipTo) ?>
+                                        </span>
+                                    </p>
+                                <?php endif; ?>
+                            </div>
+
+                            <div class="spartrak-order-card__actions">
+                                <a class="spartrak-order-card__track"
+                                   href="<?= $escaper->escapeUrl(
+                                       $block->getUrl('sales/order/view', ['order_id' => $order->getId()])
+                                   ) ?>">
+                                    <?= $escaper->escapeHtml(__('Track order')) ?>
+                                </a>
+                                <?php if ($singleProductUrl !== null): ?>
+                                    <a class="spartrak-order-card__product"
+                                       href="<?= $escaper->escapeUrl($singleProductUrl) ?>">
+                                        <?= $escaper->escapeHtml(__('View product')) ?>
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+
+            <?php $pagerHtml = $block->getPagerHtml(); ?>
+            <?php if (trim((string) $pagerHtml) !== ''): ?>
+                <?php /*
+                  `spartrak-pagination` is the shared control — the same
+                  component the PLP and the wishlist use
+                  (components/_pagination.less). The class beside it owns only
+                  this card's spacing.
+                */ ?>
+                <div class="spartrak-order-history__pager spartrak-pagination">
+                    <?= /* @noEscape */ $pagerHtml ?>
+                </div>
+            <?php endif; ?>
+        <?php else: ?>
+            <p class="spartrak-order-history__empty">
+                <?= $escaper->escapeHtml(__('You have placed no orders yet.')) ?>
+            </p>
+        <?php endif; ?>
+    </div>
+</div>

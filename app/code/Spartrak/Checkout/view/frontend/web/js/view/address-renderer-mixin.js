@@ -146,15 +146,34 @@ define([
              * postcode in particular is legitimately blank for the pickup flows,
              * where the address is synthesised from a branch.
              *
+             * ===================================================================
+             * THE CITY IS DROPPED WHEN IT IS THE GOVERNORATE SAID TWICE
+             * ===================================================================
+             * Figma's example has a city and a governorate that differ -
+             * "Downtown Cairo, Cairo Governorate". This store's address form
+             * collects no city at all: Spartrak_CustomerAddress fills it FROM the
+             * governorate, because Magento's validator refuses an address without
+             * one. So for every address typed on this storefront the two fields
+             * hold the same word, and printing both gave `القاهرة, القاهرة`.
+             *
+             * Compared as trimmed strings rather than by asking whether the city
+             * "was derived": the renderer has the two values and nothing else,
+             * and two identical words on one line are a duplicate whatever put
+             * them there. A city that genuinely differs - one typed in the admin,
+             * or imported - is unaffected and still prints, which is the case
+             * Figma draws.
+             *
              * @return {String}
              */
             spartrakAddressLine: function () {
                 var address = this.address(),
-                    regionAndPostcode = _.compact([address.region, address.postcode]).join(' ');
+                    region = String(address.region || '').trim(),
+                    city = String(address.city || '').trim(),
+                    regionAndPostcode = _.compact([region, address.postcode]).join(' ');
 
                 return _.compact([
                     _.values(_.compact(address.street || [])).join(', '),
-                    address.city,
+                    city === region ? '' : city,
                     regionAndPostcode,
                     this.getCountryName(address.countryId)
                 ]).join(', ');

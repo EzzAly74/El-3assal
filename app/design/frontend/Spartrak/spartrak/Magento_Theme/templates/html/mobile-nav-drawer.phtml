@@ -199,12 +199,72 @@ foreach ($l1Nodes as $l1) {
                 </button>
             </div>
 
+            <?php
+            /*
+             * SIGNED IN — Figma 645:39359 (open) / 645:39293 (closed).
+             *
+             * A DISCLOSURE, not a link. The profile row used to navigate
+             * straight to customer/account; Figma draws it as an accordion with
+             * an up/down chevron and four destinations underneath, which is the
+             * better interaction on a phone: it puts the four things a
+             * signed-in shopper actually wants one tap away instead of behind a
+             * page load.
+             *
+             * It reuses the drawer's OWN accordion, unchanged:
+             * spartrak-mobile-drawer.js binds `[data-accordion-trigger]` and
+             * toggles the trigger's next `.spartrak-mobile-drawer__group-panel`
+             * sibling. So this needs no new JavaScript at all — the same handler
+             * that opens "الفئات" opens this.
+             *
+             * The destinations are the SAME LIST the desktop header's account
+             * menu renders — literally the same, from
+             * Spartrak\CustomerAccount\ViewModel\AccountMenu, not a second copy
+             * of it. See that class for why the list moved out of
+             * account-chip.phtml.
+             */
+
+            /** @var \Spartrak\CustomerAccount\ViewModel\AccountMenu|null $accountMenu */
+            $accountMenu = $block->getData('account_menu');
+            $drawerAccountLinks = $accountMenu !== null ? $accountMenu->getLinks() : [];
+            $drawerLogout = $accountMenu !== null ? $accountMenu->getLogoutLink() : null;
+            ?>
             <div class="spartrak-mobile-drawer__profile-customer" data-account-customer hidden>
-                <a class="spartrak-mobile-drawer__profile-row" href="<?= $block->escapeUrl($block->getUrl('customer/account')) ?>">
+                <button type="button"
+                        class="spartrak-mobile-drawer__profile-row"
+                        data-accordion-trigger
+                        aria-expanded="false"
+                        aria-controls="spartrak-drawer-account-panel">
                     <span class="spartrak-mobile-drawer__avatar" aria-hidden="true" data-account-initial></span>
                     <span class="spartrak-mobile-drawer__profile-name" data-account-name></span>
-                    <span class="spartrak-mobile-drawer__row-chevron" aria-hidden="true"></span>
-                </a>
+                    <span class="spartrak-mobile-drawer__profile-chevron" aria-hidden="true"></span>
+                </button>
+
+                <div class="spartrak-mobile-drawer__group-panel spartrak-mobile-drawer__account-panel"
+                     id="spartrak-drawer-account-panel"
+                     hidden>
+                    <ul class="spartrak-mobile-drawer__account-list">
+                        <?php foreach ($drawerAccountLinks as $link) : ?>
+                            <li>
+                                <a class="spartrak-mobile-drawer__account-link"
+                                   href="<?= $block->escapeUrl($link['url']) ?>">
+                                    <span class="spartrak-mobile-drawer__account-icon spartrak-mobile-drawer__account-icon--<?= $block->escapeHtmlAttr($link['modifier']) ?>"
+                                          aria-hidden="true"></span>
+                                    <span class="spartrak-mobile-drawer__account-label"><?= $block->escapeHtml($link['label']) ?></span>
+                                </a>
+                            </li>
+                        <?php endforeach; ?>
+                        <?php if ($drawerLogout !== null) : ?>
+                            <li>
+                                <a class="spartrak-mobile-drawer__account-link spartrak-mobile-drawer__account-link--logout"
+                                   href="<?= $block->escapeUrl($drawerLogout['url']) ?>">
+                                    <span class="spartrak-mobile-drawer__account-icon spartrak-mobile-drawer__account-icon--logout"
+                                          aria-hidden="true"></span>
+                                    <span class="spartrak-mobile-drawer__account-label"><?= $block->escapeHtml($drawerLogout['label']) ?></span>
+                                </a>
+                            </li>
+                        <?php endif; ?>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>

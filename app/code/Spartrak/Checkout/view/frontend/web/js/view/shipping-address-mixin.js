@@ -73,6 +73,55 @@ define([
                 this._super();
 
                 /**
+                 * =======================================================
+                 * ONE WAY TO ADD AN ADDRESS, AND IT IS THE POP-UP
+                 * =======================================================
+                 * Core computes `isFormInline` as `addressList().length === 0`
+                 * and uses it for two things: which rendering of the address
+                 * form the template shows, and - in
+                 * `validateShippingInformation()` - whether advancing to
+                 * payment should validate that form first.
+                 *
+                 * Both are wrong for this storefront, and the second one was a
+                 * bug a shopper could not get past.
+                 *
+                 * THE RENDERING. Figma's empty address book (557:4898) draws an
+                 * illustration, a sentence and ONE button, which opens the
+                 * modal. Core's flag additionally printed the full six-field
+                 * form into the page underneath all three and hid the "new
+                 * address" button - two competing ways to do the same thing, on
+                 * a shopper's first order.
+                 *
+                 * THE VALIDATION. `validateShippingInformation()` branches on
+                 * this flag, so with no saved address it validated the inline
+                 * form before advancing. On a PICKUP segment
+                 * (`استلام من الفرع` / `استلام من الموقف`) Figma draws no
+                 * address form at all - the shipping address is synthesised
+                 * from the chosen location by
+                 * Spartrak\PickupLocation\Plugin\Checkout\ApplyPickupLocation -
+                 * so core validated fields the design had replaced, found them
+                 * empty, called `focusInvalid()` on a form that was not on
+                 * screen, and returned false. The CTA looked dead and said
+                 * nothing. With the flag false, that method takes its other
+                 * branch: it requires a shipping METHOD, which every segment
+                 * sets, and leaves the address to the quote.
+                 *
+                 * Pinned here rather than conditioned around in the template
+                 * because it is ONE fact - "this checkout has a single,
+                 * pop-up address form" - and it has to be true for core's own
+                 * code as well as for ours. A template-only fix would have
+                 * hidden the inline form and left the validation branch behind
+                 * it.
+                 *
+                 * Assigned, not observable: core declares it as a plain
+                 * property on `defaults` and reads it synchronously in
+                 * `validateShippingInformation()`. Making it observable here
+                 * would hand core a function where it expects a boolean, and
+                 * `if (function)` is always true - the exact bug this removes.
+                 */
+                this.isFormInline = false;
+
+                /**
                  * The id of the address currently open in the form, or null
                  * when adding. This single value is what makes one form, one
                  * modal and one save handler serve both operations.
@@ -219,12 +268,73 @@ define([
                      */
                     checkoutProvider.set(
                         'shippingAddress',
-                        addressConverter.quoteAddressToFormAddressData(address)
+                        self.spartrakBlankNulls(
+                            addressConverter.quoteAddressToFormAddressData(address)
+                        )
                     );
                 });
 
                 this.spartrakSyncTitle();
                 this.isFormPopUpVisible(true);
+            },
+
+            /**
+             * Replace nulls in the prefill with empty strings.
+             *
+             * ===================================================================
+             * WITHOUT THIS, SAVE SILENTLY DOES NOTHING
+             * ===================================================================
+             * Diagnosed in the browser against a real saved address. The
+             * converter above faithfully reports "this address has no company"
+             * as `company: null` - along with email, fax, postcode, middlename,
+             * prefix, suffix and vat_id, ten fields in all.
+             *
+             * Magento's `min_text_length` / `max_text_length` rules then read
+             * `value.length` off that null:
+             *
+             *     TypeError: Cannot read properties of null (reading 'length')
+             *
+             * and Magento_Ui/js/form/element/abstract::validate() runs the
+             * validator BEFORE it checks `visible()`, so being hidden does not
+             * spare the field. The throw escapes triggerShippingDataValidateEvent(),
+             * which saveNewAddress() calls before anything else - so the method
+             * dies there, addressBook.save() is never reached, no request is
+             * made, and no message is shown. The button looks dead.
+             *
+             * Verified: with `company` coerced to '' the field validates and the
+             * whole form's validation runs to completion instead of throwing.
+             *
+             * `same_as_billing` and `save_in_address_book` are deliberately left
+             * alone. They are flags, not text - nothing validates them, and
+             * blanking `save_in_address_book` would read as falsy and stop the
+             * address being written to the book at all.
+             *
+             * @param {Object} data
+             * @return {Object}
+             */
+            spartrakBlankNulls: function (data) {
+                var skip = { 'same_as_billing': true, 'save_in_address_book': true };
+
+                _.each(data, function (value, key) {
+                    if (skip[key]) {
+                        return;
+                    }
+
+                    if (value === null || value === undefined) {
+                        data[key] = '';
+
+                        return;
+                    }
+
+                    // street arrives as an indexed object and custom_attributes
+                    // as a map keyed by attribute code; both can carry the same
+                    // nulls, and `additional_phone` lives in the second one.
+                    if (_.isObject(value) && !_.isArray(value)) {
+                        this.spartrakBlankNulls(value);
+                    }
+                }, this);
+
+                return data;
             },
 
             /**
@@ -269,6 +379,8 @@ define([
              * create a duplicate believing they had added something new.
              */
             spartrakResetForm: function () {
+                var self = this;
+
                 registry.async('checkoutProvider')(function (checkoutProvider) {
                     var current = checkoutProvider.get('shippingAddress') || {},
                         blank = {};
@@ -278,6 +390,39 @@ define([
                     });
 
                     checkoutProvider.set('shippingAddress', blank);
+
+                    /**
+                     * =========================================================
+                     * CLEARING THE VALIDATION THE BLANKING JUST CAUSED
+                     * =========================================================
+                     * Writing '' into a UI form element runs its own validate()
+                     * through the value subscription, and every required field
+                     * fails that check the moment it is emptied. The result was
+                     * that "add a new address" opened with
+                     * "This is a required field." already printed under the
+                     * first name, last name and street — before the shopper had
+                     * typed a character.
+                     *
+                     * Measured on the live checkout: zero fields in error before
+                     * showFormPopUp(), three immediately after.
+                     *
+                     * The values genuinely do need clearing (see above — a stale
+                     * prefill makes an "add" silently overwrite an edit), so the
+                     * fix is to reset the error state that clearing produced,
+                     * not to stop clearing. `params.invalid` goes with it, since
+                     * saveNewAddress() reads that flag to decide whether to
+                     * submit and a stale true would block the first save.
+                     */
+                    registry.filter(function (component) {
+                        return component &&
+                            component.dataScope &&
+                            String(component.dataScope).indexOf('shippingAddress') === 0 &&
+                            typeof component.error === 'function';
+                    }).forEach(function (component) {
+                        component.error(false);
+                    });
+
+                    self.source.set('params.invalid', false);
                 });
             },
 
@@ -356,10 +501,14 @@ define([
                     addressBook.reselect(saved);
                 }
 
-                // The empty-address state is keyed on the list being empty, and
-                // core keeps its own flag for whether a new address exists.
+                // Core keeps its own flag for whether a new address exists.
+                //
+                // `isFormInline` is NOT recomputed here any more: it is pinned
+                // to false for the life of the component (see initialize), so
+                // recomputing it from the list would be the one place that
+                // could put the inline form back - on the very request that
+                // added the first address.
                 this.isNewAddressAdded(true);
-                this.isFormInline = addressList().length === 0;
                 this.spartrakRevealList();
 
                 this.spartrakEditingAddressId(null);

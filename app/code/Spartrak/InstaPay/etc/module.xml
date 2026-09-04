@@ -23,6 +23,10 @@
             <module name="Magento_Payment"/>
             <module name="Magento_Sales"/>
             <module name="Magento_Checkout"/>
+            <!-- Customer: etc/frontend/sections.xml declares which customer-data
+                 sections the abandon action invalidates, and that file's schema
+                 and its whole mechanism belong to Magento_Customer. -->
+            <module name="Magento_Customer"/>
             <!-- The transfer page renders the Spartrak chrome and reuses the
                  checkout's own vocabulary and styles. -->
             <module name="Spartrak_Checkout"/>

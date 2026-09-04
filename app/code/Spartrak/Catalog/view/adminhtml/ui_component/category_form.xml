@@ -1,0 +1,201 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  CATEGORY HERO BANNER - ADMIN FIELDS (Figma 488:12966)
+  ===========================================================================
+  Adds one collapsible fieldset to Magento's own category edit form. Nothing
+  existing is redeclared, reordered or removed: this file only contributes a
+  new <fieldset>, so every core and Porto field on the screen is untouched.
+
+  The two image fields post to Magento's OWN upload controller,
+  catalog/category_image/upload, which reads the posting field's name from the
+  `param_name` the image-uploader component sends. That is what lets a custom
+  category image attribute reuse core's uploader, its temp directory
+  (catalog/tmp/category), its extension whitelist and its media-gallery
+  browser without a single line of controller code in this module. See
+  Setup\Patch\Data\AddCategoryHeroAttributes for the backend-model half of
+  the same arrangement.
+
+  allowedExtensions matches core's categoryImageUpload virtual type exactly.
+  Widening it here alone would produce a field that accepts a file the server
+  then rejects; WebP/AVIF delivery for these assets belongs at the image
+  optimisation layer, not in this whitelist.
+
+  sortOrder 25 places the fieldset directly after "Content" and before
+  "Display Settings" - beside the category's own image and description, which
+  is where an admin looks for artwork.
+-->
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <fieldset name="spartrak_hero" sortOrder="25">
+        <settings>
+            <label translate="true">Hero Banner (Spartrak)</label>
+            <collapsible>true</collapsible>
+            <opened>false</opened>
+        </settings>
+
+        <field name="spartrak_hero_heading" sortOrder="10" formElement="input">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Heading</label>
+                <notice translate="true">Leave empty to use the category name.</notice>
+                <dataScope>spartrak_hero_heading</dataScope>
+            </settings>
+        </field>
+
+        <field name="spartrak_hero_image" sortOrder="20" formElement="imageUploader">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">category</item>
+                </item>
+            </argument>
+            <settings>
+                <elementTmpl>ui/form/element/uploader/image</elementTmpl>
+                <dataType>string</dataType>
+                <label translate="true">Desktop Image</label>
+                <notice translate="true">Figma reference size 1440 x 318. Shown above 767px.</notice>
+                <dataScope>spartrak_hero_image</dataScope>
+            </settings>
+            <formElements>
+                <imageUploader>
+                    <settings>
+                        <required>false</required>
+                        <uploaderConfig>
+                            <param xsi:type="string" name="url">catalog/category_image/upload</param>
+                        </uploaderConfig>
+                        <previewTmpl>Magento_Catalog/image-preview</previewTmpl>
+                        <openDialogTitle>Media Gallery</openDialogTitle>
+                        <initialMediaGalleryOpenSubpath>catalog/category</initialMediaGalleryOpenSubpath>
+                        <allowedExtensions>jpg jpeg gif png</allowedExtensions>
+                        <maxFileSize>4194304</maxFileSize>
+                    </settings>
+                </imageUploader>
+            </formElements>
+        </field>
+
+        <field name="spartrak_hero_image_mobile" sortOrder="30" formElement="imageUploader">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">category</item>
+                </item>
+            </argument>
+            <settings>
+                <elementTmpl>ui/form/element/uploader/image</elementTmpl>
+                <dataType>string</dataType>
+                <label translate="true">Mobile Image</label>
+                <notice translate="true">Served instead of the desktop image at 767px and below. Upload a real mobile crop - the desktop file is never resized to stand in for it.</notice>
+                <dataScope>spartrak_hero_image_mobile</dataScope>
+            </settings>
+            <formElements>
+                <imageUploader>
+                    <settings>
+                        <required>false</required>
+                        <uploaderConfig>
+                            <param xsi:type="string" name="url">catalog/category_image/upload</param>
+                        </uploaderConfig>
+                        <previewTmpl>Magento_Catalog/image-preview</previewTmpl>
+                        <openDialogTitle>Media Gallery</openDialogTitle>
+                        <initialMediaGalleryOpenSubpath>catalog/category</initialMediaGalleryOpenSubpath>
+                        <allowedExtensions>jpg jpeg gif png</allowedExtensions>
+                        <maxFileSize>4194304</maxFileSize>
+                    </settings>
+                </imageUploader>
+            </formElements>
+        </field>
+    </fieldset>
+
+    <!--
+      THE SECOND BANNER — the promo band below the tile rail.
+
+      A separate fieldset rather than four more fields in the one above,
+      because they are two different banners in two different slots and an
+      admin filling one must not have to scroll past the other's fields to
+      find its own. Same uploader arrangement throughout.
+
+      This one carries a LINK and an ALT TEXT that the hero has no equivalent
+      for: the hero's heading and description are real text on the page, so
+      its artwork is decorative, whereas this band is artwork only and its
+      whole meaning lives in the picture. See
+      Setup\Patch\Data\AddCategoryPromoAttributes.
+    -->
+    <fieldset name="spartrak_promo" sortOrder="26">
+        <settings>
+            <label translate="true">Promo Banner (Spartrak)</label>
+            <collapsible>true</collapsible>
+            <opened>false</opened>
+        </settings>
+
+        <field name="spartrak_promo_image" sortOrder="10" formElement="imageUploader">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">category</item>
+                </item>
+            </argument>
+            <settings>
+                <elementTmpl>ui/form/element/uploader/image</elementTmpl>
+                <dataType>string</dataType>
+                <label translate="true">Desktop Image</label>
+                <notice translate="true">Full-width band shown below the category tile rail. Shown above 767px.</notice>
+                <dataScope>spartrak_promo_image</dataScope>
+            </settings>
+            <formElements>
+                <imageUploader>
+                    <settings>
+                        <required>false</required>
+                        <uploaderConfig>
+                            <param xsi:type="string" name="url">catalog/category_image/upload</param>
+                        </uploaderConfig>
+                        <previewTmpl>Magento_Catalog/image-preview</previewTmpl>
+                        <openDialogTitle>Media Gallery</openDialogTitle>
+                        <initialMediaGalleryOpenSubpath>catalog/category</initialMediaGalleryOpenSubpath>
+                        <allowedExtensions>jpg jpeg gif png</allowedExtensions>
+                        <maxFileSize>4194304</maxFileSize>
+                    </settings>
+                </imageUploader>
+            </formElements>
+        </field>
+
+        <field name="spartrak_promo_image_mobile" sortOrder="20" formElement="imageUploader">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">category</item>
+                </item>
+            </argument>
+            <settings>
+                <elementTmpl>ui/form/element/uploader/image</elementTmpl>
+                <dataType>string</dataType>
+                <label translate="true">Mobile Image</label>
+                <notice translate="true">Served instead of the desktop image at 767px and below. Upload a real mobile crop - the desktop file is never resized to stand in for it.</notice>
+                <dataScope>spartrak_promo_image_mobile</dataScope>
+            </settings>
+            <formElements>
+                <imageUploader>
+                    <settings>
+                        <required>false</required>
+                        <uploaderConfig>
+                            <param xsi:type="string" name="url">catalog/category_image/upload</param>
+                        </uploaderConfig>
+                        <previewTmpl>Magento_Catalog/image-preview</previewTmpl>
+                        <openDialogTitle>Media Gallery</openDialogTitle>
+                        <initialMediaGalleryOpenSubpath>catalog/category</initialMediaGalleryOpenSubpath>
+                        <allowedExtensions>jpg jpeg gif png</allowedExtensions>
+                        <maxFileSize>4194304</maxFileSize>
+                    </settings>
+                </imageUploader>
+            </formElements>
+        </field>
+
+        <!--
+          NO LINK FIELD. The band's call to action is the "البحث السريع"
+          button on top of it, which opens the quick-search dialog rather
+          than navigating. See Setup\Patch\Data\RemoveCategoryPromoUrlAttribute.
+        -->
+        <field name="spartrak_promo_alt" sortOrder="40" formElement="input">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Alt Text</label>
+                <notice translate="true">What the banner says, for screen readers and for when the image fails to load. Leave empty only if the banner is purely decorative.</notice>
+                <dataScope>spartrak_promo_alt</dataScope>
+            </settings>
+        </field>
+    </fieldset>
+</form>

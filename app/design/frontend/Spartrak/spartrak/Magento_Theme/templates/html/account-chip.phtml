@@ -160,26 +160,37 @@ $isLoggedIn = $customerState !== null && $customerState->isLoggedIn();
      * The block declaration was removed from Smartwave_Porto/layout/default.xml
      * in the same change, so no block is left rendered-but-unused.
      *
-     * NOT IMPLEMENTED, DELIBERATELY: Figma draws a count badge on "طلباتي"
-     * (node 562:11010). Magento ships no order-count customer-data section, and
-     * CLAUDE.md §5/§9 forbid inventing or hardcoding the number, so the badge
-     * is omitted rather than faked. It needs a real section to exist first.
+     * STILL NOT IMPLEMENTED HERE: Figma draws a count badge on "طلباتي"
+     * (node 562:11010). The number itself now EXISTS —
+     * Spartrak\CustomerAccount\ViewModel\Navigation::getOrderCount() feeds the
+     * account page's own rail with it — but it is a per-customer value and this
+     * block is ttl-cached inside a full-page-cached header, so reading it here
+     * would bake one shopper's order count into a response served to everyone.
+     * It needs a customer-data section, which is a different piece of work from
+     * the view model; the rail can read it directly because account pages are
+     * never full-page cached.
+     *
+     * THE LIST ITSELF MOVED OUT, 2026-09-02. It was a literal array here, and
+     * the mobile drawer's account disclosure (Figma 645:39359) needs the same
+     * five destinations - so a second copy was about to exist. It is now
+     * Spartrak\CustomerAccount\ViewModel\AccountMenu, injected as an argument,
+     * and both surfaces iterate the one declaration. The `icon` column went
+     * with it: the modifier already selects the mask in CSS, so the filename
+     * was never read here.
      */
-    $accountLinks = [
-        ['route' => 'customer/account',    'label' => __('My account'),      'icon' => 'account-user.svg',      'mod' => 'user'],
-        ['route' => 'sales/order/history', 'label' => __('My orders'),       'icon' => 'account-orders.svg',    'mod' => 'orders'],
-        ['route' => 'customer/address',    'label' => __('My addresses'),    'icon' => 'account-addresses.svg', 'mod' => 'addresses'],
-        ['route' => 'wishlist',            'label' => __('My wishlist'),     'icon' => 'heart.svg',             'mod' => 'wishlist'],
-        ['route' => 'contact',             'label' => __('Help and support'),'icon' => 'account-support.svg',   'mod' => 'support'],
-    ];
+
+    /** @var \Spartrak\CustomerAccount\ViewModel\AccountMenu|null $accountMenu */
+    $accountMenu = $block->getData('account_menu');
+    $accountLinks = $accountMenu !== null ? $accountMenu->getLinks() : [];
+    $accountLogout = $accountMenu !== null ? $accountMenu->getLogoutLink() : null;
     ?>
     <div class="spartrak-header__account-menu" id="spartrak-account-menu" hidden>
         <ul class="spartrak-header__account-links">
             <?php foreach ($accountLinks as $link) : ?>
                 <li>
-                    <a class="spartrak-header__account-link" href="<?= $block->escapeUrl($block->getUrl($link['route'])) ?>">
+                    <a class="spartrak-header__account-link" href="<?= $block->escapeUrl($link['url']) ?>">
                         <span class="spartrak-header__account-link-label"><?= $block->escapeHtml($link['label']) ?></span>
-                        <span class="spartrak-header__account-link-icon spartrak-header__account-link-icon--<?= $block->escapeHtmlAttr($link['mod']) ?>" aria-hidden="true"></span>
+                        <span class="spartrak-header__account-link-icon spartrak-header__account-link-icon--<?= $block->escapeHtmlAttr($link['modifier']) ?>" aria-hidden="true"></span>
                     </a>
                 </li>
             <?php endforeach; ?>
@@ -190,10 +201,12 @@ $isLoggedIn = $customerState !== null && $customerState->isLoggedIn();
                  Magento\Customer\Controller\Account\Logout implements
                  HttpGetActionInterface (as well as POST), which is exactly how
                  core's own AuthorizationLink renders it. */ ?>
-        <a class="spartrak-header__account-link spartrak-header__account-link--signout"
-           href="<?= $block->escapeUrl($block->getUrl('customer/account/logout')) ?>">
-            <span class="spartrak-header__account-link-label"><?= $block->escapeHtml(__('Sign out')) ?></span>
-            <span class="spartrak-header__account-link-icon spartrak-header__account-link-icon--signout" aria-hidden="true"></span>
-        </a>
+        <?php if ($accountLogout !== null) : ?>
+            <a class="spartrak-header__account-link spartrak-header__account-link--signout"
+               href="<?= $block->escapeUrl($accountLogout['url']) ?>">
+                <span class="spartrak-header__account-link-label"><?= $block->escapeHtml($accountLogout['label']) ?></span>
+                <span class="spartrak-header__account-link-icon spartrak-header__account-link-icon--signout" aria-hidden="true"></span>
+            </a>
+        <?php endif; ?>
     </div>
 </div>

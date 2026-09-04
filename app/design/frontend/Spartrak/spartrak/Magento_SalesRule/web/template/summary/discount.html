@@ -21,15 +21,27 @@
  * The info icon is Figma's (720:26782). Its tooltip is the coupon code, so it
  * explains WHERE the saving came from; with no code (a cart rule that applied
  * automatically) the title falls back to the total's own label.
+ *
+ * ===========================================================================
+ * THE ICON FOLLOWS THE WORD, IT DOES NOT LEAD IT
+ * ===========================================================================
+ * In 551:11178 the icon sits at the LOWER x of the pair and the word `وفرت` at
+ * the higher one. Higher x is nearer the reading start on an RTL page, so the
+ * word comes first and the glyph trails it.
+ *
+ * In a flex row under `direction: rtl` the FIRST child takes the reading start,
+ * so reading order and source order are the same thing here: the word is
+ * written first. It had the icon first, which put the glyph on the wrong side
+ * of the word in Arabic and - because nothing here is mirrored by hand - on the
+ * wrong side in English too.
  */
 -->
 <!-- ko if: isDisplayed() -->
 <div class="spartrak-total spartrak-total--savings">
     <span class="spartrak-total__label">
-        <span class="spartrak-total__info"
-              aria-hidden="true"
-              data-bind="attr: { title: getCouponCode() || getTitle() }"></span>
         <span data-bind="i18n: 'You saved'"></span>
+        <span class="spartrak-total__info" aria-hidden="true"
+            data-bind="attr: { title: getCouponCode() || getTitle() }"></span>
     </span>
     <span class="spartrak-total__value" data-bind="text: getValue()"></span>
 </div>

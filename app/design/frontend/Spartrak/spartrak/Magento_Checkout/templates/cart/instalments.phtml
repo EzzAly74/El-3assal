@@ -33,7 +33,8 @@ if ($promo === null || !$promo->isVisible()) {
 }
 
 $body = $promo->getBody();
-$note = $promo->getNote();
+$ctaLabel = $promo->getCtaLabel();
+$ctaUrl = $promo->getCtaUrl();
 ?>
 <aside class="spartrak-cart-instalments">
     <div class="spartrak-cart-instalments__info">
@@ -47,10 +48,34 @@ $note = $promo->getNote();
             </p>
         <?php endif; ?>
 
-        <?php if ($note !== null): ?>
-            <p class="spartrak-cart-instalments__note">
-                <?= $escaper->escapeHtml($note) ?>
-            </p>
+        <?php if ($ctaLabel !== null): ?>
+            <?php /* ===================================================
+                     AN ANCHOR WHEN THERE IS SOMEWHERE TO GO, A BUTTON WHEN
+                     THERE IS NOT
+                     ===================================================
+                     The destination is a commercial arrangement this store has
+                     not finished making, so `cta_url` ships empty. Rendering an
+                     `<a href="#">` for that would be a link that lies: it looks
+                     followable, it is announced as a link, and it jumps the
+                     page to the top when pressed.
+
+                     A `<button type="button">` with no handler is the honest
+                     shape for a control that is drawn but not yet wired — and
+                     the moment a merchant fills the field in, it becomes a real
+                     link with no code change. `disabled` is deliberately NOT
+                     set: the control is not unavailable to this shopper, it is
+                     unfinished, and greying it out would tell them the wrong
+                     thing. =================================================== */ ?>
+            <?php if ($ctaUrl !== null): ?>
+                <a class="spartrak-cart-instalments__cta"
+                   href="<?= $escaper->escapeUrl($ctaUrl) ?>">
+                    <?= $escaper->escapeHtml($ctaLabel) ?>
+                </a>
+            <?php else: ?>
+                <button type="button" class="spartrak-cart-instalments__cta">
+                    <?= $escaper->escapeHtml($ctaLabel) ?>
+                </button>
+            <?php endif; ?>
         <?php endif; ?>
     </div>
 

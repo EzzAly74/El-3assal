@@ -7,11 +7,47 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
     <default>
         <checkout>
+            <!--
+              ===========================================================
+              `مسح الكل` IS PART OF THE DESIGN, SO IT IS ON BY DEFAULT
+              ===========================================================
+              Figma 553:4805 draws a clear-all control in the cart header, and
+              cart/form.phtml renders core's own button for it — behind core's
+              own `isClearShoppingCartEnabled()` guard, which reads this path
+              and which Magento_Checkout ships as 0. On a fresh install the
+              header therefore came out with a title and an empty space where
+              the design has a button.
+
+              Changed as a DEFAULT, not by dropping the guard from the
+              template. The control empties somebody's basket in one click, and
+              a merchant who decides they do not want to offer that must still
+              be able to turn it off in Stores > Configuration > Sales >
+              Checkout > Shopping Cart. Hardcoding it would take that away; a
+              default states the design's intent and leaves the switch where
+              Magento put it.
+            -->
+            <cart>
+                <enable_clear_shopping_cart>1</enable_clear_shopping_cart>
+            </cart>
+
             <spartrak_instalments>
                 <enabled>1</enabled>
                 <heading>اشتري الان وادفع لاحقا</heading>
                 <body>قسط مشترياتك على دفعات شهرية تناسبك، بدون فوائد على خطط محددة.</body>
-                <note>متاح مع فاليو، سهولة وترو.</note>
+                <!--
+                  Figma's third line is a control, not a sentence. `note` used
+                  to hold `متاح مع فاليو، سهولة وترو.` — true, and a dead end:
+                  it told a shopper the plans existed and gave them nowhere to
+                  go.
+
+                  `cta_url` is deliberately EMPTY. There is no instalments
+                  destination yet, and shipping a guessed one would send
+                  shoppers somewhere on the strength of an assumption. The
+                  button renders and does nothing until a merchant fills this
+                  in, which is a state they can see in the admin.
+                -->
+                <cta_label>اضغط هنا</cta_label>
+                <cta_url/>
             </spartrak_instalments>
         </checkout>
     </default>

@@ -1,0 +1,19 @@
+{
+    "name": "spartrak/module-customer-account",
+    "description": "Read-side services for the SpareTrak My Account section (Figma 562:10229 / 562:17527 / 562:18126 / 562:18903): the sidebar's order-count badge, the four-step order tracker, and the per-order facts the account templates render. Presentation lives in the Spartrak theme; this module only answers questions about a customer's own data.",
+    "type": "magento2-module",
+    "license": "proprietary",
+    "require": {
+        "magento/module-customer": "*",
+        "magento/module-sales": "*"
+    },
+    "comment-require": "Spartrak_Shipping and Spartrak_PickupLocation are also required at runtime, and are declared in etc/module.xml. They are NOT listed above because neither ships a composer.json in this checkout - they are app/code modules registered by registration.php - so naming them here would be an unresolvable package requirement rather than a real one. Load order is what actually matters and module.xml is where Magento reads it.",
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Spartrak\\CustomerAccount\\": ""
+        }
+    }
+}

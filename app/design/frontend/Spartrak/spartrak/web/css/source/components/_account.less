@@ -1,0 +1,3017 @@
+// Spartrak — MY ACCOUNT
+//
+// Figma: 562:10229 (account, read) · 562:17237 (account, edit)
+//        562:17527 (orders) · 562:18126 (addresses)
+//        562:18903 / 562:19640 / 572:15611 (order page + states)
+// Mobile: 689:19897 · 689:33229 · 689:33541 · 690:34858 · 690:36711 · 690:39059
+//
+// ===========================================================================
+// EVERY RULE HERE IS DIRECTION-AGNOSTIC
+// ===========================================================================
+// The Figma frames are RTL and the Arabic store view renders `dir="rtl"`, but
+// the English one renders `dir="ltr"` from the same markup. So this file uses
+// logical properties throughout — `padding-inline`, `inset-inline-start`,
+// `border-inline-end`, `text-align: start` — and never `left`/`right`.
+//
+// The templates cooperate: each row's children are in the order that produces
+// Figma's arrangement when the FIRST child sits at the reading start. There
+// are no `row-reverse` rules and no `[dir]`-scoped blocks, with exactly one
+// documented exception (the back arrow, which is a directional glyph rather
+// than a layout).
+//
+// ===========================================================================
+// WHY THERE IS NO !important ANYWHERE BELOW
+// ===========================================================================
+// Porto styles the account section heavily — `.block-collapsible-nav`,
+// `.box-address-*`, `.table-order-items`, `.actions-toolbar`. This file wins
+// without fighting it because the markup carries NONE of those class names:
+// the templates emit `spartrak-`-prefixed classes only, so Porto's selectors
+// simply do not match. That is the ownership boundary CLAUDE.md section 2 asks
+// for, applied to the cascade rather than argued with it.
+//
+// The three exceptions — `.columns`, `.sidebar-main`, `.column.main` — are
+// core's own page-layout containers, which this file has to place. Each is
+// scoped under the `.spartrak-account` body class so the reach stops at this
+// section.
+
+// ---------------------------------------------------------------------------
+// Shared metrics
+// ---------------------------------------------------------------------------
+// The card body's inner padding and the rail's width both appear in several
+// places below, so they are named once. Plain LESS variables, not custom
+// properties: two of them are consumed inside grid track lists and a `calc()`
+// that has to resolve at build time.
+@account-rail-width: 264px;
+@account-gutter: 24px;
+@account-summary-width: 360px;
+
+// ===========================================================================
+// VISITED STATE — PINNED TO EACH LINK'S OWN COLOUR
+// ===========================================================================
+// Magento's blank theme ships, un-scoped:
+//
+//     a:visited, .alink:visited { color: #063196; text-decoration: none; }
+//
+// at (0,1,1), which OUTRANKS a bare component class at (0,1,0). Every anchor
+// in this section sets its colour with exactly one class, so every one of them
+// turned brand navy the moment the shopper had opened the page it points at.
+//
+// TWO OF THE THREE BUGS THIS SECTION WAS REPORTED FOR WERE THIS RULE:
+//
+//   تسجيل الخروج rendered navy instead of danger red — the rail's own
+//   `--color-text-price-sale` was struck out in DevTools by `a:visited`, which
+//   is what the report showed.
+//
+//   "اضف عنوان جديد" rendered as an EMPTY navy button. Nothing was empty:
+//   `.spartrak-account-card__cta` paints `--color-action-primary-text` (white)
+//   on `--color-action-primary` (#063196), and `a:visited` repainted the text
+//   #063196 — navy on navy. Invisible, not absent.
+//
+// Figma defines no visited treatment anywhere in this section: every frame
+// draws one colour per link, whether or not it has been opened. So this is
+// restoring the design's intent, not adding a state to it.
+//
+// Naming `:visited` lands each selector at (0,2,0), which beats (0,1,1)
+// honestly — no `!important` and no padded selector chain (CLAUDE.md §9). The
+// hover and focus-visible variants are already (0,2,0) and were never
+// affected, which is why the colours looked correct on hover and wrong at
+// rest — a tell worth remembering.
+//
+// ONE BLOCK, NOT A NESTED `&:visited` IN EIGHT PLACES: the whole point is that
+// this is a systemic collision with one global rule, so the answer is
+// auditable in one place. Adding an anchor to this section means adding a line
+// here. Precedent and fuller reasoning: components/_mega-nav.less, which hit
+// the same rule in the header on 2026-08-27.
+//
+// SCOPE: Spartrak-owned anchors only. Porto- and Magento-owned surfaces keep
+// core's blue-on-visited, which is their expected behaviour (CLAUDE.md §2).
+// ===========================================================================
+.spartrak-account-nav__link:visited {
+  color: var(--color-text-secondary);
+}
+
+.spartrak-account-nav__link--logout:visited {
+  color: var(--color-text-price-sale);
+}
+
+.spartrak-account-card__action:visited,
+.spartrak-account-card__cancel:visited,
+.spartrak-address-card__edit:visited,
+.spartrak-order-card__track:visited {
+  color: var(--color-action-secondary-text);
+}
+
+.spartrak-account-card__cta:visited,
+.spartrak-order-card__product:visited {
+  color: var(--color-action-primary-text);
+}
+
+.spartrak-order-view__back:visited {
+  color: var(--color-text-primary);
+}
+
+// The delete control is an icon-only anchor: its glyph is a masked span taking
+// `background-color`, and the anchor itself sets no `color`. Pinned to
+// `inherit` rather than a token so the global rule cannot tint the visually
+// hidden label it also contains.
+.spartrak-address-card__delete:visited {
+  color: inherit;
+}
+
+// ===========================================================================
+// PAGE FRAME
+// ===========================================================================
+.spartrak-account {
+  .page-main {
+    // Figma's content band is 1344 inside a 1440 frame — the same 48px
+    // gutter every other page in this design uses, taken from
+    // foundations/_page-metrics.less rather than written again.
+    padding-inline: @plp-gutter;
+    padding-block: 48px;
+    max-inline-size: none;
+
+    @media (max-width: @breakpoint-header-collapse) {
+      padding-inline: @plp-gutter-mobile;
+      padding-block: 16px;
+    }
+  }
+
+  // Porto floats these. A grid with EXPLICIT placement is what makes the
+  // rail sit at the reading start regardless of which order the page layout
+  // emits the two containers in — `2columns-left` puts the sidebar first
+  // today, and a future page layout change must not silently swap the
+  // columns.
+  .columns {
+    display: grid;
+    grid-template-columns: @account-rail-width minmax(0, 1fr);
+    column-gap: @account-gutter;
+    align-items: start;
+
+    @media (max-width: @breakpoint-header-collapse) {
+      grid-template-columns: minmax(0, 1fr);
+      row-gap: 16px;
+    }
+  }
+
+  .sidebar-main {
+    grid-column: 1;
+    padding: 0;
+    // Porto orders the sidebar with a float and a negative margin; both
+    // are meaningless in a grid and one of them shifts the rail 15px.
+    float: none;
+    margin: 0;
+    // Figma draws the rail as tall as the section, not as tall as its own
+    // five rows (562:11000 is 831 beside a 583 card), which is what puts
+    // تسجيل الخروج at the bottom edge. `align-items: start` above keeps
+    // the CARD from stretching; the rail opts back in so the logout row's
+    // `margin-block-start: auto` has a height to push against.
+    align-self: stretch;
+  }
+
+  .column.main {
+    grid-column: 2;
+    padding-block-start: 0;
+    min-inline-size: 0;
+
+    @media (max-width: @breakpoint-header-collapse) {
+      grid-column: 1;
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // PORTO'S PERCENTAGE COLUMNS, TURNED OFF
+  // -----------------------------------------------------------------------
+  // Porto sizes the account columns itself:
+  //
+  //     .account.page-layout-2columns-left {
+  //         .sidebar-main { width: 22.3%; }
+  //         .column.main  { width: 77.7%; }
+  //     }
+  //
+  // (Magento_Customer/web/css/source/_module.less, inside the ≥768px block —
+  // and note it is Spartrak_RTL's own copy of that Porto file that serves
+  // the Arabic store view, with Smartwave/porto's copy serving the English
+  // one, so this has to be answered once for both.)
+  //
+  // Those percentages are of the GRID TRACKS declared above, not of the
+  // page, so they shrink the rail to 22.3% of 264px ≈ 59px and the card to
+  // 77.7% of the free space — which is precisely the collapsed rail this
+  // section shipped with.
+  //
+  // The declaration cannot be dropped at the source: the LTR theme has no
+  // override of that file, and copying 700 lines of Porto into `spartrak`
+  // just to delete four of them is the file-duplication CLAUDE.md section 9
+  // forbids. So it is answered here, in the file that owns this section's
+  // geometry, by restating Porto's own containment — `.account` and
+  // `.page-layout-2columns-left`, both already on <body> — alongside the
+  // `.spartrak-account` marker. That reaches (0,4,0) against Porto's
+  // (0,3,0): it wins on weight, so it does not depend on which of the two
+  // stylesheets the browser happens to see last, and it needs no
+  // `!important`.
+  //
+  // Unmediated on purpose. Porto's rule starts at 768px and the grid here
+  // collapses to one column at 767px, so the two ranges abut exactly today
+  // — but a width that is only correct because two unrelated breakpoints
+  // agree is a width waiting to break.
+  &.account.page-layout-2columns-left {
+    .sidebar-main,
+    .column.main {
+      inline-size: auto;
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // THERE IS NO THIRD COLUMN
+  // -----------------------------------------------------------------------
+  // `2columns-left` emits THREE children into `.columns`: main,
+  // `div.sidebar.main` and `div.sidebar.additional`. The grid above declares
+  // two tracks and places the first two explicitly, so the third auto-flows
+  // into row 2 — which is how "Recently Ordered" came to sit underneath the
+  // rail, in a column the design does not have.
+  //
+  // The block that filled it is removed in layout (see this theme's
+  // customer_account.xml), and this hides the container core emits whether
+  // or not anything is in it — so a module that later drops a block into
+  // `sidebar.additional` cannot silently reopen a column Figma never drew.
+  .sidebar-additional {
+    display: none;
+  }
+
+  // The rail becomes a tab strip above the content on mobile (689:19897), so
+  // it has to come FIRST in the visual order there. `order` rather than a
+  // second grid row assignment, because the two containers are siblings of
+  // unknown count once a third-party block joins them.
+  @media (max-width: @breakpoint-header-collapse) {
+    .sidebar-main {
+      order: -1;
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // THE ORDER PAGE HAS NO RAIL — AND THEREFORE NO TRACK FOR IT
+  // ---------------------------------------------------------------------
+  // Figma 562:18903 replaces the rail with a back link and gives the freed
+  // width to the 360px summary column, so the theme's sales_order_view.xml
+  // removes `sidebar.main.account_nav`.
+  //
+  // Removing the BLOCK does not remove core's `sidebar.main` CONTAINER, and
+  // an empty container still occupies its grid track — which would leave a
+  // 264px hole down the reading side of the page. Collapsing to one column
+  // and hiding the empty container is the fix; the layout sets this class so
+  // the reach stops at that one handle.
+  &--no-rail {
+    .columns {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .sidebar-main {
+      display: none;
+    }
+
+    .column.main {
+      grid-column: 1;
+    }
+  }
+
+  // Porto's own account chrome, which this section replaces wholesale. These
+  // wrappers still exist in the DOM (they are core containers) and carry
+  // Porto padding and borders that would show through the new cards.
+  .sidebar .block-collapsible-nav .title {
+    display: none;
+  }
+}
+
+// ===========================================================================
+// THE RAIL (desktop) / TAB STRIP (mobile) — 562:11000, 689:19897
+// ===========================================================================
+.spartrak-account-nav {
+  display: flex;
+  flex-direction: column;
+  gap: @account-gutter;
+  // The rail fills the height its container was stretched to (see
+  // `.sidebar-main` above); without it the box hugs its five rows and the
+  // logout row has nothing to be pushed to the bottom of.
+  block-size: 100%;
+  padding: 12px;
+  border: 1px solid var(--color-border-default);
+  background-color: var(--color-bg-surface);
+
+  &__title {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-24);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+    // Flush with the reading edge, like every row beneath it: Figma's
+    // title (562:11001) ends at x=252 in a 264 rail, i.e. on the same
+    // 12px inset as the menu container.
+    text-align: start;
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    // `flex: 1` is what lets the logout row's `margin-block-start: auto`
+    // push it to the bottom of the rail, which is where Figma draws it
+    // (562:11021 sits 8px below a 696px list inside a 752px container).
+    flex: 1 1 auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__item {
+    margin: 0;
+  }
+
+  &__link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    block-size: 48px;
+    padding-inline: 12px;
+    padding-block: 8px;
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+      color: var(--color-text-primary);
+      text-decoration: none;
+    }
+
+    // Figma fills the current row with bg/field and darkens its label.
+    // Driven off aria-current so the visual state and the state announced
+    // to assistive tech cannot drift apart.
+    &[aria-current="page"] {
+      background-color: var(--color-bg-field);
+      color: var(--color-text-primary);
+    }
+  }
+
+  // The rail's icons do NOT take their colour from the row's label. Read off
+  // the exported SVGs' own strokes: طلباتي, عناويني and مفضلاتي are
+  // icon/muted #6d6c79 against a text/secondary #555463 label, حسابي (the
+  // current row) is icon/default #1a144f against a text/primary #0c0a20 one,
+  // and only تسجيل الخروج matches its label exactly.
+  //
+  // So this passes a token instead of `currentColor` — the divergence the
+  // mixin documents as the one reason to do so (foundations/_icons.less).
+  &__icon {
+    .spartrak-icon("account-user.svg"; 20px; var(--color-icon-muted));
+  }
+
+  // One rule per `modifier` passed from customer_account.xml. The mask is
+  // here rather than in layout for the reason account/link.phtml records:
+  // an asset path in layout means an inline style and an icon that cannot
+  // take a colour token.
+  &__link--orders &__icon {
+    -webkit-mask-image: url("../images/icons/account-orders.svg");
+    mask-image: url("../images/icons/account-orders.svg");
+  }
+
+  &__link--addresses &__icon {
+    -webkit-mask-image: url("../images/icons/account-addresses.svg");
+    mask-image: url("../images/icons/account-addresses.svg");
+  }
+
+  // Figma's rail heart (816:18791) is geometrically identical to the header's
+  // heart.svg — only the exported stroke colour differs, and a mask reads
+  // alpha, not colour. One asset, two contexts.
+  &__link--wishlist &__icon {
+    -webkit-mask-image: url("../images/icons/heart.svg");
+    mask-image: url("../images/icons/heart.svg");
+  }
+
+  &__link--logout &__icon {
+    -webkit-mask-image: url("../images/icons/account-logout.svg");
+    mask-image: url("../images/icons/account-logout.svg");
+    background-color: var(--color-text-price-sale);
+  }
+
+  // The current row's icon (721:34466, stroke #1a144f).
+  &__link[aria-current="page"] &__icon {
+    background-color: var(--color-icon-default);
+  }
+
+  &__link--logout {
+    color: var(--color-text-price-sale);
+
+    &:hover,
+    &:focus-visible {
+      color: var(--color-text-price-sale);
+    }
+  }
+
+  // The logout row, pinned to the bottom of the rail.
+  &__item:has(&__link--logout) {
+    margin-block-start: auto;
+  }
+
+  &__label {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    text-align: start;
+  }
+
+  &__badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    inline-size: 20px;
+    block-size: 20px;
+    border: 1px solid var(--color-text-inverse);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-icon-default);
+    font-size: var(--text-12);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-text-inverse);
+  }
+
+  // -----------------------------------------------------------------------
+  // MOBILE: a horizontally scrolling tab strip (689:19897)
+  // -----------------------------------------------------------------------
+  @media (max-width: @breakpoint-header-collapse) {
+    gap: 0;
+    // A tab strip is as tall as its tabs. Stated rather than left to
+    // resolve against an auto-height row.
+    block-size: auto;
+    padding: 0;
+    border: 0;
+
+    // The breadcrumb directly above already says where the shopper is; a
+    // 24px heading repeating it costs a fifth of a 440px screen.
+    &__title {
+      .spartrak-visually-hidden();
+    }
+
+    &__list {
+      flex-direction: row;
+      flex: 0 0 auto;
+      // The tabs ABUT (689:20756: 109 + 114 + 107 + 142, each starting
+      // exactly where the last one ends). Their 20px inner padding is
+      // what separates the labels, and it is also what the underline has
+      // to span — a gap here would break the hairline between tabs.
+      gap: 0;
+      overflow-x: auto;
+      // A visible scrollbar under four tabs reads as a defect. The strip
+      // still scrolls by touch and by keyboard.
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
+
+    &__item:has(&__link--logout) {
+      margin-block-start: 0;
+    }
+
+    // Read off the frame's own bottom row, which is one pixel tall:
+    // border/strong #ceced2 from x=0 to 314, then text/brand #063196 for
+    // x=315-423 — the full 109px width of the current tab, padding
+    // included. So the hairline belongs to each TAB, not to the strip: it
+    // runs unbroken because the tabs abut, and the current tab simply
+    // paints its own segment brand instead of grey.
+    &__link {
+      // 56px including the 1px rule, which centres a 24px line in the
+      // remaining 55 exactly as Figma's 15.5px insets do.
+      block-size: 56px;
+      padding-inline: 20px;
+      padding-block: 0;
+      gap: 8px;
+      // Body/Base Medium — 16px here against the rail's 14px (689:21128
+      // is 24 tall, i.e. 16 × 1.5).
+      font-size: var(--text-16);
+      white-space: nowrap;
+      border-block-end: 1px solid var(--color-border-strong);
+
+      &[aria-current="page"] {
+        background-color: transparent;
+        color: var(--color-text-brand);
+        border-block-end-color: var(--color-text-brand);
+      }
+    }
+
+    // The tab icons are darker than the rail's: ink #0c0a20 rather than
+    // icon/muted, and the current tab's takes text/brand so the icon, its
+    // label and the rule underneath are one colour.
+    &__icon {
+      background-color: var(--color-text-primary);
+    }
+
+    &__link[aria-current="page"] &__icon {
+      background-color: var(--color-text-brand);
+    }
+
+    &__label {
+      flex: 0 0 auto;
+    }
+  }
+}
+
+// ===========================================================================
+// THE CARD — shared by every page in this section
+// ===========================================================================
+.spartrak-account-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border-default);
+  background-color: var(--color-bg-surface);
+
+  // Figma nests three bordered frames (Main Content Area, Account Header,
+  // Account Content) whose edges coincide on three sides, so the render
+  // shows one outer box and one divider. Reproduced with one border and one
+  // divider rather than three borders that overlap.
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: @account-gutter;
+    border-block-end: 1px solid var(--color-border-default);
+  }
+
+  &__heading {
+    display: flex;
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    flex-direction: column;
+    gap: 8px;
+    // Figma aligns the heading block to the reading start and centres the
+    // text within it; at these widths the two are indistinguishable, and
+    // `start` is what keeps a wrapped Arabic subtitle readable.
+    align-items: flex-start;
+  }
+
+  &__title {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-20);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+  }
+
+  &__subtitle {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+  }
+
+  // "تعديل" — the quiet 32px chip (721:34432).
+  &__action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    block-size: 32px;
+    padding-inline: 12px;
+    background-color: var(--color-bg-field);
+    font-family: var(--font-arabic);
+    font-size: var(--text-12);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-action-secondary-text);
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+      color: var(--color-action-secondary-text);
+      text-decoration: none;
+    }
+  }
+
+  &__action-icon {
+    .spartrak-icon("pen-edit.svg"; 16px; currentColor);
+  }
+
+  // "اضافة عنوان جديد" — the 40px navy CTA (721:35500).
+  &__cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    block-size: 40px;
+    min-inline-size: 120px;
+    padding-inline: 20px;
+    background-color: var(--color-action-primary);
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-action-primary-text);
+    text-align: center;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+      background-color: var(--color-action-primary-hover);
+      color: var(--color-action-primary-text);
+      text-decoration: none;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: 8px;
+    flex: 0 0 auto;
+  }
+
+  &__save,
+  &__cancel {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    block-size: 40px;
+    min-inline-size: 120px;
+    padding-inline: 20px;
+    border: 0;
+    border-radius: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+    text-align: center;
+    text-decoration: none;
+  }
+
+  &__save {
+    background-color: var(--color-action-primary);
+    color: var(--color-action-primary-text);
+
+    &:hover,
+    &:focus,
+    &:active {
+      background-color: var(--color-action-primary-hover);
+      color: var(--color-action-primary-text);
+    }
+  }
+
+  &__cancel {
+    background-color: var(--color-bg-field);
+    color: var(--color-action-secondary-text);
+
+    // Magento/blank applies .lib-button() to the bare <button> element and
+    // Porto's own :focus/:active pair reaches a plain class. Restating the
+    // three declarations under the same pseudo-classes gets to (0,2,0)
+    // without an !important — the same technique the cart's bare buttons
+    // use (see components/_cart.less).
+    &:hover,
+    &:focus,
+    &:active {
+      background-color: var(--color-bg-field);
+      color: var(--color-action-secondary-text);
+      text-decoration: none;
+    }
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: @account-gutter;
+  }
+
+  // ---------------------------------------------------------------------
+  // THE ADDRESS FORM AS A PAGE — /customer/address/new and .../edit
+  // ---------------------------------------------------------------------
+  // `.spartrak-address-form` pads itself on three edges and leaves the top
+  // one to whatever sits above it, because in the dialog that is the modal's
+  // own header (see the note on its `padding` further down this file). On a
+  // page the card header sits above it instead and stops at its own border,
+  // so the first field's label would touch that line. This restores the
+  // fourth inset — and only here, where the card is the container.
+  &--address-form .spartrak-address-form {
+    padding-block-start: @account-gutter;
+  }
+
+  // 12, not 24. The wishlist's own "Account Content" frame (821:17005) is
+  // inset 12: its card is 1032 wide inside a 1056 content area, where the
+  // order history's (562:11030) is inset 24. Read off both frames rather
+  // than harmonised — the file says what it says, and a card whose rows are
+  // already full-width strips does not need the wider margin.
+  &__body--tight {
+    padding: 12px;
+  }
+
+  @media (max-width: @breakpoint-header-collapse) {
+    // 12px, not the desktop 24 — the only metric of this card the mobile
+    // frames change (689:21111 puts the تعديل chip at x=12,y=12 in a
+    // 408-wide header). The BODY keeps 24 on both viewports: 689:21184 is
+    // inset 24 from a 408 card, exactly as 562:11030 is from a 1056 one.
+    &__header {
+      padding: 12px;
+    }
+
+    // Matches the 16px the form itself drops to at this width, so the
+    // restored top inset stays square with the other three.
+    &--address-form .spartrak-address-form {
+      padding-block-start: 16px;
+    }
+
+    // -------------------------------------------------------------------
+    // ONLY THE MULTI-BUTTON HEADERS STACK
+    // -------------------------------------------------------------------
+    // The edit state does (689:33229: heading, then حفظ التغييرات and
+    // الغاء side by side across the full width), and so does the address
+    // book's single navy CTA.
+    //
+    // The READ state does not. 689:19897 keeps تعديل as the same 78x32
+    // chip beside the heading that 562:10229 draws — which is what the
+    // blanket `flex-direction: column` here used to override, stretching
+    // a 78px chip across a 408px card.
+    //
+    // Selected by what the header CONTAINS rather than by a page-specific
+    // class, because the distinction being drawn is exactly that: one
+    // quiet chip sits beside the heading, a row of decisions gets its own
+    // line. A new card inherits the right one from its own markup.
+    &__header:has(&__actions),
+    &__header:has(&__cta) {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 16px;
+    }
+
+    &__cta,
+    &__save,
+    &__cancel {
+      flex: 1 1 0;
+      min-inline-size: 0;
+    }
+  }
+}
+
+// ===========================================================================
+// ACCOUNT FIELDS — 562:16395 / 562:16478
+// ===========================================================================
+.spartrak-account-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  // `display: flex` above beats the UA sheet's `[hidden] { display: none }`,
+  // so a field shipped hidden and revealed by script would otherwise be
+  // visible from the start. Same defect, same fix, as
+  // `.spartrak-account-dialog__step[hidden]` further down — audited across
+  // every class this theme ships with a `hidden` attribute, and these two
+  // were the only ones affected.
+  &[hidden] {
+    display: none;
+  }
+
+  &__label {
+    display: block;
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    text-align: start;
+  }
+
+  // The 48px bordered band — Figma's "Text Input" component.
+  //
+  // WHITE IS THE COMPONENT'S DEFAULT, not the exception. 557:10374 (the
+  // address form), 821:17288 (the account card being edited) and every
+  // other editable instance are `bg/surface`. The ONLY tinted instance is
+  // the account card's READ state, 562:16397, which is `bg/surface-subtle`
+  // — and that is what `--display` below is for.
+  //
+  // It used to be the other way round: subtle here, white re-applied by a
+  // `.spartrak-account-card--editing` descendant rule. That made the tint
+  // leak onto every field that is neither of those two states — which is
+  // exactly what the address dialog is, and why its inputs rendered as
+  // grey boxes against a design that draws them white.
+  &__band {
+    display: flex;
+    align-items: center;
+    block-size: 48px;
+    border: 1px solid var(--color-border-default);
+    background-color: var(--color-bg-surface);
+    box-shadow: var(--shadow-input);
+    // The dial segment's white fill has to stop at the band's edge.
+    overflow: hidden;
+  }
+
+  // 562:16397 — the account card's read state. A value being shown, not a
+  // field being filled in.
+  &__band--display {
+    background-color: var(--color-bg-surface-subtle);
+  }
+
+  &__value {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    margin: 0;
+    padding-inline: 12px;
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+    text-align: start;
+    // A long email must not push the dial segment out of the band.
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // ---------------------------------------------------------------------
+  // BAND-SCOPED ON PURPOSE — (0,2,0) IS THE POINT OF THIS SELECTOR
+  // ---------------------------------------------------------------------
+  // Magento/blank's element-level form reset (_forms.less, inherited
+  // through Porto) paints EVERY text-ish input:
+  //
+  //   input[type="text"], input[type="password"], input[type="tel"], …
+  //   { background: #f3f3f4; border: 1px solid #e4e3e5;
+  //     height: 38px; padding: 10px; width: 100% }
+  //
+  // An attribute selector scores as a class, so `input[type="text"]` is
+  // (0,1,1) — it OUTRANKS a single class. `.spartrak-account-field__input`
+  // is (0,1,0) and lost every one of those five declarations. Measured on
+  // the live store (customer/account/edit): the input computed to
+  // background-color rgb(243,243,244), border-width 1.11px and height
+  // 38px, i.e. a bordered grey box floating inside the white 48px band.
+  // That is the "inputs don't look like Figma" defect, on this page and on
+  // the address dialog, and it was never a token or a template problem.
+  //
+  // Qualifying by the band is the honest fix rather than a specificity
+  // hack: this component's input only ever exists inside its band, so the
+  // selector states a real containment. NOT `!important` (CLAUDE.md §9),
+  // and NOT a longer chain than needed — (0,2,0) clears (0,1,1) with one
+  // step to spare.
+  &__band &__input,
+  &__band &__select {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    margin: 0;
+    padding-block: 0;
+    border: 0;
+    border-radius: 0;
+    background-color: transparent;
+    box-shadow: none;
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    text-align: start;
+
+    &::placeholder {
+      color: var(--color-text-muted);
+    }
+
+    // The band carries the border and the shadow, so the control inside
+    // it must not draw a second focus treatment of its own. Porto puts a
+    // box-shadow on :focus for every .input-text; this element is not
+    // one, but core's element-level reset reaches it.
+    &:focus {
+      outline: 0;
+      box-shadow: none;
+    }
+  }
+
+  &__band &__input {
+    padding-inline: 12px;
+  }
+
+  // The dialling-code segment (562:16481). White fill, and the hairline
+  // between it and the number is its own inline-END border — which is the
+  // side facing the number in both directions.
+  &__dial {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    align-self: stretch;
+    padding-inline: 14px 12px;
+    border-inline-end: 1px solid var(--color-border-default);
+    background-color: var(--color-bg-surface);
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    // A dial code is always Latin digits with a leading plus, whatever the
+    // paragraph direction around it.
+    direction: ltr;
+  }
+
+  // The two-segment name band. See Magento_Customer/templates/form/edit.phtml
+  // for why the single Figma control renders as two inputs.
+  &__band--split &__segment:first-child {
+    border-inline-end: 1px solid var(--color-border-default);
+  }
+
+  &__segment {
+    display: flex;
+    align-items: center;
+    flex: 1 1 0;
+    min-inline-size: 0;
+    align-self: stretch;
+    margin: 0;
+  }
+
+  &__hint {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-12);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+    text-align: start;
+  }
+}
+
+// ===========================================================================
+// ADDRESS BOOK — 562:18590
+// ===========================================================================
+.spartrak-address-book {
+  gap: @account-gutter;
+
+  &__count {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-18);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+    text-align: start;
+  }
+
+  &__grid {
+    display: grid;
+    // Figma: two 508px cards with a 16px gutter in a 1032px band.
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    @media (max-width: @breakpoint-header-collapse) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  &__empty {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+  }
+}
+
+.spartrak-address-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 16px;
+  border: 1px solid var(--color-border-default);
+  background-color: var(--color-bg-surface);
+  box-shadow: var(--shadow-input);
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  &__title {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-18);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+  }
+
+  &__badge {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    block-size: 24px;
+    padding-inline: 10px;
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-brand-subtle);
+    font-family: var(--font-arabic);
+    font-size: var(--text-12);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-text-link);
+    white-space: nowrap;
+  }
+
+  &__details {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__row {
+    display: flex;
+    gap: 12px;
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+
+    &--location {
+      // A two-line address must keep its pin level with the first line.
+      align-items: flex-start;
+    }
+
+    &--phone {
+      align-items: center;
+    }
+  }
+
+  &__icon {
+    .spartrak-icon("account-addresses.svg"; 20px; var(--color-icon-muted));
+  }
+
+  // The pin and the phone glyph are two assets; the location row keeps the
+  // default above.
+  &__row--phone &__icon {
+    -webkit-mask-image: url("../images/icons/phone-call-20.svg");
+    mask-image: url("../images/icons/phone-call-20.svg");
+  }
+
+  &__actions {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    // Pushes the action row to the bottom so cards of unequal content
+    // still align their buttons across a grid row. Figma's 24px header-to
+    // -actions gap is this plus the card's own 20px.
+    margin-block-start: auto;
+    padding-block-start: 4px;
+  }
+
+  &__delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    inline-size: 48px;
+    block-size: 48px;
+    background-color: var(--color-action-danger-subtle);
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+      text-decoration: none;
+    }
+  }
+
+  &__delete-icon {
+    .spartrak-icon("trash-delete.svg"; 20px; var(--color-action-danger-text));
+  }
+
+  // The form is only a carrier for the address id and the form key; it must
+  // take the width its button needs and nothing else.
+  &__default-form {
+    display: flex;
+    flex: 1 1 0;
+    min-inline-size: 0;
+  }
+
+  &__default-button,
+  &__edit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex: 1 1 0;
+    min-inline-size: 0;
+    block-size: 48px;
+    padding-inline: 24px;
+    border: 0;
+    border-radius: 0;
+    background-color: var(--color-bg-field);
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-action-secondary-text);
+    text-align: center;
+    text-decoration: none;
+    white-space: nowrap;
+
+    &:hover,
+    &:focus,
+    &:active {
+      background-color: var(--color-bg-field);
+      color: var(--color-action-secondary-text);
+      text-decoration: none;
+    }
+  }
+
+  &__edit-icon {
+    .spartrak-icon("pen-edit.svg"; 20px; currentColor);
+  }
+}
+
+// ===========================================================================
+// ORDER HISTORY — 562:17887
+// ===========================================================================
+// ===========================================================================
+// WISHLIST — 817:18852, card 821:17006
+// ===========================================================================
+// The ROWS are `.spartrak-order-card` — Figma builds this page from the same
+// component, so the card is reused rather than reproduced (see
+// Magento_Wishlist/layout/wishlist_index_index.xml). What is here is only the
+// list that holds them and the form it lives in.
+//
+// The form is core's `.form-wishlist-items`, kept because Magento's `wishlist`
+// widget is initialised on it; `display: contents` would drop it from the box
+// tree, but Safari's accessibility tree used to lose the form's own semantics
+// with it, so the form is made the flex container instead. Same result, no
+// gamble.
+.spartrak-wishlist {
+  display: flex;
+  flex-direction: column;
+  gap: @account-gutter;
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    // 821:17029's rows step 16 apart, exactly as the order history's do.
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__empty {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+    text-align: start;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// THE WISHLIST ROW'S PRICE IS MAGENTO'S PRICE MARKUP, NOT A STRING
+// ---------------------------------------------------------------------------
+// The ORDER card prints a formatted total (OrderView::getItemRowTotal), so
+// `__item-price` styles the <p> itself and there is nothing inside it. The
+// wishlist row goes through the platform's pricing pipeline instead —
+// AbstractBlock::getItemPriceHtml(), which is what makes a configurable or
+// bundle row show the price of what was actually saved, and what brings the
+// theme's own "Price on request" fallback (final_price.phtml) with it. That
+// returns `<span class="price-container"><span class="price">…`, so the type
+// has to be stated on the emitted nodes as well.
+//
+// SCOPED THROUGH `.spartrak-wishlist`, which does two jobs at once. It keeps
+// these rules off the order-history card, whose `__item-price` holds a plain
+// string and must stay a plain <p>. And it puts the selectors that name a
+// MAGENTO class at (0,3,0) — Porto styles `.price` and `.old-price` too and
+// would otherwise TIE at (0,2,0), leaving the winner to stylesheet order. The
+// same targeted technique components/_product-card.less uses for the same
+// Magento classes, for the same reason; see that file's header.
+//
+// 821:17035 is Heading/H5 on text/brand, i.e. the same type `__item-price`
+// already declares, so this restates it on the emitted node rather than
+// inventing a second price treatment.
+.spartrak-wishlist {
+  // Two values when the product is on offer; one when it is not. A flex row
+  // either way, so the pair stays on one line.
+  .spartrak-order-card__item-price {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .spartrak-order-card__item-price .price-container .price,
+  .spartrak-order-card__item-price .special-price .price {
+    font-family: var(--font-numeral);
+    font-size: var(--text-16);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-brand);
+    white-space: nowrap;
+  }
+
+  // Magento emits [.old-price, .special-price]; the current price reads
+  // first, as it does on the product card.
+  .spartrak-order-card__item-price .special-price {
+    order: 1;
+  }
+
+  // A wishlisted product that has since gone on offer. Figma's wishlist
+  // frame draws no discounted state, so rather than invent one this reuses
+  // the treatment the design system already has for exactly this data on
+  // the product card (569:13746).
+  .spartrak-order-card__item-price .old-price {
+    order: 2;
+    margin: 0;
+  }
+
+  .spartrak-order-card__item-price .old-price .price {
+    font-family: var(--font-numeral);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-feedback-danger);
+    text-decoration: line-through;
+    text-decoration-thickness: 0.5px;
+    white-space: nowrap;
+  }
+
+  // "Regular Price" / "Special Price" — announced, not drawn.
+  .spartrak-order-card__item-price .price-label {
+    .spartrak-visually-hidden();
+  }
+}
+
+.spartrak-order-history {
+  gap: @account-gutter;
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__empty {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+  }
+}
+
+.spartrak-order-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border-default);
+  background-color: var(--color-bg-surface);
+  box-shadow: var(--shadow-input);
+  overflow: hidden;
+
+  &__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  // The 48px disc with the receipt glyph (562:17890).
+  &__meta-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    inline-size: 48px;
+    block-size: 48px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-surface);
+    box-shadow: var(--shadow-input);
+
+    &::before {
+      content: "";
+      .spartrak-icon("order-receipt.svg"; 20px; var(--color-icon-muted));
+    }
+  }
+
+  &__ids {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  &__id {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+  }
+
+  &__eta {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-12);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-text-muted);
+  }
+
+  // The status pill (562:18117).
+  &__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+    block-size: 28px;
+    padding-inline: 10px;
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-field);
+    font-family: var(--font-arabic);
+    font-size: var(--text-12);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+  }
+
+  &__status-icon {
+    .spartrak-icon("order-status-doc.svg"; 14px; var(--color-icon-default));
+  }
+
+  &__items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-inline: 12px;
+    padding-block: 4px;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-block-size: 128px;
+    padding: 16px;
+    background-color: var(--color-bg-surface-subtle);
+  }
+
+  &__thumb {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    inline-size: 96px;
+    block-size: 96px;
+    background-color: var(--color-bg-surface);
+    // Figma "Small/Darker": #0000001A, offset (0,1), radius 2.
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+
+    img {
+      inline-size: 100%;
+      block-size: 100%;
+      // The catalogue's product photos are square with their own padding;
+      // `contain` keeps a non-square one whole rather than cropping a
+      // part number off the edge.
+      object-fit: contain;
+    }
+  }
+
+  &__item-content {
+    display: flex;
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    flex-direction: column;
+    gap: 4px;
+    padding-block: 4px;
+  }
+
+  &__item-name {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-18);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+    text-align: start;
+
+    // The wishlist row links the name to the product; the order row does
+    // not. The link inherits the node's type EXACTLY — Figma draws one
+    // name treatment (821:17034), so the only difference between the two
+    // pages must be that one of them is clickable, not that it looks
+    // different. Porto's own `a` colour and underline are what is being
+    // overridden here.
+    a {
+      color: inherit;
+      text-decoration: none;
+
+      &:hover,
+      &:focus-visible {
+        color: inherit;
+        text-decoration: underline;
+      }
+    }
+  }
+
+  &__item-price {
+    margin: 0;
+    font-family: var(--font-numeral);
+    font-size: var(--text-16);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-brand);
+    text-align: start;
+  }
+
+  &__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  &__facts {
+    display: flex;
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  &__fact {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+  }
+
+  &__fact-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    font-family: var(--font-arabic);
+    font-size: var(--text-12);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+
+    &::before {
+      content: "";
+      .spartrak-icon("payment-method.svg"; 16px; var(--color-icon-muted));
+    }
+
+    &--shipping::before {
+      -webkit-mask-image: url("../images/icons/delivery-truck.svg");
+      mask-image: url("../images/icons/delivery-truck.svg");
+    }
+  }
+
+  &__fact-value {
+    font-family: var(--font-arabic);
+    font-size: var(--text-12);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+  }
+
+  // Figma renders the payment value a weight heavier than the destination
+  // (562:17991 Medium vs 562:18003 Regular).
+  &__fact-label--payment + &__fact-value {
+    font-weight: 500;
+    line-height: 1.3;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 12px;
+    flex: 0 0 auto;
+  }
+
+  // The footer holds only buttons on the WISHLIST instance of this card
+  // (Figma 821:17038 — no facts beside them), where `space-between` would
+  // leave them at the reading start. Figma puts them at the reading end.
+  &__foot--actions-only {
+    justify-content: flex-end;
+  }
+
+  // ---------------------------------------------------------------------
+  // FOUR BUTTONS, ONE SHAPE — 821:17040 / 821:17054 are 562:18120's
+  // ---------------------------------------------------------------------
+  // `__buy` and `__remove` are the wishlist card's pair (شراء الآن / حذف).
+  // They are added to these selector lists rather than given rules of their
+  // own because Figma's own instances are the same 40x120 "Primary Buttons"
+  // component in the same two variants — the only difference between the
+  // order card's pair and the wishlist card's is the label.
+  //
+  // Named for what they DO, not for the variant they wear: `__product`
+  // already means "the primary one" on this card, and calling the wishlist's
+  // buy button `__product` would have made the next reader hunt for a
+  // product link that is not there.
+  &__track,
+  &__product,
+  &__buy,
+  &__remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    block-size: 40px;
+    min-inline-size: 120px;
+    padding-inline: 20px;
+    border: 0;
+    border-radius: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      text-decoration: none;
+    }
+  }
+
+  &__track,
+  &__remove {
+    background-color: var(--color-bg-field);
+    color: var(--color-action-secondary-text);
+
+    &:hover,
+    &:focus,
+    &:focus-visible {
+      background-color: var(--color-bg-field);
+      color: var(--color-action-secondary-text);
+    }
+  }
+
+  &__product,
+  &__buy {
+    background-color: var(--color-action-primary);
+    color: var(--color-action-primary-text);
+
+    &:hover,
+    &:focus,
+    &:focus-visible {
+      background-color: var(--color-action-primary-hover);
+      color: var(--color-action-primary-text);
+    }
+  }
+
+  @media (max-width: @breakpoint-header-collapse) {
+    // 689:33541 stacks the footer: facts, then a full-width button row.
+    &__foot {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    &__actions {
+      flex: 1 1 auto;
+    }
+
+    &__track,
+    &__product,
+    &__buy,
+    &__remove {
+      flex: 1 1 0;
+      min-inline-size: 0;
+    }
+
+    &__item {
+      min-block-size: 0;
+    }
+  }
+}
+
+// ===========================================================================
+// ORDER PAGE — 562:18903 and its state variants
+// ===========================================================================
+.spartrak-order-view {
+  display: flex;
+  flex-direction: column;
+  // 562:20236 sits at y=48 with height 48; the columns start at y=128.
+  gap: 32px;
+
+  &__back {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: 12px;
+    block-size: 48px;
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+      color: var(--color-text-primary);
+      text-decoration: none;
+    }
+  }
+
+  // The one directional GLYPH in this file, and the one place a
+  // direction-scoped rule is correct rather than lazy: "back" points toward
+  // the reading start, which is the right in RTL and the left in LTR. The
+  // asset draws a right-pointing arrow, so the LTR document mirrors it.
+  // A mask cannot flip itself, and `arrow-next.svg` is the same glyph Figma
+  // uses here at 29px (verified by scaling its coordinates).
+  &__back-icon {
+    .spartrak-icon("arrow-next.svg"; 29px; var(--color-icon-default));
+  }
+
+  &__layout {
+    display: grid;
+    grid-template-columns: @account-summary-width minmax(0, 1fr);
+    gap: @account-gutter;
+    align-items: start;
+
+    @media (max-width: @breakpoint-header-collapse) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  &__aside {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    @media (max-width: @breakpoint-header-collapse) {
+      // 690:34858 puts the tracker and the item list ABOVE the summary
+      // panels: on a phone the question is "where is my parcel", and the
+      // totals are reference material below it.
+      order: 2;
+    }
+  }
+
+  &__main {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--color-border-default);
+    background-color: var(--color-bg-surface);
+    min-inline-size: 0;
+
+    @media (max-width: @breakpoint-header-collapse) {
+      order: 1;
+    }
+  }
+
+  &__header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: @account-gutter;
+    border-block-end: 1px solid var(--color-border-default);
+  }
+
+  &__title {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-20);
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--color-text-primary);
+  }
+
+  // Figma sets the id run to Regular inside a Bold heading (562:18967).
+  &__title-id {
+    font-weight: 400;
+  }
+
+  &__eta {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+  }
+
+  &__tracker {
+    padding: @account-gutter;
+    border-block-end: 1px solid var(--color-border-default);
+  }
+
+  &__items {
+    display: flex;
+    flex-direction: column;
+    gap: @account-gutter;
+    padding: @account-gutter;
+  }
+
+  &__items-title {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-18);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+    text-align: start;
+  }
+
+  &__item-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  @media (max-width: @breakpoint-header-collapse) {
+    gap: 16px;
+
+    &__header,
+    &__tracker,
+    &__items {
+      padding: 16px;
+    }
+  }
+}
+
+// ===========================================================================
+// THE `موقف` CARD — Figma 573:21642, rules in BUSINESS.md section 12
+// ===========================================================================
+// Two halves in one bordered card: the labels and values on the reading side,
+// the vehicle photograph filling the other. §5 states that arrangement in
+// words ("label column on the right, value on the left, vehicle photo filling
+// the left third of the card") and Figma draws it as two equal 660px columns
+// inside a 1344px card, which is what is implemented — the "third" in the
+// sentence is describing the render loosely, and the frame is the measurement.
+.spartrak-consignment {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--color-border-default);
+  background-color: var(--color-bg-surface);
+
+  &__details {
+    display: flex;
+    flex: 1 1 0;
+    min-inline-size: 0;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__title {
+    margin: 0;
+    padding: 8px;
+    font-family: var(--font-arabic);
+    font-size: var(--text-18);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+    text-align: start;
+  }
+
+  &__facts {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    padding: 16px;
+    background-color: var(--color-bg-surface-subtle);
+  }
+
+  &__fact {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+
+    dt {
+      margin: 0;
+      font-family: var(--font-arabic);
+      font-size: var(--text-14);
+      font-weight: 400;
+      line-height: 1.5;
+      color: var(--color-text-secondary);
+    }
+
+    dd {
+      margin: 0;
+      font-family: var(--font-arabic);
+      font-size: var(--text-14);
+      font-weight: 500;
+      line-height: 1.5;
+      color: var(--color-text-primary);
+      text-align: end;
+    }
+
+    // The driver's number is a link, because the whole point of the card is
+    // that the customer rings it. It must still read as the value it is,
+    // not as navigation.
+    a {
+      color: inherit;
+      text-decoration: none;
+
+      &:hover,
+      &:focus-visible {
+        color: var(--color-text-brand);
+        text-decoration: underline;
+      }
+    }
+  }
+
+  // A photograph of a specific vehicle, so an <img> with a real alt — a
+  // customer using a screen reader still needs to know a picture of the van
+  // is here, and the plate number in the alt is the part they can act on.
+  &__photo {
+    flex: 1 1 0;
+    min-inline-size: 0;
+    // Figma: 660x236 inside a 1344 card. Stated as a ratio so the card
+    // keeps its proportions at every width instead of at exactly 1440.
+    aspect-ratio: ~"660 / 236";
+    border-radius: var(--radius-4);
+    object-fit: cover;
+  }
+
+  @media (max-width: @breakpoint-header-collapse) {
+    // 690:37809 stacks them, photo first — the customer is scanning a yard
+    // of microbuses and the picture is what they match against.
+    flex-direction: column;
+
+    &__photo {
+      order: -1;
+      inline-size: 100%;
+      aspect-ratio: ~"16 / 9";
+    }
+
+    &__title {
+      padding-inline: 8px;
+      padding-block: 4px;
+    }
+  }
+}
+
+// The shipped band — 562:19702.
+.spartrak-order-shipped {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: @account-gutter;
+  border-block-end: 1px solid var(--color-border-default);
+  // Figma paints a vertical wash over the card's white. `transparent` is
+  // interpolated premultiplied, so it fades to the wash's own hue rather
+  // than through grey — no second stop colour needed.
+  background-image: linear-gradient(
+    180deg,
+    var(--color-bg-success-wash) 0%,
+    transparent 100%
+  );
+
+  &__text {
+    display: flex;
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  &__title {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-20);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+  }
+
+  &__note {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+  }
+
+  // A multi-colour illustration, so an <img> rather than a mask — it has no
+  // single colour to take from a token.
+  &__art {
+    flex: 0 0 auto;
+    inline-size: 96px;
+    block-size: 96px;
+  }
+
+  @media (max-width: @breakpoint-header-collapse) {
+    padding: 16px;
+
+    &__art {
+      inline-size: 64px;
+      block-size: 64px;
+    }
+  }
+}
+
+// The four-station tracker — 562:19205 / 562:19211.
+.spartrak-order-tracker {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  // 10px rail + Figma's 16px gap to the labels.
+  padding-block-start: 26px;
+  padding-inline: 0;
+  list-style: none;
+
+  // The rail.
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    block-size: 10px;
+    border-radius: var(--radius-pill);
+  }
+
+  &::before {
+    inline-size: 100%;
+    background-color: var(--color-border-default);
+  }
+
+  // The reached portion. One custom property carries the ratio from
+  // Model\OrderProgress, so the geometry — which end it grows from, how the
+  // 10px cap interacts with it — stays here and mirrors with the document
+  // direction for free.
+  //
+  // The `10px +` term is what makes station one a visible 10px dot rather
+  // than a zero-width sliver: Figma draws exactly that at step one
+  // (562:19206 is a 10x10 rounded rect at the rail's start).
+  &::after {
+    inline-size: calc(10px + (100% - 10px) * var(--spartrak-order-progress, 0));
+    background-color: var(--color-bg-inverse);
+  }
+
+  &__step {
+    flex: 1 1 0;
+    min-inline-size: 0;
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+    text-align: center;
+
+    // The end labels hug the rail's ends rather than centring under a dot
+    // that is already at the edge (Figma gives them a 123px slot against
+    // the middle two's 244px).
+    &:first-child {
+      text-align: start;
+    }
+    &:last-child {
+      text-align: end;
+    }
+
+    // The station the order is AT. Figma emphasises one label per frame,
+    // and in the shipped variant (690:36711) it is unambiguously the
+    // current one — the desktop processing frame emphasises the last
+    // label instead, which reads as an authoring slip, since nothing else
+    // on that page says the order has been delivered.
+    &[aria-current="step"] {
+      font-weight: 500;
+      line-height: 1.3;
+      color: var(--color-text-primary);
+    }
+  }
+
+  &__off-rail {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+  }
+
+  @media (max-width: @breakpoint-header-collapse) {
+    gap: 8px;
+
+    &__step {
+      font-size: var(--text-12);
+    }
+  }
+}
+
+// The summary panels — 562:19508 / 19531 / 19549 / 20116.
+.spartrak-order-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--color-border-default);
+  background-color: var(--color-bg-surface);
+
+  &__title {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-18);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+    text-align: start;
+  }
+
+  // The details panel insets its own head by 8 rather than 16, so the
+  // tinted facts strip below can reach the panel's edges (562:19508).
+  &--details {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  &__head {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 8px;
+  }
+
+  &__identity {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__identity-icon,
+  &__address-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    inline-size: 48px;
+    block-size: 48px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-pill);
+    // Figma binds bg/on-media-subtle here — an 8% white that resolves to
+    // white over this card. The same finding is already recorded in
+    // foundations/_tokens.less for the header, so the same conclusion
+    // applies: the surface token is what reproduces the render.
+    background-color: var(--color-bg-surface);
+    box-shadow: var(--shadow-input);
+
+    &::before {
+      content: "";
+      .spartrak-icon("order-receipt.svg"; 20px; var(--color-icon-default));
+    }
+  }
+
+  &__address-icon::before {
+    -webkit-mask-image: url("../images/icons/shipping-destination.svg");
+    mask-image: url("../images/icons/shipping-destination.svg");
+  }
+
+  &__identity-text {
+    display: flex;
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  &__order-id {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+  }
+
+  &__eta {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-12);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-text-muted);
+  }
+
+  &__facts {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    padding: 16px;
+    background-color: var(--color-bg-surface-subtle);
+  }
+
+  &__fact {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+
+    dt {
+      margin: 0;
+      font-family: var(--font-arabic);
+      font-size: var(--text-12);
+      font-weight: 400;
+      line-height: 1.5;
+      color: var(--color-text-secondary);
+    }
+
+    dd {
+      margin: 0;
+      font-family: var(--font-arabic);
+      font-size: var(--text-12);
+      font-weight: 500;
+      line-height: 1.3;
+      color: var(--color-text-primary);
+      text-align: end;
+    }
+  }
+
+  // The payment method's OWN block renders inside here, so this styles the
+  // <dl class="payment-method"> shape every Magento payment info block
+  // emits — including Spartrak_InstaPay's — rather than markup of ours.
+  //
+  // 573:21504: a white card, 1px border/default, padding 20, gap 20. The gap is
+  // between the HEAD (mark + text) and whatever the method adds below it — the
+  // 4px that used to be here belonged between the dt and the dd, and now lives
+  // on `__payment-text` where those two actually are.
+  &__payment {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+    border: 1px solid var(--color-border-default);
+    background-color: var(--color-bg-surface);
+
+    dl,
+    dt,
+    dd,
+    p {
+      margin: 0;
+    }
+
+    dt {
+      font-family: var(--font-arabic);
+      font-size: var(--text-16);
+      font-weight: 700;
+      line-height: 1.3;
+      color: var(--color-text-primary);
+    }
+
+    dd,
+    p {
+      font-family: var(--font-arabic);
+      font-size: var(--text-14);
+      font-weight: 400;
+      line-height: 1.5;
+      color: var(--color-text-secondary);
+    }
+  }
+
+  // 573:21505 — the mark and the text side by side, 20px apart.
+  &__payment-head {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  // 573:21507. Takes the slack so the mark keeps its 44; `min-inline-size: 0`
+  // is what lets a long method title wrap instead of forcing the row wider
+  // than the 360px column.
+  &__payment-text {
+    display: flex;
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  // 573:21506 — the method's logo in a 44px ring.
+  //
+  // DELIBERATELY A SECOND DEFINITION of the checkout's own mark
+  // (`.spartrak-pay-method__logo`, components/_checkout.less), with the same
+  // four values: 44 square, 1px border/subtle, fully rounded, white, image
+  // cover. Normally that would be a shared partial — but the two live in
+  // stylesheets that must not import each other (spartrak-account.css and
+  // spartrak-checkout.css are separate page bundles, neither loaded on the
+  // other's pages), and the checkout's copy carries a mobile override that
+  // resizes it to 36 inside the payment list, which does not apply here. A
+  // shared partial would mean a third file plus a split media query for a
+  // 44px circle. The cross-reference in both directions is the maintenance
+  // contract instead.
+  //
+  // The ASSET is never masked or re-tinted: these are third-party trademarks
+  // and they render at their own colours — the same rule the checkout's row
+  // records.
+  &__payment-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    inline-size: 44px;
+    block-size: 44px;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-surface);
+    overflow: hidden;
+
+    img {
+      display: block;
+      inline-size: 100%;
+      block-size: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &__address {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  &__address-text {
+    display: flex;
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  &__address-name {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+  }
+
+  &__address-line {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-12);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+    text-align: start;
+  }
+}
+
+// ===========================================================================
+// THE TRANSFER RECEIPT ROW — Figma 573:21511 / 573:21514
+// ===========================================================================
+// `صورة التحويل` on the payment card. Rendered by Spartrak_InstaPay as a child
+// block of the order view (templates/order/receipt.phtml), so this component is
+// the only thing the account section knows about it — no payment method is
+// named anywhere in this file.
+//
+// It is styled here rather than in the InstaPay module because it is part of
+// the ORDER PAGE's payment card, and this is the stylesheet that page loads.
+// The module owns the data and the markup; the theme owns the presentation
+// (CLAUDE.md section 7).
+.spartrak-order-receipt {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background-color: var(--color-bg-surface-subtle);
+}
+
+// 573:21513 — Body/XSmall on text/secondary, at the reading start.
+.spartrak-order-receipt__label {
+  margin: 0;
+  font-family: var(--font-arabic);
+  font-size: var(--text-12);
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  text-align: start;
+}
+
+// 573:21514 — a white 4px-radius strip, padding 4, gap 8. The only rounded
+// corner on this card, and it is Figma's.
+.spartrak-order-receipt__file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border-radius: var(--radius-4);
+  background-color: var(--color-bg-surface);
+}
+
+// The 20px glyph that says "this is an image", at the reading start.
+//
+// REUSES icons/upload-image.svg rather than shipping a second file, and that is
+// exact rather than approximate: it is the same Figma component as 721:35254,
+// exported at 34px for the upload dropzone. Its stroke is 2.55 on a 34.0142
+// viewBox, which under a mask scaled to 20px resolves to 2.55 x (20 / 34.0142)
+// = 1.4998 — the 1.5 the 20px export carries. Same glyph, same weight, one
+// request fewer (CLAUDE.md sections 3 and 13).
+.spartrak-order-receipt__kind {
+  .spartrak-icon("upload-image.svg"; 20px; var(--color-icon-default));
+}
+
+// 573:21516 — Label/Base on text/primary, taking the slack between the two
+// icons. `min-inline-size: 0` plus the ellipsis is what stops a long camera-roll
+// filename pushing the eye out of the 360px column.
+.spartrak-order-receipt__name {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-arabic);
+  font-size: var(--text-12);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--color-text-primary);
+  text-align: start;
+}
+
+// 721:35248 — the eye, and the only control in the row. A real link, so it is
+// keyboard reachable and announces itself; the 24px box gives it a target that
+// is not just the 16px glyph.
+.spartrak-order-receipt__view {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  inline-size: 24px;
+  block-size: 24px;
+  color: var(--color-icon-default);
+  text-decoration: none;
+
+  &:hover,
+  &:focus,
+  &:active,
+  &:visited {
+    color: var(--color-action-primary);
+    text-decoration: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
+}
+
+// `currentColor`, so the hover above moves the glyph and not just a text colour
+// nothing else is using.
+.spartrak-order-receipt__view-icon {
+  .spartrak-icon("eye-16.svg"; 16px; currentColor);
+}
+
+.spartrak-order-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+
+  &__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+
+    dt {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      font-family: var(--font-arabic);
+      font-size: var(--text-16);
+      font-weight: 400;
+      line-height: 1.5;
+      color: var(--color-text-secondary);
+    }
+
+    dd {
+      margin: 0;
+      font-family: var(--font-numeral);
+      font-size: var(--text-16);
+      font-weight: 500;
+      line-height: 1.5;
+      color: var(--color-text-primary);
+      text-align: end;
+      white-space: nowrap;
+    }
+  }
+
+  &__savings-icon {
+    .spartrak-icon("savings-info.svg"; 16px; var(--color-icon-muted));
+  }
+
+  &__row--savings dd {
+    color: var(--color-text-success);
+  }
+
+  // Figma draws a hairline above the shipping row and above the total.
+  &__row--divided,
+  &__row--total {
+    padding-block-start: 16px;
+    border-block-start: 1px solid var(--color-border-default);
+  }
+
+  &__row--total {
+    dt {
+      font-size: var(--text-18);
+      font-weight: 500;
+      line-height: 1.3;
+    }
+
+    dd {
+      font-size: var(--text-20);
+      font-weight: 700;
+      line-height: 1.3;
+      color: var(--color-text-brand);
+    }
+  }
+
+  &__free {
+    color: var(--color-text-success);
+  }
+}
+
+// The order page's item rows — 562:19402.
+.spartrak-order-line {
+  display: flex;
+  align-items: center;
+  gap: @account-gutter;
+  margin: 0;
+  padding-inline: 12px;
+  padding-block: 16px;
+  border: 1px solid var(--color-border-default);
+
+  &__thumb {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    inline-size: 108px;
+    block-size: 108px;
+    border: 1px solid var(--color-border-default);
+    background-color: var(--color-bg-field);
+    overflow: hidden;
+
+    img {
+      inline-size: 100%;
+      block-size: 100%;
+      object-fit: contain;
+    }
+  }
+
+  &__content {
+    display: flex;
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    flex-direction: column;
+    gap: 12px;
+    padding-block: 4px;
+  }
+
+  &__name {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-18);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-text-primary);
+    text-align: start;
+
+    a {
+      color: inherit;
+      text-decoration: none;
+
+      &:hover,
+      &:focus-visible {
+        color: var(--color-text-brand);
+        text-decoration: none;
+      }
+    }
+  }
+
+  &__price {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+  }
+
+  &__was {
+    font-family: var(--font-numeral);
+    font-size: var(--text-18);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-text-price-sale);
+    text-decoration: line-through;
+  }
+
+  &__now {
+    font-family: var(--font-numeral);
+    font-size: var(--text-24);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-brand);
+  }
+
+  @media (max-width: @breakpoint-header-collapse) {
+    gap: 16px;
+
+    &__thumb {
+      inline-size: 88px;
+      block-size: 88px;
+    }
+
+    &__name {
+      font-size: var(--text-16);
+    }
+
+    &__now {
+      font-size: var(--text-20);
+    }
+  }
+}
+
+// The back arrow is the only directional glyph in this file. See
+// .spartrak-order-view__back-icon above for why this rule is scoped by
+// direction rather than expressed logically.
+[dir="ltr"] .spartrak-order-view__back-icon {
+  transform: scaleX(-1);
+}
+
+// ===========================================================================
+// THE ADDRESS DIALOG'S FORM — 557:5173
+// ===========================================================================
+// The BOX is not styled here. `Magento_Ui/js/modal/modal` emits
+// `.modal-inner-wrap` / `.modal-header` / `.modal-title` / `.action-close`, and
+// components/_checkout.less already dresses that DOM as this exact 800px Figma
+// dialog — the close control's 32px circle included. The dialog on this page
+// carries the same `spartrak-address-modal` class for precisely that reason, so
+// what follows is only the FORM inside it, which the checkout renders from its
+// own Knockout tree and cannot share.
+//
+// The FIELDS are not styled here either: `.spartrak-account-field` above
+// already draws a 21px label, a 6px gap and a 48px bordered band, which is to
+// the pixel what 557:10372 specifies. Only the shapes this form introduces are
+// new — the two-column grid, the 120px textarea, the select and the toggle.
+.spartrak-address-form {
+  display: flex;
+  flex-direction: column;
+  // 557:5178 ends at y=540 and 557:5194 begins at 564.
+  gap: @account-gutter;
+  // The modal wrap owns the 24px inset on three sides; the header supplies
+  // the top one. Padding here would double it.
+  padding: 0 @account-gutter @account-gutter;
+
+  &__grid {
+    display: grid;
+    // 752 = 368 + 16 + 368.
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  // "المحافظة" (557:10340) and "تفاصيل العنوان" (721:29509) run the full
+  // measure; the four name/phone fields are the halves.
+  &__field--wide {
+    grid-column: 1 / -1;
+  }
+
+  // -----------------------------------------------------------------------
+  // "العنوان الافتراضي" — 557:10445
+  // -----------------------------------------------------------------------
+  // The container sits at x=583 in a 752 row, i.e. flush to the reading
+  // START, which is what `flex-start` gives under `dir="rtl"` — stated
+  // logically so the English store mirrors it with no second rule.
+  &__default {
+    display: flex;
+    justify-content: flex-start;
+  }
+
+  &__toggle {
+    display: inline-flex;
+    align-items: center;
+    // 125 - 109 = 16 between the label and the track.
+    gap: 16px;
+    cursor: pointer;
+  }
+
+  &__toggle-label {
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+  }
+
+  // The checkbox itself is the state; the track beside it is the picture.
+  // Kept in the tab order and in the accessibility tree rather than replaced
+  // by a div with a role — the native control already announces itself, takes
+  // Space, and posts its value (CLAUDE.md section 15: semantic HTML first).
+  &__toggle-input {
+    .spartrak-visually-hidden();
+  }
+
+  // 44x24 pill with a 20px knob inset 2px (721:29548 / 721:29549). The off
+  // track is border/default — read off the frame's own pixels at the knob's
+  // row: #e4e3e5 for the track, against #fcfcfc for the knob, which is white
+  // with the frame's own shadow over it and is taken as bg/surface (a 1%
+  // difference, against inventing a hex no token carries).
+  &__toggle-track {
+    position: relative;
+    flex: 0 0 auto;
+    inline-size: 44px;
+    block-size: 24px;
+    border-radius: var(--radius-pill);
+    background-color: var(--color-border-default);
+    transition: background-color 0.15s ease;
+
+    // -------------------------------------------------------------------
+    // THE ONE PHYSICAL PROPERTY IN THIS COMPONENT
+    // -------------------------------------------------------------------
+    // `left`, not `inset-inline-start`, and the travel is +20px in both
+    // directions. Figma's frame is RTL and draws the OFF knob at the
+    // physical LEFT (721:29549 sits at x=2 in a 44-wide track), so this
+    // control is deliberately NOT mirrored — a switch reads as
+    // off-to-on-rightwards regardless of the script around it, which is
+    // how the design draws it and how every platform toggle behaves.
+    //
+    // Using the logical property would put the off knob at the right in
+    // Arabic — the opposite of the frame — so this is fidelity, not an
+    // oversight. Same exception the back arrow takes at the end of this
+    // file, for the same kind of reason.
+    &::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      inline-size: 20px;
+      block-size: 20px;
+      border-radius: var(--radius-pill);
+      background-color: var(--color-bg-surface);
+      transition: translate 0.15s ease;
+    }
+  }
+
+  // `translate` rather than moving `left`, so the knob animates on the
+  // compositor instead of forcing layout on every frame.
+  &__toggle-input:checked + &__toggle-track {
+    background-color: var(--color-action-primary);
+
+    &::after {
+      translate: 20px 0;
+    }
+  }
+
+  &__toggle-input:focus-visible + &__toggle-track {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
+
+  // -----------------------------------------------------------------------
+  // FOOTER — 557:5194
+  // -----------------------------------------------------------------------
+  // Two 163x48 buttons, 24 apart, at the reading start: the primary FIRST in
+  // the DOM so an RTL row puts it at x=589 and the secondary at x=402, which
+  // is how Figma draws them.
+  &__actions {
+    display: flex;
+    gap: @account-gutter;
+  }
+
+  &__save,
+  &__cancel {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    min-inline-size: 163px;
+    block-size: 48px;
+    padding-inline: 24px;
+    border: 0;
+    border-radius: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    text-align: center;
+    // `__cancel` is an <a> (it has to be: on /customer/address/new there is
+    // no dialog for a <button type="button"> to close - see the template).
+    // Porto underlines every anchor, so the two controls would otherwise
+    // not match each other.
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  &__save {
+    background-color: var(--color-action-primary);
+    color: var(--color-action-primary-text);
+
+    // Porto reaches bare <button> through Magento/blank's element-level
+    // .lib-button(), so the three states are restated to get to (0,2,0) —
+    // the same technique the cart's bare buttons use.
+    &:hover,
+    &:focus,
+    &:active {
+      background-color: var(--color-action-primary-hover);
+      color: var(--color-action-primary-text);
+    }
+  }
+
+  &__cancel {
+    background-color: var(--color-bg-field);
+    color: var(--color-action-secondary-text);
+
+    &:hover,
+    &:focus,
+    &:active {
+      background-color: var(--color-bg-field);
+      color: var(--color-action-secondary-text);
+      text-decoration: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__toggle-track,
+    &__toggle-track::after {
+      transition: none;
+    }
+  }
+
+  @media (max-width: @breakpoint-header-collapse) {
+    padding: 0 16px 16px;
+
+    &__grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    &__actions {
+      gap: 16px;
+    }
+
+    &__save,
+    &__cancel {
+      flex: 1 1 0;
+      min-inline-size: 0;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The two field shapes the account section did not have before
+// ---------------------------------------------------------------------------
+// Added to the shared field component rather than to the form above, because
+// they are field VARIANTS: the next form in this section that needs a textarea
+// or a select should get them from here.
+.spartrak-account-field {
+  // 721:29511 — 120 tall against the standard 48, and the text sits at the
+  // TOP of the band rather than centred in it.
+  &__band--textarea {
+    block-size: 120px;
+    align-items: stretch;
+  }
+
+  // Band-scoped for the same reason the base input is — the (0,2,0) reset
+  // above zeroes `padding-block`, so the textarea's own 12px has to be
+  // stated at that level too or the text would sit flush against the top
+  // edge of the 120px band.
+  &__band &__input--textarea {
+    padding-block: 12px;
+    resize: vertical;
+    line-height: 1.5;
+  }
+
+  // 557:10342. The chevron is drawn on the BAND, not the control: Porto
+  // styles bare `select` with `appearance: none` and supplies its own arrow
+  // as a background image, so a rule that repaints the background drops
+  // Porto's arrow and leaves the field with no affordance at all — the
+  // finding components/_checkout.less records for the checkout's copy of
+  // this same select.
+  &__band--select {
+    position: relative;
+
+    &::after {
+      content: "";
+      position: absolute;
+      // 12px from the reading END (the chevron sits at the frame's left
+      // in an RTL mock), centred in the 48px band.
+      inset-inline-end: 12px;
+      inset-block-start: 50%;
+      translate: 0 -50%;
+      pointer-events: none;
+      // 16px and icon/default #1a144f — both read off the frame:
+      // 721:29505 is a 16x16 node, and its darkest pixel samples
+      // #1A144F. Not icon/muted, which is what a grey-looking chevron
+      // in a compressed render would have suggested.
+      .spartrak-icon("chevron-down-16.svg"; 16px; var(--color-icon-default));
+    }
+  }
+
+  &__select {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    margin: 0;
+    // Room for the chevron the band draws, on the reading-end side only.
+    padding-inline: 12px 36px;
+    padding-block: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    appearance: none;
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    text-align: start;
+
+    &:focus {
+      outline: 0;
+      box-shadow: none;
+    }
+  }
+
+  // The red asterisk on a required label (557:10373).
+  &__required {
+    color: var(--color-text-price-sale);
+  }
+}
+
+// ===========================================================================
+// THE CARD'S DIALOGS — 1078:7263
+// ===========================================================================
+// The BOX is the shared one: the host carries `spartrak-address-modal`, so
+// components/_checkout.less supplies the 800px wrap, the header and the 32px
+// close circle. Only the contents are here.
+//
+// 1078:7263 is 480 wide against the address dialog's 800, which is the one
+// metric that differs — a four-box code entry does not need 800px, and Figma
+// does not give it one.
+.spartrak-account-dialog-modal .modal-inner-wrap {
+  width: 480px;
+}
+
+.spartrak-account-dialog {
+  &__step {
+    display: flex;
+    flex-direction: column;
+    // 1078:7267's children step 80 apart on a 40px rhythm.
+    gap: 24px;
+    padding: 0 24px 24px;
+  }
+
+  // -----------------------------------------------------------------------
+  // THIS IS WHY THE OTP DIALOG SHOWED THE PASSWORD FIELDS TOO
+  // -----------------------------------------------------------------------
+  // Both steps ship with the `hidden` attribute and js/account-edit reveals
+  // exactly one. `hidden` works by a UA-stylesheet rule — `[hidden] {
+  // display: none }` — which any author `display` declaration beats. The
+  // rule above is `display: flex` at (0,1,0) against the UA rule's (0,1,0),
+  // and an author sheet outranks the UA sheet at equal specificity. So the
+  // attribute was set correctly, on the correct element, and had no effect:
+  // the OTP step and the password step rendered stacked inside one modal.
+  //
+  // Restated here rather than fixed with `!important` or by switching the
+  // script to inline styles: `hidden` is the right mechanism (it hides from
+  // assistive tech as well as visually), it just has to be honoured by the
+  // component that overrode it.
+  &__step[hidden] {
+    display: none;
+  }
+
+  // "لقد قمنا بارسال رمز التحقق إلى رقم الهاتف الجديد الخاص بك." — 1078:7266,
+  // centred under the title and capped so it breaks onto two lines as drawn.
+  &__lede {
+    margin: 0;
+    max-inline-size: 264px;
+    margin-inline: auto;
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+    text-align: center;
+  }
+
+  // The number in its own outlined pill (1078:7268) — 186x40 with the glyph
+  // at the reading start.
+  &__phone {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    align-self: center;
+    margin: 0;
+    min-inline-size: 186px;
+    block-size: 40px;
+    padding-inline: 16px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-pill);
+    // `--font-numeral`, the token this design system actually defines for
+    // digits. Figma's variable list names "Inter Tight" here, which
+    // foundations/_typography.less records as never having been loaded —
+    // Thmanyah covers Latin numerals, so this matches the page instead of
+    // silently falling back to system-ui beside it.
+    font-family: var(--font-numeral);
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+  }
+
+  &__phone-icon {
+    .spartrak-icon("phone.svg"; 20px; var(--color-icon-default));
+  }
+
+  &__error {
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-price-sale);
+    text-align: center;
+  }
+
+  // 1078:7340 — a full-width primary with the quiet secondary beneath it,
+  // 16 apart, both 48 tall.
+  &__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  &__submit,
+  &__secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 100%;
+    block-size: 48px;
+    padding-inline: 24px;
+    border: 0;
+    border-radius: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  &__submit {
+    background-color: var(--color-action-primary);
+    color: var(--color-action-primary-text);
+
+    &:hover,
+    &:focus,
+    &:active {
+      background-color: var(--color-action-primary-hover);
+      color: var(--color-action-primary-text);
+    }
+  }
+
+  &__secondary {
+    background-color: var(--color-bg-field);
+    color: var(--color-action-secondary-text);
+
+    &:hover,
+    &:focus,
+    &:active {
+      background-color: var(--color-bg-field);
+      color: var(--color-action-secondary-text);
+    }
+  }
+
+  @media (max-width: @breakpoint-header-collapse) {
+    &__step {
+      padding: 0 16px 16px;
+    }
+  }
+}

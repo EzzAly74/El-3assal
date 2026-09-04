@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<!--
+  Which customer-data sections each InstaPay action makes stale.
+
+  ===========================================================================
+  THE BUG THIS FIXES: A RESTORED BASKET THAT THE MINICART NEVER HEARD ABOUT
+  ===========================================================================
+  Leaving the transfer page cancels the order and calls
+  CheckoutSession::restoreQuote() (see Controller/Transfer/Cancel.php), so the
+  shopper's items are genuinely back — and the cart PAGE, rendered server-side,
+  showed them.
+
+  The minicart did not. Magento serves the header counter and the drawer from
+  `customer-data`, a localStorage cache, and the copy sitting there was the one
+  written when the order was placed: empty. Nothing invalidated it, because
+  invalidation is driven by THIS file — `Magento_Customer/js/customer-data`
+  listens for form submits and asks `section-config` which sections the target
+  URL affects. A custom route that is not listed affects nothing, so the stale
+  empty cart survived the restore and every page load after it.
+
+  That is the "cart page has my items but the drawer says it is empty" split.
+
+  ===========================================================================
+  `save` IS THE ONE THAT EMPTIES THE BASKET NOW
+  ===========================================================================
+  It was deliberately absent, on the reasoning that the quote had already been
+  consumed by the time a receipt was uploaded. That is no longer true: the order
+  is created BY that request (Controller\Transfer\Save), so submitting the
+  receipt is the moment the basket goes — and the moment the cached minicart
+  becomes a lie. Left unlisted, the shopper reached the success page with the
+  old basket still in the header and only an add-to-cart shook it loose.
+
+  ===========================================================================
+  `cancel` IS NOW ALMOST ALWAYS A NO-OP, AND IS STILL LISTED
+  ===========================================================================
+  With no order created up front there is normally nothing to cancel and nothing
+  to restore, so the basket does not change and this entry costs one comparison.
+  It is kept for the legacy branch — an order placed by the previous behaviour,
+  still `pending_payment`, which that controller does cancel and restore.
+
+  Both actions also set Magento's own `section_data_clean` cookie server-side.
+  That is not redundancy for its own sake: the matching below depends on
+  `section-config` canonising the posted URL, and on this store the base URL
+  carries a store code, which is exactly where that matching is thin.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Customer:etc/sections.xsd">
+    <action name="spartrak_instapay/transfer/save">
+        <!-- The order was just created from this quote: the header counter and
+             the drawer are both stale from this request onwards. -->
+        <section name="cart"/>
+        <!-- The shipping and payment method chosen for a quote that no longer
+             exists. Left behind, they are preselected on the next checkout. -->
+        <section name="checkout-data"/>
+        <!-- Magento_Checkout lists this alongside `cart` for its own
+             order-placing action; the reorder block on the account dashboard
+             reads it. -->
+        <section name="last-ordered-items"/>
+    </action>
+
+    <action name="spartrak_instapay/transfer/cancel">
+        <!-- The header counter and the drawer. -->
+        <section name="cart"/>
+        <!-- The checkout's own localStorage: the shipping method and payment
+             method chosen for the order that has just been cancelled. Left
+             behind, they are preselected against a quote that has been through
+             a cancel-and-restore cycle. -->
+        <section name="checkout-data"/>
+    </action>
+</config>

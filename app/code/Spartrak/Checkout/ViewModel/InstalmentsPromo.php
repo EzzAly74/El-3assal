@@ -67,9 +67,32 @@ class InstalmentsPromo implements ArgumentInterface
         return $this->value('body');
     }
 
-    public function getNote(): ?string
+    /**
+     * The panel's call to action - Figma's third line, `اضغط هنا`.
+     *
+     * It replaced a plain footnote. A sentence naming the providers told a
+     * shopper the plans existed and then left them with nowhere to go; the
+     * design's third line is something to press.
+     */
+    public function getCtaLabel(): ?string
     {
-        return $this->value('note');
+        return $this->value('cta_label');
+    }
+
+    /**
+     * Where that button goes, or null while the merchant has not said.
+     *
+     * NULL IS A REAL STATE, NOT AN OVERSIGHT. The instalment providers are a
+     * commercial arrangement this store has not finished making, so there is no
+     * URL to ship a default for - and inventing one would send shoppers
+     * somewhere on the strength of a guess. Until it is set the template
+     * renders the control as an inert button: the design is complete, the
+     * destination is not, and the difference is visible to the merchant in the
+     * admin rather than hidden in a template.
+     */
+    public function getCtaUrl(): ?string
+    {
+        return $this->value('cta_url');
     }
 
     private function flag(string $field): bool

@@ -1,14 +1,52 @@
 <?xml version="1.0"?>
 <!--
-  Same pattern as customer_account_index.xml: the template override at
-  Magento_Customer/templates/form/edit.phtml is picked up by theme fallback on
-  its own. This file exists only to inject the CustomerEmail view model.
+  "حسابي" — the account information card, EDIT state. Figma 562:17237.
+
+  ===========================================================================
+  WHY THE EDIT STATE IS A SECOND URL AND NOT AN INLINE TOGGLE
+  ===========================================================================
+  Figma draws two frames: 562:10229 (values, one تعديل button) and 562:17237
+  (the same card with inputs and حفظ التغييرات / الغاء). The obvious reading is
+  an in-place toggle, and it is the wrong one to build.
+
+  Two server-rendered states at two URLs cost ZERO JavaScript, work with the
+  browser's own back button, survive a failed save with Magento's own message
+  block and repopulated form, and put the change-email/change-password
+  machinery on the page Magento already validates it on. An inline toggle would
+  need a script to swap the states, a second script to post them, and its own
+  answer to "what does back do" — for a visual result the shopper cannot
+  distinguish from a page load on this card.
+
+  It is also what the rest of this section already does: تعديل on an address
+  card goes to the address form, not into the card.
+
+  The block, its name and its cacheable flag are core's; only the template and
+  the injected view models change.
 -->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <body>
         <referenceBlock name="customer_edit">
             <arguments>
+                <!--
+                  Both, and they are not redundant. Profile answers "what should
+                  this card print" (and applies the placeholder rule itself);
+                  CustomerEmail answers "is the STORED value a placeholder",
+                  which core's change-email fieldset needs in order to decide
+                  between "add" and "change" wording and whether to put the
+                  stored address in a value attribute at all.
+                -->
+                <argument name="profile" xsi:type="object">Spartrak\CustomerAccount\ViewModel\Profile</argument>
                 <argument name="customer_email" xsi:type="object">Spartrak\CustomerAuth\ViewModel\CustomerEmail</argument>
+                <!--
+                  The OTP dialog on this card (Figma 1078:7263) renders one box
+                  per digit and re-sends on a cooldown, both of which are
+                  admin-configurable. Read from the SAME view model the login
+                  modal reads (Magento_Theme::html/login-modal.phtml), so a
+                  merchant changing the code length changes it in both places
+                  and cannot end up with a four-box dialog verifying a six-digit
+                  code.
+                -->
+                <argument name="auth_config" xsi:type="object">Spartrak\CustomerAuth\ViewModel\AuthConfig</argument>
             </arguments>
         </referenceBlock>
     </body>

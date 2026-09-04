@@ -33,194 +33,419 @@
 // page are the 56px ship-to disc and the 4px trash button. That reads as
 // deliberate rather than missing, and is reproduced literally.
 
-// The page's two columns. Figma: Main Container 1440 wide at y=282, summary
-// section x=0 w=612, cart section x=624 w=816.
-@spartrak-cart-summary-col: 612px;
-@spartrak-cart-gutter: 48px;
+// ---------------------------------------------------------------------------
+// UNDOING THE BLANK THEME'S FILLED BUTTON STATE
+// ---------------------------------------------------------------------------
+// Magento's blank theme applies `.lib-button()` to the bare `button` element
+// (theme-frontend-blank/web/css/source/_buttons.less), and that mixin emits
+//
+//     button:focus, button:active {
+//         background: #e2e2e2; border: 1px solid #e4e3e5; color: #0c0a20;
+//     }
+//
+// Three of this page's controls are text, not buttons: `مسح الكل`, the mobile
+// quantity stepper's − / +, and the instalments panel's `اضغط هنا`. Each sets
+// `background: none; border: 0` and its own ink — and each of those lands at
+// specificity (0,1,0) while `button:focus` is (0,1,1). The element rule wins,
+// so every one of them flashed a grey filled box with a border the moment it
+// was pressed or focused. On a phone that state also STICKS after the tap.
+//
+// Restating the three declarations under the same pseudo-classes puts this at
+// (0,2,0), which beats (0,1,1) honestly. That is the whole reason this is a
+// mixin and not a shared selector list: the ink differs per control, so the
+// colour has to be passed rather than inherited — `color: inherit` here would
+// override the base rule instead of restoring it.
+//
+// `!important` would also have worked and is exactly what CLAUDE.md section 9
+// rules out; specificity arithmetic is the same fix without the ratchet.
+//
+// The focus RING is untouched. Each control keeps its own `:focus-visible`
+// outline, which is the accessible affordance; what is removed is only the
+// decorative fill.
+.spartrak-bare-button-states(@ink) {
+  &:focus,
+  &:active {
+    background: none;
+    border: 0;
+    color: @ink;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// THE TWO COLUMNS, MEASURED AS CONTENT RATHER THAN AS SECTIONS
+// ---------------------------------------------------------------------------
+// Figma 553:4760 "Main Container" is 1440 wide and holds two sections: the
+// summary at x=0 w=612 and the cart at x=624 w=816. Each carries its own 48px
+// gutter, so what is actually DRAWN is
+//
+//     48 │ cart items 720 │ 48 · 12 · 48 │ summary 516 │ 48
+//
+// and 720 + 108 + 516 = 1344, which is exactly this theme's content band
+// (foundations/_page-metrics.less: a 48px gutter inside 1440). The page
+// container already provides the outer 48s, so the grid's job is only the
+// 720:516 split and the 108 between them.
+//
+// These are the CONTENT widths for that reason. The previous pair described the
+// SECTIONS (612 / a 48px gap), which produced 684 and 612 at the design width —
+// the summary about 96px too wide and the item column too narrow to match.
+@spartrak-cart-items-col: 720;
+@spartrak-cart-summary-col: 516;
+// 108 of the 1344 band = 8.036%. A percentage so the two columns and the space
+// between them all scale together; at the design width it resolves to 108.0px
+// and the 720/516 split is exact.
+//
+// Written as the literal rather than `percentage(108 / 1344)`: LESS evaluates
+// that division in its own numeric context and returned 0%, which compiled
+// clean and silently removed the gutter.
+@spartrak-cart-gutter: 8.036%;
 
 .spartrak-cart,
 .spartrak-cart-summary {
-    box-sizing: border-box;
+  box-sizing: border-box;
 }
+
+// ===========================================================================
+// THE PAGE GUTTER, STATED ONCE FOR THIS ROUTE
+// ===========================================================================
+// Figma puts 48 either side of a 1344 band in the 1440 frame, and 16 either
+// side at 440 — and the desktop grid below depends on the first of those: its
+// 720:516 split only resolves to the design's widths inside a 1344 content box.
+//
+// It was left to whatever Magento and Porto happen to give `.page-main`, which
+// at mobile is 15 in one place and 0 in another depending on which rule wins.
+// That is the "margins are corrupted" on the 440 render: the summary panel came
+// out full-bleed while the cart header beside it sat 8px in and the item card
+// 16.
+//
+// Stated on `.page-main` because that is the element blank pads, and scoped
+// with the page's body class so it reaches (0,2,0) against blank's (0,1,0) and
+// wins without depending on which stylesheet loads last.
+.checkout-cart-index .page-main {
+  padding-inline: @plp-gutter;
+}
+
+@media (max-width: @breakpoint-header-collapse) {
+  .checkout-cart-index .page-main {
+    padding-inline: 16px;
+  }
+}
+
+// ===========================================================================
+// RELEASING PORTO'S FLOAT LAYOUT SO THE GRID CAN SIZE ITS OWN COLUMNS
+// ===========================================================================
+// Porto still lays these three out the old way, in styles-l.min.css at
+// (min-width:768px):
+//
+//     .cart-container .form-cart { width:66.6667%; float:right; padding-left:4% }
+//     .cart-summary              { width:33.3333%; float:left;  padding:24px 30px }
+//     .cart-discount             { width:66.6667%; float:right; padding-left:4% }
+//
+// An explicit width on a grid ITEM overrides the track's stretch, so the grid
+// below was correct and invisible: measured at a 1600px viewport the tracks came
+// out 460px and 612px exactly as declared, while the items inside them rendered
+// 307px and 204px — 204 being precisely 33.3333% of the 612px track.
+//
+// ---------------------------------------------------------------------------
+// WHY THE BODY CLASS, AND WHY THIS IS NOT IN _extend.less
+// ---------------------------------------------------------------------------
+// It WAS in Magento_Theme/web/css/source/_extend.less first, on that file's
+// stated reasoning that //@magento_import collects it into styles-l after
+// Porto. Measured on the deployed site, that is not true for this case: the
+// extend copy lands in styles-l as a media="all" rule EARLIER in the file than
+// Porto's `@media (min-width:768px)` cart block, so on equal specificity Porto
+// still won and the columns still collapsed. The seam works for the rules
+// already in that file; it does not reach a rule Porto declares inside the
+// desktop media block.
+//
+// Specificity settles it independently of order, and `.checkout-cart-index` is
+// the page's own body class — the same device _checkout.less already uses for
+// `.checkout-index-index .opc-wrapper` against Porto's `.opc-wrapper`. That
+// keeps the fix in the page-scoped bundle with the rest of the cart instead of
+// adding weight to every page's critical CSS.
+//
+// Both physical paddings are zeroed rather than the logical property: Porto
+// writes `padding-left`, and Magento's RTL build flips that to `padding-right`
+// in spartrak_rtl, so naming one would leave the other standing in one locale.
+.checkout-cart-index .cart-container .form-cart,
+.checkout-cart-index .cart-container .cart-gift-item {
+  width: auto;
+  float: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.checkout-cart-index .cart-summary {
+  width: auto;
+  float: none;
+  padding: 0;
+}
+
+// The coupon block used to be released from Porto's float here, on the
+// reasoning that the layout left it where Porto puts it. It no longer exists:
+// Figma's cart has no promo field, the coupon belongs to the checkout's summary
+// column, and checkout_cart_index.xml now removes `checkout.cart.coupon`
+// outright. A rule that matches nothing is dead weight in a render-blocking
+// bundle, so it went with the block.
 
 // ===========================================================================
 // CART COLUMN — header (817:22810, 816x74)
 // ===========================================================================
+// Re-read off 553:4804 (`px-[48px] py-[24px]`, `border-b`) — the same node the
+// 817 frame draws, and the source for the two corrections below.
 .spartrak-cart__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    // 74px tall with the title at y=24: 24 top, 24 bottom around a 26px line.
-    padding-block: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  // 74px tall with the title at y=24: 24 top, 24 bottom around a 26px line.
+  padding-block: 24px;
+  // THE HAIRLINE UNDER THE HEADER. 553:4804 carries `border-b` and this rule
+  // had no border at all, so the item list ran straight up to the title with
+  // nothing separating the column head from its contents.
+  border-block-end: 1px solid var(--color-border-default);
 }
 
-// Figma 817:22812 — Heading/H3 20/700/1.3.
+// Figma 553:4806 — Heading/H3 20/700/1.3, text/primary.
 .spartrak-cart__title {
-    margin: 0;
-    font-size: var(--text-20);
-    font-weight: 700;
-    line-height: 1.3;
-    color: var(--color-text-primary);
+  margin: 0;
+  font-size: var(--text-20);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-text-primary);
 }
 
-// Figma 817:22811 "Clear All Button" — text, in the danger red, no chrome.
+// Figma 553:4805 "Clear All Button" — text, no chrome.
+//
+// TWO CORRECTIONS, BOTH FROM get_design_context ON THE NODE:
+//   size   Heading/H4 18/500/1.3, not Body/Base Medium 16/500/1.5. The node
+//          measures 74x23 on desktop; 18/1.3 is 23.4 and 16/1.5 is 24, and the
+//          width scales with it (the mobile node is 65 wide at 16px).
+//   colour `text/price-sale` #d54033, not `feedback/danger` #b30000. They are
+//          different reds and this is the softer one — the control removes a
+//          basket, it does not report a failure.
 .spartrak-cart__clear {
-    appearance: none;
-    border: 0;
-    background: none;
-    padding: 0;
-    cursor: pointer;
-    font-size: var(--text-16);
-    font-weight: 500;
-    line-height: 1.5;
-    color: var(--color-feedback-danger);
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: var(--text-18);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--color-text-price-sale);
 
-    &:hover,
-    &:focus-visible {
-        text-decoration: underline;
-    }
+  .spartrak-bare-button-states(var(--color-text-price-sale));
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: underline;
+  }
 }
 
-// Figma: Cart Item List — cards 140 tall, 24 apart (0, 164, 328).
+// Figma: Cart Item List — cards 140 tall, 24 apart on desktop (0, 164, 328)
+// and 16 apart on the 440 frame (0, 156, 312). The mobile value is set in the
+// responsive block at the foot of this file.
 .spartrak-cart__list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 // The update button is the no-JavaScript fallback and the target the quantity
 // control clicks. It must stay in the DOM and stay reachable by keyboard, so it
 // is hidden the accessible way rather than with `display: none`.
 .spartrak-cart__update {
-    .spartrak-visually-hidden();
+  .spartrak-visually-hidden();
 
-    // A keyboard user who tabs to it gets it back, full size — otherwise the
-    // fallback exists but cannot be seen when it is focused.
-    &:focus-visible {
-        position: static;
-        width: auto;
-        height: auto;
-        margin: 0;
-        padding: 12px 24px;
-        clip: auto;
-        overflow: visible;
-        background: var(--color-action-primary);
-        color: var(--color-action-primary-text);
-    }
+  // A keyboard user who tabs to it gets it back, full size — otherwise the
+  // fallback exists but cannot be seen when it is focused.
+  // (the padding this restores is the one the rule below has to take away)
+  &:focus-visible {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 12px 24px;
+    clip: auto;
+    overflow: visible;
+    background: var(--color-action-primary);
+    color: var(--color-action-primary-text);
+  }
+}
+
+// The visually-hidden mixin sets `padding: 0`, and Porto answers with
+//     .cart.actions button.action { padding: 12px 24px }
+// which is (0,3,1) against the utility's (0,1,0) and wins. Because the box is
+// border-box, that padding becomes a floor on the used width: the button
+// measured 48px wide instead of 1px and, once the grid fix let .form-cart span
+// the full column, its static position put those 48px past the inline start —
+// 37px of horizontal page scroll on a 1000px viewport, from a control that is
+// supposed to be invisible.
+//
+// The selector mirrors Porto's and adds the component's own class, which is the
+// smallest thing that outranks it. Verified in the browser: 48px -> 1px and
+// documentElement.scrollWidth back to clientWidth.
+.cart.actions button.action.spartrak-cart__update {
+  padding: 0;
 }
 
 // ===========================================================================
 // CART LINE (817:22816 plain / 817:22900 discounted, 720x140)
 // ===========================================================================
 .spartrak-cart-line {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding-inline: 12px;
-    border: 1px solid var(--color-border-default);
-    background: var(--color-bg-surface);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-inline: 12px;
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
 }
 
-// Figma 817:22934 — 108 square on bg/field, with its own faint lift and a
+// Figma 820:16599 — 108 square on bg/field, with its own faint lift and a
 // hairline border on the image itself.
+//
+// ---------------------------------------------------------------------------
+// THE 8px THAT MAKES THE IMAGE GAP 24 INSTEAD OF 16
+// ---------------------------------------------------------------------------
+// Figma nests the card as
+//
+//     Card ─ gap 16 ─┬ controls column (83)
+//                    └ Main Container ─ gap 24 ─┬ content
+//                                               └ image (108)
+//
+// so there are TWO gaps: 16 between the controls and everything else, and 24
+// between the content and the image. This markup has no "Main Container" — the
+// three blocks are flex siblings of the card — so one `gap` cannot be both.
+//
+// A wrapper element would reproduce the tree exactly, and was rejected: it
+// exists in Figma only to carry a gap, and adding a div to every cart line to
+// hold a number is more DOM on a page that renders one per item. The 8px
+// difference is added to the image's own inline-end margin instead, which is
+// direction-safe and stays correct when the controls wrap on mobile.
 .spartrak-cart-line__media {
-    flex: 0 0 auto;
+  flex: 0 0 auto;
+  margin-inline-end: 8px;
 }
 
 .spartrak-cart-line__photo {
-    display: block;
-    inline-size: 108px;
-    block-size: 108px;
-    overflow: hidden;
-    background: var(--color-bg-field);
-    box-shadow: var(--shadow-input);
+  display: block;
+  inline-size: 108px;
+  block-size: 108px;
+  overflow: hidden;
+  background: var(--color-bg-field);
+  // Figma's own sub-pixel value (820:16599), not --shadow-input's 0 1px 1.5px.
+  // Kept literal for the same reason the checkout summary's thumbnail is: the
+  // lift is meant to be barely there, and rounding it up doubles it.
+  box-shadow: 0 0.551px 0.827px rgba(44, 54, 53, 0.03);
 
-    img {
-        inline-size: 100%;
-        block-size: 100%;
-        object-fit: cover;
-        border: 1px solid var(--color-border-default);
-        box-sizing: border-box;
-    }
+  img {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+    border: 1px solid var(--color-border-default);
+    box-sizing: border-box;
+  }
 }
 
 // Figma 817:22913 "Main Container" — gap 24, padding-block 16; the content
 // column inside it is gap 12, centred, and aligned to the reading start.
 .spartrak-cart-line__body {
-    flex: 1 1 auto;
-    min-inline-size: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 12px;
-    padding-block: 16px;
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding-block: 16px;
 }
 
 // Figma 817:22927 — Heading/H4 18/500/1.3.
 .spartrak-cart-line__name {
-    margin: 0;
-    font-size: var(--text-18);
-    font-weight: 500;
-    line-height: 1.3;
-    color: var(--color-text-primary);
+  margin: 0;
+  font-size: var(--text-18);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--color-text-primary);
 
-    a {
-        color: inherit;
-        text-decoration: none;
+  // ---------------------------------------------------------------------
+  // `font: inherit` IS WHY THE NAME IS 18px
+  // ---------------------------------------------------------------------
+  // The name is `<strong class="product-item-name spartrak-cart-line__name">`
+  // wrapping an `<a>`, and Porto sizes the ANCHOR:
+  //
+  //     .product-item-name a { font-size: 1.4rem; font-weight: 400 }
+  //
+  // which is (0,1,1) against this block's (0,1,0) and wins regardless of
+  // order. Only `color` was being inherited, so the rule above set an 18px
+  // strong around a 14px link and the shopper saw the 14 — the "product name
+  // is so small" this fixes.
+  //
+  // `font` and not four longhands: whatever Porto sets on the anchor —
+  // family, size, weight, style, line-height — is answered by one
+  // declaration, and there is no list here to keep in step with theirs.
+  a {
+    font: inherit;
+    color: inherit;
+    text-decoration: none;
 
-        &:hover,
-        &:focus-visible {
-            text-decoration: underline;
-        }
+    &:hover,
+    &:focus-visible {
+      text-decoration: underline;
     }
+  }
 }
 
 .spartrak-cart-line__options {
+  margin: 0;
+  font-size: var(--text-14);
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+
+  dt {
+    font-weight: 500;
+  }
+
+  dd {
     margin: 0;
-    font-size: var(--text-14);
-    line-height: 1.5;
-    color: var(--color-text-secondary);
-
-    dt {
-        font-weight: 500;
-    }
-
-    dd {
-        margin: 0;
-    }
+  }
 }
 
 .spartrak-cart-line__message {
-    font-size: var(--text-14);
-    line-height: 1.5;
-    color: var(--color-text-secondary);
+  font-size: var(--text-14);
+  line-height: 1.5;
+  color: var(--color-text-secondary);
 }
 
-// Figma 817:22929 "Price" — gap 12, centred, at the reading end of the row.
+// Figma 820:16593 "Price and Buttons" — `justify-end` on a canvas whose text is
+// composed right-aligned, i.e. the price group sits at the READING START, in
+// line with the product name above it (820:16592 is `text-right`).
+//
+// It was `flex-end`, which under `direction: rtl` is the reading END — so the
+// price sat at the far left of the line while the name it belongs to sat at the
+// right, with the width of the card between them.
 .spartrak-cart-line__pricing {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
 }
 
 // Figma 817:22933 — Heading/H2 24/700/1.3 in text/brand. The biggest thing on
 // the line, and navy rather than ink.
 .spartrak-cart-line__price {
-    font-size: var(--text-24);
-    font-weight: 700;
-    line-height: 1.3;
-    color: var(--color-text-brand);
+  font-size: var(--text-24);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-text-brand);
 
-    // Core's price renderer wraps the figure in its own span.
-    .price {
-        font: inherit;
-        color: inherit;
-    }
+  // Core's price renderer wraps the figure in its own span.
+  .price {
+    font: inherit;
+    color: inherit;
+  }
 }
 
 // Figma 817:22931 — Heading/H4 18/500/1.3 in text/price-sale, struck through.
@@ -228,127 +453,207 @@
 // tracks the glyphs at any font size and any zoom level, where a positioned
 // rule would need re-measuring for both.
 .spartrak-cart-line__was {
-    font-size: var(--text-18);
-    font-weight: 500;
-    line-height: 1.3;
-    color: var(--color-text-price-sale);
-    text-decoration-line: line-through;
-    text-decoration-thickness: 1px;
+  font-size: var(--text-18);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--color-text-price-sale);
+  text-decoration-line: line-through;
+  text-decoration-thickness: 1px;
 }
 
 .spartrak-cart-line__msrp {
-    font-size: var(--text-14);
-    line-height: 1.5;
-    color: var(--color-text-secondary);
+  font-size: var(--text-14);
+  line-height: 1.5;
+  color: var(--color-text-secondary);
 }
 
 // Figma 820:16410 — 83 wide, column, gap 26, justify-end, padding-block 12.
 .spartrak-cart-line__controls {
-    flex: 0 0 auto;
-    align-self: stretch;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    gap: 26px;
-    padding-block: 12px;
+  flex: 0 0 auto;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  // ---------------------------------------------------------------------
+  // THE BIN SITS AT THE COLUMN'S OUTER EDGE, NOT ITS INNER ONE
+  // ---------------------------------------------------------------------
+  // The column is 83 wide because the quantity control is; the bin is only
+  // 32. With no cross-axis alignment the default `stretch` made the actions
+  // row 83 wide too and left the 32px button at its inline START — which in
+  // RTL is the side facing the product, so the bin floated ~50px in from the
+  // card's edge with a hole behind it.
+  //
+  // Figma 820:16561 puts the bin at x=0 of the 83 column, i.e. hard against
+  // the card's outer edge. `flex-end` is that edge: the controls sit at the
+  // reading END of the card, so the cross-axis end is the outside.
+  align-items: flex-end;
+  gap: 26px;
+  padding-block: 12px;
 }
 
 // Figma 820:16411 — 32 square, 4px radius, 1px border, holding a 24px glyph.
 // Core's remove control is an <a class="action action-delete">; the whole
 // button shape is claimed here so the anchor renders as the drawn box.
 .spartrak-cart-line__actions {
-    display: flex;
+  display: flex;
 
-    .action-delete {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        inline-size: 32px;
-        block-size: 32px;
-        padding: 4px;
-        border: 1px solid var(--color-border-default);
-        border-radius: var(--radius-4);
-        background: var(--color-bg-surface);
-        text-decoration: none;
+  .action-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 32px;
+    block-size: 32px;
+    padding: 4px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-4);
+    background: var(--color-bg-surface);
+    text-decoration: none;
 
-        // The label is for assistive tech; the glyph is the control.
-        span {
-            .spartrak-visually-hidden();
-        }
-
-        &::before {
-            content: '';
-            .spartrak-icon('cart-line-remove.svg'; 24px; var(--color-feedback-danger));
-        }
-
-        &:hover {
-            border-color: var(--color-feedback-danger);
-        }
+    // The label is for assistive tech; the glyph is the control.
+    span {
+      .spartrak-visually-hidden();
     }
 
-    // Core also renders an "edit" action. Figma's cart line has no edit
-    // control, and the product page is one tap away from the name above, so it
-    // is hidden rather than restyled into a shape the design does not have.
-    .action-edit {
-        display: none;
+    &::before {
+      content: "";
+      .spartrak-icon("trash-delete.svg"; 24px; var(--color-feedback-danger));
     }
+
+    &:hover {
+      border-color: var(--color-feedback-danger);
+    }
+  }
+
+  // Core also renders an "edit" action. Figma's cart line has no edit
+  // control, and the product page is one tap away from the name above, so it
+  // is hidden rather than restyled into a shape the design does not have.
+  .action-edit {
+    display: none;
+  }
 }
 
 // Figma 820:16449 "Tab - Option" — 83x48, 1px border, Shadow/Input, gap 8,
 // padding 16/24, value in Body/Base Medium beside a 20px chevron.
 .spartrak-cart-line__qty {
-    position: relative;
+  position: relative;
 }
 
 .spartrak-cart-line__qty-select {
-    appearance: none;
-    box-sizing: border-box;
-    inline-size: 83px;
-    block-size: 48px;
-    padding-block: 16px;
-    // Room for the chevron at the reading end.
-    padding-inline: 24px 44px;
-    border: 1px solid var(--color-border-default);
-    border-radius: 0;
-    background-color: var(--color-bg-surface);
-    box-shadow: var(--shadow-input);
-    font-size: var(--text-16);
-    font-weight: 500;
-    line-height: 1.5;
-    color: var(--color-text-primary);
-    cursor: pointer;
+  appearance: none;
+  box-sizing: border-box;
+  inline-size: 83px;
+  block-size: 48px;
+  // NO padding-block. Figma's `py-[16px]` describes an auto-layout frame
+  // around a text node; on a <select> with a fixed 48px border-box it left
+  // 14px for a 24px line, and the control grew to fit rather than clipping —
+  // which is the too-tall box on the rendered cart. A select centres its own
+  // value vertically, so the height alone is the whole instruction.
+  padding-block: 0;
+  // ---------------------------------------------------------------------
+  // THE CHEVRON IS AT THE READING START, WHICH IS NOT WHERE A SELECT USUALLY
+  // PUTS IT
+  // ---------------------------------------------------------------------
+  // 820:16574 is `flex gap-[8px] justify-center px-[24px]` over [value,
+  // chevron], and Figma composes this file's RTL screens by drawing the
+  // mirrored result — the sibling stepper on the 440 frame has its PLUS at
+  // the lower x and its MINUS at the higher one, which is a deliberate mirror
+  // of the usual −/+ order. So the chevron's higher x is the reading start.
+  //
+  // Reading in from that edge: 24 padding + 20 chevron + 8 gap = 52 before
+  // the value, and 24 after it. 24+20+8+7+24 = 83.
+  //
+  // FLAGGED. This is the one place in the cart where following the frame puts
+  // a control's affordance on the opposite side from every other dropdown on
+  // the web, and it flips to the left on the English store. Say the word and
+  // it goes back to the reading end — it is these two values and the `::after`
+  // below.
+  //
+  // ---------------------------------------------------------------------
+  // THE 7px VALUE SLOT IS FIGMA'S, AND IT CANNOT BE TAKEN LITERALLY
+  // ---------------------------------------------------------------------
+  // 7px is the measured width of the frame's text node, which contains the
+  // single character `1`. This control has to hold every value up to 10.
+  // `padding-inline: 52px 24px` reserved exactly those 7px and CLIPPED the
+  // digit - the sliver of a glyph on the rendered cart.
+  //
+  // The frame is `justify-center`, so 24/24 is a RESULT of centring
+  // 7 + 8 + 20 inside 83, not a spacing rule in its own right. The faithful
+  // translation is therefore to centre the value too, and to reserve only
+  // what the chevron actually needs:
+  //
+  //     46 (24 pad + 20 chevron + 2 clearance) | 19 value | 18
+  //
+  // A single digit centres at 46 + 9.5 = 55.5 from the reading start, which
+  // is exactly where Figma puts it (52..59, centre 55.5), and the gap to the
+  // chevron comes out at the drawn 8px. Two digits fill the 19px slot and
+  // still clear the chevron. The same picture as the frame at rest, and no
+  // clipping at 10.
+  padding-inline: 46px 18px;
+  text-align: center;
+  // Porto's `.select-styling()` adds `text-indent: .01em`, enough to knock
+  // the centring above off its 55.5.
+  text-indent: 0;
+  border: 1px solid var(--color-border-default);
+  border-radius: 0;
+  // ---------------------------------------------------------------------
+  // THE SHORTHAND, WHICH IS WHAT REMOVES THE SECOND ARROW
+  // ---------------------------------------------------------------------
+  // This was `background-color`, and that is why the control rendered TWO
+  // chevrons. Porto styles the bare `select` element with
+  //
+  //     background: #fff url('../images/select-bg.svg') no-repeat 99% 49%;
+  //     background-size: 26px 60px;
+  //
+  // (Smartwave/porto/web/css/source/_forms.less, `.select-styling()`). A
+  // class beats a type selector, so every other declaration here won - but
+  // `background-color` replaces ONE longhand. Porto's arrow IMAGE, its
+  // position and its 26x60 scaling all survived, sitting at 99% across the
+  // box beside the `::after` chevron below.
+  //
+  // `background` is a shorthand: it resets image, position, size and repeat
+  // along with the colour. One declaration, no `!important`, and the theme's
+  // own chevron is the only one left.
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-input);
+  font-size: var(--text-16);
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  cursor: pointer;
 
-    &:focus-visible {
-        outline: 2px solid var(--color-border-focus);
-        outline-offset: 2px;
-    }
+  &:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
 }
 
 // The chevron. Drawn on the wrapper rather than as a background-image on the
 // <select> so it can be a mask and take a design token for its colour, the way
 // every other icon in this codebase does.
 .spartrak-cart-line__qty::after {
-    content: '';
-    position: absolute;
-    inset-block-start: 50%;
-    inset-inline-end: 12px;
-    transform: translateY(-50%);
-    pointer-events: none;
-    .spartrak-icon('chevron-down-20.svg'; 20px; var(--color-icon-default));
+  content: "";
+  position: absolute;
+  inset-block-start: 50%;
+  // 24 from the reading edge — see the padding note above. It was 12 at the
+  // opposite end.
+  inset-inline-start: 24px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  .spartrak-icon("chevron-down-20.svg"; 20px; var(--color-icon-default));
 }
 
 // A line that can only be one quantity renders as text, not as a dead control.
 .spartrak-cart-line__qty-static {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    inline-size: 83px;
-    block-size: 48px;
-    border: 1px solid var(--color-border-default);
-    background: var(--color-bg-surface);
-    font-size: var(--text-16);
-    font-weight: 500;
-    color: var(--color-text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 83px;
+  block-size: 48px;
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
+  font-size: var(--text-16);
+  font-weight: 500;
+  color: var(--color-text-primary);
 }
 
 // ===========================================================================
@@ -356,236 +661,323 @@
 // ===========================================================================
 // Figma 817:22697 — bg/surface-subtle, 8px padding, 8px gap, Shadow/Input.
 .spartrak-cart-summary {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 8px;
-    background: var(--color-bg-surface-subtle);
-    box-shadow: var(--shadow-input);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  background: var(--color-bg-surface-subtle);
+  box-shadow: var(--shadow-input);
 }
 
 // Figma 817:22713 — white, 24px padding, 28px gap, Medium/Darker.
 .spartrak-cart-summary__card {
-    display: flex;
-    flex-direction: column;
-    gap: 28px;
-    padding: 24px;
-    background: var(--color-bg-surface);
-    box-shadow: var(--shadow-medium-darker);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 24px;
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-medium-darker);
 }
 
 // Figma 817:22714 — Heading/H3 20/700/1.3.
 .spartrak-cart-summary__card .summary.title,
 .spartrak-cart-summary__card .title {
-    margin: 0;
-    font-size: var(--text-20);
-    font-weight: 700;
-    line-height: 1.3;
-    color: var(--color-text-primary);
+  margin: 0;
+  font-size: var(--text-20);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-text-primary);
 }
 
 // ---------------------------------------------------------------------------
-// The ship-to row (817:22698)
+// THE SHIP-TO ROW — Figma 553:4764 / 817:22698, 500x88
 // ---------------------------------------------------------------------------
-// padding 16 with 20 at the reading start; a 12px gap; the 56px disc at the
-// reading start, the chevron at the reading end.
-.spartrak-cart-summary .cart-summary .block.shipping,
-.spartrak-cart-summary #block-shipping {
-    margin: 0;
-    padding-block: 16px;
-    padding-inline: 20px 16px;
+// A 56px disc at the reading start and two lines beside it: `الشحن الي` over
+// the shopper's default address. 16px on every side; 56 + 32 = the 88 the
+// design measures.
+//
+// ---------------------------------------------------------------------------
+// IT USED TO BE A COLLAPSIBLE, AND IT IS NOT ONE ANY MORE
+// ---------------------------------------------------------------------------
+// This block previously fought core's shipping-and-tax estimator on three
+// fronts: a `.content { display: none }` to keep it shut, an `.active` rule to
+// let the widget open it again, and a chevron rotating between the two. All of
+// it is gone with the estimator itself — see the theme's
+// Magento_Checkout::cart/shipping.phtml for why the UI goes and the
+// `window.checkoutConfig` under it stays.
+//
+// The chevron went with it. Figma draws one, and this is the one place in the
+// cart that now departs from the frame: an affordance that opens nothing is a
+// worse answer than no affordance. FLAGGED — if the estimator should come back
+// instead, that is a template change and this comment marks the CSS half.
+//
+// Core's `.block.shipping` / `.title` class names are no longer worn either, so
+// Porto's border, page-block margin and its own `::after` chevron never apply.
+// That hairline under `الشحن الي` was that border; nothing here overrides it,
+// the markup simply stopped asking for it.
+//
+// GRID, NOT FLEX, because the disc has to sit beside BOTH lines and the markup
+// is deliberately flat — one element and two spans, with no wrapper invented to
+// give flex something to nest.
+.spartrak-cart-shipto {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 4px;
+  padding: 16px;
+  font-weight: 400;
 
-    .title {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-size: var(--text-16);
-        font-weight: 400;
-        line-height: 1.5;
-        color: var(--color-text-primary);
-        cursor: pointer;
-    }
+  // Figma 553:4770 — a 56px WHITE disc with its own lift, not a grey field
+  // tile. It sits on `bg/surface-subtle`, so a `bg/field` fill was very
+  // nearly invisible against the panel behind it; the design lifts it off
+  // that ground instead.
+  &::before {
+    content: "";
+    // Spans both text rows, so it centres against the pair rather than
+    // against the label alone.
+    grid-row: ~"1 / span 2";
+    inline-size: 56px;
+    block-size: 56px;
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-surface);
+    box-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.15);
+    // Verified as the same glyph as the address pin already in the theme
+    // (a scale-normalised path comparison scored 1.000), so it is reused
+    // rather than exported a second time under another name.
+    background-image: url("../images/icons/account-addresses.svg");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 20px 20px;
+  }
+}
 
-    // Core renders the estimator's body collapsed and toggles it. Left to
-    // core's own collapsible behaviour — the design's chevron is that control.
-    .content {
-        padding-block-start: 16px;
-    }
+// 553:4768 — Body/Base 16/400/1.5, text/primary.
+.spartrak-cart-shipto__label {
+  font-size: var(--text-16);
+  line-height: 1.5;
+  color: var(--color-text-primary);
+}
+
+// 553:4769 — Body/Small 14/400/1.5, text/muted. It wraps rather than
+// truncating: an Egyptian address is the one thing on this row a shopper needs
+// to be able to read in full.
+.spartrak-cart-shipto__address {
+  font-size: var(--text-14);
+  line-height: 1.5;
+  color: var(--color-text-muted);
 }
 
 // ---------------------------------------------------------------------------
 // Totals (core's Knockout table, restyled — see this file's header)
 // ---------------------------------------------------------------------------
 .spartrak-cart-summary__card {
-    .table-wrapper {
-        margin: 0;
+  .table-wrapper {
+    margin: 0;
+  }
+
+  .table.totals {
+    inline-size: 100%;
+    border-collapse: collapse;
+
+    // Core prints a <caption> for assistive tech. Keep it available and
+    // out of sight.
+    .table-caption {
+      .spartrak-visually-hidden();
     }
 
-    .table.totals {
-        inline-size: 100%;
-        border-collapse: collapse;
-
-        // Core prints a <caption> for assistive tech. Keep it available and
-        // out of sight.
-        .table-caption {
-            .spartrak-visually-hidden();
-        }
-
-        th,
-        td {
-            padding: 0;
-            padding-block: 8px;
-            border: 0;
-            font-size: var(--text-16);
-            line-height: 1.5;
-            vertical-align: baseline;
-        }
-
-        // Figma: the label is text/secondary regular at the reading start...
-        th {
-            font-weight: 400;
-            color: var(--color-text-secondary);
-            text-align: start;
-        }
-
-        // ...and the value is text/primary medium at the reading end.
-        td {
-            font-weight: 500;
-            color: var(--color-text-primary);
-            text-align: end;
-            white-space: nowrap;
-        }
-
-        // Figma 817:22721 / 817:22727 — a divider after subtotal and after
-        // shipping, but NOT after the grand total. Expressed as a border on
-        // every row except the last so a third-party total inserted between
-        // them inherits the treatment for free.
-        tr:not(.grand) {
-            th,
-            td {
-                border-block-end: 1px solid var(--color-border-default);
-            }
-        }
-
-        // Figma 817:22725 — free shipping reads in text/success.
-        .totals.shipping td .price {
-            color: var(--color-text-success);
-        }
-
-        // Figma 817:22729 — value Heading/H3 20/700 in text/link, label 18/500
-        // in text/secondary.
-        tr.grand {
-            th {
-                font-size: var(--text-18);
-                font-weight: 500;
-                color: var(--color-text-secondary);
-            }
-
-            td {
-                font-size: var(--text-20);
-                font-weight: 700;
-                line-height: 1.3;
-                color: var(--color-text-link);
-            }
-
-            strong {
-                font: inherit;
-                color: inherit;
-            }
-        }
+    th,
+    td {
+      padding: 0;
+      border: 0;
+      font-size: var(--text-16);
+      line-height: 1.5;
+      vertical-align: baseline;
     }
+
+    // ------------------------------------------------------------------
+    // 16 ABOVE AND BELOW EVERY DIVIDER, AND NOTHING ABOVE THE FIRST ROW
+    // ------------------------------------------------------------------
+    // Read off 553:4774: subtotal 0..24, divider at 40, shipping 56..80,
+    // divider at 96, grand total 112..138 — a 138-tall stack that is
+    // 24 + 16 + 16 + 24 + 16 + 16 + 26 exactly.
+    //
+    // It was a flat `padding-block: 8px`, which put 8 either side of each
+    // divider instead of 16 and 8 above the first row where the design has
+    // none: the whole totals block came out 16px short and sat too close to
+    // the title above it.
+    //
+    // Stated as "space BELOW every row that has a divider" plus "space
+    // ABOVE every row that follows one", rather than as a uniform padding,
+    // so a total another module inserts joins the rhythm instead of
+    // doubling a gap.
+    tr:not(.grand) > * {
+      padding-block-end: 16px;
+      border-block-end: 1px solid var(--color-border-default);
+    }
+
+    tr + tr > * {
+      padding-block-start: 16px;
+    }
+
+    // Figma: the label is text/secondary regular at the reading start...
+    th {
+      font-weight: 400;
+      color: var(--color-text-secondary);
+      text-align: start;
+    }
+
+    // ...and the value is text/primary medium at the reading end.
+    td {
+      font-weight: 500;
+      color: var(--color-text-primary);
+      text-align: end;
+      white-space: nowrap;
+    }
+
+    // Figma 817:22725 — free shipping reads in text/success.
+    .totals.shipping td .price {
+      color: var(--color-text-success);
+    }
+
+    // Figma 817:22729 — value Heading/H3 20/700 in text/link, label 18/500
+    // in text/secondary.
+    tr.grand {
+      th {
+        font-size: var(--text-18);
+        font-weight: 500;
+        color: var(--color-text-secondary);
+      }
+
+      td {
+        font-size: var(--text-20);
+        font-weight: 700;
+        line-height: 1.3;
+        color: var(--color-text-link);
+      }
+
+      strong {
+        font: inherit;
+        color: inherit;
+      }
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
 // The checkout CTA (817:22733) — 48 tall, full width, action/primary, square.
 // ---------------------------------------------------------------------------
 .spartrak-cart-summary__card {
-    .checkout-methods-items {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
+  .checkout-methods-items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .action.primary.checkout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    inline-size: 100%;
+    block-size: 48px;
+    padding-inline: 24px;
+    border: 0;
+    border-radius: 0;
+    background: var(--color-action-primary);
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-action-primary-text);
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--color-action-primary-hover);
     }
 
-    .action.primary.checkout {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        inline-size: 100%;
-        block-size: 48px;
-        padding-inline: 24px;
-        border: 0;
-        border-radius: 0;
-        background: var(--color-action-primary);
-        font-size: var(--text-16);
-        font-weight: 500;
-        line-height: 1.5;
-        color: var(--color-action-primary-text);
-        text-align: center;
-        text-decoration: none;
-        cursor: pointer;
-
-        &:hover {
-            background: var(--color-action-primary-hover);
-        }
-
-        &:focus-visible {
-            outline: 2px solid var(--color-border-focus);
-            outline-offset: 2px;
-        }
+    &:focus-visible {
+      outline: 2px solid var(--color-border-focus);
+      outline-offset: 2px;
     }
+  }
 }
 
 // ===========================================================================
 // INSTALMENTS PANEL (817:22748, 516x159)
 // ===========================================================================
 .spartrak-cart-instalments {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    padding: 24px;
-    background: var(--color-bg-surface);
-    box-shadow: var(--shadow-input);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px;
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-input);
 }
 
 .spartrak-cart-instalments__info {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-inline-size: 0;
 }
 
 // Figma 817:22751 — Heading/H4 18/500/1.3.
 .spartrak-cart-instalments__heading {
-    margin: 0;
-    font-size: var(--text-18);
-    font-weight: 500;
-    line-height: 1.3;
-    color: var(--color-text-primary);
+  margin: 0;
+  font-size: var(--text-18);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--color-text-primary);
 }
 
 .spartrak-cart-instalments__body {
-    margin: 0;
-    font-size: var(--text-16);
-    line-height: 1.5;
-    color: var(--color-text-secondary);
+  margin: 0;
+  font-size: var(--text-16);
+  line-height: 1.5;
+  color: var(--color-text-secondary);
 }
 
-.spartrak-cart-instalments__note {
-    margin: 0;
-    font-size: var(--text-14);
-    line-height: 1.5;
-    color: var(--color-text-muted);
+// Figma 553:4801 — the panel's third line is a CONTROL, in the design's link
+// ink at Body/Small Medium. It replaced a footnote paragraph; see the template
+// for why it is a <button> until a merchant supplies a destination, and why it
+// is not disabled in the meantime.
+//
+// Styled as a text control rather than a filled button: 553:4801 draws no fill
+// and no border, and the panel already carries one filled CTA's worth of weight
+// in the summary card above it.
+.spartrak-cart-instalments__cta {
+  align-self: flex-start;
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: var(--text-14);
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--color-text-link);
+  text-decoration: underline;
+  cursor: pointer;
+
+  .spartrak-bare-button-states(var(--color-text-link));
+
+  &:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
 }
 
 .spartrak-cart-instalments__art {
-    flex: 0 0 auto;
-    inline-size: 88px;
-    block-size: 88px;
+  flex: 0 0 auto;
+  inline-size: 88px;
+  block-size: 88px;
 }
 
 // ===========================================================================
@@ -595,26 +987,75 @@
 // sits at the READING END on the RTL canvas. Emitted in reading order by core
 // (cart.summary comes before checkout.cart.form), so `order` is not needed;
 // the grid columns simply state the two widths.
-@media (min-width: @breakpoint-desktop) {
-    .cart-container {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) @spartrak-cart-summary-col;
-        gap: @spartrak-cart-gutter;
-        align-items: start;
-    }
+//
+// ---------------------------------------------------------------------------
+// THE SWITCH IS @breakpoint-header-collapse, NOT @breakpoint-desktop
+// ---------------------------------------------------------------------------
+// This used to read `min-width: @breakpoint-desktop` (1440px), which is the
+// mistake foundations/_breakpoints.less exists to warn about: 1440 is the
+// Figma frame's DESIGN WIDTH, not a switch point. Using it meant every viewport
+// from 768 to 1439 — most laptops — got the single-column mobile cart while the
+// header and the rest of the page were in their desktop layout, the exact
+// "switching at two different widths" that file set @breakpoint-header-collapse
+// to prevent. That is also why the reported cart looked like a narrow ragged
+// column: the mobile branch was active while Porto's desktop floats still ran.
+//
+// No new number is invented here — this is the collapse point the theme already
+// defines, and the one Porto and Magento core flip every other piece of page
+// chrome at.
+@media (min-width: (@breakpoint-header-collapse + 1px)) {
+  .cart-container {
+    display: grid;
+    // Both tracks are fr, in Figma's own ratio, so the split is exact at
+    // the design width and proportional everywhere else. `minmax(0, …)` on
+    // each is what stops a long product name pushing a track past its
+    // share — an fr track's default minimum is auto, not zero.
+    //
+    // This replaced `minmax(0, 1fr) clamp(300px, 55%, 612px)`. That clamp
+    // was a fix for a real collapse (a 73px item column at 768) and it did
+    // stop it, but by pinning the summary near 612 it also made the summary
+    // the wider of the two on any laptop — the opposite of the design,
+    // where the items get 720 and the summary 516. A ratio cannot collapse
+    // either track, so the floor is no longer needed to prevent it.
+    grid-template-columns:
+      minmax(0, ~"@{spartrak-cart-items-col}fr")
+      minmax(0, ~"@{spartrak-cart-summary-col}fr");
+    column-gap: @spartrak-cart-gutter;
+    align-items: start;
+  }
 
-    // Core emits the summary first in source order; Figma draws the item list
-    // at the reading start. One `order` swap rather than reordering blocks in
-    // layout XML, because source order is what a screen reader and a
-    // no-CSS reader get, and "your cart" before "your total" is the right
-    // reading order in both.
-    .cart-summary {
-        order: 2;
-    }
+  // ------------------------------------------------------------------
+  // PLACED EXPLICITLY, because `.cart-container` has FOUR children, not two
+  // ------------------------------------------------------------------
+  // Measured in the browser: alongside `.cart-summary` and `.form-cart`, core
+  // also emits `div#gift-options-cart` (height 0 — it holds only a <script>)
+  // and `.cart-discount` (the coupon block, which checkout_cart_index.xml
+  // deliberately leaves where Porto puts it). Auto-placement therefore filled
+  // a 2x2 grid and the two real columns landed in different rows — the items
+  // in row 1 column 2, the summary in row 2 column 2.
+  //
+  // `order` cannot fix that. Porto's styles-l sets `order:1` on .form-cart and
+  // .cart-discount and `order:2` on .cart-summary, while #gift-options-cart
+  // defaults to 0 — so it sorts FIRST and pushes the item list out of row 1.
+  // Explicit placement ignores `order` entirely and is stable no matter what
+  // else core or an extension adds to the container.
+  //
+  // Everything that is not the summary stacks down the first column in source
+  // order; the zero-height script holder costs nothing there.
+  .cart-container > * {
+    grid-column: 1;
+  }
 
-    .form-cart {
-        order: 1;
-    }
+  .form-cart {
+    grid-row: 1;
+  }
+
+  // Column 1 is the reading START, so on the RTL canvas this is the left-hand
+  // 612 the design draws the summary in, and on an LTR store it mirrors.
+  .cart-summary {
+    grid-column: 2;
+    grid-row: 1;
+  }
 }
 
 // ===========================================================================
@@ -624,43 +1065,88 @@
 // presented as a stepper. The stepper is a presentation of the same <select> —
 // see web/js/spartrak-cart-qty.js — so there is never a second field posting
 // under the same name.
-@media (max-width: (@breakpoint-desktop - 1px)) {
-    .cart-container {
-        display: flex;
-        flex-direction: column;
-        gap: 24px;
-    }
+// ---------------------------------------------------------------------------
+// THE CARD KEEPS ITS THREE COLUMNS AT 440. IT USED TO WRAP, AND THAT WAS WRONG.
+// ---------------------------------------------------------------------------
+// This block used to set `flex-wrap: wrap` and turn the controls into a
+// full-width footer row under a hairline, on the reasoning that three columns
+// at 440 leave the product name about twelve characters.
+//
+// Re-read off 724:33845, the frame does not do that. The mobile card is 407x140
+// and holds the SAME three columns as the desktop one, just narrower:
+//
+//     12 │ controls 74 │ 16 │ main 293 (content 161 + 24 + image 108) │ 12
+//
+// The name is not squeezed to twelve characters because it WRAPS — 724:33859 is
+// 161x48, two lines of 18/1.3 — and the card is a fixed 140 tall either way.
+// The footer treatment also invented a hairline the design does not draw.
+//
+// So the only things that change at 440 are the widths of the two control
+// blocks and their vertical arrangement, both of which are below.
+@media (max-width: @breakpoint-header-collapse) {
+  .cart-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
 
-    .spartrak-cart-line {
-        // The controls move under the body rather than sitting in a third
-        // column: at 440 wide, three columns leave the product name about
-        // twelve characters.
-        flex-wrap: wrap;
-        gap: 12px;
-        padding: 12px;
-    }
+  // ---------------------------------------------------------------------
+  // THE ITEMS COME FIRST AT 440. IN SOURCE ORDER THEY DO NOT.
+  // ---------------------------------------------------------------------
+  // Figma 669:13034 stacks the page as header (y=240), items (y=312), summary
+  // (y=812) — a shopper checks what they are buying before what it costs.
+  //
+  // Core emits the summary container FIRST (`cart.summary` is declared with
+  // `after="-"` and `checkout.cart.form` after it), which the desktop grid
+  // hides by placing both columns explicitly. The mobile flex column has no
+  // such placement, so it followed the DOM and put the totals, the CTA and
+  // the instalments panel above the basket they describe.
+  //
+  // `order` on the item form rather than on the summary: the summary shares
+  // its container with `#gift-options-cart` and anything an extension adds,
+  // and all of those keep the default 0 and stay behind it.
+  .form-cart {
+    order: -1;
+  }
 
-    .spartrak-cart-line__body {
-        padding-block: 0;
-    }
+  // 675:16158 — the mobile header is 72 tall against the desktop's 74, and
+  // its title drops a step (675:16160 is 133x23, i.e. 18/1.3). The clear
+  // control does NOT: 675:16159 is 65x24, which is 16/1.5, so it steps DOWN
+  // from the desktop's 18 while the title steps down from 20.
+  .spartrak-cart__title {
+    font-size: var(--text-18);
+  }
 
-    .spartrak-cart-line__controls {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        inline-size: 100%;
-        padding-block: 0;
-        // A hairline above the control row, so it reads as the line's footer
-        // rather than as another product.
-        border-block-start: 1px solid var(--color-border-default);
-        padding-block-start: 12px;
-    }
+  .spartrak-cart__clear {
+    font-size: var(--text-16);
+    line-height: 1.5;
+  }
 
-    .spartrak-cart-instalments {
-        flex-direction: column;
-        align-items: flex-start;
-    }
+  // 724:33845/724:33865/724:33885 sit at 0, 156, 312 — a 16px gap where the
+  // desktop leaves 24.
+  .spartrak-cart__list {
+    gap: 16px;
+  }
+
+  // 724:33846 — the controls column is 74 wide and 74 tall, CENTRED in the
+  // 140 card (y=33), with 16 between the bin and the stepper. The desktop
+  // column is 83 wide, bottom-aligned, with 26 between them.
+  .spartrak-cart-line__controls {
+    inline-size: 74px;
+    justify-content: center;
+    gap: 16px;
+    padding-block: 0;
+  }
+
+  // NOT STACKED. This block used to turn the instalments panel into a column.
+  // 675:17392 keeps it a row at 440 — info 261 wide beside the 88px
+  // illustration at x=301, inside a 405 panel — so the override is gone and
+  // the desktop rule stands. Only its padding comes in, from 24 to 16
+  // (675:17393 is inset 16 where 553:4797 is inset 24).
+  .spartrak-cart-instalments {
+    padding: 16px;
+    gap: 16px;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -671,58 +1157,100 @@
 // <select> stays visible and fully usable — which is why the stepper is drawn
 // as an ENHANCEMENT rather than as the default with a fallback.
 .spartrak-cart-line__stepper {
-    display: none;
+  display: none;
 }
 
 [data-spartrak-qty-stepper] {
-    @media (max-width: (@breakpoint-desktop - 1px)) {
-        .spartrak-cart-line__qty-select,
-        .spartrak-cart-line__qty::after {
-            display: none;
-        }
-
-        .spartrak-cart-line__stepper {
-            display: inline-flex;
-            align-items: center;
-            border: 1px solid var(--color-border-default);
-            background: var(--color-bg-surface);
-            box-shadow: var(--shadow-input);
-        }
+  @media (max-width: @breakpoint-header-collapse) {
+    .spartrak-cart-line__qty-select,
+    .spartrak-cart-line__qty::after {
+      display: none;
     }
+
+    // Figma 724:33850 — 74 x 26, padding-inline 12, gap 8. The glyphs are
+    // 14px and the value is 6 wide for "1": 12+14+8+6+8+14+12 = 74.
+    .spartrak-cart-line__stepper {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      block-size: 26px;
+      padding-inline: 12px;
+      box-sizing: border-box;
+      border: 1px solid var(--color-border-default);
+      background: var(--color-bg-surface);
+      box-shadow: var(--shadow-input);
+    }
+  }
 }
 
+// The stepper's own buttons. Drawn at the 14px the frame gives them — the
+// container is 26 tall, so a 40x44 button (what this was) could not fit inside
+// it and stretched the control to nearly twice its height.
+//
+// THE TAP TARGET IS NOT 14px. The visible glyph is, but `::after` extends the
+// hit area to 44 square without touching layout, so the control looks like the
+// design and is still usable with a thumb (CLAUDE.md §15). An absolutely
+// positioned overlay costs nothing and moves nothing.
+//
+// The glyphs are text (`−` / `+`) written by web/js/spartrak-cart-qty.js, where
+// Figma uses two 14px icon frames. Reproduced as text deliberately: the two
+// characters render identically at this size, and exporting a pair of assets to
+// draw a minus sign would be two more requests on the cart for no visible
+// difference.
 .spartrak-cart-line__stepper-button {
-    appearance: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    inline-size: 40px;
-    block-size: 44px;
-    padding: 0;
-    border: 0;
-    background: none;
-    cursor: pointer;
-    color: var(--color-icon-default);
-    font-size: var(--text-18);
-    line-height: 1;
+  appearance: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  inline-size: 14px;
+  block-size: 14px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--color-icon-default);
+  font-size: var(--text-14);
+  line-height: 1;
 
-    &[disabled] {
-        color: var(--color-text-disabled);
-        cursor: default;
-    }
+  .spartrak-bare-button-states(var(--color-icon-default));
 
-    &:focus-visible {
-        outline: 2px solid var(--color-border-focus);
-        outline-offset: -2px;
-    }
+  &::after {
+    content: "";
+    position: absolute;
+    // 44 tall — (44 - 14) / 2 = 15 above and below.
+    inset-block: -15px;
+    // Only 6 sideways, NOT 15. The two buttons sit 20px apart with the
+    // value between them (12 │ 14 │ 8 │ 6 │ 8 │ 14 │ 12), so a symmetric
+    // 15 would have each overlay swallow the digit and half the other
+    // button: tapping the number would change the quantity, and the later
+    // sibling would win the overlap. 6 gives each a 26x44 target that stops
+    // short of the value on both sides.
+    inset-inline: -6px;
+  }
+
+  &[disabled] {
+    color: var(--color-text-disabled);
+    cursor: default;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
 }
 
+// 724:33852 — 6 wide for a single digit, at Body/Base Medium. `min-inline-size`
+// rather than a fixed width so a two-digit quantity widens the control instead
+// of overflowing it.
 .spartrak-cart-line__stepper-value {
-    min-inline-size: 32px;
-    text-align: center;
-    font-size: var(--text-16);
-    font-weight: 500;
-    color: var(--color-text-primary);
+  min-inline-size: 6px;
+  text-align: center;
+  font-size: var(--text-16);
+  font-weight: 500;
+  line-height: 1;
+  color: var(--color-text-primary);
 }
 
 // ---------------------------------------------------------------------------
@@ -732,69 +1260,23 @@
 // `position: sticky` and not `fixed`: sticky keeps the button inside the
 // document flow, so it cannot cover the last cart line the way a fixed bar
 // does, and it needs no compensating body padding to avoid doing so.
-@media (max-width: (@breakpoint-desktop - 1px)) {
-    .spartrak-cart-summary__card .checkout-methods-items {
-        position: sticky;
-        // `env(safe-area-inset-bottom)` keeps it clear of the home indicator on
-        // a notched phone; the fallback is 0 everywhere else.
-        inset-block-end: ~'calc(12px + env(safe-area-inset-bottom, 0px))';
-        z-index: 2;
-    }
+@media (max-width: @breakpoint-header-collapse) {
+  .spartrak-cart-summary__card .checkout-methods-items {
+    position: sticky;
+    // `env(safe-area-inset-bottom)` keeps it clear of the home indicator on
+    // a notched phone; the fallback is 0 everywhere else.
+    inset-block-end: ~"calc(12px + env(safe-area-inset-bottom, 0px))";
+    z-index: 2;
+  }
 }
 
 // ---------------------------------------------------------------------------
-// FIGMA CART PASS (2026-08-31) — two gaps closed against the mobile frame
+// FIGMA CART PASS (2026-08-31)
 // ---------------------------------------------------------------------------
-
-// The ship-to row's pin and chevron — Figma 817:22691.
-//
-// The row already had its layout; what was missing were the two glyphs that
-// make it read as a place and as something you can open. Both are pseudo
-// elements on the title, because the title IS core's collapsible toggle and
-// wrapping it in extra markup would mean overriding the estimator's template
-// for two icons.
-.spartrak-cart-summary #block-shipping .title {
-    // The pin sits in a 56px circle at the reading start.
-    &::before {
-        content: '';
-        flex: 0 0 auto;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 56px;
-        height: 56px;
-        border-radius: var(--radius-pill);
-        background-color: var(--color-bg-field);
-        // Verified as the same glyph as the address pin already in the theme
-        // (a scale-normalised path comparison scored 1.000), so it is reused
-        // rather than exported a second time under another name.
-        background-image: url('../images/icons/account-addresses.svg');
-        background-repeat: no-repeat;
-        background-position: center;
-        background-size: 20px 20px;
-    }
-
-    // The chevron at the reading end. `margin-inline-start: auto` pushes it
-    // there without the row needing space-between, which would also have
-    // separated the pin from the words.
-    &::after {
-        content: '';
-        margin-inline-start: auto;
-        .spartrak-icon('chevron-down-20.svg'; 20px; var(--color-icon-default));
-        transition: transform 0.15s ease;
-    }
-}
-
-// Core adds `active` to the block when the estimator is open.
-.spartrak-cart-summary #block-shipping.active .title::after {
-    transform: rotate(180deg);
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .spartrak-cart-summary #block-shipping .title::after {
-        transition: none;
-    }
-}
+// The ship-to row that used to be described here — its pin, its chevron and
+// the collapsible states around them — now lives in one place with the rest of
+// its layout, under "THE SHIP-TO ROW" above. It was split across two sections
+// only because the pin was added in a later pass.
 
 // The savings row — Figma 669:13034.
 //
@@ -803,18 +1285,18 @@
 // same class, so there was nothing else to hook on. See that file for why the
 // row is shown on the cart at all.
 .spartrak-cart-summary__card .table.totals tr.totals-discount {
-    td,
-    td .price {
-        color: var(--color-text-success);
-    }
+  td,
+  td .price {
+    color: var(--color-text-success);
+  }
 
-    // The info icon Figma puts before the word `وفرت`, at the reading start of
-    // the label.
-    th .title::before {
-        content: '';
-        display: inline-block;
-        vertical-align: -3px;
-        margin-inline-end: 8px;
-        .spartrak-icon('savings-info.svg'; 16px; var(--color-text-disabled));
-    }
+  // The info icon Figma puts before the word `وفرت`, at the reading start of
+  // the label.
+  th .title::before {
+    content: "";
+    display: inline-block;
+    vertical-align: -3px;
+    margin-inline-end: 8px;
+    .spartrak-icon("savings-info.svg"; 16px; var(--color-text-disabled));
+  }
 }

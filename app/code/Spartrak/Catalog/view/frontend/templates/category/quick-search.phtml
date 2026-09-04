@@ -1,0 +1,227 @@
+<?php
+/**
+ * Spartrak — "البحث السريع" quick-search dialog (Figma 573:22847 / 573:22900).
+ *
+ * Opened by the button on the category promo band. Contains the SAME cascading
+ * finder the homepage uses, in the modal shell the design draws for it.
+ *
+ * ===========================================================================
+ * THIS IS THE HOMEPAGE FINDER. NOT A COPY OF IT.
+ * ===========================================================================
+ * The block rendering this file reads Spartrak\Homepage\ViewModel\
+ * CascadeOptions — the very same source the homepage section reads and the
+ * same one the AJAX endpoint calls, so the levels rendered into the page and
+ * the levels fetched later come from one code path and cannot disagree.
+ *
+ * The behaviour is the homepage's too: the same `spartrakCascadeSearch`
+ * widget, driven by the same `data-finder-*` contract. Nothing about the
+ * cascade, the AJAX endpoint or the submit was reimplemented, and nothing in
+ * Spartrak_Homepage was edited to make this work.
+ *
+ * It does NOT reuse that module's CascadeSearch BLOCK, which was the first
+ * attempt: AbstractSection::_toHtml() returns '' when there is no dashboard
+ * Section behind the block, so the dialog rendered empty and silently took
+ * the button with it. See Block\Category\QuickSearch.
+ *
+ * What IS this file's own is the SHELL, because the design draws a different
+ * one: Figma's modal has an 18px header with a close button and a square
+ * full-width "ابحث الان" footer button, where the homepage card has a 24px
+ * title, a subtitle and a 12px-radius CTA with an arrow. Two shells over one
+ * mechanism.
+ *
+ * ===========================================================================
+ * <dialog>, NOT A MODAL LIBRARY
+ * ===========================================================================
+ * Native `<dialog>` + `showModal()` gives, with no library at all: the
+ * backdrop, focus trapped inside the panel, focus returned to the button on
+ * close, Escape to dismiss, `aria-modal` semantics and the rest of the page
+ * made inert. Magento's own modal widget would pull in jQuery UI dialog and
+ * then have to be restyled out of its own chrome to reach this design.
+ *
+ * That is CLAUDE.md section 4 taken literally — native browser behaviour over
+ * script — and it is why the accompanying widget is about fifteen lines.
+ *
+ * ===========================================================================
+ * FIELD ORDER: FIGMA'S, WITH ONE DELIBERATE CORRECTION
+ * ===========================================================================
+ * Figma orders the four dropdowns النوع, الماركة, الموديل, المحرك — Type,
+ * Brand, Model, Assembly. But the cascade is a real dependency chain: level_2
+ * (Assembly / المحرك) is what populates level_3 (Model / الموديل). Rendering
+ * Model above the Assembly that fills it would show a dropdown above the
+ * control it depends on.
+ *
+ * So the order here is Type, Brand, Assembly, Model — Figma's, with the last
+ * two swapped to follow the data. Every label and placeholder is the
+ * translation that already exists for these exact fields, and they match
+ * Figma's strings word for word.
+ *
+ * @var \Spartrak\Catalog\Block\Category\QuickSearch $block
+ */
+
+if (!$block->hasContent()) {
+    return;
+}
+
+$brands = $block->getBrands();
+$topCategories = $block->getTopCategories();
+
+$config = [
+    'spartrakCascadeSearch' => [
+        'optionsUrl' => $block->getOptionsUrl(),
+        'brandUrls' => json_decode($block->getBrandUrlMap(), true) ?: new stdClass(),
+    ],
+];
+
+$dialogId = 'spartrak-quick-search';
+$titleId = $dialogId . '-title';
+?>
+<dialog class="spartrak-quick-search"
+        id="<?= $block->escapeHtmlAttr($dialogId) ?>"
+        aria-labelledby="<?= $block->escapeHtmlAttr($titleId) ?>"
+    <?php /*
+      BOTH widgets on the dialog, and both are needed:
+        spartrakQuickSearch  opens and closes it;
+        spartrakCascadeSearch  drives the cascade inside it — the same widget
+                               and the same options the homepage passes.
+      The cascade initialises on page load even though the dialog is closed:
+      the elements are in the DOM, just not displayed.
+    */ ?>
+        data-mage-init='<?= /* @noEscape */ json_encode(
+            $config + ['spartrakQuickSearch' => new stdClass()],
+            JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+        ) ?>'>
+
+    <?php /*
+      Figma 573:22900 — the panel. `form` rather than a div so Enter submits
+      from any field and the widget's own `submit [data-finder-form]` handler
+      is the single place a search is committed, exactly as on the homepage.
+    */ ?>
+    <form class="spartrak-quick-search__panel" data-finder-form>
+
+        <?php /*
+          Figma 573:22901 — `justify-content: space-between`. DOM ORDER IS THE
+          LAYOUT: the FIRST child lands on the inline-start edge, which is the
+          RIGHT in Arabic. Figma puts the title on the right and the close
+          button on the left, so the TITLE MUST COME FIRST here. Reversing
+          these mirrors the header — there is no CSS fix that would not break
+          the LTR store instead.
+        */ ?>
+        <div class="spartrak-quick-search__head">
+            <h2 class="spartrak-quick-search__title" id="<?= $block->escapeHtmlAttr($titleId) ?>">
+                <?= $block->escapeHtml(__('Find your right part')) ?>
+            </h2>
+
+            <?php /*
+              type="button" is load-bearing: this sits inside a <form>, and a
+              button with no type defaults to `submit` — the close control
+              would run a search.
+            */ ?>
+            <button type="button"
+                    class="spartrak-quick-search__close"
+                    data-quick-search-close
+                    aria-label="<?= $block->escapeHtmlAttr(__('Close')) ?>">
+                <span class="spartrak-quick-search__close-icon" aria-hidden="true"></span>
+            </button>
+        </div>
+
+        <?php /*
+          THE RED ASTERISK IS A MARKER, NOT A VALIDATOR.
+
+          Figma 659:27383 draws one on every label. It is `aria-hidden` and
+          no field carries `required`, deliberately: the cascade still submits
+          on a partial selection, so telling assistive technology the field is
+          required would be a straight lie about how the form behaves. If the
+          finder is ever made to enforce all four levels, add `required` to
+          the selects and drop the aria-hidden in the same change - not
+          before.
+        */ ?>
+        <div class="spartrak-quick-search__fields">
+            <?php if ($topCategories) : ?>
+                <div class="spartrak-quick-search__field">
+                    <label class="spartrak-quick-search__label" for="spartrak-qs-level-1">
+                        <?= $block->escapeHtml(__('Type')) ?>
+                        <span class="spartrak-quick-search__req" aria-hidden="true">*</span>
+                    </label>
+                    <select class="spartrak-quick-search__select"
+                            id="spartrak-qs-level-1"
+                            name="level_1"
+                            data-finder-level="1">
+                        <option value=""><?= $block->escapeHtml(__('Choose the type')) ?></option>
+                        <?php foreach ($topCategories as $category) : ?>
+                            <option value="<?= (int) $category['value'] ?>"
+                                    data-url="<?= $block->escapeUrl($category['url']) ?>">
+                                <?= $block->escapeHtml($category['label']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($brands) : ?>
+                <div class="spartrak-quick-search__field">
+                    <label class="spartrak-quick-search__label" for="spartrak-qs-brand">
+                        <?= $block->escapeHtml(__('Brand')) ?>
+                        <span class="spartrak-quick-search__req" aria-hidden="true">*</span>
+                    </label>
+                    <select class="spartrak-quick-search__select"
+                            id="spartrak-qs-brand"
+                            name="brand"
+                            data-finder-brand>
+                        <option value=""><?= $block->escapeHtml(__('Choose the brand')) ?></option>
+                        <?php foreach ($brands as $brand) : ?>
+                            <option value="<?= $block->escapeHtmlAttr($brand['value']) ?>">
+                                <?= $block->escapeHtml($brand['label']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($topCategories) : ?>
+                <?php /*
+                  Levels 2 and 3 start empty, disabled and hidden. The widget
+                  fills and reveals each one only when the level above it is
+                  chosen AND actually has children, so a shopper is never
+                  handed an empty dropdown to click into.
+
+                  That is why the dialog is 2 fields tall on open and grows —
+                  Figma draws all four filled because it is showing the end
+                  state, not the first frame.
+                */ ?>
+                <div class="spartrak-quick-search__field" data-finder-field="2" hidden>
+                    <label class="spartrak-quick-search__label" for="spartrak-qs-level-2">
+                        <?= $block->escapeHtml(__('Assembly')) ?>
+                        <span class="spartrak-quick-search__req" aria-hidden="true">*</span>
+                    </label>
+                    <select class="spartrak-quick-search__select"
+                            id="spartrak-qs-level-2"
+                            name="level_2"
+                            data-finder-level="2"
+                            disabled>
+                        <option value=""><?= $block->escapeHtml(__('Choose the assembly')) ?></option>
+                    </select>
+                </div>
+
+                <div class="spartrak-quick-search__field" data-finder-field="3" hidden>
+                    <label class="spartrak-quick-search__label" for="spartrak-qs-level-3">
+                        <?= $block->escapeHtml(__('Model')) ?>
+                        <span class="spartrak-quick-search__req" aria-hidden="true">*</span>
+                    </label>
+                    <select class="spartrak-quick-search__select"
+                            id="spartrak-qs-level-3"
+                            name="level_3"
+                            data-finder-level="3"
+                            disabled>
+                        <option value=""><?= $block->escapeHtml(__('Choose the right model')) ?></option>
+                    </select>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <?php /* Figma 573:22960 / 719:25825 — full-width, square, action/primary. */ ?>
+        <div class="spartrak-quick-search__footer">
+            <button type="submit" class="spartrak-quick-search__submit">
+                <?= $block->escapeHtml(__('Search now')) ?>
+            </button>
+        </div>
+    </form>

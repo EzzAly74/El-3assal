@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<!--
+  Sequenced AFTER every module whose account-navigation links this one
+  reorders, and after the two whose data its view models read.
+
+  Magento_Customer / Magento_Sales / Magento_Wishlist each declare their own
+  customer_account.xml links; layout merging follows module sequence, so a
+  <referenceBlock> here that changes their sortOrder only wins if this module
+  is loaded later. Without the sequence the sidebar order would depend on
+  alphabetical module resolution, which is the kind of thing that works on one
+  install and not the next.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/module.xsd">
+    <module name="Spartrak_CustomerAccount" setup_version="1.0.0">
+        <sequence>
+            <module name="Magento_Customer"/>
+            <module name="Magento_Sales"/>
+            <module name="Magento_Wishlist"/>
+            <!--
+              Not for its links — for its LAYOUT ACTION. Magento_OrderCancellationUi
+              re-templates `sales.order.history` with an <action method="setTemplate">,
+              and actions run in merged-document order. Sequencing after it is
+              what puts this module's own setTemplate last and therefore in
+              charge; without it the winner is whichever module the layout
+              collector happened to reach second. Full reasoning in
+              view/frontend/layout/sales_order_history.xml.
+            -->
+            <module name="Magento_OrderCancellationUi"/>
+            <module name="Spartrak_Shipping"/>
+            <!-- Pickup: OrderView and OrderProgress both read this module —
+                 OrderPickup for an order's collection point, DeliveryStatus for
+                 the four statuses the tracker's stations are. -->
+            <module name="Spartrak_PickupLocation"/>
+            <!-- Payment: the order page's `وسيلة الدفع` card takes its 44px
+                 brand mark from that module's admin-managed catalogue
+                 (ViewModel\OrderPaymentBrand), so the order page and the
+                 checkout's payment row show the same logo. -->
+            <module name="Spartrak_Payment"/>
+        </sequence>
+    </module>
+</config>

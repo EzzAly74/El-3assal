@@ -36,13 +36,18 @@
 // @breakpoint-desktop. Written as the literal so a future change to
 // Spartrak's Figma-derived breakpoint cannot silently re-cut Porto's
 // container at a different width.
+// The breadcrumb list used to be in the group below, capped at the same
+// 1420px as `.page-main`. It is gone: Magento_Theme/layout/default.xml now
+// renders the breadcrumb INSIDE `main.content`, so `.page-wrapper >
+// .breadcrumbs` can no longer match anything. A selector for markup that
+// cannot exist is the dead code CLAUDE.md section 18 rules out, and it would
+// quietly re-cap the crumb if some route ever put it back outside.
 @media (min-width: 1440px) {
     .layout-1220 .block.category.event,
     .layout-1220 .footer.content,
     .layout-1220 .header.content,
     .layout-1220 .navigation,
     .layout-1220 .page-main,
-    .layout-1220 .page-wrapper > .breadcrumbs > ul,
     .layout-1220 .page-wrapper > .page-bottom,
     .layout-1220 .page-wrapper > .widget,
     .layout-1220 .top-container,

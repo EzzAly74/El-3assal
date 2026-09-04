@@ -17,28 +17,45 @@ use Spartrak\InstaPay\Model\Ui\ConfigProvider;
 /**
  * The transfer page - Figma 586:7352.
  *
- * Where a shopper lands immediately after placing an InstaPay order: it shows
- * them the number to send to, and takes their phone number and a screenshot.
+ * Where a shopper lands after choosing InstaPay: it shows them the number to
+ * send to, and takes their phone number and a screenshot.
  *
  * ===========================================================================
- * WHO IS ALLOWED TO SEE IT
+ * THERE IS NO ORDER YET, AND THE GUARD CHANGED WITH IT
  * ===========================================================================
- * Only whoever just placed the order, and only for that order. The check is the
- * session's own `last_real_order_id`, which is the same thing Magento's success
- * page trusts - there is no order id in the URL to tamper with, so there is
- * nothing to enumerate.
+ * This used to admit whoever held `last_real_order_id` - because the checkout
+ * created the order first and redirected here second. That is reversed: the
+ * order is now created by Save.php when the receipt is uploaded, so at this
+ * point there is nothing but a live quote.
  *
- * Three states are rejected, each to a place that makes sense:
+ * The guard is therefore the QUOTE, and it asks the three questions that
+ * actually matter:
  *
- *   no order in the session   -> the cart. Someone bookmarked this page, or
- *                                came back to it days later.
- *   order is not InstaPay     -> the success page. It is their order; it just
- *                                does not need a transfer.
- *   method not configured     -> the success page. The merchant switched
- *                                InstaPay off, or cleared the number, between
- *                                the order being placed and this request.
- *                                Showing a transfer form with no destination
- *                                would invite a payment into thin air.
+ *   is there a basket to pay for      an empty or missing quote means someone
+ *                                     bookmarked this page, or came back to it
+ *                                     after checking out. -> the cart.
+ *   did they choose InstaPay          the renderer writes the method onto the
+ *                                     quote through set-payment-information
+ *                                     before redirecting here, so a quote whose
+ *                                     method is anything else did not come from
+ *                                     that button. -> the checkout.
+ *   can the method still be used      the merchant may have switched InstaPay
+ *                                     off, or cleared their number, since the
+ *                                     page was opened. A transfer form with no
+ *                                     destination invites a payment into thin
+ *                                     air. -> the checkout.
+ *
+ * Nothing here is guessable from a URL: there is no id in it, and the quote is
+ * the session's own.
+ *
+ * ===========================================================================
+ * ALREADY PAID
+ * ===========================================================================
+ * A shopper who submits the receipt and then presses back arrives with an EMPTY
+ * quote - Save placed the order and Magento deactivated it. They fall through
+ * the first guard to the cart, which is the honest answer: their order exists
+ * and this form is finished with. The success page is reachable from their
+ * confirmation email and from My Orders.
  */
 class Index implements HttpGetActionInterface
 {
@@ -52,17 +69,20 @@ class Index implements HttpGetActionInterface
 
     public function execute(): ResultInterface
     {
-        $order = $this->checkoutSession->getLastRealOrder();
+        $quote = $this->checkoutSession->getQuote();
 
-        if (!$order->getId()) {
+        if (!$quote->getId() || (int) $quote->getItemsCount() === 0) {
             return $this->redirectFactory->create()->setPath('checkout/cart');
         }
 
-        $payment = $order->getPayment();
-        $isInstaPay = $payment !== null && $payment->getMethod() === ConfigProvider::CODE;
+        $payment = $quote->getPayment();
 
-        if (!$isInstaPay || !$this->config->isUsable((int) $order->getStoreId())) {
-            return $this->redirectFactory->create()->setPath('checkout/onepage/success');
+        if ($payment === null || $payment->getMethod() !== ConfigProvider::CODE) {
+            return $this->redirectFactory->create()->setPath('checkout');
+        }
+
+        if (!$this->config->isUsable((int) $quote->getStoreId())) {
+            return $this->redirectFactory->create()->setPath('checkout');
         }
 
         $page = $this->pageFactory->create();

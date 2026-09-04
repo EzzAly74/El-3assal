@@ -130,6 +130,26 @@ $isSelectable = count($options) > 1;
                     <?= $escaper->escapeHtml(__('See price before order confirmation.')) ?>
                 </span>
             <?php else: ?>
+                <?php /* ===================================================
+                         THE LIVE PRICE COMES FIRST, THE STRUCK ONE AFTER IT
+                         ===================================================
+                         Figma 820:16594 draws the pair with the struck price at
+                         the LOWER x and the live one at the higher — which on
+                         this RTL page means the live price is at the reading
+                         START and the struck one follows it. Source order is
+                         what decides that in a flex row, so the two are written
+                         in that order here.
+
+                         It reads correctly as well as measuring correctly: a
+                         shopper is told what they pay, then what it was. The
+                         reverse ("896.25, 850.50") is the order a price tag
+                         uses, but it is not the order this design draws and it
+                         is not the order a screen reader should meet them in.
+                         =================================================== */ ?>
+                <span class="spartrak-cart-line__price">
+                    <?= $block->getUnitPriceHtml($item) ?>
+                </span>
+
                 <?php $wasPrice = $pricing !== null ? $pricing->getOriginalUnitPriceHtml($item) : null; ?>
                 <?php if ($wasPrice !== null): ?>
                     <?php /* <s> and not CSS alone: the fact that this price no
@@ -137,10 +157,6 @@ $isSelectable = count($options) > 1;
                              screen reader has to convey it. */ ?>
                     <s class="spartrak-cart-line__was"><?= $escaper->escapeHtml($wasPrice) ?></s>
                 <?php endif; ?>
-
-                <span class="spartrak-cart-line__price">
-                    <?= $block->getUnitPriceHtml($item) ?>
-                </span>
             <?php endif; ?>
         </div>
     </div>

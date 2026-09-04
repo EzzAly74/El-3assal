@@ -16,18 +16,24 @@
   ===========================================================================
   ORDER STATE
   ===========================================================================
-  `order_status` is `pending_payment`, and that is deliberate. The order is
-  created when the shopper leaves the checkout, so the cart is converted and
-  stock is reserved, but nothing has been paid and nobody has checked anything:
+  `order_status` is `pending_payment`, and it is now a state the order passes
+  THROUGH rather than one it sits in.
 
-    - pending_payment orders are excluded from "My Orders" and send no
-      confirmation email, so a shopper who abandons the transfer page is not
-      told their order is on its way;
-    - they can be cancelled, individually or on a schedule, which is what a
-      merchant wants for an abandoned transfer.
+  The order used to be created when the shopper left the checkout, and waited in
+  pending_payment while they were in their banking app. That is reversed: the
+  order is created by Controller\Transfer\Save at the moment the receipt is
+  uploaded, and that same request moves it to `new` — received, awaiting review.
+  Opening the transfer page and leaving it now creates nothing at all, which is
+  why the sales grid stopped filling with orders nobody placed and cancellations
+  nobody asked for.
 
-  It moves to `new` when the receipt is uploaded, and is invoiced when a human
-  approves it.
+  The value is kept rather than changed to `new` outright, because it is still
+  the correct status for the gap between "order created" and "receipt attached",
+  and it is the status any order left behind by a failure between those two
+  steps will carry — which is exactly the state a merchant wants to be able to
+  find and chase.
+
+  It is invoiced when a human approves the receipt.
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
     <default>

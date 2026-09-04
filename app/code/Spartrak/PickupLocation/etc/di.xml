@@ -46,6 +46,28 @@
                 sortOrder="10"/>
     </type>
 
+    <!--
+      ===========================================================================
+      THE CONSIGNMENT — service contract wiring
+      ===========================================================================
+    -->
+    <preference for="Spartrak\PickupLocation\Api\Data\ConsignmentInterface"
+                type="Spartrak\PickupLocation\Model\Consignment"/>
+    <preference for="Spartrak\PickupLocation\Api\ConsignmentRepositoryInterface"
+                type="Spartrak\PickupLocation\Model\ConsignmentRepository"/>
+
+    <!--
+      The dispatch gate is NOT here. It was drafted as a `beforeSave` plugin on
+      OrderRepositoryInterface — which looks like the obvious service-contract
+      chokepoint and is not one, because the admin's own status-change screen
+      calls $order->save() directly and never reaches the repository.
+
+      It is now an observer on `sales_order_save_before`; see etc/events.xml and
+      Observer\RequireConsignmentBeforeDispatch, which carries the verified
+      trace through core. Recorded here because this is where the next person
+      will look for it.
+    -->
+
     <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
         <arguments>
             <argument name="collections" xsi:type="array">

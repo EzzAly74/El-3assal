@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<!--
+  "طلباتي" — the order history. Figma 562:17527.
+
+  Core's block, core's pager, core's collection. What changes is the template
+  and the view model handed to it.
+
+  The pager stays. Figma draws a single card because the mock has one order;
+  a shopper with forty needs the pagination core already provides, and the
+  alternative — rendering every order a customer has ever placed, each with a
+  product-image lookup — is the kind of thing that works in a demo and times
+  out in year three.
+
+  ===========================================================================
+  WHY setTemplate IS AN <action> AND NOT THE `template` ATTRIBUTE (2026-09-03)
+  ===========================================================================
+  Because Magento_OrderCancellationUi wins otherwise, and did — the deployed
+  store rendered core's `<table class="data table">` from
+  `Magento_OrderCancellationUi::order/history.phtml` no matter where this
+  handle lived.
+
+  That module ships its own view/frontend/layout/sales_order_history.xml
+  (Magento 2.4.7+) which re-templates the SAME block:
+
+      <referenceBlock name="sales.order.history">
+          <action method="setTemplate">
+              <argument name="template" xsi:type="string">
+                  Magento_OrderCancellationUi::order/history.phtml
+              </argument>
+          </action>
+      </referenceBlock>
+
+  An `<action>` is not a merge-time attribute — it is a deferred method call.
+  Magento\Framework\View\Layout\Generator\Block::process() generates every
+  block first (applying each one's `template` ATTRIBUTE at line ~233) and only
+  then, under the comment "Run all actions after layout initialization", walks
+  the collected actions. So a `setTemplate` action ALWAYS overwrites a
+  `template` attribute, whichever file declared it, whatever the module
+  sequence, and whether it came from a module or a theme.
+
+  This is also the correction to a long note that used to sit here. It
+  concluded that the theme's Magento_Sales/ directory "is not visible to that
+  install, for a reason not present in the repository", and moved the
+  presentation into this module on that basis. The directory was fine; the
+  attribute was simply losing a race it could never win, and it would have
+  lost the same race from the theme. Nothing about that diagnosis was
+  reproducible, which is the tell — this one is: it is in the framework's own
+  generator, in order, on lines you can read.
+
+  TWO THINGS MAKE THIS DETERMINISTIC:
+
+    1. An `<action>` here, so both modules are playing the same game.
+    2. `Magento_OrderCancellationUi` in this module's <sequence> (etc/module.xml),
+       so this file merges AFTER theirs and its action therefore runs last.
+       Actions execute in merged-document order, and module layout files are
+       collected in dependency-sorted module order — without the sequence the
+       winner would depend on alphabetical resolution, i.e. on luck.
+
+  WHAT IS GIVEN UP: the cancel-order link core's template renders inside the
+  history table. Figma's order card (562:17887) has two actions, تتبع الطلب
+  and عرض المنتج, and no cancel — and the capability is not lost, because
+  Magento_OrderCancellationUi also puts its button on the ORDER page via
+  sales_order_view.xml, which is where a shopper cancelling one order is
+  already standing. If the design later wants it on the card, it needs a Figma
+  frame and then a `<referenceBlock>`-supplied view model here, not the whole
+  core table back.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="sales.order.history">
+            <action method="setTemplate">
+                <argument name="template" xsi:type="string">Spartrak_CustomerAccount::order/history.phtml</argument>
+            </action>
+            <arguments>
+                <argument name="order_view" xsi:type="object">Spartrak\CustomerAccount\ViewModel\OrderView</argument>
+            </arguments>
+        </referenceBlock>
+    </body>
+</page>

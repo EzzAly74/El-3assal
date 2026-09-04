@@ -1,0 +1,76 @@
+<?xml version="1.0"?>
+<!--
+===============================================================================
+Spartrak — remove Porto's duplicate category link list from the PLP sidebar.
+
+ONE removal. Nothing else on this handle is touched: Mageplaza's own
+layer/view.phtml template assignment, its category-tree renderer, its
+`layer.additional.info` / `layer.content.before` containers and every filter
+it builds all still apply exactly as shipped.
+
+WHAT IS REMOVED
+===============================================================================
+  category_leftnav   Declared by Smartwave/porto in its own
+                     Mageplaza_LayeredNavigation/layout/
+                     catalog_category_view_type_layered.xml, rendering
+                     Mageplaza_LayeredNavigation::layer/category_filter.phtml.
+
+That template emits `.block-category-list` — a bare <ol> of the current
+category's CHILDREN — and then carries an inline jQuery snippet that moves the
+markup above #layered-filter-block on every page load.
+
+It is removed because the Spartrak tile rail (Spartrak\Catalog\Block\Category\
+Rail, mounted in this theme's Magento_Catalog/layout/catalog_category_view.xml)
+now does that job from the same source — `$category->getChildrenCategories()`
+— with the design's own tiles. Two components rendering one dataset is the
+duplication CLAUDE.md section 2 forbids, and on a category like المحرك it put
+fourteen child names on the page twice.
+
+Removing the BLOCK rather than shadowing the template is deliberate: it takes
+the inline script and its DOM move with it, so nothing is left running to
+reposition an element that no longer exists.
+
+WHY THIS FILE EXISTS AT ALL, SEPARATELY FROM catalog_category_view.xml
+===============================================================================
+`catalog_category_view_type_layered` is a distinct layout handle, loaded only
+when the category has layered navigation. A block added on that handle cannot
+be removed from catalog_category_view — the removal has to be declared on a
+handle that is actually loaded alongside the addition. Hence a second, very
+small file rather than one more line in the other one.
+
+Porto's block is left ALONE on every other route. This is a PLP-only change.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="category_leftnav" remove="true"/>
+
+        <!--
+          THE MOBILE FILTER DRAWER'S CHROME (Figma 864:20389).
+
+          There is no drawer template. Below the collapse breakpoint the
+          EXISTING sidebar becomes the drawer — CSS turns .sidebar-main
+          into a fixed panel — so the header and footer the design puts
+          around it have to live inside that same container, as siblings
+          of Mageplaza's filter block.
+
+          `before="-"` and `after="-"` put them first and last in the DOM,
+          which is exactly where the design puts them: no CSS `order`, and
+          nothing moved by script. Both are hidden on desktop, where
+          Figma's sidebar (488:12197) has neither.
+
+          Server-rendered rather than injected by JS, so the drawer is
+          complete in the HTML: it cannot flash half-built, and it is
+          still correct if the widget never loads.
+        -->
+        <referenceContainer name="sidebar.main">
+            <block class="Magento\Framework\View\Element\Template"
+                   name="spartrak.filter.drawer.head"
+                   before="-"
+                   template="Spartrak_Catalog::layer/drawer-head.phtml"/>
+            <block class="Magento\Framework\View\Element\Template"
+                   name="spartrak.filter.drawer.foot"
+                   after="-"
+                   template="Spartrak_Catalog::layer/drawer-foot.phtml"/>
+        </referenceContainer>
+    </body>
+</page>

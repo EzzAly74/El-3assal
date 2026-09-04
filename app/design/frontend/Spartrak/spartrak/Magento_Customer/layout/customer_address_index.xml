@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<!--
+  "عناويني" — the address book. Figma 562:18126.
+
+  ===========================================================================
+  ONE GRID, NOT CORE'S TWO BLOCKS
+  ===========================================================================
+  Core renders `address_book` (a "Default Addresses" panel showing the default
+  billing and shipping addresses twice over) followed by `address_grid` (a
+  table of everything else, with a pager). Figma draws a single grid of equal
+  cards in which the default one carries a badge.
+
+  `address_grid` is kept as the host block — it is the one core, and any
+  third-party module, hangs address-list children off, and it supplies the
+  add/edit/delete URLs that keep this page on the platform's own CSRF-checked
+  delete path. `address_book` is removed, because everything it showed is in
+  the grid and shown once.
+
+  The card data comes from Spartrak's AddressBook view model rather than from
+  Grid::getAdditionalAddresses(), which deliberately EXCLUDES the defaults —
+  see that class for why one list is the better model, and why it costs no
+  extra query (the addresses are already on the session's customer object).
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="address_book" remove="true"/>
+
+        <referenceBlock name="address_grid" template="Magento_Customer::address/spartrak-book.phtml">
+            <arguments>
+                <argument name="address_book" xsi:type="object">Spartrak\CustomerAccount\ViewModel\AddressBook</argument>
+            </arguments>
+        </referenceBlock>
+    </body>
+</page>

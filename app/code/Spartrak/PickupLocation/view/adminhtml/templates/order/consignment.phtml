@@ -1,0 +1,283 @@
+<?php
+/**
+ * Copyright © ElAssal for Trading & Supply. All rights reserved.
+ *
+ * "Station consignment" — where the dispatcher records the driver and vehicle
+ * that BUSINESS.md section 12, §4 requires before an order may be marked
+ * `شحنتك في الطريق اليك`.
+ *
+ * The section renders nothing for a home delivery or a branch collection, so
+ * the layout attaches it unconditionally.
+ *
+ * A plain multipart form using Magento's own admin form classes rather than a
+ * UI component: it is six controls on an existing page with one submit, and a
+ * ui_component would mean a form declaration, a data provider and a modal for
+ * the same result. See Controller\Adminhtml\Consignment\Save for why it is a
+ * form of its own and not part of the status dropdown.
+ *
+ * @var \Spartrak\PickupLocation\Block\Adminhtml\Order\View\Consignment $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+if (!$block->isApplicable()) {
+    return;
+}
+
+$consignment = $block->getConsignment();
+$photoUrl = $block->getVehiclePhotoUrl();
+$destination = $block->getDestination();
+$missing = $block->getMissingFields();
+$isReady = $block->isReady();
+$isDispatched = $block->isDispatched();
+?>
+<section class="admin__page-section spartrak-order-consignment">
+    <div class="admin__page-section-title">
+        <span class="title"><?= $escaper->escapeHtml(__('Station consignment')) ?></span>
+    </div>
+
+    <div class="admin__page-section-content">
+        <div class="admin__page-section-item">
+            <?php /*
+              ===================================================================
+              STATE FIRST, FORM SECOND
+              ===================================================================
+              A dispatcher working a queue of orders needs one question answered
+              before anything else: can this one go out? So the panel opens with
+              the answer, and when the answer is no it NAMES THE FIELDS.
+
+              What was here was a single fixed sentence — "save the driver and
+              vehicle before setting this order to Out for delivery" — shown
+              identically whether nothing had been entered or four of the five
+              fields were already filled. The dispatcher then discovered which
+              one was missing by pressing save on the status dropdown and
+              reading an exception. The list below and the gate's own refusal
+              read the same Model\ConsignmentRequirements, so they cannot
+              disagree.
+            */ ?>
+            <?php if ($isDispatched): ?>
+                <div class="message message-success">
+                    <?= $escaper->escapeHtml(
+                        __('This order is out for delivery. The customer can see these details on their order page.')
+                    ) ?>
+                </div>
+            <?php elseif ($isReady): ?>
+                <div class="message message-success">
+                    <?= $escaper->escapeHtml(
+                        __('Ready to dispatch. You can now set this order to "Out for delivery".')
+                    ) ?>
+                </div>
+            <?php else: ?>
+                <div class="message message-warning">
+                    <strong><?= $escaper->escapeHtml(
+                        __('This order cannot be marked out for delivery yet.')
+                    ) ?></strong>
+                    <?php if ($missing !== []): ?>
+                        <?= $escaper->escapeHtml(__('Still needed:')) ?>
+                        <ul>
+                            <?php foreach ($missing as $field): ?>
+                                <li><?= $escaper->escapeHtml($field) ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
+                    <?= $escaper->escapeHtml(
+                        __('The customer has no other way to find the vehicle at the station.')
+                    ) ?>
+                </div>
+            <?php endif; ?>
+
+            <?php /*
+              THE DESTINATION IS A DATA FAULT WHEN IT IS ABSENT, AND IT SAYS SO.
+
+              `الي الموقف` is the shopper's checkout choice. It is the one
+              required fact on their card that the dispatcher cannot type in, so
+              a missing value is not a field to fill — it is something to go and
+              find out. Dispatch is deliberately NOT blocked on it: the parcel
+              still has to travel and the driver's number is the customer's real
+              lifeline, so withholding the whole dispatch over a column this
+              module failed to write would punish the customer for our fault.
+              The reasoning is recorded in Model\ConsignmentRequirements.
+            */ ?>
+            <?php if (!$block->hasDestination()): ?>
+                <div class="message message-error">
+                    <strong><?= $escaper->escapeHtml(__('The destination station is missing from this order.')) ?></strong>
+                    <?= $escaper->escapeHtml(
+                        __(
+                            'This order was placed against the station-pickup carrier, but the station the '
+                            . 'customer chose was not recorded. Contact the customer to confirm where they '
+                            . 'expect to collect before the vehicle leaves — their order page cannot show a '
+                            . 'destination until it is on the order.'
+                        )
+                    ) ?>
+                </div>
+            <?php endif; ?>
+
+            <form action="<?= $escaper->escapeUrl($block->getSaveUrl()) ?>"
+                  method="post"
+                  enctype="multipart/form-data">
+                <?= $block->getBlockHtml('formkey') ?>
+
+                <fieldset class="admin__fieldset">
+                    <div class="admin__field _required">
+                        <label class="admin__field-label" for="spartrak-driver-name">
+                            <span><?= $escaper->escapeHtml(__('Driver name')) ?></span>
+                        </label>
+                        <div class="admin__field-control">
+                            <input type="text"
+                                   id="spartrak-driver-name"
+                                   name="driver_name"
+                                   class="admin__control-text"
+                                   required
+                                   value="<?= $escaper->escapeHtmlAttr($consignment?->getDriverName() ?? '') ?>">
+                        </div>
+                    </div>
+
+                    <div class="admin__field _required">
+                        <label class="admin__field-label" for="spartrak-driver-phone">
+                            <span><?= $escaper->escapeHtml(__('Driver phone')) ?></span>
+                        </label>
+                        <div class="admin__field-control">
+                            <input type="text"
+                                   id="spartrak-driver-phone"
+                                   name="driver_phone"
+                                   class="admin__control-text"
+                                   required
+                                   value="<?= $escaper->escapeHtmlAttr($consignment?->getDriverPhone() ?? '') ?>">
+                            <p class="admin__field-note">
+                                <?= $escaper->escapeHtml(
+                                    __('The customer calls this number to arrange the handover.')
+                                ) ?>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="admin__field _required">
+                        <label class="admin__field-label" for="spartrak-plate-number">
+                            <span><?= $escaper->escapeHtml(__('Vehicle plate number')) ?></span>
+                        </label>
+                        <div class="admin__field-control">
+                            <input type="text"
+                                   id="spartrak-plate-number"
+                                   name="plate_number"
+                                   class="admin__control-text"
+                                   required
+                                   value="<?= $escaper->escapeHtmlAttr($consignment?->getPlateNumber() ?? '') ?>">
+                            <p class="admin__field-note">
+                                <?= $escaper->escapeHtml(__('As written on the plate, for example م ص ر ١٢٣٤.')) ?>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="admin__field _required">
+                        <label class="admin__field-label" for="spartrak-origin-station">
+                            <span><?= $escaper->escapeHtml(__('From station')) ?></span>
+                        </label>
+                        <div class="admin__field-control">
+                            <input type="text"
+                                   id="spartrak-origin-station"
+                                   name="origin_station"
+                                   class="admin__control-text"
+                                   required
+                                   value="<?= $escaper->escapeHtmlAttr($consignment?->getOriginStation() ?? '') ?>">
+                            <p class="admin__field-note">
+                                <?= $escaper->escapeHtml(
+                                    __('Where this vehicle is departing from. It depends on the vehicle, so it is entered per order.')
+                                ) ?>
+                            </p>
+                        </div>
+                    </div>
+
+                    <?php /*
+                      ===============================================================
+                      `الي الموقف` — THE WHOLE STATION, NOT JUST ITS NAME
+                      ===============================================================
+                      Displayed, never edited: it is already on the order, and a
+                      second editable copy is how the card ends up naming one
+                      station in its title and another in its rows — precisely
+                      the mock bug §8 of the spec records.
+
+                      But it is displayed in FULL now. "موقف السلام" alone does
+                      not tell a dispatcher which station that is: several
+                      governorates have similarly-named yards, the operator
+                      decides which vehicles run there, and the street is what a
+                      driver is actually told. The person choosing a driver for
+                      this route has to be able to see the route — see the
+                      block's getDestination() for where each row comes from and
+                      why the snapshot outranks the live record.
+                    */ ?>
+                    <div class="admin__field">
+                        <label class="admin__field-label">
+                            <span><?= $escaper->escapeHtml(__('To station')) ?></span>
+                        </label>
+                        <div class="admin__field-control">
+                            <?php if ($destination['name'] === null): ?>
+                                <span class="admin__field-value">
+                                    <strong><?= $escaper->escapeHtml(__('Not recorded on this order')) ?></strong>
+                                </span>
+                            <?php else: ?>
+                                <span class="admin__field-value">
+                                    <strong><?= $escaper->escapeHtml($destination['name']) ?></strong>
+                                </span>
+                                <?php if ($destination['address'] !== null): ?>
+                                    <p class="admin__field-note">
+                                        <?= $escaper->escapeHtml($destination['address']) ?>
+                                    </p>
+                                <?php endif; ?>
+                                <?php if ($destination['region'] !== null): ?>
+                                    <p class="admin__field-note">
+                                        <?= $escaper->escapeHtml(
+                                            __('Governorate: %1', $destination['region'])
+                                        ) ?>
+                                    </p>
+                                <?php endif; ?>
+                                <?php if ($destination['operator'] !== null): ?>
+                                    <p class="admin__field-note">
+                                        <?= $escaper->escapeHtml(
+                                            __('Transport operator: %1', $destination['operator'])
+                                        ) ?>
+                                    </p>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                            <p class="admin__field-note">
+                                <?= $escaper->escapeHtml(__('Chosen by the customer at checkout.')) ?>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="admin__field<?= $photoUrl === null ? ' _required' : '' ?>">
+                        <label class="admin__field-label" for="spartrak-vehicle-photo">
+                            <span><?= $escaper->escapeHtml(__('Vehicle photo')) ?></span>
+                        </label>
+                        <div class="admin__field-control">
+                            <?php if ($photoUrl !== null): ?>
+                                <p>
+                                    <img src="<?= $escaper->escapeUrl($photoUrl) ?>"
+                                         alt="<?= $escaper->escapeHtmlAttr(__('Vehicle carrying this order')) ?>"
+                                         style="max-width:320px;height:auto">
+                                </p>
+                            <?php endif; ?>
+                            <input type="file"
+                                   id="spartrak-vehicle-photo"
+                                   name="vehicle_photo"
+                                   accept="<?= $escaper->escapeHtmlAttr($block->getAcceptAttribute()) ?>"
+                                   <?= $photoUrl === null ? 'required' : '' ?>>
+                            <p class="admin__field-note">
+                                <?= $escaper->escapeHtml(
+                                    __('A photo of the actual vehicle, so the customer can identify it at the station.')
+                                ) ?>
+                                <?php if ($photoUrl !== null): ?>
+                                    <?= $escaper->escapeHtml(__('Leave empty to keep the current photo.')) ?>
+                                <?php endif; ?>
+                            </p>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <div class="admin__field-complex">
+                    <button type="submit" class="action-default primary">
+                        <span><?= $escaper->escapeHtml(__('Save driver and vehicle')) ?></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>

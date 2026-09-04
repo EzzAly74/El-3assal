@@ -1,0 +1,820 @@
+// Spartrak component — the two bands above the category page's product area.
+//
+// Figma 488:10810 (category page), read live via the Figma MCP server against
+// file 6FRlQfPIncVUvNiJLn2kbT:
+//
+//   488:12966  Hero Section        full-bleed 1440x318 artwork + headline + blurb
+//     488:12967  Hero Text Section   the scrim and the 48/12 padding
+//     488:12969  Hero Description    the 12px-gap copy stack
+//     488:12970  headline            Display/Large  40 / 1.2 / -0.5px
+//     488:12971  blurb               Body/Base      16 / 1.5, 593 wide
+//
+//   507:5234   Categories Section  "تسوق بالمنتجات", full-bleed white, 48/12
+//     507:5235   Categories Header   the 28px title row
+//     507:5240   title               Heading/H1     28 / 1.3
+//     507:5241   Categories List     16px gap, 1392 wide inside a 1344 measure
+//     507:5243   Category Image      134.779 square on bg/surface-subtle
+//     507:5244   Category Name       Body/Base Medium 16 / 1.5
+//
+// -----------------------------------------------------------------------------
+// BIDIRECTIONALITY
+// -----------------------------------------------------------------------------
+// Not one `left:` or `right:` in this file carries layout meaning, and there is
+// no RTL companion stylesheet. Everything is a logical property or flexbox
+// order, so Arabic — this storefront's primary locale — and English are the
+// same code path. Figma composes these frames RTL, so the DOM order in the
+// templates IS the RTL reading order and an LTR store mirrors it for free.
+//
+// -----------------------------------------------------------------------------
+// HOW BOTH BANDS GO FULL BLEED
+// -----------------------------------------------------------------------------
+// Both blocks are mounted in `columns.top`, i.e. inside `.page-main`, which
+// _plp.less gives a @plp-gutter inline padding on this route. Each band cancels
+// exactly that padding with a negative inline margin taken from THE SAME LESS
+// VARIABLE — declared once in foundations/_page-metrics.less and imported by the
+// bundle entry point ahead of both components — so the two can never drift
+// apart, and then re-applies the gutter as its own padding so the copy still
+// lines up with the grid below.
+//
+// `100vw` with `margin-inline: calc(50% - 50vw)` was rejected: 100vw includes
+// the classic scrollbar gutter, so on Windows Chrome it overhangs the viewport
+// by ~15px and gives the page a horizontal scrollbar. The negative margin is
+// exact at every width and cannot overshoot.
+//
+// -----------------------------------------------------------------------------
+// PERFORMANCE
+// -----------------------------------------------------------------------------
+// The hero image is this page's LCP element (CLAUDE.md section 12). Its box is
+// reserved by `aspect-ratio` before the file arrives, so it contributes nothing
+// to CLS, and nothing in this file animates, filters or transforms it — the
+// scrim is a sibling with its own gradient, not a filter on the picture.
+//
+// The tile rail scrolls natively: `overflow-x: auto` + `scroll-snap-type`, no
+// library, no layout-thrashing JS. The carousel widget the templates request
+// adds mouse-drag only; everything visual here works with JavaScript off.
+
+// Sizes below come from Figma frames, which are border-box. Neither
+// Magento/blank nor Porto sets a global border-box on this storefront, so it is
+// declared for these two components — the same scoped fix, and the same
+// finding, as the head of _homepage-sections.less.
+.spartrak-cat-hero,
+.spartrak-cat-hero *,
+.spartrak-cat-hero *::before,
+.spartrak-cat-hero *::after,
+.spartrak-cat-rail,
+.spartrak-cat-rail *,
+.spartrak-cat-rail *::before,
+.spartrak-cat-rail *::after,
+.spartrak-cat-promo,
+.spartrak-cat-promo * {
+    box-sizing: border-box;
+}
+
+/* -------------------------------------------------------------------
+   1. Hero band — Figma 488:12966
+   ------------------------------------------------------------------- */
+.spartrak-cat-hero {
+    position: relative;
+    display: flex;
+    // Figma 488:12967 is `items-end justify-end`: the copy sits at the BOTTOM
+    // of the band, at the inline-start edge (the right, in Arabic).
+    align-items: flex-end;
+    // Cancels .page-main's gutter so the artwork meets both viewport edges.
+    margin-inline: -@plp-gutter;
+    // Figma's Explore band starts 23px below this one; 24 is the design
+    // system's step.
+    margin-block-end: 24px;
+    // The box is RESERVED at Figma's own 1440:318 before the image loads, so
+    // the band contributes nothing to CLS — AND the ratio is a floor, not a
+    // cap: a long blurb grows the band instead of being cut off.
+    //
+    // THAT SECOND HALF IS WHY THERE IS NO `overflow: clip` HERE, even though
+    // Figma 488:12966 is an overflow-clip frame.
+    //
+    // A box with `aspect-ratio` gets a CONTENT-BASED automatic minimum size in
+    // the ratio-dependent axis — that is exactly the "floor, not cap"
+    // behaviour — but only while `overflow` is `visible`. Setting `clip` or
+    // `hidden` drops `min-height: auto` back to 0 and silently cuts the copy
+    // off at the ratio height. It would have bitten precisely where it is
+    // hardest to spot in review: the band gets SHORTER as the viewport
+    // narrows (1024px wide is only 226px tall) while the same paragraph wraps
+    // to more lines.
+    //
+    // Nothing is lost by leaving overflow alone. The only thing that could
+    // spill is the artwork, and it cannot: the picture is absolutely
+    // positioned to the band's own box and the image is `object-fit: cover`,
+    // which crops to that box by definition. Figma needs the clip because its
+    // image NODE is bigger than the frame; CSS does the same job in the fill.
+    //
+    // min-content is then stated explicitly as well. It is the same floor the
+    // automatic minimum already provides, written down so that adding an
+    // overflow or a radius here later cannot quietly remove it.
+    aspect-ratio: var(--spartrak-hero-ratio, ~"1440/318");
+    min-height: min-content;
+    background-color: var(--color-bg-surface-subtle);
+}
+
+.spartrak-cat-hero__picture {
+    position: absolute;
+    inset: 0;
+    display: block;
+}
+
+.spartrak-cat-hero__image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    // Figma 488:12966's fill is `object-cover`. The band's own ratio decides
+    // the layout, so the file's intrinsic size never has to be read.
+    object-fit: cover;
+}
+
+// Figma 488:12967 — a `flex-1` panel filling the band, carrying the scrim and
+// the padding. A sibling of the picture, never a filter on it: a gradient
+// composites on the GPU without touching the image's decode, and keeping it
+// separate means the copy is not inside a stacking context that would dim the
+// text along with the artwork.
+.spartrak-cat-hero__scrim {
+    position: relative;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-self: stretch;
+    justify-content: center;
+    align-items: flex-start;
+    min-width: 0;
+    padding: 12px @plp-gutter;
+    // Figma's own stops, converted from its -0.36deg (which is 0deg in CSS,
+    // i.e. bottom-to-top) — dark where the copy sits, clearing by 43%.
+    background-image: linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.2) 1.28%,
+        rgba(102, 102, 102, 0.02) 43.35%
+    );
+}
+
+// Figma 488:12969 — the copy stack, 12px apart, aligned to the inline-start
+// edge (the right, in Arabic) by the flex parent above.
+.spartrak-cat-hero__copy {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+    text-align: start;
+    color: var(--color-text-inverse);
+}
+
+// Figma 488:12970 "Display/Large": arabic bold, size/5xl 40px, line-height 1.2,
+// letter-spacing tight (-0.5px).
+//
+// THIS IS THE PAGE'S <h1>. The layout removes Magento's own page.main.title on
+// this handle, so there is exactly one — see catalog_category_view.xml.
+.spartrak-cat-hero__title {
+    margin: 0;
+    color: inherit;
+    font-family: var(--font-arabic);
+    font-size: var(--text-40);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+}
+.spartrak-cat-hero__title--sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+// Figma 488:12971 "Body/Base": arabic regular 16/1.5, drawn 593 wide.
+//
+// max-width, not width: at 1440 it wraps exactly where the design wraps, and
+// below that it narrows with the viewport instead of forcing the band wider.
+.spartrak-cat-hero__text {
+    max-width: 593px;
+    color: inherit;
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+// The category description is admin WYSIWYG content, so it can legitimately
+// arrive as one or more <p>. Their default margins would break the 12px stack.
+.spartrak-cat-hero__text > *:first-child { margin-block-start: 0; }
+.spartrak-cat-hero__text > *:last-child { margin-block-end: 0; }
+
+// NO ARTWORK YET.
+//
+// Figma has no such frame, because Figma always has the artwork. Something has
+// to render before an admin uploads one, and a band of white text on a white
+// background is not it. This is the smallest honest state: the same box, the
+// design system's own subtle surface, primary ink, no scrim, and height driven
+// by the copy rather than by a ratio there is no image to hold. It is
+// deliberately plain so that an unset hero reads as unset.
+.spartrak-cat-hero--plain {
+    aspect-ratio: auto;
+    background-color: var(--color-bg-surface-subtle);
+}
+
+.spartrak-cat-hero--plain .spartrak-cat-hero__scrim {
+    padding-block: 32px;
+    background-image: none;
+}
+
+.spartrak-cat-hero--plain .spartrak-cat-hero__copy {
+    color: var(--color-text-primary);
+}
+
+/* -------------------------------------------------------------------
+   2. "تسوق بالمنتجات" tile rail — Figma 507:5234
+   ------------------------------------------------------------------- */
+.spartrak-cat-rail {
+    display: flex;
+    flex-direction: column;
+    // Figma 507:5234 is `gap-[24px]` between the header and the list.
+    gap: 24px;
+    margin-inline: -@plp-gutter;
+    margin-block-end: 24px;
+    padding-block: 12px;
+    // The band is full bleed but the HEADER is not: this padding keeps the
+    // title on the same measure as the grid below. The track cancels it again
+    // on one side only — see below.
+    padding-inline: @plp-gutter;
+    background-color: var(--color-bg-surface);
+}
+
+// Figma 507:5235 — `justify-end`, so the title lands at the inline-start edge
+// (the right, in Arabic) and mirrors for free in an LTR store.
+.spartrak-cat-rail__head {
+    display: flex;
+    align-items: center;
+}
+
+// Figma 507:5240 "Heading/H1": arabic bold, size/3xl 28px, line-height 1.3.
+.spartrak-cat-rail__title {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-family: var(--font-arabic);
+    font-size: var(--text-28);
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+// Figma 507:5241 is 1392 wide inside a 1344 measure — the list deliberately
+// runs off the inline-end edge, and that bleed IS the scroll affordance (which
+// is also why the design draws no arrows, dots or progress bar for this rail).
+//
+// So the track cancels the band's gutter on the FAR side only, reaching the
+// viewport edge, and re-adds it as trailing padding so the last tile can still
+// scroll fully clear of the edge.
+.spartrak-cat-rail__track {
+    display: flex;
+    // Figma 507:5241 `gap-[16px]`.
+    gap: 16px;
+    margin: 0;
+    margin-inline-end: -@plp-gutter;
+    padding: 0;
+    padding-inline-end: @plp-gutter;
+    // A SNAP SCROLLER'S scroll-padding MUST EQUAL ITS OWN padding — the
+    // finding recorded at length in _homepage-sections.less. Here the
+    // inline-START padding is 0, so only the end side is set; getting this
+    // wrong makes the browser silently scroll the rail on first layout.
+    scroll-padding-inline-end: @plp-gutter;
+    list-style: none;
+
+    overflow-x: auto;
+    // Declared, never left to default: `overflow-x: auto` promotes the other
+    // axis to `auto` too, and a stray sub-pixel then turns a horizontal rail
+    // into a two-axis scroller.
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.spartrak-cat-rail__item {
+    // Figma 507:5242 — the tile is exactly as wide as its 134.779px image.
+    // A fixed basis keeps the rail's scroll geometry deterministic, so the
+    // carousel widget pages by a known width and measures nothing per frame.
+    flex: 0 0 135px;
+    width: 135px;
+    // Porto's `ul > li { margin-bottom: .05rem }` adds a sub-pixel to every
+    // list row and knocks the rail off its rhythm. Pinned — same finding as
+    // the homepage rails.
+    margin: 0;
+    scroll-snap-align: start;
+}
+
+// Figma 507:5242 — `flex-col gap-[9.189px] items-center`. 9px: the fraction is
+// an artefact of the frame's scaling, not a designed number.
+.spartrak-cat-rail__card {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    align-items: center;
+    text-decoration: none;
+}
+
+// Figma 507:5243 — a 134.779 square plate on bg/surface-subtle. The plate is
+// declared on the WRAPPER, not the image, so a category with no artwork still
+// reserves the exact same box and the rail never reflows.
+.spartrak-cat-rail__media {
+    display: block;
+    width: 135px;
+    height: 135px;
+    background-color: var(--color-bg-surface-subtle);
+}
+
+.spartrak-cat-rail__image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    // `contain`, not `cover`: these are cut-out part photographs on a flat
+    // plate (Figma 507:5243's fill is `object-contain`), so cropping them
+    // would cut the product rather than the background.
+    object-fit: contain;
+}
+
+// Figma 507:5244 "Body/Base Medium": arabic medium 16/1.5.
+.spartrak-cat-rail__name {
+    display: block;
+    color: var(--color-text-primary);
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.spartrak-cat-rail__card:hover .spartrak-cat-rail__name,
+.spartrak-cat-rail__card:focus-visible .spartrak-cat-rail__name {
+    color: var(--color-action-primary);
+}
+
+// CLAUDE.md section 15 — every interactive element keeps a visible focus ring.
+.spartrak-cat-rail__card:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+}
+
+/* -------------------------------------------------------------------
+   3. Promo band — NO FIGMA NODE
+   The second admin-managed banner, directly below the tile rail. Figma
+   488:10810 has nothing between the rail and the product area, so there
+   is no frame to match: this reuses the hero's construction (full bleed,
+   one asset per viewport, box reserved before it paints) and adds no new
+   visual language of its own. Recorded rather than left to look designed.
+   ------------------------------------------------------------------- */
+.spartrak-cat-promo {
+    // Cancels .page-main's gutter, exactly as the hero and rail do, from the
+    // same variable.
+    margin-inline: -@plp-gutter;
+    margin-block-end: 24px;
+}
+
+// THE BANNER IS THE BUTTON.
+//
+// The template renders the frame as a <button>, unconditionally, so the whole
+// band opens the quick-search dialog. There is no longer a `--interactive`
+// modifier: the element had two possible tags and therefore two sets of
+// styles, for a case that does not arise on a real catalogue. One shape, one
+// rule.
+//
+// A floated "البحث السريع" CTA used to sit over the artwork instead. It is
+// gone, because its position was a set of percentages measured off ONE Figma
+// crop and any other upload put it somewhere arbitrary on the picture.
+//
+// Most of what follows is undoing the UA button stylesheet: a border, a
+// background, a centred inline box and an inherited-font reset, none of which
+// a full-bleed banner wants. `display: block` + `width: 100%` make it lay out
+// exactly as a plain <div> would.
+.spartrak-cat-promo__frame {
+    position: relative;
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: inherit;
+    cursor: pointer;
+    // The picture is the only child and carries its own reserved box, so the
+    // button must not add a line box of its own around it.
+    line-height: 0;
+}
+
+// CLAUDE.md section 15 — the band is a real control, so it needs a visible
+// focus ring. Offset INWARD: the band is full bleed, so an outward ring would
+// be clipped by the viewport edge.
+.spartrak-cat-promo__frame:focus-visible {
+    outline: 3px solid var(--color-border-focus);
+    outline-offset: -3px;
+}
+
+.spartrak-cat-promo__picture {
+    display: block;
+}
+
+// The image supplies its OWN aspect ratio through the width/height attributes
+// the template reads off the real file, so there is no ratio to declare here
+// and nothing to letterbox or crop. `height: auto` is what lets the browser
+// use them: a fixed height would override the reservation and reintroduce the
+// shift this is designed to avoid.
+//
+// The min-height is a floor for the case where the dimensions could NOT be
+// read (a remote URL, an SVG with no raster header) — without it the band
+// would collapse to nothing and then jump to full height on load. It is a
+// fallback, not a designed value, which is why nothing else keys off it.
+.spartrak-cat-promo__image {
+    display: block;
+    width: 100%;
+    height: auto;
+    min-height: 1px;
+    object-fit: cover;
+}
+
+/* -------------------------------------------------------------------
+   4. Quick-search dialog — Figma 573:22847 (overlay) / 573:22900 (panel)
+   The homepage's cascading finder in the modal shell the design draws
+   for it. Only the SHELL is here: the fields are the same component,
+   and the cascade behaviour is the homepage's own widget.
+   ------------------------------------------------------------------- */
+
+// A native <dialog>. Everything the shell would otherwise need script for —
+// the backdrop, the focus trap, Escape, making the page inert — the element
+// does itself, so this block styles a box and nothing more.
+//
+// `border: 0` and the explicit inset/margin are not cosmetic: the UA
+// stylesheet gives <dialog> a 2px groove border, `position: absolute` and
+// `margin: auto`, and without resetting them the panel inherits a browser
+// chrome the design does not draw.
+.spartrak-quick-search {
+    // Figma 573:22900 — 800 wide. min() keeps it off the edges on a narrow
+    // viewport without a media query.
+    width: ~"min(800px, calc(100vw - 32px))";
+    max-height: ~"calc(100vh - 32px)";
+    padding: 0;
+    border: 0;
+    // Figma draws NO corner radius on this panel — square, like the toolbar
+    // chips and the filter inputs. Stated so it is not read as an omission.
+    border-radius: 0;
+    background: none;
+    // The UA centres a modal dialog already; this only removes the margin it
+    // would otherwise add on top.
+    margin: auto;
+    overflow: visible;
+}
+
+// Figma 573:22847 — the scrim. `--color-scrim` is the design system's own
+// alpha-ink-20, the same value every other Spartrak overlay uses.
+.spartrak-quick-search::backdrop {
+    background: var(--color-scrim);
+}
+
+// Figma 573:22900 — bg/surface, Container shadow, 24px padding, 24px gap.
+.spartrak-quick-search__panel {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    box-sizing: border-box;
+    width: 100%;
+    max-height: ~"calc(100vh - 32px)";
+    padding: 24px;
+    background: var(--color-bg-surface);
+    box-shadow: var(--shadow-container);
+    // The fields grow as the cascade reveals levels 2 and 3, so a short
+    // viewport scrolls the PANEL rather than clipping the submit button off
+    // the bottom of the dialog.
+    overflow-y: auto;
+}
+
+// Figma 573:22901 — space-between. DOM order is [title, close], so the title
+// lands at the inline-start edge (the right in Arabic) and the close button at
+// the inline-end, and the whole row mirrors for free in an LTR store.
+.spartrak-quick-search__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+// Figma 573:22904 "Price/Base": arabic bold, size/lg 18px, line-height 1.3.
+.spartrak-quick-search__title {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-family: var(--font-arabic);
+    font-size: var(--text-18);
+    font-weight: 700;
+    line-height: 1.3;
+    text-align: start;
+}
+
+// Figma 573:22902 — a 32px circle on bg/field holding a 20px glyph.
+.spartrak-quick-search__close {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--color-bg-field);
+    cursor: pointer;
+    transition: background-color .15s ease;
+}
+
+.spartrak-quick-search__close:hover {
+    background: var(--color-border-default);
+}
+
+.spartrak-quick-search__close:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+}
+
+.spartrak-quick-search__close-icon {
+    display: block;
+    width: 20px;
+    height: 20px;
+    background-image: url('../images/icons/close.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 20px 20px;
+}
+
+// Figma 573:22905 — 16px between fields, each field 6px between label and
+// control.
+.spartrak-quick-search__fields {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.spartrak-quick-search__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+// Figma 573:22928 "Body/Small Medium": arabic medium 14/1.5.
+//
+// NO REQUIRED ASTERISK, unlike the homepage finder's label — this dialog's
+// design does not draw one, and every field here is genuinely optional (the
+// finder submits on whatever has been chosen).
+.spartrak-quick-search__label {
+    color: var(--color-text-primary);
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.5;
+    text-align: start;
+}
+
+// Figma 659:27383 — the required marker, Body/Small Medium in Figma's
+// #d54033. That value is byte-identical to this theme's danger primitive, so
+// it is consumed as the semantic role token rather than restated as a hex.
+//
+// It inherits the label's size and weight, so only the colour is set here.
+// See quick-search.phtml for why it is decorative (aria-hidden) rather than a
+// real required-field announcement.
+.spartrak-quick-search__req {
+    color: var(--color-feedback-danger);
+}
+
+// Figma 573:22929 — h48, 1px border/default, bg/surface, Shadow/Input, square
+// corners, 16px chevron 12px from the inline-end edge, Body/Base placeholder.
+//
+// ============================================================================
+// THIS IS THE SAME INPUT AS .spartrak-home-finder__select IN
+// _homepage-sections.less, AND THAT DUPLICATION IS DELIBERATE FOR NOW.
+// ============================================================================
+// Every value below matches that rule, because Figma draws one field component
+// and uses it in both places. It is repeated rather than shared because the two
+// live in different components — a homepage section and a category-page dialog
+// — and pointing a category-page stylesheet at a homepage one couples two
+// unrelated pages through a class name neither owns.
+//
+// The right fix if a THIRD consumer appears is to promote the field to a
+// shared partial (foundations/_fields.less, alongside _buttons.less) and have
+// all three call it. That is a refactor with its own review, not something to
+// smuggle into this change. Recorded here so the next person finds the twin
+// instead of discovering it by drift.
+//
+// A native <select>, not a styled div: it brings keyboard support, screen
+// reader semantics, the platform picker on touch and correct RTL, none of
+// which a div has without re-implementing all four in script.
+.spartrak-quick-search__select {
+    appearance: none;
+    -webkit-appearance: none;
+    box-sizing: border-box;
+    width: 100%;
+    height: 48px;
+    padding-inline: 16px 12px;
+    border: 1px solid var(--color-border-default);
+    border-radius: 0;
+    background-color: var(--color-bg-surface);
+    box-shadow: var(--shadow-input);
+    color: var(--color-text-primary);
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 400;
+    line-height: 1.5;
+
+    background-image: url('../images/icons/chevron-down-16.svg');
+    background-repeat: no-repeat;
+    // `background-position` has no logical form, so the chevron's side is the
+    // one place here that needs a direction rule. RTL is the default because
+    // Arabic is this storefront's primary locale — same note as the homepage
+    // finder's copy of this rule.
+    background-position: left 12px center;
+    background-size: 16px 16px;
+    cursor: pointer;
+}
+
+html[dir="ltr"] .spartrak-quick-search__select {
+    background-position: right 12px center;
+}
+
+.spartrak-quick-search__select:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+}
+
+.spartrak-quick-search__select:disabled {
+    color: var(--color-text-disabled);
+    cursor: default;
+}
+
+// Figma 573:22960 / 719:25825 — the footer button fills the row: `flex-1`
+// inside a full-width container, h48, px24, square, action/primary, 16px
+// medium centred.
+.spartrak-quick-search__footer {
+    display: flex;
+}
+
+.spartrak-quick-search__submit {
+    flex: 1 1 auto;
+    box-sizing: border-box;
+    min-height: 48px;
+    padding: 12px 24px;
+    border: 0;
+    border-radius: 0;
+    background: var(--color-action-primary);
+    color: var(--color-action-primary-text);
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color .15s ease;
+}
+
+.spartrak-quick-search__submit:hover {
+    background: var(--color-action-primary-hover);
+}
+
+.spartrak-quick-search__submit:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+}
+
+/* -------------------------------------------------------------------
+   5. Below the desktop band
+   Figma draws no mobile frame for this page, so nothing here is a
+   redesign — the two bands keep the same structure and only follow the
+   page gutter down (from the same variables _plp.less uses) and step the
+   hero's 40px display type back so it does not wrap to four lines on a
+   phone. Both are presentation decisions the theme owns (CLAUDE.md
+   section 7), recorded here rather than left to look intentional.
+   ------------------------------------------------------------------- */
+@media (max-width: 1023px) {
+    .spartrak-cat-hero,
+    .spartrak-cat-rail,
+    .spartrak-cat-promo {
+        margin-inline: -@plp-gutter-tablet;
+    }
+
+    .spartrak-cat-hero__scrim,
+    .spartrak-cat-rail {
+        padding-inline: @plp-gutter-tablet;
+    }
+
+    .spartrak-cat-rail__track {
+        margin-inline-end: -@plp-gutter-tablet;
+        padding-inline-end: @plp-gutter-tablet;
+        scroll-padding-inline-end: @plp-gutter-tablet;
+    }
+}
+
+@media (max-width: 767px) {
+    .spartrak-cat-hero,
+    .spartrak-cat-rail,
+    .spartrak-cat-promo {
+        margin-inline: -@plp-gutter-mobile;
+    }
+
+    .spartrak-cat-hero__scrim,
+    .spartrak-cat-rail {
+        padding-inline: @plp-gutter-mobile;
+    }
+
+    .spartrak-cat-rail__track {
+        margin-inline-end: -@plp-gutter-mobile;
+        padding-inline-end: @plp-gutter-mobile;
+        scroll-padding-inline-end: @plp-gutter-mobile;
+    }
+
+    // A phone-width band at Figma's 4.53:1 would be 83px tall — shorter than
+    // the copy it has to carry, so the ratio stops being the box and becomes
+    // the reserved MINIMUM: still no CLS, and the copy grows the band past it.
+    //
+    // Written as `* 318 / 1440` rather than `/ (1440 / 318)` on purpose: CSS
+    // Values 3 only allows a plain number on the right of `/` inside calc(),
+    // and a nested division there is a Values 4 relaxation this does not need
+    // to depend on.
+    .spartrak-cat-hero {
+        aspect-ratio: auto;
+        min-height: ~"calc(100vw * 318 / 1440)";
+    }
+
+    .spartrak-cat-hero__title {
+        font-size: var(--text-28);
+    }
+
+    .spartrak-cat-hero__scrim {
+        padding-block: 20px;
+        // Enough of the band left clear that the artwork still reads as
+        // artwork rather than as a texture behind a paragraph.
+        background-image: linear-gradient(
+            0deg,
+            rgba(0, 0, 0, 0.55) 0%,
+            rgba(0, 0, 0, 0.15) 60%,
+            rgba(0, 0, 0, 0) 100%
+        );
+    }
+
+    .spartrak-cat-rail__title {
+        font-size: var(--text-20);
+    }
+
+    // ---------------------------------------------------------------
+    //  QUICK SEARCH BECOMES A BOTTOM SHEET - Figma 659:27376
+    //
+    //  Same <dialog>, same fields, same CTA. Every value INSIDE the panel
+    //  already matches the mobile frame exactly - 48px selects, 16/12 inline
+    //  padding, 6/16/24px gaps, square full-width primary button - because
+    //  Figma reuses one field component across both breakpoints. So nothing
+    //  in here restates them; only the box the panel sits in changes.
+    // ---------------------------------------------------------------
+
+    // The UA lays a modal <dialog> out with `inset: 0; margin: auto`, and
+    // that auto margin is what centres it. Leaving ONLY margin-block-start
+    // as auto and zeroing the other three drops it against the bottom edge,
+    // where `width: 100%` then takes it full bleed. No positioning of our
+    // own, nothing fighting the UA, and it reverts cleanly above 767px.
+    .spartrak-quick-search {
+        width: 100%;
+        max-height: 90vh;
+        margin: auto 0 0;
+        max-width: none !important;
+    }
+
+    // Figma rounds the two BLOCK-START corners by 24 and leaves the other
+    // two square - the sheet's lower edge is the screen's, so there are no
+    // bottom corners to round.
+    //
+    // `start-start` and `start-end` are both block-start corners in a
+    // horizontal writing mode, so one rule covers RTL and LTR alike instead
+    // of a physical pair plus a direction twin.
+    //
+    // The panel already scrolls (`overflow-y: auto`), so capping it here is
+    // what keeps the CTA on screen once the cascade reveals levels 2 and 3
+    // rather than pushing it below the fold.
+    .spartrak-quick-search__panel {
+        max-height: 90vh;
+        border-start-start-radius: var(--radius-24);
+        border-start-end-radius: var(--radius-24);
+    }
+}
+
+// CLAUDE.md section 15 — no motion for anyone who has asked for none. The only
+// animated thing in this file is the rail's smooth scrolling, which the
+// carousel widget requests; this turns it into an instant jump.
+@media (prefers-reduced-motion: reduce) {
+    .spartrak-cat-rail__track {
+        scroll-behavior: auto;
+    }
+}

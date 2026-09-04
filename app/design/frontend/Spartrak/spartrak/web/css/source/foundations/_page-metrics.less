@@ -1,0 +1,56 @@
+// Spartrak design tokens — Layer 6: Page layout metrics
+//
+// Plain LESS variables, not CSS custom properties, for the same reason
+// _breakpoints.less gives: these values are consumed inside `margin-inline`
+// negations and `calc()` expressions that have to resolve at BUILD time so a
+// second component can apply the exact negative of a first component's
+// padding. A custom property would resolve at runtime, which is fine for a
+// colour and useless for "cancel whatever the gutter is".
+//
+// ===========================================================================
+// WHY THESE ARE HERE AND NOT IN components/_plp.less
+// ===========================================================================
+// They started life at the top of components/_plp.less, which declared and
+// consumed them, and components/_category-top.less consumed them as a later
+// sibling @import. That broke a static-content deploy:
+//
+//   variable @plp-gutter is undefined in
+//   var/view_preprocessed/.../css/source/components/_category-top.less
+//
+// The cause was not LESS scope — it was var/view_preprocessed. Magento caches
+// each .less file's preprocessed output there and reuses it while the source
+// looks no newer, and plenty of upload tools preserve a file's original
+// mtime. So the CACHED _plp.less (the revision with `padding-inline: 48px`
+// literals and no @plp-gutter declarations) was reused, while the brand-new
+// _category-top.less had no cache entry and compiled fresh against it. One
+// stale file, one undefined variable, and _plp.less itself compiled clean
+// because its cached copy never referenced the variables at all.
+//
+// Moving the declarations into foundations/ removes the whole failure class:
+//
+//   1. this file is imported by the ENTRY point, ahead of every component —
+//      the same position, and the same proven propagation path, that
+//      foundations/_breakpoints.less already uses for @breakpoint-*;
+//   2. neither component now DECLARES anything the other depends on, so
+//      there is no longer an ordering relationship between two files in
+//      components/ that a cache can get half-right;
+//   3. one declaration site for a number that two files must agree on.
+//
+// (var/view_preprocessed still has to be cleared once to get past the
+// original stale entry — that is a deploy step, not something code can fix.)
+//
+// ===========================================================================
+// THE VALUES
+// ===========================================================================
+// CONFIRMED from Figma: the PLP's content band is 1344 wide inside a 1440
+// frame (569:13631), and the category page's hero and tile rail both reach
+// the frame edge with their own 48px inner padding (488:12966, 507:5234). So
+// the design states ONE number for desktop — the gutter is 48 — and says
+// nothing about a maximum, because 1440 is the only frame drawn.
+@plp-gutter: 48px;
+
+// Below the desktop band 48px is too generous. These two are Magento core's
+// own .page-main gutters at these widths, inherited rather than invented —
+// the same reasoning _breakpoints.less records for @breakpoint-header-collapse.
+@plp-gutter-tablet: 20px;
+@plp-gutter-mobile: 15px;

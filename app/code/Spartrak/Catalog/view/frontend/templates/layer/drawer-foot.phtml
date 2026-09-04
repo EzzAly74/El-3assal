@@ -1,0 +1,31 @@
+<?php
+/**
+ * Spartrak — the mobile filter drawer's footer CTA (Figma 864:20759).
+ *
+ * "اعرض النتائج" — action/primary, radius 12, 18px bold, full width, pinned
+ * to the bottom of the drawer.
+ *
+ * ===========================================================================
+ * IT CLOSES THE DRAWER. IT DOES NOT SUBMIT ANYTHING.
+ * ===========================================================================
+ * Every filter in this sidebar is a LINK: choosing one navigates and the
+ * results are already applied by the time the shopper sees them again. So
+ * there is nothing left for this control to submit — its job is to dismiss
+ * the drawer and reveal the results behind it, which is why it is a
+ * <button type="button"> and not a submit.
+ *
+ * That also makes it safe when JS has not loaded: it simply does nothing,
+ * rather than posting a form that does not exist. The close button in the
+ * header and the backdrop are the other two ways out.
+ *
+ * DESKTOP: hidden in CSS. Figma's desktop sidebar (488:12197) ends with the
+ * last filter group and has no CTA.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ */
+?>
+<div class="spartrak-filter-drawer__foot" aria-hidden="true">
+    <button type="button" class="spartrak-filter-drawer__cta" data-filter-drawer-close>
+        <?= $block->escapeHtml(__('Show results')) ?>
+    </button>
+</div>

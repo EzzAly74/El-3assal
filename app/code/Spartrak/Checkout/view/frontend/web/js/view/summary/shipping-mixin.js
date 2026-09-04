@@ -38,6 +38,40 @@ define([
                 }
 
                 return Number(totals['shipping_amount']) === 0;
+            },
+
+            /**
+             * The figure the row prints.
+             *
+             * Same reasoning as the subtotal's spartrakValue(): Magento_Tax
+             * extends this component with three display modes (Stores >
+             * Configuration > Sales > Tax > "Display Shipping Amount") and its
+             * own template draws a row per mode. Figma draws one row, so the
+             * mode is resolved here rather than branched in the template.
+             *
+             * "Both" collapses to the including-tax figure - the amount the
+             * shopper is charged.
+             *
+             * The feature-tests matter: with Magento_Tax disabled this component
+             * is Magento_Checkout's, which has getValue() and none of the rest.
+             *
+             * @return {String}
+             */
+            spartrakValue: function () {
+                var bothPrices = typeof this.isBothPricesDisplayed === 'function' &&
+                        this.isBothPricesDisplayed(),
+                    inclTax = typeof this.isIncludingDisplayed === 'function' &&
+                        this.isIncludingDisplayed();
+
+                if ((bothPrices || inclTax) && typeof this.getIncludingValue === 'function') {
+                    return this.getIncludingValue();
+                }
+
+                if (typeof this.getExcludingValue === 'function') {
+                    return this.getExcludingValue();
+                }
+
+                return this.getValue();
             }
         });
     };

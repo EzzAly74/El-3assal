@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<!--
+  `صورة التحويل` on the customer's order page — Figma 573:21511 / 573:21514.
+
+  ===========================================================================
+  WHY A CHILD BLOCK, AND WHY IT IS DECLARED BY THIS MODULE
+  ===========================================================================
+  The receipt cannot ride on the payment INFO block: that one is rendered into
+  the order confirmation email as well (Sales\Model\Order\Email\Sender\
+  OrderSender::getPaymentHtml), and a banking screenshot must not travel into an
+  inbox. See Block\Info and templates/order/receipt.phtml for the argument in
+  full.
+
+  So it is a child of core's `sales.order.view`, rendered by
+  Spartrak_CustomerAccount's order/view.phtml through
+  `getChildHtml('spartrak_payment_extra')` — a named slot, so that template
+  keeps knowing nothing about InstaPay. It is the same arrangement the `موقف`
+  card already has, and it means a merchant who removes this module gets an
+  order page with one less row rather than a broken one.
+
+  ===========================================================================
+  A PLAIN Template BLOCK
+  ===========================================================================
+  There is no behaviour here beyond "render this template with this view
+  model", which is exactly what Framework\View\Element\Template is for. A block
+  class of its own would be an empty subclass — the view model already owns
+  every decision, including whether the row appears at all.
+
+  `cacheable` is left alone. The order page is not full-page cached (core marks
+  the account handles uncacheable), so declaring it here would say nothing.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="sales.order.view">
+            <block class="Magento\Framework\View\Element\Template"
+                   name="spartrak.instapay.order.receipt"
+                   as="spartrak_payment_extra"
+                   template="Spartrak_InstaPay::order/receipt.phtml">
+                <arguments>
+                    <argument name="transfer_view" xsi:type="object">
+                        Spartrak\InstaPay\ViewModel\OrderTransfer
+                    </argument>
+                </arguments>
+            </block>
+        </referenceBlock>
+    </body>
+</page>

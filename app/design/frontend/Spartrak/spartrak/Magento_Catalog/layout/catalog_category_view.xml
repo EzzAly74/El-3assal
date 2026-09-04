@@ -1,15 +1,175 @@
 <?xml version="1.0"?>
 <!--
-Spartrak — Phase 6.
+===============================================================================
+Spartrak — category page composition (Figma 488:10810).
 
-Only change from Porto's own catalog_category_view.xml (layout="2columns-left",
-untouched, still inherited): a body attribute that wires the working mobile
-filter toggle fix (see web/js/spartrak-plp-filter-toggle.js's own header
-comment for why this lives here rather than as a Porto toolbar.phtml
-override).
+Figma's category page is four bands, in this order:
+
+    488:18402   breadcrumbs                  (Magento's own, already correct)
+    488:12966   HERO           full bleed    << added here
+    507:5234    "تسوق بالمنتجات" tile rail    << added here
+    488:12196   Explore: sidebar + grid      (already built, untouched)
+
+and NOTHING else. There is no page title above the hero, no category image
+band, no separate description block. So this file does two things: it mounts
+the two new blocks, and it takes out the four blocks that would otherwise
+render the same content a second time.
+
+WHY THIS IS A THEME FILE AND NOT A MODULE ONE
+===============================================================================
+Two of the four removals below target blocks that Smartwave/porto's own
+catalog_category_view.xml declares. Layout merges module files first and theme
+files last, so the removals are only unambiguously the final word from here.
+Spartrak/spartrak_rtl is a child of this theme, so it inherits the whole file.
+
+The BLOCKS themselves live in Spartrak_Catalog, not in the theme, because they
+are application behaviour rather than presentation — the same split the PDP
+related rail already uses.
+
+WHAT IS REMOVED, AND WHY EACH ONE
+===============================================================================
+  page.main.title            Magento's h1.page-title, which prints the
+                             category name. Figma has no page title above the
+                             hero, and the hero already renders the category's
+                             headline as the page's h1. Two headings naming
+                             the same category is neither the design nor good
+                             document structure. The hero falls back to the
+                             category name when no headline override is set,
+                             so the h1 is never lost.
+
+  category.image             Porto moves Magento's category-image block into
+                             `content`. The category `image` attribute is what
+                             this page's own tile rail uses as each CHILD
+                             category's thumbnail, so admins will be filling
+                             it in — and left mounted, the current category's
+                             thumbnail would also print full width above the
+                             product grid, which is in no frame of the design.
+
+  category.description.default
+  category_desc_main_column  Both print the category description. The hero now
+                             owns it (see Block\Category\Hero for why the hero
+                             reuses `description` instead of adding a second
+                             field), so these would each print it again.
+
+  category_banner            Porto's own category-description banner in
+                             page.top. Same content, same reason. This is the
+                             component the Spartrak hero REPLACES, which under
+                             CLAUDE.md section 2 makes the Spartrak
+                             implementation the source of truth for it.
+
+  category_leftnav           Porto's `.block-category-list` — a plain ordered
+                             list of the current category's CHILDREN, which
+                             its own template then relocates above the filter
+                             sidebar with an inline jQuery snippet. That is
+                             the exact job the Spartrak tile rail now does,
+                             from the same data, so leaving it mounted showed
+                             every child twice: once as a tile and once as a
+                             bare link list. Removing the block also removes
+                             that inline script and the DOM move it performs
+                             on every category page.
+
+                             Declared by Porto in
+                             Mageplaza_LayeredNavigation/layout/
+                             catalog_category_view_type_layered.xml, which is
+                             a `_type_layered` handle — so the removal below
+                             is repeated in this theme's own copy of that
+                             handle. A block added on a handle can only be
+                             removed on a handle that is also loaded.
+
+`category.cms` is deliberately LEFT ALONE. It renders whatever CMS block an
+admin picked in "Add CMS Block" on the category — genuinely separate content
+that this page does not otherwise show, and nothing in Figma contradicts it.
+
+The mobile filter drawer is NOT wired from here any more. It used to be a
+data-mage-init attribute on <body>, duplicated in the search layout, and the
+button did nothing whenever that chain broke. The behaviour now ships on the
+button itself in Magento_Catalog/templates/product/list/toolbar.phtml, which
+both this route and search render, so neither layout file needs to know the
+module name. Do not add it back here.
 -->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <body>
-        <attribute name="data-mage-init" value="{&quot;spartrakPlpFilterToggle&quot;:{}}"/>
+        <referenceContainer name="columns.top">
+            <!--
+              columns.top sits inside .page-main and before .columns, which is
+              exactly where both bands go: below the breadcrumbs (those are a
+              child of .page-wrapper, outside .page-main) and above the
+              sidebar + grid. Both bands escape .page-main's 48px gutter in
+              CSS, from the same LESS variable that sets it — see
+              web/css/source/components/_category-top.less.
+            -->
+            <block class="Spartrak\Catalog\Block\Category\Hero"
+                   name="spartrak.category.hero"
+                   template="Spartrak_Catalog::category/hero.phtml"
+                   before="-">
+                <arguments>
+                    <!--
+                      The hero deliberately declares no constructor (see the
+                      block), so its one collaborator is handed in here. Same
+                      resolver the rail injects directly, so a category image
+                      URL is built one way on this page.
+                    -->
+                    <argument name="image_resolver" xsi:type="object">Spartrak\Catalog\ViewModel\CategoryImage</argument>
+                </arguments>
+            </block>
+
+            <block class="Spartrak\Catalog\Block\Category\Rail"
+                   name="spartrak.category.rail"
+                   template="Spartrak_Catalog::category/rail.phtml"
+                   after="spartrak.category.hero"/>
+
+            <!--
+              The SECOND admin-managed banner, directly below the rail.
+
+              Not a Figma component - 488:10810 has nothing between the rail
+              and the product area - so it is built in the hero's own language
+              rather than as a new treatment. See Block\Category\Promo.
+
+              Same image_resolver instance as the hero, so a category image
+              URL is built exactly one way on this page.
+            -->
+            <block class="Spartrak\Catalog\Block\Category\Promo"
+                   name="spartrak.category.promo"
+                   template="Spartrak_Catalog::category/promo.phtml"
+                   after="spartrak.category.rail">
+                <arguments>
+                    <argument name="image_resolver" xsi:type="object">Spartrak\Catalog\ViewModel\CategoryImage</argument>
+                </arguments>
+
+                <!--
+                  THE QUICK-SEARCH DIALOG — the same cascading finder the
+                  homepage renders, in the modal shell Figma 573:22900 draws.
+
+                  This mounted Spartrak_Homepage's own CascadeSearch block at
+                  first, with no section. It rendered NOTHING: AbstractSection
+                  ::_toHtml() returns '' when getSection() is null, so the
+                  dialog was empty and the button — which promo.phtml only
+                  draws when the dialog produced markup — disappeared with it.
+
+                  Block\Category\QuickSearch replaces it. What is shared is the
+                  part that matters: both read the same
+                  Spartrak\Homepage\ViewModel\CascadeOptions, which is also
+                  what the AJAX endpoint calls, and the dialog runs the same
+                  spartrakCascadeSearch widget over the same data-finder-*
+                  contract. Only the section machinery — which was never this
+                  dialog's to use — is not shared.
+
+                  Declared as a CHILD of the promo block so the button and the
+                  dialog cannot get out of step: promo.phtml emits the button
+                  only when getChildHtml() returned markup, so a finder with
+                  nothing to offer leaves no orphan control on the banner.
+                -->
+                <block class="Spartrak\Catalog\Block\Category\QuickSearch"
+                       name="spartrak.category.promo.quick_search"
+                       as="quick_search"
+                       template="Spartrak_Catalog::category/quick-search.phtml"/>
+            </block>
+        </referenceContainer>
+
+        <referenceBlock name="page.main.title" remove="true"/>
+        <referenceBlock name="category.image" remove="true"/>
+        <referenceBlock name="category.description.default" remove="true"/>
+        <referenceBlock name="category_desc_main_column" remove="true"/>
+        <referenceBlock name="category_banner" remove="true"/>
     </body>
 </page>

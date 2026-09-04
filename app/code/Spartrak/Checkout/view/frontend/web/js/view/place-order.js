@@ -43,6 +43,12 @@ define([
     'Magento_Checkout/js/model/step-navigator',
     'Magento_Catalog/js/price-utils',
     'Magento_Checkout/js/model/payment/additional-validators',
+    // Magento_CUSTOMER, not Magento_Checkout: the address book belongs to the
+    // customer module even though only the checkout reads it. The wrong
+    // namespace 404s, which RequireJS reports as a script error that takes the
+    // whole component down - and this component is the checkout's only CTA.
+    'Magento_Customer/js/model/address-list',
+    'Spartrak_Checkout/js/model/delivery-mode',
     'Spartrak_Checkout/js/model/payment-registry',
     'mage/translate'
 ], function (
@@ -53,6 +59,8 @@ define([
     stepNavigator,
     priceUtils,
     additionalValidators,
+    addressList,
+    deliveryMode,
     paymentRegistry,
     $t
 ) {
@@ -147,10 +155,10 @@ define([
         /**
          * Whether the button can be pressed.
          *
-         * Figma's empty-address state (552:11748) draws it disabled in
-         * `#8faef0`, which is the design saying: do not let someone try to ship
-         * to nowhere. The same rule covers the payment step - a method has to
-         * be chosen first.
+         * Three questions, one per state the button can be in: is a submission
+         * already in flight, is a payment method chosen (payment step), and is
+         * there both a shipping method and - on delivery - an address to ship
+         * to (shipping step). The last one is argued in full below.
          *
          * @return {Boolean}
          */
@@ -163,12 +171,43 @@ define([
                 return !!quote.paymentMethod();
             }
 
-            // Pickup modes synthesise the shipping address from the chosen
-            // location rather than from the address book, so requiring an
-            // address here would lock a branch-pickup shopper out of their own
-            // checkout. The shipping METHOD is the common requirement: every
-            // mode, delivery and pickup alike, sets one.
-            return !!quote.shippingMethod();
+            // The shipping METHOD is the common requirement: every mode,
+            // delivery and pickup alike, sets one.
+            if (!quote.shippingMethod()) {
+                return false;
+            }
+
+            /**
+             * ===============================================================
+             * DELIVERY ADDITIONALLY NEEDS SOMEWHERE TO DELIVER TO
+             * ===============================================================
+             * Pickup modes synthesise the shipping address from the chosen
+             * location rather than from the address book (see
+             * Spartrak\PickupLocation\Plugin\Checkout\ApplyPickupLocation), so
+             * requiring an address for them would lock a branch-pickup shopper
+             * out of their own checkout - which is exactly the bug this
+             * `isPickup()` branch exists to prevent.
+             *
+             * Delivery is the other half of that rule, and it was missing.
+             * Figma's empty-address state (552:11748) draws this button
+             * DISABLED in `#8faef0`, which is the design saying: do not let
+             * someone try to ship to nowhere. Without the check the CTA was
+             * live with an empty address book, and pressing it posted a quote
+             * with no shipping address for the server to reject.
+             *
+             * `addressList` is the same source the step's own empty state is
+             * keyed on (`spartrakHasAddresses` in js/view/shipping-mixin), so
+             * the button and the panel above it can never disagree about
+             * whether there is an address. It covers a guest too: core's
+             * `createShippingAddress` pushes the typed address onto this list,
+             * so filling the pop-up enables the button for somebody with no
+             * account.
+             */
+            if (deliveryMode.isPickup()) {
+                return true;
+            }
+
+            return addressList().length > 0;
         },
 
         /**

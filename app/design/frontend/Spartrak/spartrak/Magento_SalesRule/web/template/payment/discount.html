@@ -37,11 +37,39 @@
  * with its accessible name saying so; the visible label stays Figma's.
  */
 -->
-<div class="spartrak-promo" id="discount-form">
+<!--
+  A <form>, NOT a <div>, and that is functional rather than semantic.
+
+  Magento_SalesRule/js/view/payment/discount::validate() does
+
+      return $('#discount-form').validation() && $('#discount-form').validation('isValid');
+
+  `validation` is mage/validation, a thin wrapper over jQuery Validate, and
+  jQuery Validate only builds a validator for a FORM element. Pointed at a div
+  it produces nothing, and the second call then reads `.element` off that
+  nothing:
+
+      TypeError: Cannot read properties of undefined (reading 'element')
+
+  Reproduced on the live checkout: apply() threw before it reached
+  setCouponCodeAction, so NO request was ever sent and the button looked inert.
+  That is why coupons "did not work" — the code never left the browser.
+
+  Core's own template is a <form class="form form-discount" id="discount-form">;
+  this restores that element type and keeps its classes so any core or
+  third-party rule that targets them still matches. Nothing about the design
+  changes — every visual rule hangs off `.spartrak-promo`, and a form is a block
+  box exactly like the div was.
+
+  The `submit` binding is Knockout's, which prevents the default action, so
+  pressing Enter in the coupon field applies the code instead of reloading the
+  checkout.
+-->
+<form class="spartrak-promo form form-discount" id="discount-form" data-bind="submit: apply">
     <div class="spartrak-promo__details">
         <p class="spartrak-promo__title" data-bind="i18n: 'Have a coupon?'"></p>
         <p class="spartrak-promo__lead"
-           data-bind="i18n: 'If you have a discount coupon, apply it here to get your discount.'"></p>
+            data-bind="i18n: 'If you have a discount coupon, apply it here to get your discount.'"></p>
     </div>
 
     <div class="spartrak-promo__body">
@@ -54,28 +82,53 @@
         -->
         <div class="spartrak-promo__row">
             <div class="spartrak-promo__field">
-                <input class="spartrak-promo__input"
-                       type="text"
-                       id="discount-code"
-                       name="discount_code"
-                       data-validate="{'required-entry':true}"
-                       data-bind="value: couponCode,
+                <input class="spartrak-promo__input" type="text" id="discount-code" name="discount_code"
+                    data-validate="{'required-entry':true}" data-bind="value: couponCode,
+                                  valueUpdate: 'input',
                                   attr: {
                                     disabled: isApplied(),
                                     placeholder: $t('Enter your discount coupon')
-                                  }"/>
+                                  }" />
+                <!--
+                  `valueUpdate: 'input'` is what makes the apply button's
+                  disabled state honest. Knockout's `value` binding writes back
+                  on CHANGE, i.e. on blur - so without this the button stayed
+                  greyed out while the shopper typed a perfectly good code and
+                  only woke up once they clicked somewhere else.
+
+                  Added ALONGSIDE `value:` rather than switching to `textInput:`,
+                  which would replace the binding core's component was written
+                  against.
+                -->
                 <span class="spartrak-promo__icon" aria-hidden="true"></span>
             </div>
 
+            <!--
+              DISABLED UNTIL THERE IS A CODE TO APPLY.
+
+              Pressing it empty was never going to do anything useful: the
+              component's own validate() fails on `required-entry` and the click
+              ends in a field-level error under an input the shopper has not
+              typed in yet. Saying so with the control itself is quieter and
+              tells them before they press rather than after.
+
+              `.trim()` so a field holding only spaces counts as empty - that is
+              the same thing `required-entry` decides, and disagreeing with it
+              would offer a button that then refuses.
+
+              Only the UNAPPLIED branch. The applied button below is the remove
+              action and must stay live; its input is disabled by then, so a
+              shared rule would have locked the shopper out of their own coupon.
+            -->
             <!-- ko ifnot: isApplied() -->
-            <button class="spartrak-promo__apply" type="button" data-bind="click: apply">
+            <button class="spartrak-promo__apply" type="button"
+                data-bind="click: apply, disable: !(couponCode() || '').trim()">
                 <span data-bind="i18n: 'Apply discount'"></span>
             </button>
             <!-- /ko -->
             <!-- ko if: isApplied() -->
-            <button class="spartrak-promo__apply spartrak-promo__apply--applied"
-                    type="button"
-                    data-bind="click: cancel, attr: { 'aria-label': $t('Remove the applied discount') }">
+            <button class="spartrak-promo__apply spartrak-promo__apply--applied" type="button"
+                data-bind="click: cancel, attr: { 'aria-label': $t('Remove the applied discount') }">
                 <span data-bind="i18n: 'Discount applied'"></span>
             </button>
             <!-- /ko -->
@@ -89,4 +142,4 @@
         <!-- ko template: getTemplate() --><!-- /ko -->
         <!-- /ko -->
     </div>
-</div>
+</form>

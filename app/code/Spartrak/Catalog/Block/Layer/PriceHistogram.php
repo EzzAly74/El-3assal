@@ -196,7 +196,20 @@ class PriceHistogram extends Template
                 }
             }
 
+            $this->skipReason = '';
             $computed = $this->compute();
+
+            if ($this->skipReason !== '') {
+                // Only ever reached on a cache MISS, so this cannot flood the
+                // log. It exists because four different problems — an
+                // un-run price indexer, a flat catalogue, a sidebar that
+                // rendered before the list, and an oversized set — all
+                // present as the same symptom: no chart.
+                $this->_logger->warning(
+                    'Spartrak price histogram drew nothing: ' . $this->skipReason . '.'
+                );
+            }
+
             $this->cache->save(
                 json_encode($computed),
                 $cacheKey,
@@ -217,6 +230,25 @@ class PriceHistogram extends Template
     }
 
     /**
+     * Why the last compute() drew nothing, or '' when it drew something.
+     *
+     * ===========================================================================
+     * WHY THIS EXISTS
+     * ===========================================================================
+     * Every path in compute() that gives up does so for a GOOD reason, and each
+     * one produces exactly the same visible result: no histogram. That made
+     * "the histogram doesn't appear" impossible to diagnose from the outside —
+     * missing price index, no price spread, collection not yet loaded and
+     * catalogue too large are four different problems with one symptom, and
+     * three of them are fixed by a command rather than by code.
+     *
+     * So each give-up now names itself, once, at warning level on a cache MISS
+     * (compute() only runs on a miss, so this cannot flood the log). It is a
+     * diagnostic, not behaviour: nothing reads it to decide what to render.
+     */
+    private string $skipReason = '';
+
+    /**
      * @return array<string, mixed>
      */
     private function compute(): array
@@ -234,11 +266,26 @@ class PriceHistogram extends Template
         // loaded — and if some other layout order ever makes that untrue,
         // the histogram simply does not draw.
         if (!$collection->isLoaded()) {
+            $this->skipReason = 'the product collection had not been loaded yet when the sidebar rendered '
+                . '(the filter sidebar rendered before the product list)';
+
             return $empty;
         }
 
         $productIds = $collection->getAllIds();
-        if (!$productIds || count($productIds) > self::MAX_PRODUCTS) {
+        if (!$productIds) {
+            $this->skipReason = 'the filtered product collection is empty';
+
+            return $empty;
+        }
+
+        if (count($productIds) > self::MAX_PRODUCTS) {
+            $this->skipReason = sprintf(
+                'the filtered set holds %d products, over the %d ceiling this block will aggregate',
+                count($productIds),
+                self::MAX_PRODUCTS
+            );
+
             return $empty;
         }
 
@@ -258,6 +305,19 @@ class PriceHistogram extends Template
 
         $bounds = $connection->fetchRow($boundsSelect);
         if (!$bounds || $bounds['min_value'] === null) {
+            // NOT "no prices" — no rows in the PRICE INDEX for these products
+            // at this website and customer group. Almost always an indexer
+            // that has never run or is invalidated:
+            //   bin/magento indexer:status catalog_product_price
+            //   bin/magento indexer:reindex catalog_product_price
+            $this->skipReason = sprintf(
+                'catalog_product_index_price holds no rows for these %d products '
+                . '(website %d, customer group %d) - run: bin/magento indexer:reindex catalog_product_price',
+                count($productIds),
+                $websiteId,
+                $groupId
+            );
+
             return $empty;
         }
 
@@ -266,6 +326,17 @@ class PriceHistogram extends Template
         if ($max <= $min) {
             // Every product costs the same — a histogram of one column is
             // not a histogram. Report the bounds, draw nothing.
+            //
+            // This is the expected state on a catalogue whose prices are all
+            // still 0.00, and it is also why the slider reads "0.00 - 0.00"
+            // and the cards say "Price on request". Import real prices and
+            // the chart appears on its own; drawing bars from a flat
+            // distribution would be inventing data (CLAUDE.md section 9).
+            $this->skipReason = sprintf(
+                'every product in this set has the same indexed price (%s), so there is no distribution to draw',
+                number_format($min, 2, '.', '')
+            );
+
             return ['min' => $min, 'max' => $max, 'bars' => []];
         }
 
@@ -293,6 +364,8 @@ class PriceHistogram extends Template
         }
 
         if (!$counts) {
+            $this->skipReason = 'the bucket aggregation returned no rows';
+
             return $empty;
         }
 

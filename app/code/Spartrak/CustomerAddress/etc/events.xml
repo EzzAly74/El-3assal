@@ -17,10 +17,17 @@
     </event>
 
     <!--
-      The address book's own save path. Figma's form collects no city, so an
-      address saved from My Account or from the checkout's add-address modal
-      would otherwise be rejected by Magento's own validator - see
-      Spartrak\CustomerAddress\Model\GovernorateCity.
+      A direct `$addressModel->save()` - a data patch, an import script, a
+      legacy module that never adopted the repository. Figma's form collects no
+      city, so such an address would otherwise be written without one.
+
+      NOT the path My Account or the REST API take. Those go through
+      AddressRepositoryInterface::save(), which VALIDATES before it saves, so
+      this event fires after the "city is required" rejection has already
+      happened. That door is covered by
+      Spartrak\CustomerAddress\Plugin\FillCityOnAddressRepositorySave (etc/di.xml),
+      whose header records the sequence in full. This observer stays for the
+      doors the repository does not own.
     -->
     <event name="customer_address_save_before">
         <observer name="spartrak_fill_city_from_governorate"

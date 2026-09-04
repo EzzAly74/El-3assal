@@ -64,48 +64,48 @@
 
 //  Primary CTAs ------------------------------------------------------------
 .box-tocart .action.tocart {
-    background: var(--color-action-primary);
+  background: var(--color-action-primary);
 
-    &:hover,
-    &:focus {
-        background: var(--color-action-primary-hover);
-    }
+  &:hover,
+  &:focus {
+    background: var(--color-action-primary-hover);
+  }
 }
 
 .cart-summary .checkout-methods-items .action.primary.checkout {
-    background-color: var(--color-action-primary);
+  background-color: var(--color-action-primary);
 
-    &:hover,
-    &:focus {
-        background-color: var(--color-action-primary-hover);
-    }
+  &:hover,
+  &:focus {
+    background-color: var(--color-action-primary-hover);
+  }
 }
 
 .cart-empty .btn-go-shop {
-    background-color: var(--color-action-primary);
+  background-color: var(--color-action-primary);
 
-    &:hover,
-    &:focus {
-        background-color: var(--color-action-primary-hover);
-    }
+  &:hover,
+  &:focus {
+    background-color: var(--color-action-primary-hover);
+  }
 }
 
 //  Headings / legends ------------------------------------------------------
 .login-container .block .block-title {
-    color: var(--color-text-primary);
+  color: var(--color-text-primary);
 }
 
 .fieldset > .legend {
-    color: var(--color-text-primary);
+  color: var(--color-text-primary);
 }
 
 .fieldset > .field .action {
-    color: var(--color-action-primary);
+  color: var(--color-action-primary);
 }
 
 //  Minicart ----------------------------------------------------------------
 .minicart-wrapper .block-minicart {
-    color: var(--color-text-primary);
+  color: var(--color-text-primary);
 }
 
 //  REMOVED 2026-08-25: `.cart-design-2 .action.showcart .minicart-icon`.
@@ -116,24 +116,24 @@
 
 //  Catalog toolbar / layered navigation -------------------------------------
 .toolbar a.porto-product-filters-toggle svg {
-    stroke: var(--color-icon-ink);
+  stroke: var(--color-icon-ink);
 }
 
 .toolbar select {
-    color: var(--color-text-primary);
+  color: var(--color-text-primary);
 }
 
 .filter-options-title {
-    color: var(--color-text-primary);
+  color: var(--color-text-primary);
 
-    .toggle:before {
-        background: var(--color-icon-ink);
-    }
+  .toggle:before {
+    background: var(--color-icon-ink);
+  }
 }
 
 //  Quantity input ----------------------------------------------------------
 .qty.field .input-text.qty {
-    color: var(--color-text-primary);
+  color: var(--color-text-primary);
 }
 
 //  'Open Sans' literals — the theme no longer loads Open Sans (see
@@ -142,14 +142,14 @@
 //    Magento_Cms  : lib/web/css/source/lib/_typography.less (.cms-content-important)
 //    Smartwave_Dailydeals : view/frontend/web/css/style.css (.dailydeal-label)
 .cms-content-important {
-    font-family: var(--font-arabic);
-    color: var(--color-text-primary);
-    background-color: var(--color-bg-surface-subtle);
+  font-family: var(--font-arabic);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-surface-subtle);
 }
 
 .catalog-product-view .sw-dailydeal .dailydeal-label {
-    font-family: var(--font-arabic);
-    color: var(--color-text-primary);
+  font-family: var(--font-arabic);
+  color: var(--color-text-primary);
 }
 
 //  Account forms -----------------------------------------------------------
@@ -166,17 +166,21 @@
 //  The guard also scopes the rule to desktop exactly as Porto's is, so mobile
 //  is untouched — which is correct here: the mobile bundle has no competing
 //  rule to override.
-.media-width(@extremum, @break) when (@extremum = 'min') and (@break = @screen__m) {
-    .form.create.account .actions-toolbar > .primary .action,
-    .form.create.account .actions-toolbar > .secondary .action {
-        background: var(--color-action-primary);
-        color: var(--color-action-primary-text);
+.media-width(@extremum, @break)
+  when
+  (@extremum = "min")
+  and
+  (@break = @screen__m) {
+  .form.create.account .actions-toolbar > .primary .action,
+  .form.create.account .actions-toolbar > .secondary .action {
+    background: var(--color-action-primary);
+    color: var(--color-action-primary-text);
 
-        &:hover,
-        &:focus {
-            background: var(--color-action-primary-hover);
-        }
+    &:hover,
+    &:focus {
+      background: var(--color-action-primary-hover);
     }
+  }
 }
 
 //  Homepage: release the page container ------------------------------------
@@ -223,44 +227,93 @@
 //  in styles-l.min.css, which is linked AFTER the merged bundle, and only
 //  _extend.less is collected into styles-l as well as styles-m.
 .cms-index-index {
-    .page-main {
-        max-width: none;
-        //  The 10px shell padding would otherwise add to each section's own
-        //  gutter, making Figma's 24px hero gutter render as 34px.
-        padding-inline: 0;
-    }
+  .page-main {
+    max-width: none;
+    //  The 10px shell padding would otherwise add to each section's own
+    //  gutter, making Figma's 24px hero gutter render as 34px.
+    padding-inline: 0;
+  }
 
-    //  Porto nests its own wrapper inside page-main; it carries no cap today,
-    //  but pinning it here means a future Porto update cannot quietly
-    //  reintroduce one and re-break the full-bleed sections.
-    .page-main-inner,
-    .columns,
-    .column.main {
-        max-width: none;
-        padding-inline: 0;
-    }
+  //  Porto nests its own wrapper inside page-main; it carries no cap today,
+  //  but pinning it here means a future Porto update cannot quietly
+  //  reintroduce one and re-break the full-bleed sections.
+  .page-main-inner,
+  .columns,
+  .column.main {
+    max-width: none;
+    padding-inline: 0;
+  }
 
-    //  ---------------------------------------------------------------------
-    //  MEASURED FIX: releasing the max-width above is only half the job.
-    //  ---------------------------------------------------------------------
-    //  `.columns` is a flex container and `.column.main` is a flex item, so
-    //  `.column.main` inherits `min-width: auto` — meaning it may never render
-    //  narrower than its own content's min-content size.
-    //
-    //  Lifting its max-width therefore uncapped it in BOTH directions. The
-    //  hero banner's <img> carries the uploaded file's real pixel width as an
-    //  attribute (2108px on the live mobile asset), that width became the
-    //  column's min-content size, and the column grew to fit it: at a 375px
-    //  viewport the whole page laid out 2140px wide and every section on the
-    //  homepage scrolled sideways off the screen.
-    //
-    //  Verified in the browser by toggling each candidate rule in isolation —
-    //  this single declaration is the one that fixes it (375px viewport went
-    //  from scrollWidth 2140 back to 375); the image and slide rules made no
-    //  difference on their own. It restores the shrink-below-content behaviour
-    //  the capped layout used to get for free, and changes nothing above the
-    //  content measure, where the sections size themselves anyway.
-    .column.main {
-        min-width: 0;
-    }
+  //  ---------------------------------------------------------------------
+  //  MEASURED FIX: releasing the max-width above is only half the job.
+  //  ---------------------------------------------------------------------
+  //  `.columns` is a flex container and `.column.main` is a flex item, so
+  //  `.column.main` inherits `min-width: auto` — meaning it may never render
+  //  narrower than its own content's min-content size.
+  //
+  //  Lifting its max-width therefore uncapped it in BOTH directions. The
+  //  hero banner's <img> carries the uploaded file's real pixel width as an
+  //  attribute (2108px on the live mobile asset), that width became the
+  //  column's min-content size, and the column grew to fit it: at a 375px
+  //  viewport the whole page laid out 2140px wide and every section on the
+  //  homepage scrolled sideways off the screen.
+  //
+  //  Verified in the browser by toggling each candidate rule in isolation —
+  //  this single declaration is the one that fixes it (375px viewport went
+  //  from scrollWidth 2140 back to 375); the image and slide rules made no
+  //  difference on their own. It restores the shrink-below-content behaviour
+  //  the capped layout used to get for free, and changes nothing above the
+  //  content measure, where the sections size themselves anyway.
+  .column.main {
+    min-width: 0;
+  }
+}
+
+//
+//  KEYBOARD FOCUS — the replacement for the glow removed in the binding layer
+//  ---------------------------------------------------------------------------
+//  web/css/source/_spartrak-magento-bindings.less sets @focus__box-shadow to
+//  false, which stops core emitting the 3px navy halo it drew on every focused
+//  input, textarea and select. That halo was the storefront's ONLY remaining
+//  focus indicator, because the same reset block
+//  (lib/web/css/source/lib/_resets.less) also carries
+//
+//      * { &:focus { box-shadow: none; outline: 0 } }
+//
+//  so removing it on its own would leave a keyboard user with no way to see
+//  where they are. That is a correctness failure, not a cosmetic one
+//  (CLAUDE.md §15), so the indicator moves here rather than disappearing.
+//
+//  WHY IT BELONGS IN THIS FILE
+//  There is no variable to rebind — core's `outline: 0` is a literal — and the
+//  markup is Magento's own, not this theme's. That is exactly the boundary this
+//  file's header describes. It is also collected into styles-m AND styles-l, so
+//  one copy covers mobile and desktop.
+//
+//  :focus-visible, NOT :focus
+//  This is the substantive improvement over what was removed. The browser only
+//  matches :focus-visible when the focus came from a keyboard (or an equivalent
+//  non-pointer route), so a shopper clicking into a field no longer lights it
+//  up — which is what made the old glow read as a rendering fault — while a
+//  shopper tabbing through the form still sees exactly where they are.
+//
+//  SPECIFICITY
+//  Element selectors, so each is (0,1,1) and `[tabindex]` is (0,2,0). Both beat
+//  core's `*:focus` at (0,1,0) on specificity alone, with nothing resting on
+//  asset order. Every Spartrak component that declares its own focus treatment
+//  is class-scoped at (0,2,1) or higher and still wins over this baseline —
+//  which is intended: the components that need a tighter offset (fields inset
+//  in a card use -2px) keep it.
+//
+//  The colour is the design system's focus token, so a theme colour change
+//  carries here with no edit.
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
 }

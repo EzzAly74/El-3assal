@@ -41,12 +41,15 @@
 //
 // `flex: 0 0 auto` so it is never squeezed by the copy beneath it, and both
 // dimensions are explicit so the box is reserved before the file arrives.
+//
+// The ARTWORK is not here — it comes from an `__art--*` modifier, one per
+// surface. See "THE ILLUSTRATION IS NAMED BY THE SURFACE" at the foot of this
+// file for why there is no default.
 .spartrak-empty-state__art {
     flex: 0 0 auto;
     width: 176px;
     height: 176px;
     max-width: 100%;
-    background-image: url('../images/illustrations/cart-empty.svg');
     background-repeat: no-repeat;
     background-position: center;
     background-size: contain;
@@ -138,5 +141,88 @@
 @media (prefers-reduced-motion: reduce) {
     .spartrak-empty-state__action {
         transition: none;
+    }
+}
+
+// ===========================================================================
+// THE PANEL VARIANT — an empty state INSIDE a card, not instead of a page
+// ===========================================================================
+// The cart's empty state (above) IS the page: it sits on `bg/surface` and
+// breathes, because there is nothing else on screen. Three other surfaces put
+// the same three parts inside a panel that already has a heading above it, and
+// Figma draws them on the quieter fill with tighter padding:
+//
+//   wishlist            1179:10948  bg/surface-subtle, gap 16, pt12 px12 pb26
+//   checkout addresses    557:4898  the same box, gap 26
+//   account addresses               no frame of its own — the user asked for
+//                                   the checkout's state here, so it reuses
+//                                   557:4898 exactly rather than inventing one
+//
+// A modifier and not a second component: every other measurement — the 176
+// square, the 18/700 title, the 290px line, the 40px control — is identical,
+// and `.spartrak-address-empty` used to be a byte-for-byte copy of them
+// (CLAUDE.md section 9).
+.spartrak-empty-state--panel {
+    padding: 12px 12px 26px;
+    background-color: var(--color-bg-surface-subtle);
+}
+
+// 557:4898 only. The checkout's address book gives the illustration more room
+// than the wishlist does; the wishlist keeps the base 16.
+.spartrak-empty-state--spaced {
+    gap: 26px;
+}
+
+// ===========================================================================
+// THE ILLUSTRATION IS NAMED BY THE SURFACE, NEVER INHERITED
+// ===========================================================================
+// `__art` reserves the box; a modifier supplies the artwork. There is
+// deliberately NO default image: an empty surface added later would otherwise
+// silently render the cart's trolley, which is the kind of wrong that looks
+// deliberate. Every caller states which asset it means.
+//
+// Each file is the exact 176-square export of its own Figma node — no shared
+// asset, no recolouring, no reuse of a near-match (CLAUDE.md section 3).
+.spartrak-empty-state__art--cart {
+    // 724:43484 — the cart and the minicart drawer.
+    background-image: url('../images/illustrations/cart-empty.svg');
+}
+
+.spartrak-empty-state__art--wishlist {
+    // 1179:21986.
+    background-image: url('../images/illustrations/wishlist-empty.svg');
+}
+
+.spartrak-empty-state__art--address {
+    // 721:29400 — the delivery van, on both address surfaces.
+    background-image: url('../images/illustrations/checkout-no-address.svg');
+}
+
+// ===========================================================================
+// THE PRIMARY CONTROL — 1179:11035
+// ===========================================================================
+// The wishlist's way out is the navy `action/primary` with white label, where
+// the cart's and the address book's are the quiet `bg/field` above. Read off
+// the node rather than off its layer name, which calls both "Primary Buttons".
+//
+// `min-width` and not `width`: Figma's 120 is a floor for a short label, and a
+// longer translation has to be allowed to grow rather than clip.
+.spartrak-empty-state__action--primary {
+    min-width: 120px;
+    background-color: var(--color-action-primary);
+    color: var(--color-action-primary-text);
+
+    // Same specificity argument as the base control's own hover block: Porto's
+    // global `a:hover` colour is (0,1,1) and would otherwise win on the anchor
+    // form of this button.
+    &:hover,
+    &:focus,
+    &:active,
+    &:visited {
+        color: var(--color-action-primary-text);
+    }
+
+    &:hover {
+        background-color: var(--color-action-primary-hover);
     }
 }

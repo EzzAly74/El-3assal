@@ -35,6 +35,35 @@
                 <width>192</width>
                 <height>192</height>
             </image>
+
+
+             <!--
+              ===================================================================
+              ORDER-ITEM THUMBNAIL — the My Account section's own role
+              ===================================================================
+              Two slots in the account section carry a product image: the order
+              history card draws it at 96 (562:17899) and the order page draws it
+              at 108 (562:19415). Neither had a role of its own, and the nearest
+              existing one — Porto's cart_page_product_thumbnail at 165 — is the
+              WRONG size for both: too large for a 96 box at 1x, and too small to
+              be sharp in a 108 box at 2x.
+
+              216 is 108 x 2. It is sharp in the larger of the two slots on a
+              retina display, and downscaling it into the 96 slot costs nothing
+              because both slots are below the fold on their pages and neither is
+              ever the LCP element (that is the account card's heading, which is
+              text). One declared role rather than two keeps the number of
+              generated-and-cached derivatives per product down, which is the
+              real cost of adding image roles.
+
+              type=small_image, matching every other product-listing role in
+              Porto's file: it is the role merchants populate for grid contexts,
+              and an order line is a listing of what was bought.
+            -->
+            <image id="spartrak_account_order_item_thumbnail" type="small_image">
+                <width>216</width>
+                <height>216</height>
+            </image>
         </images>
     </media>
 </view>

@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<!--
+  THE DISPATCH GATE: GLOBAL, NOT adminhtml.
+
+  BUSINESS.md section 12, §4 makes the driver and vehicle details a hard
+  precondition of `شحنتك في الطريق اليك`, on the grounds that the customer has
+  no other route to them and the vehicle is already on the road.
+
+  A rule that strong is declared in the GLOBAL area so it holds on every path
+  that can write an order - the admin's comment form, /rest/V1/orders, a console
+  script, a mass action. Scoping it to adminhtml would cover today's one screen
+  and leave every future integration free to dispatch a shipment with no driver
+  on it.
+
+  `sales_order_save_before` rather than a plugin on OrderRepositoryInterface:
+  the admin's own status-change controller calls $order->save() directly and
+  never touches the repository, so a repository plugin would have been bypassed
+  by the exact screen the rule exists for. The observer class records the
+  verified trace through core.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="sales_order_save_before">
+        <observer name="spartrak_pickup_require_consignment_before_dispatch"
+                  instance="Spartrak\PickupLocation\Observer\RequireConsignmentBeforeDispatch"/>
+    </event>
+</config>

@@ -1,0 +1,108 @@
+<?php
+/**
+ * Spartrak — the cart's `الشحن الي` row, and the page's checkout config.
+ *
+ * FIGMA SSOT: 553:4765 (desktop) / 675:17361 (mobile). A 56px white disc at the
+ * reading start, `الشحن الي` and the shopper's address beside it. One row, 88
+ * tall, and nothing behind it.
+ *
+ * ===========================================================================
+ * THE SHIPPING-AND-TAX ESTIMATOR IS GONE. THE CONFIG IT SAT ON IS NOT.
+ * ===========================================================================
+ * Core's cart/shipping.phtml renders two things that have nothing to do with
+ * each other beyond sharing a file:
+ *
+ *   1. `#block-summary` — a Knockout scope holding `تقدير الشحن والضرائب`: a
+ *      country select, a governorate select, a postcode box and the shipping
+ *      -rate radios, behind a collapsible chevron.
+ *   2. `window.checkoutConfig` — the quote, the totals, the price format and
+ *      the customer, published as a global.
+ *
+ * ONLY THE FIRST IS REMOVED. Figma's cart has no estimator: 553:4762 is the
+ * ship-to row, the totals card and the instalments panel, full stop. The
+ * shopper's governorate already decides the rate, they are one button from a
+ * checkout that asks for it properly, and the estimator's own markup came up
+ * in English ("Enter your destination to get a shipping estimate.") because it
+ * is copy this store never translated. Removing it also stops four Knockout
+ * components, a directory-region payload and a rate lookup from booting on a
+ * page that does not use them (CLAUDE.md sections 4 and 13).
+ *
+ * THE SECOND HAS TO STAY, and this is the whole reason the block is still here
+ * rather than removed in layout XML. The cart's totals are core's Knockout
+ * components; `Magento_Checkout/js/model/quote` reads `window.checkoutConfig`
+ * at module load and throws without it. Delete the script and the summary
+ * column renders empty. It is published from this template because this is
+ * where core publishes it, and moving it would only mean owning the ordering
+ * question as well.
+ *
+ * `getJsLayout()` is deliberately never called now, so core's estimator
+ * jsLayout is built and then not used — the block keeps the argument for any
+ * extension that reads it, and this page pays nothing to render it.
+ *
+ * ===========================================================================
+ * NO ADDRESS, NO ROW
+ * ===========================================================================
+ * The design draws no empty state, so a shopper with no saved address does not
+ * see the row. It is now genuinely skipped rather than hidden with a modifier
+ * class: with the estimator gone, the row and the script are independent, so
+ * omitting one no longer risks the other.
+ *
+ * ===========================================================================
+ * NONE OF CORE'S CLASS NAMES SURVIVE, ON PURPOSE
+ * ===========================================================================
+ * `.block.shipping` and `.title` are Porto/blank hooks. They brought a border,
+ * a page-block margin and a `::after` chevron of their own to a row Figma
+ * draws as a flat two-line label — the hairline under `الشحن الي` was that
+ * border. Overriding them with `border: none` would have been a fourth rule
+ * fighting three; not wearing the classes means there is nothing to fight
+ * (CLAUDE.md sections 2 and 9).
+ *
+ * @var \Magento\Checkout\Block\Cart\Shipping $block
+ * @var \Magento\Framework\Escaper $escaper
+ * @var \Magento\Framework\View\Helper\SecureHtmlRenderer $secureRenderer
+ */
+
+/** @var \Spartrak\Checkout\ViewModel\CartShipTo $shipTo */
+$shipTo = $block->getData('ship_to_view_model');
+?>
+<?php if ($shipTo !== null && $shipTo->hasAddress()): ?>
+    <?php /* Core wore `role="heading" aria-level="2"` here because the element
+             LABELLED the estimator region below it — that is what
+             `aria-labelledby="block-shipping-heading"` pointed at. With the
+             region gone the role would be a heading that labels nothing and
+             announces an address, which puts a street name into the document
+             outline and into every screen reader's heading list.
+
+             So it is a plain label/value pair now. `<dl>` was the other
+             candidate and is rejected for the same reason the row is a grid:
+             one term and one description is a list of one, and the extra
+             wrapper buys nothing the two spans do not already say. */ ?>
+    <div class="spartrak-cart-shipto">
+        <span class="spartrak-cart-shipto__label">
+            <?= $escaper->escapeHtml(__('Shipping to')) ?>
+        </span>
+        <span class="spartrak-cart-shipto__address">
+            <?= $escaper->escapeHtml($shipTo->getAddressLine()) ?>
+        </span>
+    </div>
+<?php endif; ?>
+<?php
+$serializedCheckoutConfig = /* @noEscape */ $block->getSerializedCheckoutConfig();
+
+$scriptString = <<<script
+
+            window.checkoutConfig = {$serializedCheckoutConfig};
+            window.customerData = window.checkoutConfig.customerData;
+            window.isCustomerLoggedIn = window.checkoutConfig.isCustomerLoggedIn;
+            require([
+                'mage/url',
+                'Magento_Ui/js/block-loader'
+            ], function(url, blockLoader) {
+                blockLoader(
+                    "{$block->escapeJs($block->escapeUrl($block->getViewFileUrl('images/loader-1.gif')))}"
+                );
+                return url.setBaseUrl('{$block->escapeJs($block->escapeUrl($block->getBaseUrl()))}');
+            })
+script;
+?>
+<?= /* @noEscape */ $secureRenderer->renderTag('script', [], $scriptString, false) ?>

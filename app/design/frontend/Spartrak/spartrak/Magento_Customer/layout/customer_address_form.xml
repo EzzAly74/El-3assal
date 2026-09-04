@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<!--
+  /customer/address/new and /customer/address/edit — the address form as a
+  PAGE. Figma 557:5173 (the form) inside 562:11026 (the account card).
+
+  ===========================================================================
+  WHY THIS PAGE HAS TO BE DESIGNED AT ALL
+  ===========================================================================
+  The dialog on the address book is the route a shopper normally takes, and it
+  is easy to assume this handle is dead. It is not. It is reached:
+
+    - with JavaScript unavailable or still loading, because the book's
+      "اضف عنوان جديد" and "تعديل" controls are real links to it (that is
+      deliberate; see address/spartrak-book.phtml);
+    - by core's own Address\FormPost, which redirects to `*/*/edit` when a
+      save fails validation — the route this store hit on the missing-city
+      bug;
+    - from a bookmark, a browser back button, or a mail link.
+
+  Until now every one of those landed on Magento's stock two-column form:
+  "CONTACT INFORMATION" / "ADDRESS" in English, with Street Address Line 1,
+  Country, State/Province, City and Zip/Postal Code — five fields this
+  storefront's design does not ask for, on a page no Figma frame draws.
+
+  ===========================================================================
+  IT IS THE SAME BLOCK AND THE SAME TEMPLATE AS THE DIALOG
+  ===========================================================================
+  `customer_address_edit` is core's Magento\Customer\Block\Address\Edit, kept
+  whole: it resolves which address is being edited, applies the ownership
+  check, restores posted data after a failed save, and supplies the save URL
+  and the default-address flags. Only its template changes — to the exact file
+  the dialog uses, so there is ONE address form on this site and not two that
+  can drift apart.
+
+  Core's own four arguments are left in place. This template does not read
+  them, but a third-party module that adds a field to core's form does, and
+  removing them would break that module on a page it has every right to
+  extend.
+
+  ===========================================================================
+  THE CARD AROUND IT
+  ===========================================================================
+  The dialog gets its chrome from the modal widget. A page has none, so the
+  form is MOVED inside a small template that draws the account card's header
+  band — the same `.spartrak-account-card` every other page in this section
+  uses. `<move>` rather than re-declaring the block: the block stays the one
+  core created, with core's name, so anything referencing it by name still
+  finds it.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="customer_address_edit" template="Magento_Customer::address/spartrak-form.phtml">
+            <arguments>
+                <!--
+                  The governorate list, the configured country, and the readers
+                  for the two values that are not plain AddressInterface
+                  getters (the joined street text and the `additional_phone`
+                  custom attribute). The same view model the dialog's own
+                  handle injects.
+                -->
+                <argument name="address_form" xsi:type="object">Spartrak\CustomerAccount\ViewModel\AddressForm</argument>
+            </arguments>
+        </referenceBlock>
+
+        <referenceContainer name="content">
+            <block class="Magento\Framework\View\Element\Template"
+                   name="spartrak.address.form.page"
+                   template="Magento_Customer::address/spartrak-form-page.phtml"
+                   cacheable="false"/>
+        </referenceContainer>
+
+        <move element="customer_address_edit" destination="spartrak.address.form.page" as="form"/>
+    </body>
+</page>

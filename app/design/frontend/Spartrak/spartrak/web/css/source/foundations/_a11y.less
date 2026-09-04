@@ -30,19 +30,41 @@
 // dragging the page's scroll height with it.
 
 .spartrak-visually-hidden() {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
-    padding: 0;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 // The same thing as a class, for templates that need to mark up an element
 // directly rather than through a component rule.
 .spartrak-visually-hidden {
-    .spartrak-visually-hidden();
+  .spartrak-visually-hidden();
+}
+
+// THE REVERSE, FOR AN ELEMENT THAT INHERITS THE HIDDEN TREATMENT AND SHOULD NOT
+// ---------------------------------------------------------------------------
+// The loader's <p> is the case this exists for: it is hidden on every surface
+// in the storefront, and shown inside the checkout's processing modal, where
+// Figma writes words under the spinner. Cancelling the treatment by hand at
+// that one call site would be a seventh declaration list to keep in step with
+// the six above — the exact drift this file was written to stop.
+//
+// `border` is deliberately not restored: its initial value is `medium none`,
+// which no consumer of this pair has ever wanted back, and naming it would
+// re-introduce a border on any element that legitimately set one.
+.spartrak-visually-shown() {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
 }

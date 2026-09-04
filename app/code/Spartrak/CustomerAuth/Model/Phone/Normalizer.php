@@ -154,6 +154,55 @@ class Normalizer
     }
 
     /**
+     * Split a stored number back into the two boxes a form draws it in:
+     * a fixed dialling code and an editable national number.
+     *
+     *     "+201207245632"  ->  ['dial' => '+20', 'national' => '01207245632']
+     *
+     * ===================================================================
+     * WHY THIS LIVES HERE
+     * ===================================================================
+     * It is the exact inverse of applyDefaultCountryCode() below, and the rule
+     * it inverts is not obvious: the leading zero is a TRUNK PREFIX, not part
+     * of the subscriber number, so it is absent from E.164 and has to be put
+     * back for display. Anything that formats a stored number for a form needs
+     * that rule, and a second copy of it somewhere in a view model would be one
+     * copy too many the first time the configured country changes.
+     *
+     * The My Account profile card (Figma 562:16478) is the first consumer: it
+     * draws "+20" in its own bordered box with "01207245632" beside it.
+     *
+     * Degrades honestly. A number that does not carry the configured country
+     * code — a legacy row, or one written before the country setting changed —
+     * comes back whole in `national` with an empty `dial`, so a form shows the
+     * real stored value rather than a silently truncated one.
+     *
+     * @return array{dial: string, national: string}
+     */
+    public function toLocalParts(string $e164): array
+    {
+        $digits = $this->toDigits($e164);
+        $countryCode = $this->config->getDefaultCountryCode();
+
+        if ($digits === '') {
+            return ['dial' => '', 'national' => ''];
+        }
+
+        if ($countryCode === '' || !str_starts_with($digits, $countryCode)) {
+            return ['dial' => '', 'national' => $digits];
+        }
+
+        $nsn = substr($digits, strlen($countryCode));
+
+        return [
+            'dial' => '+' . $countryCode,
+            // The trunk prefix, restored. Egyptian mobiles are always written
+            // "01…" locally even though E.164 stores them as "+201…".
+            'national' => $nsn !== '' ? '0' . $nsn : '',
+        ];
+    }
+
+    /**
      * Interpret a number the shopper typed without any country code.
      */
     private function applyDefaultCountryCode(string $digits): string

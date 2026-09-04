@@ -89,7 +89,6 @@
 .spartrak-pdp-visually-hidden() {
     .spartrak-visually-hidden();
 }
-
 // ===========================================================================
 // 1. Page shell — Figma 527:13604
 // ===========================================================================
@@ -157,27 +156,12 @@
         padding: 0;
     }
 
-    .breadcrumbs {
-        margin: 0;
-        padding-block: 12px;
-        font-family: var(--font-arabic);
-        font-size: var(--text-12);
-        line-height: 1.5;
-        color: var(--color-text-secondary);
-    }
-
-    .breadcrumbs a {
-        color: var(--color-text-secondary);
-
-        &:hover {
-            color: var(--color-action-primary);
-        }
-    }
-
-    .breadcrumbs .item:last-child strong {
-        font-weight: 400;
-        color: var(--color-text-primary);
-    }
+    // THE BREADCRUMB IS NOT STYLED HERE ANY MORE. This block set its own
+    // 12px/text-secondary treatment, which was a second answer to a question
+    // the design asks once — and a different answer from the category page's,
+    // on the same component. Figma 488:18402 is one breadcrumb for the whole
+    // site, so it is one component now: components/_breadcrumbs.less, global,
+    // aligned to whatever gutter each page gives `.page-main`.
 }
 
 // ===========================================================================
@@ -235,11 +219,12 @@
 
     .fotorama__arr .fotorama__arr__arr {
         .spartrak-icon('chevron-right.svg'; 20px; var(--color-icon-ink));
-        margin: 10px;
     }
 
     .fotorama__arr--prev .fotorama__arr__arr {
         transform: rotate(180deg);
+        left: 25%;
+        top: 25%;
     }
 }
 
@@ -623,55 +608,92 @@
 }
 
 // --- SKU + availability bar (Figma 527:12990 desktop / 650:33782 mobile) ---
-// Desktop is two equal cells; mobile is a 2x2 grid — see section 6. Markup
-// comes from this theme's own product/view/type/default.phtml override.
+// Desktop is two equal cells; mobile is a 2x2 of the same cells. Markup comes
+// from this theme's own product/view/type/default.phtml override.
 //
 // SPECIFICITY: prefixed `.catalog-product-view .product-info-main`, and NOT
 // left as the bare `.spartrak-pdp__meta` it started as. Magento wraps this bar
 // in `.product-info-stock-sku`, and Porto ships
 // `.product-info-main .product-info-stock-sku > * { display: block }` — (0,2,0)
 // against a bare class's (0,1,0), so it won and the cells stacked into one
-// column instead of laying out as a row (desktop) / 2x2 grid (mobile).
-// Measured on the live storefront before the fix: computed `display: block`,
-// cells 408x80 instead of 204x48.
+// column instead of laying out as a row (desktop) / 2x2 (mobile). Measured on
+// the live storefront before the fix: computed `display: block`, cells 408x80
+// instead of 204x48.
+//
+// ONE LAYOUT MODEL FOR BOTH BREAKPOINTS. `flex-basis: 50%` on a wrapping flex
+// line gives the desktop's two equal cells (527:12990, 240x48 in a 480 frame)
+// AND the mobile 2x2 (650:33782, 204x48 in a 408 frame) from the same rule —
+// two cells per row, no column gap, 1px of page background between rows (row
+// 1 at y=0 h48, row 2 at y=49, total 97). Section 6 therefore only changes
+// the type scale on mobile; it no longer re-declares the layout as a grid.
+//
+// The basis is a PERCENTAGE, which is what pins the bar at two cells per row
+// however long a merchant's attribute label runs — a content-sized basis
+// would fit three short cells on one row and break the 2x2. That makes the
+// cells' `box-sizing` load-bearing rather than incidental; see below.
 .catalog-product-view .product-info-main .spartrak-pdp__meta {
     display: flex;
+    flex-wrap: wrap;
     align-items: stretch;
+    column-gap: 0;
+    row-gap: 1px;
     margin: 0;
 }
 
+// i18n / long-content GUARD — cells REFLOW, they do not truncate.
+// `min-width` pins each cell at its own content width (capped at the full bar
+// so a single very long cell can still wrap internally as the last resort),
+// so a cell that no longer fits beside its neighbour drops to its own row and
+// `flex-grow` takes it to the full width. The earlier pass ellipsis'd the
+// label instead, which cost real information on the English store
+// ("Availability in stock" + "In stock" in a 204px cell) and on any merchant
+// attribute whose store label runs long. CLAUDE.md §16: multi-locale is a
+// baseline, not an edge case.
+//
+// That also retires a hack: the container used to repeat this surface as its
+// own background so an odd cell count would not leave a bare half-row —
+// Figma's fourth mobile cell ("العدد") is deliberately not implemented yet,
+// see catalog_product_view.xml. `flex-grow` fills that row properly now, and
+// dropping the container background lets the 1px row gap show the page
+// behind it, which is the white hairline Figma actually draws.
+//
+// BOX MODEL — border-box, explicitly. Nothing in this stack sets a global
+// border-box (Magento's `lib-set-default-border-box()` is never called, blank
+// and Porto only extend it per component, and this theme's head.phtml drops
+// Porto's bootstrap), so the default is content-box and every Figma-derived
+// size here has to say so itself — the same reason the related rail in
+// section 7 carries its own reset. It is required for `flex-basis: 50%` to
+// mean a 50% CELL rather than 50% plus 48px of padding, which would overflow
+// the line and wrap on the first render.
+//
+// HEIGHT/PADDING corrected against Figma at the same time, because the box
+// model is what was wrong: the cell is 48px tall with the text 24px at y=12,
+// i.e. 12px of block padding — not the 16px this had, which on a content-box
+// `height: 48px` was rendering an 80px cell. `min-height` rather than
+// `height` so the wrap fallback above is never cut off, and so the mobile
+// type step (18.2px line) still centres inside a full 48px band with no
+// second padding value to maintain.
 .spartrak-pdp__meta-cell {
+    box-sizing: border-box;
     display: flex;
-    flex: 1 1 0;
-    min-width: 0;
+    flex: 1 1 50%;
+    min-width: ~"min(100%, max-content)";
     align-items: center;
     justify-content: flex-start;
     gap: 8px;
-    height: 48px;
-    padding: 16px 24px;
+    min-height: 48px;
+    padding: 12px 24px;
     background: var(--color-bg-surface-subtle);
     font-family: var(--font-arabic);
     font-size: var(--text-16);
     font-weight: 500;
     line-height: 1.5;
     color: var(--color-text-primary);
-    overflow: hidden;
-    white-space: nowrap;
 }
 
-// i18n GUARD. The cell is a fixed 48px single line, so a locale whose wording
-// runs longer than the Arabic the design was drawn in will overflow it. Caught
-// in the browser on the English store: "Availability in stock" + "In stock" in
-// a 204px mobile cell clipped the VALUE, which is the half that matters —
-// "In stoc". So the label absorbs the shortfall and the value never does.
-// CLAUDE.md §16: bidirectional and multi-locale is a baseline, not an edge
-// case, and the Arabic fitting is not evidence that the English does.
-.spartrak-pdp__meta-label {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
+// The value is the half that matters, so it is the half that never reflows:
+// if a cell does end up narrower than its text, the label wraps and the
+// number/status stays on one line.
 .spartrak-pdp__meta-value {
     flex: 0 0 auto;
 }
@@ -873,6 +895,26 @@
         }
     }
 
+    
+    // PORTO'S ACCORDION CHEVRON, OFF.
+    //
+    // Porto ships `.product.data.items .item.title a::after { font-family:
+    // porto-icons; content: <glyph>; position: absolute }` at `media: all`,
+    // and Magento/blank hides it again only inside `@media (min-width: 768px)`
+    // — so it is a desktop-invisible, MOBILE-VISIBLE glyph sitting on every
+    // tab label. Both rules were read off the live storefront's own bundles,
+    // not assumed. Figma's tab row (527:13545 / 650:33790) has no icon at
+    // either width: three plain labels with an underline on the active one.
+    //
+    // Specificity, not !important: this selector carries seven classes against
+    // Porto's six, so it wins outright and no override war starts (CLAUDE.md
+    // §9). Unconditional rather than wrapped in a mobile media query, because
+    // the glyph should not exist at any width — the desktop rule hiding it is
+    // then simply redundant rather than load-bearing.
+    .product.data.items > .item.title > .switch::after {
+        display: none;
+    }
+
     .product.data.items > .item.title.active > .switch {
         border-block-end-color: var(--color-action-primary);
         color: var(--color-action-primary);
@@ -895,13 +937,24 @@
 // display is untouched — so it keeps its semantics for assistive tech; the
 // design's 12px row rhythm comes from border-spacing, pulled back at the ends
 // so the panel's own padding is not doubled.
+//
+// SPECIFICITY: `.product.info.detailed` is in the selector on purpose, not as
+// a descriptive prefix. Porto ships
+// `.product.info.detailed .additional-attributes { width: auto; … }` (0,4,0)
+// — and the RTL compat layer ships the same block again — which outranked the
+// bare `.catalog-product-view table.additional-attributes` (0,2,1) this used
+// to be. The table shrink-wrapped to its content in BOTH directions instead
+// of filling the panel; reported on the Arabic store. Qualifying the whole
+// block, rather than bolting a higher-specificity `width` rule on the side,
+// keeps every value in one place and puts the padding/border declarations
+// clear of Porto's `lib-table-resize` / `lib-table-bordered` output too.
 .catalog-product-view {
     .additional-attributes-wrapper {
         margin: 0;
         padding: 0;
     }
 
-    table.additional-attributes {
+    .product.info.detailed table.additional-attributes {
         width: 100%;
         margin-block: -12px;
         border: 0;
@@ -1211,25 +1264,13 @@
         font-size: var(--text-14);
     }
 
-    // Meta bar 650:33782 — a 2x2 GRID on mobile, not the desktop's single
-    // row and not the column the previous pass shipped. Two 204px cells per
-    // row with no column gap, and a 1px white hairline between the two rows
-    // (row 1 at y=0 h48, row 2 at y=49). Text is Label/Large: medium 14/1.3.
-    // Same specificity prefix as the desktop rule above, and for the same
-    // reason — Porto's `.product-info-stock-sku > *{display:block}` outranks a
-    // bare class and would keep this a stacked column.
+    // Meta bar 650:33782 — 2x2 on mobile: two 204px cells per row, no column
+    // gap, a 1px white hairline between the rows (row 1 at y=0 h48, row 2 at
+    // y=49). The wrapping flex line in section 3 already produces exactly
+    // that from the same `flex-basis: 50%`, so all that is left here is the
+    // spacing above the bar and the type step: Label/Large, medium 14/1.3.
     .catalog-product-view .product-info-main .spartrak-pdp__meta {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        column-gap: 0;
-        row-gap: 1px;
         margin-block-start: 18px;
-        // The container repeats the cells' own surface so an ODD number of
-        // cells still reads as a complete band instead of leaving a bare
-        // white half-row. Invisible at the design's four cells; it matters
-        // now, because Figma's fourth cell ("العدد") is deliberately not
-        // implemented yet — see catalog_product_view.xml.
-        background: var(--color-bg-surface-subtle);
     }
 
     .spartrak-pdp__meta-cell {
@@ -1246,9 +1287,17 @@
         margin-block-start: 28px;
     }
 
+    // PHYSICAL, not logical — deliberately, and matching the desktop rule in
+    // section 3. The chevron is a `background-position: right …` (an <input>
+    // cannot carry a ::before), i.e. it is pinned to the physical right in
+    // both directions because that is where Figma draws it. This rule used
+    // `padding-inline: 24px 44px`, which mirrors: under RTL the 44px of
+    // reserved space moved to the LEFT while the chevron stayed on the right,
+    // so the glyph sat on top of the quantity. Caught on the Arabic store.
     .catalog-product-view .product-info-main .box-tocart .field.qty input#qty {
         width: 83px;
-        padding-inline: 24px 44px;
+        padding-right: 44px;
+        padding-left: 24px;
         background-position: right 24px center;
     }
 
@@ -1273,18 +1322,74 @@
     // bound to bg/surface-subtle). Label is Body/Small regular 14/1.5, value
     // Label/Large medium 14/1.3 — the same weight split as desktop, two
     // steps down in size.
-    .catalog-product-view table.additional-attributes tbody tr {
+    //
+    // Carries the same `.product.info.detailed` qualifier as the desktop
+    // block in section 4 — it has to, or these would sit BELOW it in the
+    // cascade and the mobile type step would never apply.
+    .catalog-product-view .product.info.detailed table.additional-attributes tbody tr {
         background: var(--color-bg-surface-subtle);
     }
 
-    .catalog-product-view table.additional-attributes th.label,
-    .catalog-product-view table.additional-attributes td.data {
+    .catalog-product-view .product.info.detailed table.additional-attributes th.label,
+    .catalog-product-view .product.info.detailed table.additional-attributes td.data {
         font-size: var(--text-14);
     }
 }
 
 // ===========================================================================
-// 7. Reduced motion
+// 7. Related products rail — Figma 535:12047 (desktop) / 655:19767 (mobile)
+// ===========================================================================
+// "منتجات أخري من جون دير", rendered by Spartrak_Catalog::product/
+// related-rail.phtml through Magento's own related-products block.
+//
+// THIS SECTION ADDS NO LOOK. Every visual rule — the header, the title, the
+// prev/next buttons, the "view all" chip, the rail panel, the track, the
+// scroll indicator, the cards — already exists in _homepage-sections.less and
+// _product-card.less, because the PDP rail IS that component. Adding a single
+// colour, size or spacing value here would be forking it.
+//
+// What is below is placement only, and it is three rules.
+
+// The rail's sizes are authored border-box, like everything Figma-derived in
+// this project. On the homepage that comes from the `.spartrak-home` wrapper's
+// scoped reset; there is no such wrapper on the PDP, so the component brings
+// the reset with it.
+.spartrak-pdp-related,
+.spartrak-pdp-related *,
+.spartrak-pdp-related *::before,
+.spartrak-pdp-related *::after {
+    box-sizing: border-box;
+}
+
+// THE ONE THING THAT GENUINELY DIFFERS BETWEEN THE TWO PAGES: the gutter.
+// The homepage centres the header and the rail inside the 48px PAGE gutter
+// itself (`max-width: calc(100% - (@home-gutter * 2))`, section "SHARED
+// SECTION SHELL" in _homepage-sections.less). On the PDP that gutter is
+// already supplied by .column.main inside the page band set in section 1, so
+// inheriting it would inset the rail a second time and leave it visibly
+// narrower than the tabs directly above it.
+.spartrak-pdp-related .spartrak-home-section__head,
+.spartrak-pdp-related .spartrak-home-rail__panel {
+    max-width: 100%;
+}
+
+.spartrak-pdp-related {
+    // NO TOP MARGIN, ON PURPOSE. The rail is a direct flex child of
+    // .column.main (the `content` container has no htmlTag, so its children
+    // are), and that row already carries the shell's `gap: 48px` from section
+    // 1 — the same gap that separates the media column from the info column.
+    // Figma draws 32px at this seam, so the page shell is 16px more generous
+    // than the design here. Correcting it would mean a negative margin
+    // fighting the shell's own gap — an arbitrary value in the middle of a
+    // component, for 16px of air between two below-the-fold blocks. The
+    // shell's rhythm wins, and it is stated rather than silently inherited.
+    //
+    // Figma's own 16px below the last card, before the footer.
+    margin-block-end: 16px;
+}
+
+// ===========================================================================
+// 8. Reduced motion
 // ===========================================================================
 @media (prefers-reduced-motion: reduce) {
     .catalog-product-view .product-info-main .box-tocart .action.tocart {

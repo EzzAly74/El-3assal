@@ -10,16 +10,15 @@
             <item name="provider" xsi:type="string">spartrak_pickup_depot_form.spartrak_pickup_depot_form_data_source</item>
         </item>
         <item name="label" xsi:type="string" translate="true">Depot</item>
+        <!-- See spartrak_pickup_branch_form.xml: omitting this leaves the form
+             behind a loading mask that is never hidden. -->
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
     </argument>
 
     <settings>
         <buttons>
-            <button name="back" class="Magento\Backend\Block\Widget\Button\GenericButton">
-                <label translate="true">Back</label>
-            </button>
-            <button name="save" class="Magento\Backend\Block\Widget\Button\GenericButton">
-                <label translate="true">Save Depot</label>
-            </button>
+            <button name="back" class="Spartrak\PickupLocation\Block\Adminhtml\Button\BackButton"/>
+            <button name="save" class="Spartrak\PickupLocation\Block\Adminhtml\Button\DepotSaveButton"/>
         </buttons>
         <namespace>spartrak_pickup_depot_form</namespace>
         <dataScope>data</dataScope>

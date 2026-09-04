@@ -1,0 +1,35 @@
+// Spartrak cart page — entry point.
+//
+// Compiled as its own stylesheet and enqueued ONLY on checkout_cart_index
+// (see Magento_Checkout/layout/checkout_cart_index.xml), rather than being
+// folded into spartrak-components.css.
+//
+// WHY IT IS SPLIT OUT: spartrak-components.css is render-blocking on every
+// page. components/_cart.less is ~19KB uncompiled and matches nothing outside
+// the cart, so carrying it globally would tax the LCP of the homepage, PLP and
+// PDP to style a page most visitors never open. Same reasoning the theme's
+// default_head_blocks.xml uses to strip owl.carousel/font-awesome.
+//
+// LOAD ORDER: this file is linked AFTER spartrak-components.css, so on the
+// cart page its rules are the later word on equal specificity. That is the
+// intended relationship — the cart is the more specific context — and it also
+// puts these rules after Porto's styles-l.css, which spartrak-components.css
+// itself cannot outrank (see Magento_Theme/web/css/source/_extend.less).
+//
+// The three foundation files below are re-imported rather than inherited:
+// LESS mixins and plain LESS variables do not survive a compiled-CSS boundary,
+// exactly as spartrak-components.less documents for the same three. CSS custom
+// properties from spartrak-foundations.css DO carry over and are not repeated.
+//
+// _a11y.less also emits one small utility class, so that class is duplicated
+// between this bundle and spartrak-components.css. It is ~120 bytes and the
+// two copies are identical, which is cheaper than a third stylesheet.
+
+@import "source/foundations/_breakpoints.less";
+@import "source/foundations/_icons.less";
+@import "source/foundations/_a11y.less";
+// The cart states the page gutter for its own route, and takes the number from
+// the same place the PLP does rather than writing 48 down a second time.
+@import "source/foundations/_page-metrics.less";
+
+@import "source/components/_cart.less";

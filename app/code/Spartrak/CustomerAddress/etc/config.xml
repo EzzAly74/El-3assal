@@ -31,6 +31,38 @@
         <general>
             <country>
                 <optional_zip_countries>EG,HK,IE,MO,PA,GB</optional_zip_countries>
+                <!--
+                  ===================================================
+                  THE STORE'S DEFAULT COUNTRY IS EGYPT
+                  ===================================================
+                  Magento ships this as US. Measured on the live store
+                  (window.checkoutConfig.defaultCountryId === "US"), and three
+                  things in this codebase quietly depend on it being right:
+
+                    Spartrak\PickupLocation\Model\Source\GovernorateOptions
+                        filters the region collection by this country, so the
+                        BRANCH and DEPOT admin forms were offering US states
+                        instead of Egyptian governorates.
+
+                    Spartrak\PickupLocation\Plugin\Checkout\ApplyPickupLocation
+                        stamps it onto the synthesised pickup address, so a
+                        collect-from-branch order was addressed to the US.
+
+                    Spartrak\Checkout\Plugin\Checkout\AddressFormLayout
+                        HIDES the country field, on the stated reasoning that
+                        "country_id takes its value from general/country/default,
+                        so the address gets a country without asking for one".
+                        With US configured, that sentence was writing the wrong
+                        country onto every new address, from a field the shopper
+                        cannot see to correct it.
+
+                  None of those classes should hardcode EG - reading the store's
+                  configured country is the correct behaviour, and this is the
+                  configuration they were always meant to read. A DEFAULT, not a
+                  hardcoded value: a merchant changes it at Stores >
+                  Configuration > General > Country Options > Default Country.
+                -->
+                <default>EG</default>
             </country>
         </general>
     </default>

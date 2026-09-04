@@ -1,85 +1,16 @@
-// /**
-//  * Copyright © 2015 Magento. All rights reserved.
-//  * See COPYING.txt for license details.
-//  */
-
+//  DELIBERATELY EMPTY — see spartrak/web/css/source/_breadcrumbs.less.
 //
-//  Common
-//  _____________________________________________
-
-& when (@media-common = true) {
-    .breadcrumbs {
-        .lib-breadcrumbs();
-    }
-    .page-wrapper > .breadcrumbs {
-        padding: 0;
-        background-color: @breadcrumbs__background-color;
-        color: @breadcrumbs__font-color;
-        font-size: .75rem;
-        margin-bottom: 0;
-        .items {
-            color: inherit;
-            padding: 12px 10px;
-            display: flex;
-            flex-wrap: wrap;
-            font-size: 1em;
-            >li {
-              text-shadow: none;
-              text-transform: uppercase;
-              display: flex;
-              align-items: center;
-              margin: 0;
-              &.home a {
-                position: relative;
-                width: 14px;
-                text-indent: -9999px;
-                &:after {
-                  font-family: porto-icons;
-                  content: "\e883";
-                  float: left;
-                  text-indent: 0;
-                }
-              }
-              a {
-                display: inline-block;
-                border-color: transparent;
-                background: transparent;
-                color: inherit;
-                padding: 0;
-              }
-              strong {
-                font-weight: inherit;
-              }
-              &:not(:last-child)::after {
-                position: relative;
-                content: "\e819";
-                font-family: porto-icons;
-                left: -1px;
-                display: block;
-                float: right;
-                margin: 0 4px;
-                width: 20px;
-                text-align: center;
-                font-style: normal;
-                font-size: 12px;
-                line-height: inherit;
-              }
-            }
-        }
-        a, a:hover, a:focus {
-            color: @breadcrumbs__font-color;
-        }
-
-        .item:not(:last-child):after {
-            line-height: 15px;
-        }
-    }
-}
-
+//  THIS IS THE COPY THAT ACTUALLY MATTERS. The Arabic store view runs on
+//  spartrak_rtl, so the theme fallback reaches this file first and compiles
+//  it and nothing further down the chain. While it held Porto's rules, the
+//  Arabic storefront got Porto's breadcrumb — an icon-font separator
+//  ("\e819"), the word "Home" displaced off screen by
+//  `text-indent: -9999px` and replaced by a house glyph, every crumb
+//  upper-cased, and a 0.75rem row — no matter what the base theme said.
 //
-//  Mobile
-//  _____________________________________________
-
-.media-width(@extremum, @break) when (@extremum = 'max') and (@break = @screen__m) {
-    .breadcrumbs { }
-}
+//  The Spartrak breadcrumb is
+//  spartrak/web/css/source/components/_breadcrumbs.less (Figma 488:18402),
+//  compiled into spartrak-components.css and inherited by this theme. It is
+//  direction-agnostic: the chevron is a real masked SVG rotated off
+//  `html[dir]`, so this RTL theme needs no breadcrumb rules of its own and
+//  must not reintroduce any here.

@@ -64,58 +64,58 @@
 @mega-nav-block-padding: 16px;
 
 .spartrak-mega-nav {
-    // Width is hug-content and the card is centred by the header's own
-    // `align-items: center` (see _utility-header.less), so this must not
-    // stretch to 100%.
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 28px;
-    box-sizing: border-box;
-    padding: @mega-nav-block-padding 24px;
-    background: var(--color-bg-surface);
-    border: 1px solid var(--color-border-default);
-    // Both bottom corners carry the same radius, so a physical shorthand is
-    // direction-agnostic here and no logical property is needed.
-    border-radius: 0 0 var(--radius-12) var(--radius-12);
+  // Width is hug-content and the card is centred by the header's own
+  // `align-items: center` (see _utility-header.less), so this must not
+  // stretch to 100%.
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  box-sizing: border-box;
+  padding: @mega-nav-block-padding 24px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  // Both bottom corners carry the same radius, so a physical shorthand is
+  // direction-agnostic here and no logical property is needed.
+  border-radius: 0 0 var(--radius-12) var(--radius-12);
 
-    // -----------------------------------------------------------------------
-    // QA FIX (2026-08-27) — this card was the page's ONLY horizontal overflow.
-    // -----------------------------------------------------------------------
-    // MEASURED on the live storefront at a 1280px window (1265px viewport):
-    // `.spartrak-mega-nav` computed to 1462px wide at x = -98, and
-    // documentElement.scrollWidth was 1363 against a 1265 viewport — i.e. 98px
-    // of page-level horizontal scroll, produced entirely by this element. No
-    // other non-fixed node extended past the card's own right edge.
-    //
-    // The cause is structural, not a stray value: the card is hug-width by
-    // design, its parent `.spartrak-header` is `align-items: center` (which
-    // does not stretch OR shrink a child), and nothing here ever capped it. At
-    // 1440 with Figma's eight short labels the intrinsic width is 1049 and it
-    // fits; the live catalogue's real L1 names ("الدبرياج والفتيس ونقل الحركة",
-    // "جسم الجرار والكابينة والإكسسوارات", …) are far longer — the real set
-    // measures 1462px against a 1360px content box — so the intrinsic width
-    // exceeds the viewport long before the 767px collapse point.
-    //
-    // THE ROW STAYS ON ONE LINE. An earlier version of this fix let the list
-    // wrap onto a second row; it removed the overflow but changed the card from
-    // Figma's fixed 66px to 87px on every desktop width, which is a visible
-    // redesign of the header and was rejected. The card is a single 66px row at
-    // every width, exactly as node 595:14530 draws it, and the overflow is
-    // absorbed by scrolling the list instead — see .spartrak-mega-nav__list.
-    //
-    // `position: relative` is REQUIRED, not decorative: it makes this card the
-    // containing block for the category flyouts, which is what lets them escape
-    // the list's scroll clipping. See .spartrak-mega-nav__item.
-    position: relative;
-    max-width: ~"min(100% - 80px, @{mega-nav-content-width})";
+  // -----------------------------------------------------------------------
+  // QA FIX (2026-08-27) — this card was the page's ONLY horizontal overflow.
+  // -----------------------------------------------------------------------
+  // MEASURED on the live storefront at a 1280px window (1265px viewport):
+  // `.spartrak-mega-nav` computed to 1462px wide at x = -98, and
+  // documentElement.scrollWidth was 1363 against a 1265 viewport — i.e. 98px
+  // of page-level horizontal scroll, produced entirely by this element. No
+  // other non-fixed node extended past the card's own right edge.
+  //
+  // The cause is structural, not a stray value: the card is hug-width by
+  // design, its parent `.spartrak-header` is `align-items: center` (which
+  // does not stretch OR shrink a child), and nothing here ever capped it. At
+  // 1440 with Figma's eight short labels the intrinsic width is 1049 and it
+  // fits; the live catalogue's real L1 names ("الدبرياج والفتيس ونقل الحركة",
+  // "جسم الجرار والكابينة والإكسسوارات", …) are far longer — the real set
+  // measures 1462px against a 1360px content box — so the intrinsic width
+  // exceeds the viewport long before the 767px collapse point.
+  //
+  // THE ROW STAYS ON ONE LINE. An earlier version of this fix let the list
+  // wrap onto a second row; it removed the overflow but changed the card from
+  // Figma's fixed 66px to 87px on every desktop width, which is a visible
+  // redesign of the header and was rejected. The card is a single 66px row at
+  // every width, exactly as node 595:14530 draws it, and the overflow is
+  // absorbed by scrolling the list instead — see .spartrak-mega-nav__list.
+  //
+  // `position: relative` is REQUIRED, not decorative: it makes this card the
+  // containing block for the category flyouts, which is what lets them escape
+  // the list's scroll clipping. See .spartrak-mega-nav__item.
+  position: relative;
+  max-width: ~"min(100% - 80px, @{mega-nav-content-width})";
 }
 
 // The CTA is a fixed-size cluster: it must never be the thing that squashes or
 // scrolls when the row runs out of room, so it neither grows nor shrinks and
 // the list absorbs every width change.
 .spartrak-mega-nav__browse {
-    flex: 0 0 auto;
+  flex: 0 0 auto;
 }
 
 // The scrolling half of the row.
@@ -140,25 +140,25 @@
 // wheel/trackpad, touch drag and keyboard all still scroll it, and tabbing to
 // an off-screen link scrolls it into view natively.
 .spartrak-mega-nav__list {
-    display: flex;
-    align-self: stretch;
-    align-items: stretch;
-    flex: 1 1 auto;
-    min-width: 0;
-    overflow-x: auto;
-    // Keeps a trackpad's horizontal fling inside the row instead of triggering
-    // the browser's back-navigation gesture at the end of the scroll.
-    overscroll-behavior-inline: contain;
-    scrollbar-width: none;
-    gap: 28px;
-    list-style: none;
-    margin: 0;
-    padding: 0;
+  display: flex;
+  align-self: stretch;
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  // Keeps a trackpad's horizontal fling inside the row instead of triggering
+  // the browser's back-navigation gesture at the end of the scroll.
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+  gap: 28px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 
-    &::-webkit-scrollbar {
-        width: 0;
-        height: 0;
-    }
+  &::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
 }
 
 // `position: static` IS THE FIX (2026-08-27). It looks like the absence of a
@@ -192,40 +192,40 @@
 // the "تسوق حسب الفئات" panel already opens from; anchoring a panel to an item
 // that the shopper can scroll to an arbitrary x would make it jump around.
 .spartrak-mega-nav__item {
-    position: static;
+  position: static;
 
-    // Labels are `white-space: nowrap` (below), so an item is atomic — it never
-    // squashes or breaks a category name; the row scrolls instead.
-    flex: 0 0 auto;
-    // Fills the row's height (see the list's `align-items: stretch`) so the
-    // item -> flyout gap is a known constant, while the link stays optically
-    // centred.
-    display: flex;
-    align-items: center;
+  // Labels are `white-space: nowrap` (below), so an item is atomic — it never
+  // squashes or breaks a category name; the row scrolls instead.
+  flex: 0 0 auto;
+  // Fills the row's height (see the list's `align-items: stretch`) so the
+  // item -> flyout gap is a known constant, while the link stays optically
+  // centred.
+  display: flex;
+  align-items: center;
 }
 
 .spartrak-mega-nav__link {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    // Label/Large
-    font-family: var(--font-arabic);
-    font-size: var(--text-14);
-    font-weight: 500;
-    line-height: 1.3;
-    letter-spacing: var(--letter-spacing-normal);
-    color: var(--color-text-primary);
-    text-decoration: none;
-    white-space: nowrap;
-    // Figma gives the menu items no padding of their own — the 28px card gap
-    // is the entire rhythm. The previous pass added 10px/14px padding, which
-    // pushed the row 20px wider per item and broke the 1049px card width.
-    padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  // Label/Large
+  font-family: var(--font-arabic);
+  font-size: var(--text-14);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: var(--letter-spacing-normal);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  white-space: nowrap;
+  // Figma gives the menu items no padding of their own — the 28px card gap
+  // is the entire rhythm. The previous pass added 10px/14px padding, which
+  // pushed the row 20px wider per item and broke the 1049px card width.
+  padding: 0;
 
-    &:hover,
-    &:focus-visible {
-        color: var(--color-action-primary);
-    }
+  &:hover,
+  &:focus-visible {
+    color: var(--color-action-primary);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -257,27 +257,27 @@
 // is a one-line foundations override — worth a deliberate decision, not a
 // side effect of this fix.
 .spartrak-mega-nav__link:visited {
-    color: var(--color-text-primary);
+  color: var(--color-text-primary);
 }
 
 .spartrak-mega-nav__flyout-view-all:visited {
-    color: var(--color-action-primary);
+  color: var(--color-action-primary);
 }
 
 .spartrak-mega-nav__flyout-tile:visited,
 .spartrak-mega-nav__brand:visited {
-    color: inherit;
+  color: inherit;
 }
 
 // Node 693:45444 — shown only where the category actually has children, which
 // is how Figma draws it: العروض / الفلاتر / قطع المحرك carry no chevron.
 .spartrak-mega-nav__chevron {
-    .spartrak-icon('chevron-down-16.svg'; 16px; var(--color-icon-default));
+  .spartrak-icon("chevron-down-16.svg"; 16px; var(--color-icon-default));
 }
 
 .spartrak-mega-nav__link:hover .spartrak-mega-nav__chevron,
 .spartrak-mega-nav__link:focus-visible .spartrak-mega-nav__chevron {
-    background-color: var(--color-action-primary);
+  background-color: var(--color-action-primary);
 }
 
 // Wraps the CTA and its flyout as DOM siblings, so `:hover`/`:focus-within`
@@ -285,9 +285,9 @@
 // section below for why that is the fix for the hover dead-zone bug, not
 // just a markup convenience.
 .spartrak-mega-nav__browse {
-    position: relative;
-    display: flex;
-    align-items: center;
+  position: relative;
+  display: flex;
+  align-items: center;
 }
 
 // Node 595:14553 — the "تسوق حسب الفئات" CTA. QA FIX (2026-08-25): this used
@@ -298,40 +298,40 @@
 // own hamburger trigger on mobile, where this CTA is hidden anyway per the
 // `@media` rule at the bottom of this file).
 .spartrak-mega-nav__shop-by-categories {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex: 0 0 auto;
-    box-sizing: border-box;
-    padding: 8px;
-    border: 0;
-    border-radius: var(--radius-12);
-    background: var(--color-action-primary);
-    // Label/Large, inverse
-    font-family: var(--font-arabic);
-    font-size: var(--text-14);
-    font-weight: 500;
-    line-height: 1.3;
-    color: var(--color-action-primary-text);
-    white-space: nowrap;
-    cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--radius-12);
+  background: var(--color-action-primary);
+  // Label/Large, inverse
+  font-family: var(--font-arabic);
+  font-size: var(--text-14);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--color-action-primary-text);
+  white-space: nowrap;
+  cursor: pointer;
 
-    &:hover,
-    &:focus-visible {
-        background: var(--color-action-primary-hover);
-    }
+  &:hover,
+  &:focus-visible {
+    background: var(--color-action-primary-hover);
+  }
 }
 
 // Node 595:14556 — three horizontal rules, 18px. The previous pass used
 // search.svg here, which drew a magnifier instead of a list glyph.
 .spartrak-mega-nav__shop-by-categories-icon {
-    .spartrak-icon('list-lines.svg'; 18px; currentColor);
+  .spartrak-icon("list-lines.svg"; 18px; currentColor);
 }
 
 // Node 693:45456 — the same 16px chevron geometry as the menu items, exported
 // with a white stroke; masked, so it takes the button's currentColor.
 .spartrak-mega-nav__shop-by-categories-chevron {
-    .spartrak-icon('chevron-down-16.svg'; 16px; currentColor);
+  .spartrak-icon("chevron-down-16.svg"; 16px; currentColor);
 }
 
 // ---------------------------------------------------------------------------
@@ -368,27 +368,27 @@
 .spartrak-mega-nav__browse:focus-within > .spartrak-mega-nav__flyout,
 .spartrak-mega-nav__item--has-flyout:hover > .spartrak-mega-nav__flyout,
 .spartrak-mega-nav__item--has-flyout:focus-within > .spartrak-mega-nav__flyout {
-    display: flex;
+  display: flex;
 }
 
 .spartrak-mega-nav__flyout {
-    display: none;
-    position: absolute;
-    // Anchored to .spartrak-mega-nav__browse (the CTA), which Figma also
-    // places hard against the nav card's inline-start — so this ends up
-    // close to Figma's own near-edge placement without needing its
-    // item-specific centring offset (see the QA-fix note above for why that
-    // offset doesn't generalise). `max-width` is the safety net so the fixed
-    // 1104px panel never overflows a narrower viewport than the 1440 design.
-    inset-inline-start: 0;
-    top: 100%;
-    z-index: 30;
-    width: 1104px;
-    max-width: calc(100vw - 32px);
-    height: 540px;
-    overflow: hidden;
-    background: var(--color-bg-surface);
-    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.05);
+  display: none;
+  position: absolute;
+  // Anchored to .spartrak-mega-nav__browse (the CTA), which Figma also
+  // places hard against the nav card's inline-start — so this ends up
+  // close to Figma's own near-edge placement without needing its
+  // item-specific centring offset (see the QA-fix note above for why that
+  // offset doesn't generalise). `max-width` is the safety net so the fixed
+  // 1104px panel never overflows a narrower viewport than the 1440 design.
+  inset-inline-start: 0;
+  top: 100%;
+  z-index: 30;
+  width: 1104px;
+  max-width: calc(100vw - 32px);
+  height: 540px;
+  overflow: hidden;
+  background: var(--color-bg-surface);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.05);
 }
 
 // A category's own flyout (no L1 tab column, no brand pane — the category IS
@@ -409,56 +409,56 @@
 // containing block's PADDING box — the card's — so this is exactly the card's
 // interior width, matching `inset-inline-start: 0` from the base rule.
 .spartrak-mega-nav__flyout--category {
-    width: 100%;
-    min-width: 0;
-    max-width: none;
-    height: auto;
-    max-height: 540px;
-    overflow-y: auto;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  height: auto;
+  max-height: 540px;
+  overflow-y: auto;
 
-    // ----------------------------------------------------------------------
-    // THE HOVER BRIDGE (2026-08-27).
-    // ----------------------------------------------------------------------
-    // Since .spartrak-mega-nav__item went `static`, this panel is measured from
-    // the CARD, so `top: 100%` lands it at the card's outer edge — one card
-    // block-padding BELOW the item it belongs to. That reopens the dead zone
-    // this component already fought once (see the QA note above the flyout
-    // triggers): the pointer leaves the item, crosses padding that is not the
-    // item, `:hover` drops, and the panel closes before it can be reached.
-    //
-    // The bridge is a transparent block-start border rather than a pseudo
-    // element, because the panel carries `overflow-y: auto` and would clip a
-    // pseudo drawn outside its own box — a border is part of the element's box
-    // and is both painted and hit-tested normally. Pulling `top` up by the same
-    // amount keeps the panel's PADDING box exactly where it was, so nothing
-    // moves visually: verified live, the panel body still starts on the card's
-    // bottom edge to the pixel.
-    //
-    // The height must be EXACTLY @mega-nav-block-padding. Taller and the bridge
-    // — which spans the full 560px panel width — would reach up into the item
-    // row and swallow hover on neighbouring categories.
-    //
-    // `background-clip: padding-box` stops the panel's white fill painting out
-    // through the transparent border and overlapping the card above it.
-    top: calc(100% - @mega-nav-block-padding);
-    border-block-start: @mega-nav-block-padding solid transparent;
-    background-clip: padding-box;
+  // ----------------------------------------------------------------------
+  // THE HOVER BRIDGE (2026-08-27).
+  // ----------------------------------------------------------------------
+  // Since .spartrak-mega-nav__item went `static`, this panel is measured from
+  // the CARD, so `top: 100%` lands it at the card's outer edge — one card
+  // block-padding BELOW the item it belongs to. That reopens the dead zone
+  // this component already fought once (see the QA note above the flyout
+  // triggers): the pointer leaves the item, crosses padding that is not the
+  // item, `:hover` drops, and the panel closes before it can be reached.
+  //
+  // The bridge is a transparent block-start border rather than a pseudo
+  // element, because the panel carries `overflow-y: auto` and would clip a
+  // pseudo drawn outside its own box — a border is part of the element's box
+  // and is both painted and hit-tested normally. Pulling `top` up by the same
+  // amount keeps the panel's PADDING box exactly where it was, so nothing
+  // moves visually: verified live, the panel body still starts on the card's
+  // bottom edge to the pixel.
+  //
+  // The height must be EXACTLY @mega-nav-block-padding. Taller and the bridge
+  // — which spans the full 560px panel width — would reach up into the item
+  // row and swallow hover on neighbouring categories.
+  //
+  // `background-clip: padding-box` stops the panel's white fill painting out
+  // through the transparent border and overlapping the card above it.
+  top: calc(100% - @mega-nav-block-padding);
+  border-block-start: @mega-nav-block-padding solid transparent;
+  background-clip: padding-box;
 }
 
 // Node 704:26443 "Categoreis". RTL child order (see topmenu.phtml) puts this
 // FIRST so it renders at the flyout's inline start — Figma's rightmost pane.
 .spartrak-mega-nav__flyout-categories {
-    flex: 0 0 256px;
-    width: 256px;
-    height: 100%;
-    overflow-y: auto;
-    // Figma's own Tailwind class here is a physical `border-r`, which sits at
-    // this pane's OUTER edge (nothing beyond it) rather than its shared edge
-    // with the content pane — almost certainly a Figma authoring artefact,
-    // since a divider on an edge that touches nothing is not a legible
-    // affordance. Implemented on the shared edge instead, which is where the
-    // screenshot actually shows a seam between the two panes.
-    border-inline-end: 1px solid var(--color-border-default);
+  flex: 0 0 256px;
+  width: 256px;
+  height: 100%;
+  overflow-y: auto;
+  // Figma's own Tailwind class here is a physical `border-r`, which sits at
+  // this pane's OUTER edge (nothing beyond it) rather than its shared edge
+  // with the content pane — almost certainly a Figma authoring artefact,
+  // since a divider on an edge that touches nothing is not a legible
+  // affordance. Implemented on the shared edge instead, which is where the
+  // screenshot actually shows a seam between the two panes.
+  border-inline-end: 1px solid var(--color-border-default);
 }
 
 // Node 704:26443's own rows. Named `-l2` from the first pass, when this
@@ -467,32 +467,32 @@
 // class name is kept rather than churned, since nothing about its box model,
 // typography or states changed, only what data feeds it.
 .spartrak-mega-nav__flyout-l2 {
-    display: block;
-    width: 100%;
-    box-sizing: border-box;
-    height: 41px;
-    padding-inline: 16px 12px;
-    border: 0;
-    border-block-end: 1px solid var(--color-border-default);
-    background: none;
-    // Label/Large
-    font-family: var(--font-arabic);
-    font-size: var(--text-14);
-    font-weight: 500;
-    line-height: 1.3;
-    color: var(--color-text-primary);
-    text-align: end;
-    cursor: pointer;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  height: 41px;
+  padding-inline: 16px 12px;
+  border: 0;
+  border-block-end: 1px solid var(--color-border-default);
+  background: none;
+  // Label/Large
+  font-family: var(--font-arabic);
+  font-size: var(--text-14);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--color-text-primary);
+  text-align: start;
+  cursor: pointer;
 
-    &:last-child {
-        border-block-end: 0;
-    }
+  &:last-child {
+    border-block-end: 0;
+  }
 
-    &:hover,
-    &[aria-selected='true'] {
-        background: var(--color-bg-surface-subtle);
-        color: var(--color-action-primary);
-    }
+  &:hover,
+  &[aria-selected="true"] {
+    background: var(--color-bg-surface-subtle);
+    color: var(--color-action-primary);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -508,99 +508,100 @@
 // The logos themselves are admin-uploaded swatch images, not theme assets —
 // see Spartrak\Catalog\ViewModel\BrandNavigation for why and how.
 .spartrak-mega-nav__flyout-brands {
-    flex: 1 1 auto;
-    min-width: 0;
-    height: 100%;
-    overflow-y: auto;
-    box-sizing: border-box;
-    padding: 20px;
-    border-inline-end: 1px solid var(--color-border-default);
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 20px;
+  border-inline-end: 1px solid var(--color-border-default);
 }
 
 .spartrak-mega-nav__flyout-brands-title {
-    margin: 0 0 24px;
-    // Heading/H5
-    font-family: var(--font-arabic);
-    font-size: var(--text-16);
-    font-weight: 700;
-    line-height: 1.3;
-    color: var(--color-text-primary);
+  margin: 0 0 24px;
+  // Heading/H5
+  font-family: var(--font-arabic);
+  font-size: var(--text-16);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-text-primary);
 }
 
 .spartrak-mega-nav__flyout-brands-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px 16px;
 }
 
 .spartrak-mega-nav__brand {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    width: 64px;
-    text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 64px;
+  text-decoration: none;
 }
 
 // Node 704:26412 "Icon Container".
 .spartrak-mega-nav__brand-plate {
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 64px;
-    height: 64px;
-    padding: 3px;
-    border: 1px solid var(--color-border-default);
-    border-radius: var(--radius-pill);
-    background: var(--color-bg-surface);
-    overflow: hidden;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  padding: 3px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-surface);
+  overflow: hidden;
 
-    img {
-        display: block;
-        width: 58px;
-        height: 58px;
-        // Brand marks are wildly different aspect ratios (a wordmark vs a
-        // roundel), so they are fitted rather than cropped — never stretched.
-        object-fit: contain;
-    }
+  img {
+    display: block;
+    width: 58px;
+    height: 58px;
+    // Brand marks are wildly different aspect ratios (a wordmark vs a
+    // roundel), so they are fitted rather than cropped — never stretched.
+    object-fit: contain;
+  }
 }
 
 // Shown only where no swatch has been uploaded yet. Reuses the account-chip
 // avatar's treatment so the fallback still looks like part of the system.
 .spartrak-mega-nav__brand-initial {
-    font-family: var(--font-arabic);
-    font-size: var(--text-20);
-    font-weight: 700;
-    line-height: 1;
-    color: var(--color-action-primary);
-    text-transform: uppercase;
+  font-family: var(--font-arabic);
+  font-size: var(--text-20);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-action-primary);
+  text-transform: uppercase;
 }
 
 .spartrak-mega-nav__brand-label {
-    width: 64px;
-    // Body/Small
-    font-family: var(--font-arabic);
-    font-size: var(--text-14);
-    font-weight: 400;
-    line-height: 1.5;
-    color: var(--color-text-muted);
-    text-align: center;
-    // Brand names vary a lot in length ("فيات" vs "ماسي فيرجسون"); Figma
-    // ellipsises rather than letting one name reflow the grid.
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+  width: 64px;
+  // Body/Small
+  font-family: var(--font-arabic);
+  font-size: var(--text-14);
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  text-align: center;
+  // Brand names vary a lot in length ("فيات" vs "ماسي فيرجسون"); Figma
+  // ellipsises rather than letting one name reflow the grid.
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .spartrak-mega-nav__flyout-content {
-    flex: 1 1 auto;
-    min-width: 0;
-    height: 100%;
-    overflow-y: auto;
-    box-sizing: border-box;
-    padding: 20px;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 20px;
 }
 
 // One per L1; only the active one visible. QA FIX (2026-08-25): this
@@ -610,53 +611,53 @@
 // actually shows (four group headers stacked under one active sidebar
 // entry, not swapped one at a time).
 .spartrak-mega-nav__flyout-l1-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 
-    &[hidden] {
-        display: none;
-    }
+  &[hidden] {
+    display: none;
+  }
 }
 
 .spartrak-mega-nav__flyout-group-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-block-end: 12px;
-    // Heading/H5
-    font-family: var(--font-arabic);
-    font-size: var(--text-16);
-    font-weight: 700;
-    line-height: 1.3;
-    color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-block-end: 12px;
+  // Heading/H5
+  font-family: var(--font-arabic);
+  font-size: var(--text-16);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-text-primary);
 }
 
 .spartrak-mega-nav__flyout-view-all {
-    flex: 0 0 auto;
-    font-size: var(--text-14);
-    color: var(--color-action-primary);
-    text-decoration: none;
+  flex: 0 0 auto;
+  font-size: var(--text-14);
+  color: var(--color-action-primary);
+  text-decoration: none;
 
-    &:hover {
-        text-decoration: underline;
-    }
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 .spartrak-mega-nav__flyout-tiles {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
 .spartrak-mega-nav__flyout-tile {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    width: 64px;
-    text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 64px;
+  text-decoration: none;
 }
 
 // Node 705:31238 "Image Contrainer". Figma's own fallback fill for this box
@@ -665,26 +666,27 @@
 // either, per figma-map.md), so every tile in the source frame already shows
 // this plate. Not a placeholder invented here.
 .spartrak-mega-nav__flyout-tile-image {
-    flex: 0 0 auto;
-    width: 64px;
-    height: 64px;
-    background: var(--color-bg-field);
+  flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
+  background: var(--color-bg-field);
 }
 
 .spartrak-mega-nav__flyout-tile-label {
-    width: 64px;
-    font-family: var(--font-arabic);
-    font-size: var(--text-14);
-    font-weight: 400;
-    line-height: 1.5;
-    color: var(--color-text-muted);
-    text-align: center;
-    // Figma clips long labels to two lines rather than wrapping indefinitely
-    // or truncating to one.
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+  width: 64px;
+  font-family: var(--font-arabic);
+  font-size: var(--text-14);
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  text-align: center;
+  // Figma clips long labels to two lines rather than wrapping indefinitely
+  // or truncating to one.
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 // The dim+blur backdrop behind an open flyout (Figma's own "Overlay" wrapper
@@ -694,34 +696,34 @@
 // a plain sibling combinator can't react to a :hover/:focus-within state on
 // one of .browse's own descendants without `:has()`.
 .spartrak-mega-nav__scrim {
-    position: fixed;
-    inset: 0;
-    z-index: 25;
-    background: var(--color-scrim);
-    // NO backdrop-filter (removed 2026-08-25, on request).
-    //
-    // Figma's Overlay node carries the effect "OVerlay/Popup": BACKGROUND_BLUR
-    // radius 12, and this rule previously reproduced it as
-    // `backdrop-filter: blur(6px)`. Dropped: it read as the page smearing on
-    // hover, and a backdrop-filter over a full-viewport fixed layer is one of
-    // the more expensive things a browser can be asked to composite —
-    // repainting a blurred copy of everything behind it on every hover of the
-    // nav. The plain dim still separates the panel from the page.
-    //
-    // A flagged deviation from Figma, not an oversight.
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 120ms ease;
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  background: var(--color-scrim);
+  // NO backdrop-filter (removed 2026-08-25, on request).
+  //
+  // Figma's Overlay node carries the effect "OVerlay/Popup": BACKGROUND_BLUR
+  // radius 12, and this rule previously reproduced it as
+  // `backdrop-filter: blur(6px)`. Dropped: it read as the page smearing on
+  // hover, and a backdrop-filter over a full-viewport fixed layer is one of
+  // the more expensive things a browser can be asked to composite —
+  // repainting a blurred copy of everything behind it on every hover of the
+  // nav. The plain dim still separates the panel from the page.
+  //
+  // A flagged deviation from Figma, not an oversight.
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
 }
 
-.spartrak-mega-nav__scrim[data-visible='true'] {
-    opacity: 1;
+.spartrak-mega-nav__scrim[data-visible="true"] {
+  opacity: 1;
 }
 
 // Mobile: Figma's 440 header has no nav row at all — the categories live
 // behind the hamburger drawer.
 @media (max-width: @breakpoint-header-collapse) {
-    .spartrak-mega-nav {
-        display: none;
-    }
+  .spartrak-mega-nav {
+    display: none;
+  }
 }

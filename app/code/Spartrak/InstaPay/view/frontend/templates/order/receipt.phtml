@@ -1,0 +1,89 @@
+<?php
+/**
+ * `صورة التحويل` on the customer's order page — Figma 573:21511 / 573:21514.
+ *
+ * ===========================================================================
+ * WHY THIS IS A CHILD BLOCK AND NOT PART OF THE PAYMENT INFO BLOCK
+ * ===========================================================================
+ * Block\Info renders into the ORDER CONFIRMATION EMAIL as well as the order
+ * page — Sales\Model\Order\Email\Sender\OrderSender::getPaymentHtml() asks
+ * Payment\Helper\Data for exactly that block — and a banking screenshot must
+ * not travel into an inbox, a mail archive or a forwarding rule. So the receipt
+ * is added to the ORDER PAGE only, as a child block of `sales.order.view`
+ * declared in this module's own sales_order_view.xml.
+ *
+ * That also keeps the module boundary honest: Spartrak_CustomerAccount's
+ * order/view.phtml renders `getChildHtml('spartrak_payment_extra')` and knows
+ * nothing about InstaPay, which is the same arrangement it already has with the
+ * `موقف` card.
+ *
+ * ===========================================================================
+ * READING ORDER IS DOM ORDER
+ * ===========================================================================
+ * 573:21514 lists its children left to right: the eye, the file name, then the
+ * 20px image glyph. This document is `dir="rtl"`, where the FIRST child of a
+ * flex row sits at the right — so they are written in reverse and the eye lands
+ * at the left, where the frame draws it. The same rule the order page and the
+ * wishlist templates document at length.
+ *
+ * THE EYE IS THE CONTROL, the glyph is not. The 20px mark says "this is an
+ * image"; the eye opens it. So the eye is a real <a> with a real href — its
+ * target re-checks ownership before it streams a byte (Controller\Proof\View) —
+ * and the glyph is an aria-hidden span.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+use Spartrak\InstaPay\ViewModel\OrderTransfer;
+
+/** @var OrderTransfer|null $transferView */
+$transferView = $block->getData('transfer_view');
+$order = $block->getData('order');
+
+/*
+ * Absent for every order that was not paid this way, which is most of them.
+ * The view model also returns nothing when the order is not the session's, so
+ * this renders no link to a file the reader does not own.
+ */
+if ($transferView === null || !$transferView->isVisible($order)) {
+    return;
+}
+
+$viewUrl = $transferView->getViewUrl($order);
+?>
+<div class="spartrak-order-receipt">
+    <p class="spartrak-order-receipt__label">
+        <?= $escaper->escapeHtml(__('A picture of the transfer')) ?>
+    </p>
+
+    <div class="spartrak-order-receipt__file">
+        <span class="spartrak-order-receipt__kind" aria-hidden="true"></span>
+
+        <span class="spartrak-order-receipt__name" dir="auto">
+            <?= $escaper->escapeHtml($transferView->getFileName($order)) ?>
+        </span>
+
+        <?php if ($viewUrl !== null): ?>
+            <?php /*
+              A new tab, because the shopper is mid-way through reading their
+              order and losing that page to look at their own screenshot would
+              be a poor trade. `rel="noopener"` regardless of the target being
+              our own route: it costs nothing and the rule should not have an
+              exception to remember.
+
+              The label is real text, visually hidden — an icon-only control
+              with no accessible name is announced as "link" and nothing else.
+            */ ?>
+            <a class="spartrak-order-receipt__view"
+               href="<?= $escaper->escapeUrl($viewUrl) ?>"
+               target="_blank"
+               rel="noopener">
+                <span class="spartrak-order-receipt__view-icon" aria-hidden="true"></span>
+                <span class="spartrak-visually-hidden">
+                    <?= $escaper->escapeHtml(__('View the picture of your transfer')) ?>
+                </span>
+            </a>
+        <?php endif; ?>
+    </div>
+</div>

@@ -146,6 +146,84 @@
       ours in the path, and any code already holding the shipping address can
       read it without a second lookup.
     -->
+    <!--
+      ===========================================================================
+      THE CONSIGNMENT - who is driving the shipment to the station
+      ===========================================================================
+      BUSINESS.md section 12: when the admin moves a `موقف` order to
+      `شحنتك في الطريق اليك`, they MUST supply the driver, the vehicle and the
+      two stations. That set of facts is what this table is.
+
+      WHY A TABLE AND NOT COLUMNS ON sales_order
+      ===========================================================================
+      Six columns on sales_order would be six columns that are null for every
+      home-delivery order in the system - which is most of them - and would put
+      a vehicle photograph path on the object every order-grid query loads.
+      A separate row exists only for the orders that have a driver.
+
+      It also gives the feature its own lifecycle. `سوبر جيت` (section 7,
+      question 1) is explicitly out of scope and will need DIFFERENT fields -
+      a bus company, a trip number, a departure time. When it is specified it
+      gets its own table alongside this one rather than four more always-null
+      columns on the order.
+
+      ONE ROW PER ORDER
+      ===========================================================================
+      A unique index on order_id, not just a foreign key. The admin fills this
+      once at the moment of dispatch; a second row would mean two drivers for
+      one shipment and no rule for which the storefront should print.
+
+      WHY THE STATIONS ARE STORED AS TEXT
+      ===========================================================================
+      `الي الموقف` is already on the order's shipping address as
+      spartrak_pickup_name - the depot the customer chose at checkout - and is
+      NOT duplicated here. `من الموقف` has no such source: section 4 states the
+      admin writes it per order because "it depends on which vehicle is going,
+      and from where", so it is deliberately free text rather than a foreign key
+      into spartrak_pickup_depot. A route table was considered and rejected by
+      the business, not by us.
+
+      The plate number is free text for the reason section 7 question 4 records:
+      a structured Egyptian plate input is undecided, and free text cannot
+      reject a real plate it has not been taught about.
+    -->
+    <table name="spartrak_pickup_consignment" resource="default" engine="innodb"
+           comment="Spartrak Pickup - driver and vehicle carrying an order to a station">
+        <column xsi:type="int" name="consignment_id" unsigned="true" nullable="false" identity="true"
+                comment="Consignment ID"/>
+        <column xsi:type="int" name="order_id" unsigned="true" nullable="false"
+                comment="Order this consignment belongs to"/>
+        <column xsi:type="varchar" name="driver_name" length="255" nullable="false"
+                comment="Driver name - اسم السائق"/>
+        <column xsi:type="varchar" name="driver_phone" length="32" nullable="false"
+                comment="Driver phone the customer calls to arrange handover - رقم هاتف السائق"/>
+        <column xsi:type="varchar" name="plate_number" length="64" nullable="false"
+                comment="Vehicle plate number as written by the admin - رقم لوحة العربية"/>
+        <column xsi:type="varchar" name="origin_station" length="255" nullable="false"
+                comment="Origin station, written per order by the admin - من الموقف"/>
+        <column xsi:type="varchar" name="vehicle_photo" length="255" nullable="false"
+                comment="Vehicle photograph, relative to the pickup media directory"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false"
+                default="CURRENT_TIMESTAMP" comment="Created At"/>
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false"
+                default="CURRENT_TIMESTAMP" comment="Updated At"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="consignment_id"/>
+        </constraint>
+        <!--
+          CASCADE, unlike this module's other foreign keys. A consignment has no
+          meaning without its order - it is not an independent record that could
+          be reassigned - so when an order is deleted the driver row goes with
+          it rather than being orphaned.
+        -->
+        <constraint xsi:type="foreign" referenceId="SPARTRAK_PICKUP_CONSIGNMENT_ORDER_ID_SALES_ORDER_ENTITY_ID"
+                    table="spartrak_pickup_consignment" column="order_id"
+                    referenceTable="sales_order" referenceColumn="entity_id" onDelete="CASCADE"/>
+        <constraint xsi:type="unique" referenceId="SPARTRAK_PICKUP_CONSIGNMENT_ORDER_ID">
+            <column name="order_id"/>
+        </constraint>
+    </table>
+
     <table name="quote_address">
         <column xsi:type="varchar" name="spartrak_pickup_type" nullable="true" length="16" comment="Spartrak pickup type - branch or depot"/>
         <column xsi:type="int" name="spartrak_pickup_id" unsigned="true" nullable="true" comment="Spartrak pickup location ID"/>

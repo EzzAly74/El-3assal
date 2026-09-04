@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<!--
+  The address dialog's contents — Figma 557:5173.
+
+  ===========================================================================
+  A <layout> ROOT, NOT A <page> ROOT — THIS IS WHY THE DIALOG WAS EMPTY
+  ===========================================================================
+  Controller\Address\Form returns a Layout result, and
+  Magento\Framework\View\Result\Layout::render() emits `$layout->getOutput()`,
+  which renders only the elements the layout registered as OUTPUT.
+
+  A `page_configuration` file declares its blocks inside <body>, and <body> is
+  part of the page structure that a PAGE result assembles. A Layout result has
+  no page structure, so nothing was ever marked for output — the handle
+  generated the block, the block was never rendered, and the response was a
+  zero-length body. Which is exactly what the dialog showed: correct chrome
+  from the modal widget, correct title, and nothing inside it.
+
+  `layout_generic.xsd` with a top-level <container name="root"> is the
+  fragment form: `root` is registered as the output element, so its children
+  render and nothing else does. No <html>, no header, no footer — just the
+  form, ready to be injected.
+
+  ===========================================================================
+  THE BLOCK IS CORE'S
+  ===========================================================================
+  Magento\Customer\Block\Address\Edit resolves which address is being edited,
+  applies the ownership check, restores posted data after a failed save
+  (`getAddressFormData`), and supplies the save URL and the default-address
+  flags. All machinery this feature would otherwise own a second copy of, so
+  the block is reused verbatim and only its template changes.
+
+  It keeps the name core gives it on its own handle, so anything referencing
+  the address form block by name — a third-party module adding a field — still
+  finds it here.
+-->
+<layout xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/layout_generic.xsd">
+    <container name="root">
+        <block class="Magento\Customer\Block\Address\Edit"
+               name="customer_address_edit"
+               template="Magento_Customer::address/spartrak-form.phtml"
+               cacheable="false">
+            <arguments>
+                <!--
+                  The governorate list, the configured country, and the readers
+                  for the two values that are not plain AddressInterface
+                  getters (the joined street text and the `additional_phone`
+                  custom attribute).
+                -->
+                <argument name="address_form" xsi:type="object">Spartrak\CustomerAccount\ViewModel\AddressForm</argument>
+            </arguments>
+
+            <!--
+              ===================================================================
+              THE FORM KEY HAS TO BE DECLARED HERE
+              ===================================================================
+              Core declares `formkey` on the `default` handle, and a Layout
+              result does not load `default`. So
+              `$block->getBlockHtml('formkey')` would find no such block and
+              return an EMPTY STRING: a form with no key, posting to a
+              CSRF-checked action, rejected every time with nothing in the
+              markup to show why.
+
+              Nested inside the form block on purpose. `getBlockHtml()`
+              resolves a name anywhere in the layout, so nesting costs nothing
+              — while a sibling inside `root` would be rendered in its own
+              right, emitting a stray hidden input outside the form.
+            -->
+            <block class="Magento\Framework\View\Element\FormKey" name="formkey"/>
+        </block>
+    </container>
+</layout>

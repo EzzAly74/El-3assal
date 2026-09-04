@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<!--
+  The success page shares the checkout's stylesheet.
+
+  components/_checkout.less carries the .checkout-onepage-success rules
+  alongside the step rules, so this handle enqueues the same file rather than
+  splitting a third bundle out for one page. See web/css/spartrak-checkout.less.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <css src="css/spartrak-checkout.css"/>
+    </head>
+    <body>
+        <!--
+          ===================================================================
+          POINTING THE BLOCK BACK AT THE TEMPLATE THIS THEME ACTUALLY OVERRIDES
+          ===================================================================
+          The theme's Magento_Checkout/templates/success.phtml was never being
+          rendered. Not a fallback problem, not a cache problem — the file was
+          byte-identical on the server, the theme resolved every other template
+          on the page, and a full cache:flush changed nothing.
+
+          Magento's own in-store-pickup module REPOINTS the block:
+
+              vendor/magento/module-inventory-in-store-pickup-frontend
+                  /view/frontend/layout/checkout_onepage_success.xml
+              <referenceBlock name="checkout.success"
+                              template="Magento_InventoryInStorePickupFrontend::success.phtml">
+
+          So `checkout.success` stopped asking for Magento_Checkout::success.phtml
+          altogether, and overriding that path could never take effect. Confirmed
+          with template path hints on the live success page, which named
+          .../module-inventory-in-store-pickup-frontend/.../success.phtml as the
+          file that produced "Your order number is: …".
+
+          This storefront does not use Magento's in-store pickup — collection
+          from a branch or depot is Spartrak_PickupLocation, a separate
+          implementation — so that template has nothing to contribute here and
+          Figma 554:12434 defines the page.
+
+          IT IS SET HERE, IN THE THEME, RATHER THAN IN Spartrak_Checkout, because
+          theme layout is merged after every module's. Fixing it module-side
+          would mean adding Magento_InventoryInStorePickupFrontend to that
+          module's <sequence> purely to win a merge order, which couples this
+          module to one that may be disabled. The theme always wins, and the
+          choice of template is presentation — the theme's own concern.
+
+          Only the template attribute is stated: layout merging is a deep merge,
+          so Spartrak_Checkout's `success_view_model` argument on this same block
+          survives untouched, which is what the template needs to render.
+        -->
+        <referenceBlock name="checkout.success" template="Magento_Checkout::success.phtml"/>
+    </body>
+</page>

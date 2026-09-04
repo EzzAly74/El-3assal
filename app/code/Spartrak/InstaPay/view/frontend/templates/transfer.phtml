@@ -14,10 +14,13 @@
  * page is reached mid-payment on whatever connection the shopper happens to be
  * on (CLAUDE.md section 4).
  *
- * The one script on the page is fifteen lines that echo the chosen file's name
- * back, so somebody can see their upload registered before they submit. Without
- * it a native file input in a styled dropzone gives no feedback at all. It is
- * progressive: with JavaScript off the form still submits and still works.
+ * The one script on the page draws a thumbnail of the file the shopper chose,
+ * so they can see WHICH screenshot is attached before they submit — a native
+ * file input in a clipped dropzone gives no feedback at all, and its name alone
+ * does not distinguish one banking screenshot from another. The preview is read
+ * straight out of the browser's own copy of the file; nothing is uploaded
+ * early. It is progressive: with JavaScript off the form still submits and
+ * still works. See web/js/proof-preview.js.
  *
  * @var \Magento\Framework\View\Element\Template $block
  * @var \Magento\Framework\Escaper $escaper
@@ -40,9 +43,21 @@ $inputId = 'spartrak-instapay-proof';
             <span class="spartrak-instapay__bar-title">
                 <?= $escaper->escapeHtml(__('Pay with InstaPay')) ?>
             </span>
-            <a class="spartrak-instapay__back"
-               href="<?= $escaper->escapeUrl($block->getUrl('checkout/onepage/success')) ?>"
-               aria-label="<?= $escaper->escapeHtmlAttr(__('Back')) ?>"></a>
+            <!--
+              Leaving without paying. This is a POST, not a link, because it
+              cancels the order and restores the basket - a GET would hand that
+              to every prefetcher and mail scanner that meets the page. It used
+              to point at checkout/onepage/success, which showed an unpaid order
+              as confirmed. See Controller/Transfer/Cancel.php.
+            -->
+            <form class="spartrak-instapay__abandon"
+                  action="<?= $escaper->escapeUrl($block->getUrl('spartrak_instapay/transfer/cancel')) ?>"
+                  method="post">
+                <?= $block->getBlockHtml('formkey') ?>
+                <button type="submit"
+                        class="spartrak-instapay__back"
+                        aria-label="<?= $escaper->escapeHtmlAttr(__('Cancel this payment and return to the basket')) ?>"></button>
+            </form>
         </div>
     </div>
 
@@ -103,40 +118,131 @@ $inputId = 'spartrak-instapay-proof';
                     <span class="spartrak-instapay__required" aria-hidden="true">*</span>
                 </label>
 
-                <!--
-                  Figma 586:13007 - a dashed 200px dropzone with a 12px radius.
-                  The <label> IS the drop target, so the whole panel is
-                  clickable natively and the real <input type="file"> keeps its
-                  keyboard behaviour instead of being replaced by a button that
-                  pretends.
-                -->
-                <label class="spartrak-instapay__dropzone" for="<?= $escaper->escapeHtmlAttr($inputId) ?>">
-                    <span class="spartrak-instapay__dropzone-icon" aria-hidden="true"></span>
-                    <span class="spartrak-instapay__dropzone-text">
-                        <span class="spartrak-instapay__dropzone-title">
-                            <?= $escaper->escapeHtml(__('Upload the picture of your transfer here.')) ?>
-                        </span>
-                        <span class="spartrak-instapay__dropzone-hint">
-                            <?= $escaper->escapeHtml(
-                                __(
-                                    'Accepted formats: %1. Up to %2 MB.',
-                                    $transfer->getAllowedFormatsLabel(),
-                                    $transfer->getMaxUploadMegabytes()
-                                )
-                            ) ?>
-                        </span>
-                    </span>
-                    <span class="spartrak-instapay__choose">
-                        <?= $escaper->escapeHtml(__('Choose a picture')) ?>
-                    </span>
+                <?php /*
+                  ===================================================================
+                  ONE SLOT, TWO STATES — EMPTY DROPZONE, THEN THE CHOSEN PICTURE
+                  ===================================================================
+                  The dropzone and the preview occupy the SAME place and are
+                  mutually exclusive: choosing a file replaces the dashed panel
+                  with the picture, and removing it puts the panel back. A
+                  preview stacked underneath a dropzone that still says "upload
+                  your transfer here" asks the shopper to work out which of the
+                  two is the truth.
+
+                  THE INPUT IS A SIBLING OF BOTH, not a child of the dropzone.
+                  It was inside the <label>, which read nicely and is a trap
+                  here: hiding the dropzone would hide a `required` input with
+                  it, and a hidden required control makes Chrome refuse the
+                  submit with "An invalid form control is not focusable" — no
+                  message, no visible cause. As a clipped sibling it is always
+                  in the layout, always submits, and both `<label for>`s below
+                  open it natively with no JavaScript at all.
+                */ ?>
+                <div class="spartrak-instapay__upload">
                     <input type="file"
                            id="<?= $escaper->escapeHtmlAttr($inputId) ?>"
                            name="proof"
                            class="spartrak-instapay__file"
                            required
                            accept="<?= $escaper->escapeHtmlAttr($transfer->getAcceptAttribute()) ?>"/>
-                </label>
-                <p class="spartrak-instapay__chosen" data-role="chosen" role="status"></p>
+
+                    <!--
+                      Figma 586:13007 - a dashed 200px dropzone with a 12px
+                      radius. A <label for>, so the whole panel is clickable
+                      natively and the real input keeps its keyboard behaviour
+                      instead of being replaced by a button that pretends.
+                    -->
+                    <label class="spartrak-instapay__dropzone"
+                           for="<?= $escaper->escapeHtmlAttr($inputId) ?>"
+                           data-role="dropzone">
+                        <span class="spartrak-instapay__dropzone-icon" aria-hidden="true"></span>
+                        <span class="spartrak-instapay__dropzone-text">
+                            <span class="spartrak-instapay__dropzone-title">
+                                <?= $escaper->escapeHtml(__('Upload the picture of your transfer here.')) ?>
+                            </span>
+                            <span class="spartrak-instapay__dropzone-hint">
+                                <?= $escaper->escapeHtml(
+                                    __(
+                                        'Accepted formats: %1. Up to %2 MB.',
+                                        $transfer->getAllowedFormatsLabel(),
+                                        $transfer->getMaxUploadMegabytes()
+                                    )
+                                ) ?>
+                            </span>
+                        </span>
+                        <span class="spartrak-instapay__choose">
+                            <?= $escaper->escapeHtml(__('Choose a picture')) ?>
+                        </span>
+                    </label>
+
+                    <?php /*
+                      THE CHOSEN PICTURE. Same 200px box as the dropzone it
+                      replaces, so nothing on the page moves when the shopper
+                      picks a file and the submit button stays exactly where
+                      their finger was already going.
+
+                      `role="status"` announces the choice without moving focus,
+                      and the file NAME is always in the DOM for that
+                      announcement even when the picture renders over it.
+
+                      TWO CONTROLS, AND THEY ARE DIFFERENT THINGS. "Choose
+                      another" is a <label for> — a second native trigger for
+                      the same input, no script. "Remove" has to clear
+                      `input.value`, which only JavaScript can do, so it is a
+                      real <button type="button"> that does nothing when script
+                      is unavailable rather than a dead link that looks live.
+
+                      Starts `hidden`, so with no JavaScript the shopper sees
+                      the ordinary dropzone and the form behaves as it always
+                      did.
+                    */ ?>
+                    <div class="spartrak-instapay__chosen" data-role="chosen" role="status" hidden>
+                        <figure class="spartrak-instapay__chosen-figure">
+                            <img class="spartrak-instapay__chosen-preview"
+                                 data-role="chosen-preview"
+                                 alt=""
+                                 decoding="async"
+                                 hidden>
+                            <!--
+                              Shown in the picture's place when the browser
+                              cannot decode the file — HEIC, which this module
+                              accepts because it is what an iPhone produces and
+                              which no desktop browser reads. The file is still
+                              attached and still valid; only the preview is
+                              unavailable, and saying that with the format's
+                              name is more use than an empty grey box.
+                            -->
+                            <figcaption class="spartrak-instapay__chosen-undecodable" data-role="chosen-undecodable" hidden>
+                                <span class="spartrak-instapay__chosen-undecodable-icon" aria-hidden="true"></span>
+                                <span><?= $escaper->escapeHtml(
+                                    __('Attached. This format cannot be previewed in the browser.')
+                                ) ?></span>
+                            </figcaption>
+                        </figure>
+
+                        <div class="spartrak-instapay__chosen-bar">
+                            <span class="spartrak-instapay__chosen-meta">
+                                <span class="spartrak-instapay__chosen-name" data-role="chosen-name"></span>
+                                <span class="spartrak-instapay__chosen-size" data-role="chosen-size" dir="ltr"></span>
+                            </span>
+
+                            <span class="spartrak-instapay__chosen-actions">
+                                <label class="spartrak-instapay__chosen-replace"
+                                       for="<?= $escaper->escapeHtmlAttr($inputId) ?>">
+                                    <?= $escaper->escapeHtml(__('Choose another')) ?>
+                                </label>
+                                <button type="button"
+                                        class="spartrak-instapay__chosen-remove"
+                                        data-role="chosen-remove">
+                                    <span class="spartrak-instapay__chosen-remove-icon" aria-hidden="true"></span>
+                                    <span class="spartrak-visually-hidden">
+                                        <?= $escaper->escapeHtml(__('Remove this picture')) ?>
+                                    </span>
+                                </button>
+                            </span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -155,9 +261,15 @@ $inputId = 'spartrak-instapay-proof';
 <script type="text/x-magento-init">
 {
     ".spartrak-instapay__card": {
-        "Spartrak_InstaPay/js/file-name": {
+        "Spartrak_InstaPay/js/proof-preview": {
             "inputSelector": "#<?= $escaper->escapeJs($inputId) ?>",
-            "outputSelector": "[data-role=chosen]"
+            "dropzoneSelector": "[data-role=dropzone]",
+            "chosenSelector": "[data-role=chosen]",
+            "previewSelector": "[data-role=chosen-preview]",
+            "undecodableSelector": "[data-role=chosen-undecodable]",
+            "nameSelector": "[data-role=chosen-name]",
+            "sizeSelector": "[data-role=chosen-size]",
+            "removeSelector": "[data-role=chosen-remove]"
         }
     }
 }

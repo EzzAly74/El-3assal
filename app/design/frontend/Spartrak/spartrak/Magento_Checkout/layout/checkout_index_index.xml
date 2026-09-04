@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!--
+  The checkout's stylesheet.
+
+  Enqueued here rather than in spartrak-components.css because that bundle is
+  render-blocking on every page and components/_checkout.less (~57KB
+  uncompiled) matches nothing outside this handle and
+  checkout_onepage_success. See web/css/spartrak-checkout.less for the full
+  rationale, and Spartrak_Checkout's own checkout_index_index.xml for the
+  component wiring — this file adds the asset only, so the two stay separable:
+  the module owns behaviour, the theme owns presentation (CLAUDE.md §7).
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <css src="css/spartrak-checkout.css"/>
+    </head>
+</page>

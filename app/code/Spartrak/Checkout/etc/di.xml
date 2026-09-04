@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  GLOBAL, NOT FRONTEND
+  ===========================================================================
+  ShippingInformationManagement::saveAddressInformation() is reached over the
+  REST API - the checkout's Knockout layer POSTs to
+  /rest/V1/carts/mine/shipping-information, which runs in the `webapi_rest`
+  area, NOT `frontend`. A plugin declared in etc/frontend/di.xml would never
+  fire on a real checkout while appearing to work in any test that called the
+  service directly. Spartrak_PickupLocation's etc/di.xml records the same
+  finding for the same method; this file exists so the billing copy shares it.
+
+  ===========================================================================
+  sortOrder 20: IT MUST FOLLOW ApplyPickupLocation
+  ===========================================================================
+  Spartrak\PickupLocation\Plugin\Checkout\ApplyPickupLocation runs at
+  sortOrder 10 and REPLACES the shipping address with the chosen branch or
+  depot. The billing copy has to see that final address, so it runs after.
+  Reversed, a pickup order would bill to the shopper's own address and ship to
+  the branch - two different addresses on an order the design says has one.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <type name="Magento\Checkout\Model\ShippingInformationManagement">
+        <plugin name="spartrak_checkout_use_shipping_as_billing"
+                type="Spartrak\Checkout\Plugin\Checkout\UseShippingAddressForBilling"
+                sortOrder="20"/>
+    </type>
+
+</config>

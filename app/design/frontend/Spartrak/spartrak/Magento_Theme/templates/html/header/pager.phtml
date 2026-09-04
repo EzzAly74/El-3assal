@@ -1,0 +1,87 @@
+<?php
+/**
+ * Spartrak — pagination (Figma 569:14143).
+ *
+ * Overrides Magento_Theme::html/pager.phtml, the template
+ * Magento\Theme\Block\Html\Pager renders. Porto does NOT override this file
+ * (verified), so the only thing being replaced here is core's.
+ *
+
+ *
+ * @var \Magento\Theme\Block\Html\Pager $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+if (!$block->getCollection() || $block->getLastPageNum() <= 1) {
+    // One page is not a pager. Rendering an empty shell would reserve height
+    // below the grid for a control with nothing to do.
+    return;
+}
+
+$currentPage = (int) $block->getCurrentPage();
+?>
+<div class="pages">
+    <strong class="label pages-label" id="paging-label"><?= $escaper->escapeHtml(__('Page')) ?></strong>
+
+    <ul class="items pages-items" aria-labelledby="paging-label">
+
+        <?php /*
+          DOM ORDER IS THE LAYOUT: [previous, numbers, next]. Under dir="rtl"
+          the first child lands on the RIGHT, which puts "السابق" on the right
+          and "التالي" on the left — exactly as Figma composes it — and mirrors
+          correctly for an LTR store with no second rule.
+        */ ?>
+        <?php if (!$block->isFirstPage()) : ?>
+            <li class="item pages-item-previous">
+                <a href="<?= $escaper->escapeUrl($block->getPreviousPageUrl()) ?>">
+                    <span class="pages-item-text"><?= $escaper->escapeHtml(__('Previous')) ?></span>
+                </a>
+            </li>
+        <?php else : ?>
+            <?php /*
+              An empty <li> rather than nothing at all. `justify-content:
+              space-between` needs three children to hold the numbers in the
+              middle; drop this and page 1 renders its numbers off-centre, and
+              the whole row jumps sideways as soon as the shopper reaches page
+              2. _plp.less sizes it with a :empty rule.
+            */ ?>
+            <li class="item pages-item-previous" aria-hidden="true"></li>
+        <?php endif; ?>
+
+        <li class="item pages-item-numbers">
+            <ol class="pages-numbers">
+                <?php foreach ($block->getPages() as $page) : ?>
+                    <li class="item<?= (int) $page === $currentPage ? ' current' : '' ?>">
+                        <?php if ((int) $page === $currentPage) : ?>
+                            <?php /*
+                              Not a link: it goes where you already are.
+                              aria-current is what tells assistive tech which
+                              one is active, since the design signals it with
+                              colour alone.
+                            */ ?>
+                            <strong class="page" aria-current="page">
+                                <?= $escaper->escapeHtml($page) ?>
+                            </strong>
+                        <?php else : ?>
+                            <a class="page"
+                               href="<?= $escaper->escapeUrl($block->getPageUrl($page)) ?>"
+                               aria-label="<?= $escaper->escapeHtmlAttr(__('Page %1', $page)) ?>">
+                                <?= $escaper->escapeHtml($page) ?>
+                            </a>
+                        <?php endif; ?>
+                    </li>
+                <?php endforeach; ?>
+            </ol>
+        </li>
+
+        <?php if (!$block->isLastPage()) : ?>
+            <li class="item pages-item-next">
+                <a href="<?= $escaper->escapeUrl($block->getNextPageUrl()) ?>">
+                    <span class="pages-item-text"><?= $escaper->escapeHtml(__('Next')) ?></span>
+                </a>
+            </li>
+        <?php else : ?>
+            <li class="item pages-item-next" aria-hidden="true"></li>
+        <?php endif; ?>
+    </ul>
+</div>

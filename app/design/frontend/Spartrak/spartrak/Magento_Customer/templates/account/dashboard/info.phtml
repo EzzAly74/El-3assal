@@ -1,76 +1,142 @@
 <?php
 /**
- * Spartrak override of Magento_Customer::account/dashboard/info.phtml.
+ * "حسابي" — the account information card, read state. Figma 562:10229.
  *
- * ONLY CHANGE FROM CORE: the email line. Core prints
- * $block->getCustomer()->getEmail() unconditionally (vendor/magento/
- * module-customer/view/frontend/templates/account/dashboard/info.phtml:19).
- * For a phone-registered customer that column holds a synthesized address —
- * see PlaceholderEmail — which the business requirement forbids ever showing to
- * the shopper. Everything else on this page (name, newsletter box, action
- * links, child blocks) is copied verbatim so nothing else regresses.
+ * ===========================================================================
+ * WHAT REPLACED WHAT
+ * ===========================================================================
+ * This was core's two-box dashboard with a Spartrak patch on the email line.
+ * It is now the card Figma draws: a 103px header carrying the page's heading
+ * and its one action, and a body of three labelled values.
+ *
+ * The two boxes it dropped are not lost. The newsletter box is a destination
+ * Figma removed from the rail (see customer_account.xml) and its page still
+ * works; the address box has a page of its own at customer/address.
+ *
+ * ===========================================================================
+ * WHY THE VALUES ARE <p> AND NOT DISABLED <input>
+ * ===========================================================================
+ * Figma draws them inside input-shaped boxes, and the temptation is to render
+ * readonly inputs so the shape comes for free. They are not inputs: nothing
+ * here submits, nothing here is focusable, and a readonly input in a tab order
+ * that leads nowhere is a worse experience for a keyboard user than static
+ * text. The box is drawn by the same `__band` wrapper the edit form uses, so
+ * the two states share one 48px frame; what differs is its fill (this state
+ * adds the `display` modifier, bg/surface-subtle per 562:16397, against the
+ * component's white default) and what sits inside it.
+ *
+ * It is also the cheaper DOM — three <p> against three <input> plus a <form>
+ * that would never post.
+ *
+ * ===========================================================================
+ * THE MISSING EMAIL
+ * ===========================================================================
+ * A phone-registered customer has a synthesised address in customer_entity
+ * which must never be shown (Spartrak_CustomerAuth's PlaceholderEmail).
+ * Profile::getEmail() returns null for those rows and the field prints "لم يتم
+ * إضافته" in the muted ramp instead.
+ *
+ * The standalone "[Add email]" link the previous revision of this template
+ * carried is folded into the card's own تعديل action, which lands on exactly
+ * the form that link pointed at. Two controls one line apart, leading to the
+ * same page, is not an affordance — it is a decision the shopper has to make
+ * twice.
+ *
+ * ===========================================================================
+ * THE PHONE IS READ-ONLY IN BOTH STATES
+ * ===========================================================================
+ * Deliberate, and the one place this card does not do what its edit state
+ * appears to offer. The phone number IS the sign-in identifier on this
+ * storefront (Spartrak_CustomerAuth), it is uniquely indexed, and the only
+ * verified paths that touch it are signup and password reset —
+ * Otp\Purpose has no third value. Letting it be changed from a form with no
+ * verification step would let a shopper point their own login at a number they
+ * do not control, and there is no Figma frame for a change-phone flow to build
+ * instead. Flagged rather than faked.
  *
  * @var \Magento\Customer\Block\Account\Dashboard\Info $block
- * @var \Spartrak\CustomerAuth\ViewModel\CustomerEmail $customerEmail
+ * @var \Magento\Framework\Escaper $escaper
  */
-$customerEmail = $block->getData('customer_email');
-$email = $block->getCustomer()->getEmail();
-$isPlaceholder = $customerEmail !== null && $customerEmail->isPlaceholder($email);
+
+use Spartrak\CustomerAccount\ViewModel\Profile;
+
+/** @var Profile|null $profile */
+$profile = $block->getData('profile');
+$email = $profile?->getEmail();
 ?>
-<div class="block block-dashboard-info">
-    <div class="block-title"><strong><?= $block->escapeHtml(__('Account Information')) ?></strong></div>
-    <div class="block-content">
-        <div class="box box-information">
-            <strong class="box-title">
-                <span><?= $block->escapeHtml(__('Contact Information')) ?></span>
-            </strong>
-            <div class="box-content">
-                <p>
-                    <?= $block->escapeHtml($block->getName()) ?><br>
-                    <?php if ($isPlaceholder): ?>
-                        <span class="spartrak-account-email spartrak-account-email--missing">
-                            <?= $block->escapeHtml(__('Email: Not added')) ?>
-                        </span>
-                        <a class="spartrak-account-email__add"
-                           href="<?= $block->escapeUrl($block->getUrl('customer/account/edit')) ?>">
-                            <?= $block->escapeHtml(__('Add email')) ?>
-                        </a>
-                    <?php else: ?>
-                        <?= $block->escapeHtml($email) ?>
-                    <?php endif; ?>
-                    <br>
+<div class="spartrak-account-card">
+    <div class="spartrak-account-card__header">
+        <div class="spartrak-account-card__heading">
+            <h1 class="spartrak-account-card__title"><?= $escaper->escapeHtml(__('My account')) ?></h1>
+            <p class="spartrak-account-card__subtitle">
+                <?= $escaper->escapeHtml(
+                    __('Edit or complete your account details, including how your data is secured.')
+                ) ?>
+            </p>
+        </div>
+        <a class="spartrak-account-card__action"
+           href="<?= $escaper->escapeUrl($block->getUrl('customer/account/edit')) ?>">
+            <span class="spartrak-account-card__action-icon" aria-hidden="true"></span>
+            <span><?= $escaper->escapeHtml(__('Edit')) ?></span>
+        </a>
+    </div>
+
+    <div class="spartrak-account-card__body">
+        <div class="spartrak-account-field">
+            <span class="spartrak-account-field__label" id="spartrak-account-name-label">
+                <?= $escaper->escapeHtml(__('User name')) ?>
+            </span>
+            <!--
+              The 48px band, on all three fields. Figma 562:16395 / 562:16465
+              / 562:16476 are the same "Text Input" component three times over
+              — the read state never differs from the edit state (562:17237)
+              in whether there is a box, only in its fill and its contents.
+              `--display` is that fill: bg/surface-subtle, measured on
+              562:16397, against 821:17288's white for the editable instance.
+            -->
+            <div class="spartrak-account-field__band spartrak-account-field__band--display">
+                <p class="spartrak-account-field__value" aria-labelledby="spartrak-account-name-label">
+                    <?= $escaper->escapeHtml($profile?->getName() ?? '') ?>
                 </p>
-                <?= $block->getChildHtml('customer.account.dashboard.info.extra'); ?>
-            </div>
-            <div class="box-actions">
-                <a class="action edit" href="<?= $block->escapeUrl($block->getUrl('customer/account/edit')) ?>">
-                    <span><?= $block->escapeHtml(__('Edit')) ?></span>
-                </a>
-                <a href="<?= $block->escapeUrl($block->getChangePasswordUrl()) ?>" class="action change-password">
-                    <?= $block->escapeHtml(__('Change Password')) ?>
-                </a>
             </div>
         </div>
-        <?php if ($block->isNewsletterEnabled()): ?>
-            <div class="box box-newsletter">
-                <strong class="box-title">
-                    <span><?= $block->escapeHtml(__('Newsletters')) ?></span>
-                </strong>
-                <div class="box-content">
-                    <p>
-                        <?php if ($block->getIsSubscribed()): ?>
-                            <?= $block->escapeHtml(__('You are subscribed to "General Subscription".')) ?>
-                        <?php else: ?>
-                            <?= $block->escapeHtml(__('You aren\'t subscribed to our newsletter.')) ?>
-                        <?php endif; ?>
-                    </p>
-                </div>
-                <div class="box-actions">
-                    <a class="action edit" href="<?= $block->escapeUrl($block->getUrl('newsletter/manage')) ?>">
-                        <span><?= $block->escapeHtml(__('Edit')) ?></span></a>
-                </div>
+
+        <div class="spartrak-account-field">
+            <span class="spartrak-account-field__label" id="spartrak-account-email-label">
+                <?= $escaper->escapeHtml(__('Email address')) ?>
+            </span>
+            <div class="spartrak-account-field__band spartrak-account-field__band--display">
+                <p class="spartrak-account-field__value<?= $email === null
+                        ? ' spartrak-account-field__value--empty'
+                        : '' ?>"
+                   aria-labelledby="spartrak-account-email-label">
+                    <?= $escaper->escapeHtml($email ?? __('Not added')) ?>
+                </p>
             </div>
-        <?php endif; ?>
-        <?= $block->getChildHtml('additional_blocks'); ?>
+        </div>
+
+        <div class="spartrak-account-field">
+            <span class="spartrak-account-field__label" id="spartrak-account-phone-label">
+                <?= $escaper->escapeHtml(__('Phone number')) ?>
+            </span>
+            <!--
+              One bordered band holding two segments, exactly as Figma draws it
+              (562:16478): the dialling code in its own boxed segment at the
+              reading start, the number beside it. DOM order is dial then
+              number, so an RTL row puts the code on the right and an LTR one
+              puts it on the left, with no second rule.
+            -->
+            <div class="spartrak-account-field__band spartrak-account-field__band--display">
+                <span class="spartrak-account-field__dial"><?= $escaper->escapeHtml(
+                    $profile?->getPhoneDialCode() ?? ''
+                ) ?></span>
+                <p class="spartrak-account-field__value" aria-labelledby="spartrak-account-phone-label">
+                    <?= $escaper->escapeHtml($profile?->getPhoneNational() ?? '') ?>
+                </p>
+            </div>
+        </div>
+
+        <?= $block->getChildHtml('customer.account.dashboard.info.extra') ?>
+        <?= $block->getChildHtml('additional_blocks') ?>
     </div>
 </div>

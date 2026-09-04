@@ -74,7 +74,23 @@ define([
         markers: function () {
             var markers = [{
                 code: 'cart',
-                title: $t('Shopping cart'),
+                /**
+                 * 'Shopping basket', NOT 'Shopping cart', and the difference is
+                 * not cosmetic. Figma labels this marker عربة التسوق (817:22383)
+                 * while it labels the cart PAGE سلة التسوق — two different words
+                 * for two different things.
+                 *
+                 * Magento keys translation on the source string alone, with no
+                 * context mechanism, so both could not share 'Shopping cart':
+                 * the cart page template already maps that key to سلة التسوق,
+                 * and the theme dictionary was silently shadowing this module's
+                 * own entry, printing the page's word on the step.
+                 *
+                 * 'Shopping basket' is not a new key — the theme dictionary
+                 * already carries it, already mapped to عربة التسوق, for exactly
+                 * this marker.
+                 */
+                title: $t('Shopping basket'),
                 // Behind us by definition: a shopper cannot be on the checkout
                 // page without having left the cart.
                 complete: true,

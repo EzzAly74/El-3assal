@@ -131,6 +131,7 @@
                 -->
                 <arguments>
                     <argument name="brand_navigation" xsi:type="object">Spartrak\Catalog\ViewModel\BrandNavigation</argument>
+                    <argument name="account_menu" xsi:type="object">Spartrak\CustomerAccount\ViewModel\AccountMenu</argument>
                 </arguments>
             </block>
         </referenceContainer>
@@ -190,16 +191,54 @@
             <block class="Magento\Framework\View\Element\Template" name="spartrak.auth_modal" template="Magento_Theme::html/login-modal.phtml" after="spartrak.mobile_nav_drawer">
                 <arguments>
                     <argument name="auth_config" xsi:type="object">Spartrak\CustomerAuth\ViewModel\AuthConfig</argument>
-                    <!--
-                      Where the modal may send a shopper after a successful
-                      sign-in. An ALLOWLIST of keys, never a URL from the
-                      request - see the view model for why that distinction
-                      is a security boundary rather than a style choice.
-                    -->
                     <argument name="post_login_destinations" xsi:type="object">Spartrak\CustomerAuth\ViewModel\PostLoginDestinations</argument>
                 </arguments>
             </block>
         </referenceContainer>
+
+        <!--
+          ===================================================================
+          THE BREADCRUMB MOVES INSIDE THE PAGE'S CONTENT BOX
+          ===================================================================
+          Figma 488:18402 pads the breadcrumb row by the page gutter, i.e. the
+          crumb starts on the same vertical line as the content below it.
+
+          Core puts the block in `page.top`, a child of `page.wrapper` that
+          sits OUTSIDE `main.content` - so the band spans the viewport and has
+          no relationship to the content column at all. On the live store the
+          crumb sat hard against the window edge on the PDP while the product
+          started ~190px in.
+
+          The obvious fix is to mirror the gutter in CSS. It does not hold:
+          this theme re-cuts `.page-main` PER PAGE and every page picks a
+          different box -
+
+            PLP / search   full width, 48 / 20 / 15  (components/_plp.less)
+            PDP            max 1440 + 48, 16 small   (components/_pdp.less)
+            cart           48, 16 small              (components/_cart.less)
+            account        48, max-inline-size none  (components/_account.less)
+            everything else Magento's own 1140 centred + 10
+
+          Mirroring that is five rules that must be kept in step by hand, and
+          the sixth page someone re-cuts silently breaks the crumb again.
+
+          So the block is MOVED into `columns.top` instead, which is declared
+          in Magento's own page_layout/empty.xml - the layout every other page
+          layout extends via `<update handle="empty"/>`, so it exists on every
+          page - and which sits INSIDE `main.content`. The breadcrumb now
+          inherits whatever box that page gave `.page-main`, automatically,
+          including for pages not written yet. `columns.top` declares no
+          htmlTag, so it emits no wrapper: the `.breadcrumbs` div becomes a
+          direct child of `.page-main` and nothing is added to the DOM.
+
+          `before="-"` puts it first in that container, above `page.main.title`
+          and the message area - which is the order Figma draws.
+
+          The block, its class and its template are untouched; core still
+          builds the crumbs and Magento_Catalog still adds the category path.
+          This only changes which container renders it.
+        -->
+        <move element="breadcrumbs" destination="columns.top" before="-"/>
 
     </body>
 </page>

@@ -43,5 +43,59 @@ class NumberFormatter extends \Magento\Framework\NumberFormatter
         $pattern = null
     ) {
         parent::__construct(Numbering::latin($locale), $style, $pattern);
+
+        if ($pattern === null) {
+            $this->restoreLocalePattern((string) $locale, (int) $style);
+        }
+    }
+
+    /**
+     * Put the currency symbol back where the locale actually wants it.
+     *
+     * ===================================================================
+     * THE NUMBERING KEYWORD SILENTLY MOVES THE CURRENCY SYMBOL
+     * ===================================================================
+     * MEASURED on this server (ICU 71.1), reading the patterns ICU itself
+     * chooses:
+     *
+     *     ar_EG@currency=EGP                 ->  #,##0.00 ¤     (symbol LAST)
+     *     ar_EG@currency=EGP;numbers=latn    ->  ¤ #,##0.00     (symbol FIRST)
+     *     en_US@currency=USD                 ->  ¤#,##0.00
+     *     en_US@currency=USD;numbers=latn    ->  ¤#,##0.00      (unchanged)
+     *
+     * So asking ICU for Latin digits in `ar_EG` also, as a side effect, flips
+     * the symbol to the front — which is how a price that should read
+     * "14,109.00 ج.م" started rendering as "ج.م 14,109.00". Figma puts the
+     * symbol after the number on every price node in the file, and so does
+     * ICU's own Arabic convention; the keyword was the only thing that changed
+     * it.
+     *
+     * This is therefore a REPAIR, not a design decision: the pattern is read
+     * from the locale as it was BEFORE the keyword was applied, and reinstated.
+     * `en_US` is unaffected because its two patterns are identical, so nothing
+     * here needs to know which languages put the symbol where — ICU is still
+     * the authority, it is just being asked the question in the right order.
+     *
+     * Skipped entirely when the caller supplied an explicit pattern: that is an
+     * instruction, and this class does not overrule instructions (the same rule
+     * Numbering::latin() follows for an explicit numbering system).
+     */
+    private function restoreLocalePattern(string $locale, int $style): void
+    {
+        if ($locale === '' || str_contains($locale, 'numbers=')) {
+            return;
+        }
+
+        // One extra formatter per distinct locale+style. Magento's own
+        // Directory\Model\Currency caches its formatters per locale and option
+        // set, so this runs a handful of times per request, not per price.
+        $native = new \NumberFormatter($locale, $style);
+        $nativePattern = $native->getPattern();
+
+        if ($nativePattern === false || $nativePattern === $this->getPattern()) {
+            return;
+        }
+
+        $this->setPattern($nativePattern);
     }
 }

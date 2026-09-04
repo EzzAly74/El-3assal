@@ -48,6 +48,7 @@ else has to change.
             <arguments>
                 <argument name="spartrak_meta_attributes" xsi:type="array">
                     <item name="unit_of_measure" xsi:type="string">attr_03d89377</item>
+                    <item name="pieces_per_pack" xsi:type="string">pieces_per_pack</item>
                 </argument>
             </arguments>
         </referenceBlock>

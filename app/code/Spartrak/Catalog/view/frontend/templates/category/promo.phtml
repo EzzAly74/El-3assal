@@ -1,0 +1,128 @@
+<?php
+/**
+ * Spartrak — category promo band, below the "تسوق بالمنتجات" tile rail.
+ *
+ * NOT A FIGMA COMPONENT. There is no frame between the rail and the product
+ * area in 488:10810; this is a business requirement built in the hero's own
+ * language rather than a new visual treatment. See Block\Category\Promo.
+ *
+ * ===========================================================================
+ * EXACTLY ONE IMAGE IS EVER DOWNLOADED
+ * ===========================================================================
+ * Same arrangement as the hero. LANGUAGE is resolved server-side (the store
+ * view is known before the response is written, and the attributes are
+ * SCOPE_STORE); VIEWPORT is resolved by <picture>, whose <source media> the
+ * browser evaluates BEFORE the preload scanner fetches anything. Three real
+ * states, all handled: both assets, desktop only, mobile only.
+ *
+ * ===========================================================================
+ * THE BOX IS RESERVED FROM THE FILE'S OWN HEADER
+ * ===========================================================================
+ * The hero reserves its band from Figma's 1440:318. This one has no designed
+ * ratio, so width/height come from the real image (read once per request, see
+ * the view model) and the browser derives the aspect ratio from them. Zero
+ * CLS at whatever shape the admin uploads, with no invented number.
+ *
+ * When they cannot be read — a remote URL, an SVG with no raster header — the
+ * attributes are simply absent and the stylesheet's own min-height reserves
+ * something rather than nothing.
+ *
+ * ===========================================================================
+ * THE BAND ITSELF IS THE CONTROL
+ * ===========================================================================
+ * The whole banner is a <button> that opens the quick-search dialog rendered
+ * below it. Not an <a>: it opens a dialog rather than navigating, so there is
+ * no destination for an anchor to carry.
+ *
+ * The band renders nothing at all when no image is set — canShow() below.
+ *
+ * alt="" when the admin left the field empty, which correctly marks the
+ * artwork as decorative. It is NOT filled with the category name: a banner
+ * advertising a discount is not "المحرك", and a plausible-but-wrong alt is
+ * worse for a screen-reader user than an honest empty one.
+ *
+ * @var \Spartrak\Catalog\Block\Category\Promo $block
+ */
+
+if (!$block->canShow()) {
+    return;
+}
+
+$desktopUrl = $block->getDesktopImageUrl();
+$mobileUrl = $block->getMobileImageUrl();
+$primaryUrl = $desktopUrl !== '' ? $desktopUrl : $mobileUrl;
+$hasDistinctMobile = $desktopUrl !== '' && $mobileUrl !== '' && $mobileUrl !== $desktopUrl;
+
+$dimensions = $block->getDesktopDimensions();
+
+/*
+ * The ALIAS ('quick_search', the layout's `as` attribute), not the block name.
+ * getChildHtml() resolves its argument through getChildName($alias), so
+ * passing the full 'spartrak.category.promo.quick_search' finds nothing and
+ * returns '' — which here would silently hide the button as well as the
+ * dialog, with no error to explain why.
+ */
+$dialogHtml = trim((string) $block->getChildHtml('quick_search'));
+?>
+<section class="spartrak-cat-promo">
+    <?php /*
+      THE BANNER IS THE BUTTON. No wrapper, no overlay, no conditions.
+
+      It opens the quick-search dialog rendered directly below it. Two earlier
+      shapes are gone and neither should come back:
+
+        - a separate "البحث السريع" CTA floated over the artwork. Its position
+          was a set of percentages measured off ONE Figma crop, so any other
+          upload put it somewhere arbitrary on the picture;
+        - a $isInteractive flag that swapped the tag between <button> and
+          <div> depending on whether the dialog had rendered. Two shapes for
+          one element meant two sets of styles and two code paths to keep in
+          step, for a case that does not arise on a real catalogue.
+
+      A <button>, NOT an <a> and not a div with a click handler:
+        - it opens a dialog rather than navigating, and <button> is the
+          element for "does something here";
+        - it is focusable and Enter/Space-activated with no extra code, which
+          a div would need role, tabindex and two key handlers to fake;
+        - type="button" is load-bearing even outside a form, so a future
+          wrapping form can never turn the banner into a submit.
+
+      The whole band still renders nothing at all when no image is set — that
+      guard is canShow() at the top of this file and is untouched.
+    */ ?>
+    <button type="button"
+            class="spartrak-cat-promo__frame"
+            data-quick-search-open
+            aria-haspopup="dialog"
+            <?php /*
+              The banner has no text of its own, so the accessible name comes
+              from here. The alt text describes the ARTWORK; this describes
+              what activating it does, which is what a screen-reader user
+              needs before pressing it.
+            */ ?>
+            aria-label="<?= $block->escapeHtmlAttr(__('Quick search')) ?>">
+        <picture class="spartrak-cat-promo__picture">
+            <?php if ($hasDistinctMobile) : ?>
+                <source media="<?= $block->escapeHtmlAttr($block->getMobileMedia()) ?>"
+                        srcset="<?= $block->escapeUrl($mobileUrl) ?>">
+            <?php endif; ?>
+            <img class="spartrak-cat-promo__image"
+                 src="<?= $block->escapeUrl($primaryUrl) ?>"
+                 alt="<?= $block->escapeHtmlAttr($block->getAlt()) ?>"
+                 <?php if ($dimensions !== null) : ?>
+                     width="<?= (int) $dimensions[0] ?>"
+                     height="<?= (int) $dimensions[1] ?>"
+                 <?php endif; ?>
+                 <?php /*
+                   Below the hero and below a rail, so below the fold on every
+                   viewport the design covers. Lazy and unprioritised on
+                   purpose: the hero is this page's LCP element and nothing
+                   here may compete with it (CLAUDE.md section 12).
+                 */ ?>
+                 loading="lazy"
+                 decoding="async">
+        </picture>
+    </button>
+
+    <?= /* @noEscape */ $dialogHtml ?>
+</section>

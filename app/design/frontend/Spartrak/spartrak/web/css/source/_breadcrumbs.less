@@ -1,0 +1,41 @@
+//  DELIBERATELY EMPTY — the Spartrak breadcrumb lives in
+//  web/css/source/components/_breadcrumbs.less (Figma 488:18402).
+//
+//  ===========================================================================
+//  WHY AN EMPTY OVERRIDE INSTEAD OF NO FILE AT ALL
+//  ===========================================================================
+//  This filename is Magento's breadcrumb slot: blank's `_styles.less` does
+//  `@import 'source/_breadcrumbs.less'`, and the theme fallback resolves it
+//  through spartrak_rtl -> spartrak -> porto_rtl / porto -> blank. Whichever
+//  copy it reaches FIRST is the only one compiled.
+//
+//  Deleting this file would therefore not remove Porto's breadcrumb — it would
+//  hand it straight back, because the fallback would carry on down the chain
+//  to porto/porto_rtl and compile theirs instead. An empty override is the
+//  only way to stop that partial emitting anything, which is the whole point:
+//  Porto drew the separator as an icon-FONT glyph, replaced the word "Home"
+//  with a house glyph via `text-indent: -9999px`, upper-cased every crumb and
+//  set the row to 0.75rem. Figma specifies none of that.
+//
+//  The sibling override in spartrak_rtl/web/css/source/_breadcrumbs.less is
+//  empty for the same reason and must stay that way — it is the one the Arabic
+//  store view actually reaches.
+//
+//  ===========================================================================
+//  AND WHY THE REPLACEMENT IS NOT HERE
+//  ===========================================================================
+//  A rule in this file compiles into styles-m.css and styles-l.css, where it
+//  has to share a cascade with Porto's own module LESS and win on import
+//  order — the fragile arrangement Magento_Theme/web/css/source/_extend.less
+//  documents at length. The component file has no such problem: it needs to
+//  outrank nothing, because with this partial silent there is nothing left to
+//  outrank, and it lives with the rest of the design system where the next
+//  person will look for it.
+//
+//  `@media-common` is not referenced here on purpose. This file is compiled
+//  only by `_styles.less`, which defines it; the guard is unnecessary in an
+//  empty file and its absence is what keeps this file safe to `@import` from
+//  anywhere. (An earlier revision of the Spartrak copy carried the guarded
+//  Porto rules AND was imported into spartrak-components.less, which defines
+//  no such variable — that broke `setup:static-content:deploy` outright:
+//  "variable @media-common is undefined ... in _breadcrumbs.less on line 10".)

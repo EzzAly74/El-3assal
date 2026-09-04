@@ -65,7 +65,39 @@
 -->
 <page layout="1column" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <!--
+      The cart's stylesheet, loaded here and nowhere else. It is NOT part of
+      spartrak-components.css on purpose: that bundle is render-blocking on
+      every page, and this file matches nothing outside this handle. See
+      web/css/spartrak-cart.less.
+    -->
+    <head>
+        <css src="css/spartrak-cart.css"/>
+    </head>
     <body>
+        <!--
+          THE BREADCRUMB. 553:4760 opens on the cart header — there is no trail
+          above it, and no `سلة التسوق` link back to the page the shopper is
+          already on. Removed rather than hidden: it is a block with a template
+          and a JS init, and none of it has anywhere to go from here.
+        -->
+        <referenceBlock name="breadcrumbs" remove="true"/>
+
+        <!--
+          THE PAGE TITLE. Core prints `سلة التسوق` in an <h1> above the columns.
+          Figma's cart opens on `عربة التسوق لديك` (553:4806), which the cart
+          FORM already renders as this page's <h1> — see
+          Magento_Checkout::cart/form.phtml.
+
+          So the two were not a design difference, they were two <h1> elements
+          on one document: a duplicate heading, a second landmark in the
+          accessibility tree, and a stack of Porto page-title margins above a
+          header the design draws flush. Core's is the one that goes, because
+          the surviving heading has to sit inside the cart column where Figma
+          puts it, not in a full-width band above both columns.
+        -->
+        <referenceBlock name="page.main.title" remove="true"/>
+
         <referenceContainer name="cart.summary">
             <!-- The grey ground that holds the ship-to row and the white card. -->
             <container name="spartrak.cart.summary.panel"
@@ -86,6 +118,20 @@
             </block>
         </referenceContainer>
 
+        <!--
+          The `الشحن الي` row needs the customer's default shipping address, and
+          the theme's cart/shipping.phtml reads it from here. An argument rather
+          than a helper call in the template, so the lookup and its failure
+          handling live in a class (CLAUDE.md §8) — see ViewModel\CartShipTo.
+        -->
+        <referenceBlock name="checkout.cart.shipping">
+            <arguments>
+                <argument name="ship_to_view_model" xsi:type="object">
+                    Spartrak\Checkout\ViewModel\CartShipTo
+                </argument>
+            </arguments>
+        </referenceBlock>
+
         <referenceContainer name="spartrak.cart.summary.panel">
             <!-- The white card: title, totals and the checkout CTA. -->
             <container name="spartrak.cart.summary.card"
@@ -95,15 +141,73 @@
         </referenceContainer>
 
         <!--
+          ===================================================================
+          POSITIONS ARE ABSOLUTE (`-`), NOT RELATIVE TO A SIBLING
+          ===================================================================
           The ship-to row first, then the card - the order Figma stacks them in.
           Moved rather than re-declared so each block keeps the arguments,
           jsLayout and child blocks core gave it.
+
+          Every one of these used to name a SIBLING - `after="checkout.cart
+          .summary.title"` and so on - and on the rendered page the column came
+          out in the wrong order: the totals and the CTA landed in the white
+          card, but the title fell to the BOTTOM of it and the estimator sat
+          below the card instead of above it.
+
+          The cause is that a relative position can only be honoured if the
+          element it names is already a child of the destination at the moment
+          the move is processed, and these moves are what PUT it there. Magento
+          resolves what it can and appends the rest, which is exactly the order
+          that showed up.
+
+          `before="-"` and `after="-"` mean first and last outright. They depend
+          on nothing, so the order is the same whatever sequence Magento
+          processes the moves in.
         -->
-        <move element="checkout.cart.shipping" destination="spartrak.cart.summary.panel"/>
-        <move element="checkout.cart.summary.title" destination="spartrak.cart.summary.card"/>
+        <move element="checkout.cart.shipping" destination="spartrak.cart.summary.panel" before="-"/>
+        <move element="checkout.cart.summary.title" destination="spartrak.cart.summary.card" before="-"/>
         <move element="checkout.cart.totals.container" destination="spartrak.cart.summary.card"
               after="checkout.cart.summary.title"/>
-        <move element="checkout.cart.methods.bottom" destination="spartrak.cart.summary.card"
-              after="checkout.cart.totals.container"/>
+        <move element="checkout.cart.methods.bottom" destination="spartrak.cart.summary.card" after="-"/>
+
+        <!--
+          ===================================================================
+          THREE CONTROLS FIGMA DOES NOT DRAW, REMOVED RATHER THAN HIDDEN
+          ===================================================================
+          Each one is a block with a template, and in two cases a child tree.
+          `display: none` would still build and render all of it and leave it in
+          the accessibility tree; `remove="true"` stops the layout before it is
+          instantiated.
+
+          THE COUPON FIELD. Figma's cart has no promo input - 553:4762 holds the
+          ship-to row, the totals card and the instalments panel and nothing
+          else. The coupon belongs to the CHECKOUT's summary column
+          (554:11386), where Spartrak_Checkout mounts it. Two places to enter
+          one code, one of which the design never drew, is a second answer to a
+          question the funnel already answers.
+
+          THE MULTI-ADDRESS LINK. `الدفع لعناوين متعددة`, rendered by
+          Magento_Multishipping into the CTA block. Figma draws one button under
+          the totals. Multi-address checkout is also declined by this store's
+          own payment method (see Spartrak_InstaPay's payment.xml), so the link
+          led somewhere InstaPay cannot follow.
+
+          MOVE TO WISHLIST. `نقل إلى المفضلة`, printed beside the bin on every
+          line. Figma's cart line (820:16560) has exactly two controls: the
+          remove button and the quantity. One entry per product TYPE, because
+          Magento_Wishlist declares the block once per renderer - a `remove` on
+          a name that does not exist is a no-op, so listing all of them is safe
+          and none can be missed.
+        -->
+        <referenceBlock name="checkout.cart.coupon" remove="true"/>
+        <referenceBlock name="checkout.cart.methods.multishipping" remove="true"/>
+
+        <referenceBlock name="checkout.cart.item.renderers.default.actions.move_to_wishlist" remove="true"/>
+        <referenceBlock name="checkout.cart.item.renderers.simple.actions.move_to_wishlist" remove="true"/>
+        <referenceBlock name="checkout.cart.item.renderers.virtual.actions.move_to_wishlist" remove="true"/>
+        <referenceBlock name="checkout.cart.item.renderers.grouped.actions.move_to_wishlist" remove="true"/>
+        <referenceBlock name="checkout.cart.item.renderers.bundle.actions.move_to_wishlist" remove="true"/>
+        <referenceBlock name="checkout.cart.item.renderers.downloadable.actions.move_to_wishlist" remove="true"/>
+        <referenceBlock name="checkout.cart.item.renderers.configurable.actions.move_to_wishlist" remove="true"/>
     </body>
 </page>

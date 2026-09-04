@@ -34,9 +34,14 @@
                     <label>Body</label>
                 </field>
 
-                <field id="note" translate="label" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
-                    <label>Footnote</label>
-                    <comment>The smaller line beneath the body, e.g. the providers available.</comment>
+                <field id="cta_label" translate="label" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Button label</label>
+                    <comment>The button beneath the body. Replaced the old footnote — the design's third line is a control, not a sentence.</comment>
+                </field>
+
+                <field id="cta_url" translate="label" type="text" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Button destination</label>
+                    <comment>Where the button goes — a full URL, or a store path such as instalments. Leave empty and the button renders but does nothing, which is the state to leave it in until the providers are signed.</comment>
                 </field>
             </group>
         </section>

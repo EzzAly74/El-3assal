@@ -15,8 +15,19 @@
             <module name="Spartrak_CustomerAuth"/>
             <!-- Tax: ViewModel\CartItemPricing consults the cart price-display
                  setting so the struck-through price shares a tax basis with the
-                 live price core renders beside it. -->
+                 live price core renders beside it.
+
+                 It is also load-bearing for the SUMMARY. Magento_Tax replaces
+                 the subtotal, shipping and grand-total components in its own
+                 checkout_index_index.xml and sets `title` on the grand total;
+                 this module points all three back at the theme's templates and
+                 overrides two of those titles, so its layout must merge after
+                 Tax's or Tax wins the key. -->
             <module name="Magento_Tax"/>
+            <!-- Weee: same summary block. Its `weee` total is pointed at the
+                 theme's generic totals row, so the node has to be declared
+                 before this module's layout amends it. -->
+            <module name="Magento_Weee"/>
             <!-- Sales: ViewModel\OrderSuccess reads the placed order — its
                  items, its payment and its shipping address. -->
             <module name="Magento_Sales"/>
@@ -26,6 +37,11 @@
                  is type-hinted in OrderSuccess's constructor, so DI must be able
                  to resolve it. -->
             <module name="Spartrak_PickupLocation"/>
+            <!-- CustomerAddress: Plugin\Checkout\AddressFormLayout type-hints
+                 Model\GovernorateOptions, which owns the governorate list this
+                 storefront's address forms share. Same hard requirement as
+                 PickupLocation above — DI has to resolve the class. -->
+            <module name="Spartrak_CustomerAddress"/>
         </sequence>
     </module>
 </config>

@@ -1,0 +1,175 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  THE MY ACCOUNT SHELL — every account page inherits this handle
+  ===========================================================================
+  Figma 562:10229 / 562:17527 / 562:18126. One rail on the reading side, one
+  card stack beside it, and the same four destinations everywhere.
+
+  It EXTENDS core's handle rather than replacing it: the block classes, their
+  names, their cacheable flags and the containers they sit in are all core's.
+  What changes is which links appear, in what order, and which templates render
+  them — the three things a design owns.
+
+  ===========================================================================
+  WHY THE COLLAPSIBLE WRAPPER IS RE-TEMPLATED, NOT REMOVED
+  ===========================================================================
+  Core wraps the navigation in `sidebar.main.account_nav`, a plain Template
+  block whose `Magento_Theme::html/collapsible.phtml` draws a title bar wired
+  to the `toggleAdvanced` widget. Figma's rail has a title and does not
+  collapse, and the mobile design replaces the rail with a scrolling tab strip
+  that does not collapse either.
+
+  Moving the navigation out and deleting the wrapper would work, but it makes
+  the sidebar's structure depend on whether layout applies <move> before
+  <referenceBlock remove> — an ordering question with no answer in the schema.
+  Re-templating is unconditional: the wrapper becomes the titled container
+  Figma draws, the navigation stays its child, and nothing depends on
+  processing order.
+
+  ===========================================================================
+  THE PAGE TITLE IS REMOVED
+  ===========================================================================
+  Core prints an <h1> above the columns ("My Account", "My Orders", …). Every
+  account frame in Figma carries its heading INSIDE the card, as the card
+  header (562:11026), because the heading and its explanatory line are part of
+  the card's own 103px band. Two headings would be two <h1>s on one page, which
+  is also an accessibility defect, so core's is dropped and each page's card
+  header carries the real one.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <!--
+          The account section's stylesheet, loaded here and therefore on every
+          account handle (each one does <update handle="customer_account"/>),
+          and nowhere else.
+
+          NOT folded into spartrak-components.css: that bundle is
+          render-blocking on the homepage, the PLP and the PDP, and this file
+          matches nothing outside /customer, /sales/order and /wishlist. Same
+          reasoning, and the same trade, as spartrak-cart.css — see
+          web/css/spartrak-account.less.
+        -->
+        <css src="css/spartrak-account.css"/>
+    </head>
+    <body>
+        <!--
+          A body class, so the stylesheet can scope the two-column geometry to
+          the account section without reaching for descendant selectors off
+          core's own layout classes. Core already sets `account`; this states
+          the Spartrak treatment is active.
+        -->
+        <attribute name="class" value="spartrak-account"/>
+
+        <referenceBlock name="page.main.title" remove="true"/>
+
+        <!-- The titled rail. See the header for why this block survives. -->
+        <referenceBlock name="sidebar.main.account_nav"
+                        template="Magento_Customer::account/navigation-shell.phtml"/>
+
+        <referenceBlock name="customer_account_navigation"
+                        template="Magento_Customer::account/navigation.phtml"/>
+
+        <!--
+          ===================================================================
+          THE FOUR LINKS FIGMA DRAWS, AND ONLY THOSE
+          ===================================================================
+          Each keeps core's own block, path and label. What is added is the
+          template that renders it and the `modifier` its icon is selected by;
+          what is changed is one sortOrder.
+
+          `remove="true"` on the rest rather than a hand-written list of four
+          links of our own: a merchant who enables product reviews or store
+          credit gets a link this file has an opinion about, in one place,
+          instead of a rail that silently cannot grow.
+        -->
+        <referenceBlock name="customer-account-navigation-account-link"
+                        template="Magento_Customer::account/link.phtml">
+            <arguments>
+                <argument name="modifier" xsi:type="string">account</argument>
+            </arguments>
+        </referenceBlock>
+
+        <referenceBlock name="customer-account-navigation-orders-link"
+                        template="Magento_Customer::account/link.phtml">
+            <arguments>
+                <argument name="modifier" xsi:type="string">orders</argument>
+                <!--
+                  The only link with a count beside it (Figma 562:11010). The
+                  view model is handed to the link rather than read from the
+                  template so the badge cannot appear on a link that has
+                  nothing to count.
+                -->
+                <argument name="badge_source" xsi:type="object">Spartrak\CustomerAccount\ViewModel\Navigation</argument>
+            </arguments>
+        </referenceBlock>
+
+        <referenceBlock name="customer-account-navigation-address-link"
+                        template="Magento_Customer::account/link.phtml">
+            <arguments>
+                <argument name="modifier" xsi:type="string">addresses</argument>
+                <!--
+                  190 in core, which puts it BELOW the wishlist (210). Figma's
+                  order is حسابي / طلباتي / عناويني / مفضلاتي, so addresses has
+                  to outrank the wishlist. 220 sits between orders (230) and
+                  the wishlist (210) and leaves both of those untouched — one
+                  changed number rather than four restated ones.
+                -->
+                <argument name="sortOrder" xsi:type="number">220</argument>
+            </arguments>
+        </referenceBlock>
+
+        <referenceBlock name="customer-account-navigation-wish-list-link"
+                        template="Magento_Customer::account/link.phtml">
+            <arguments>
+                <argument name="modifier" xsi:type="string">wishlist</argument>
+            </arguments>
+        </referenceBlock>
+
+        <!--
+          "تسجيل الخروج" (562:11021). Not a core account-navigation link —
+          Magento puts logout in the header only — so this is the one link
+          declared rather than referenced.
+
+          Magento\Customer\Block\Account\SortLinkInterface resolves to
+          Account\SortLink, i.e. the same class every other link in this rail
+          uses, so it inherits `isCurrent()`, the template contract and the
+          sorting. sortOrder 0 puts it last in a DESC sort; the stylesheet then
+          pins it to the bottom of the rail, which is where Figma draws it —
+          the two agree rather than one of them faking the other.
+        -->
+        <referenceBlock name="customer_account_navigation">
+            <block class="Magento\Customer\Block\Account\SortLinkInterface"
+                   name="spartrak-account-navigation-logout-link"
+                   template="Magento_Customer::account/link.phtml">
+                <arguments>
+                    <argument name="label" xsi:type="string" translate="true">Sign out</argument>
+                    <argument name="path" xsi:type="string">customer/account/logout</argument>
+                    <argument name="sortOrder" xsi:type="number">0</argument>
+                    <argument name="modifier" xsi:type="string">logout</argument>
+                </arguments>
+            </block>
+        </referenceBlock>
+
+        <!--
+          Destinations Figma does not draw. Each is a real Magento feature and
+          each stays fully functional at its own URL — only the rail entry
+          goes, because the design specifies exactly four.
+        -->
+        <referenceBlock name="customer-account-navigation-account-edit-link" remove="true"/>
+        <referenceBlock name="customer-account-navigation-newsletter-subscriptions-link" remove="true"/>
+        <referenceBlock name="customer-account-navigation-downloadable-products-link" remove="true"/>
+        <referenceBlock name="customer-account-navigation-product-reviews-link" remove="true"/>
+        <referenceBlock name="customer-account-navigation-billing-agreements-link" remove="true"/>
+        <referenceBlock name="customer-account-navigation-my-credit-cards-link" remove="true"/>
+        <referenceBlock name="paymob_payment_customer_saved_cards" remove="true"/>
+        <referenceBlock name="sale.reorder.sidebar" remove="true"/>
+
+        <!--
+          The two hairlines core draws between link groups. Figma's rail is one
+          evenly spaced list, so there are no groups to separate.
+        -->
+        <referenceBlock name="customer-account-navigation-delimiter-1" remove="true"/>
+        <referenceBlock name="customer-account-navigation-delimiter-2" remove="true"/>
+    </body>
+</page>

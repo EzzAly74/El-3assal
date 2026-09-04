@@ -1,0 +1,28 @@
+<?php
+/**
+ * The account rail's frame — Figma 562:11000.
+ *
+ * Replaces Magento_Theme::html/collapsible.phtml on `sidebar.main.account_nav`.
+ * See this theme's Magento_Customer/layout/customer_account.xml for why the
+ * wrapper block is re-templated instead of removed.
+ *
+ * <nav> rather than <div>: this is the page's secondary navigation, and the
+ * landmark is what lets a screen-reader user jump to it. The accessible name
+ * comes from the same heading a sighted user reads, via aria-labelledby, so the
+ * two cannot drift apart.
+ *
+ * On mobile the rail becomes a horizontally scrolling tab strip (Figma
+ * 689:19897) and the heading is hidden — the breadcrumb above it already says
+ * where the shopper is, so a second title would be noise on a 440px screen.
+ * That is a stylesheet concern; the markup is identical on both viewports.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+?>
+<nav class="spartrak-account-nav" aria-labelledby="spartrak-account-nav-title">
+    <h2 class="spartrak-account-nav__title" id="spartrak-account-nav-title">
+        <?= $escaper->escapeHtml(__('My profile')) ?>
+    </h2>
+    <?= $block->getChildHtml() ?>
+</nav>

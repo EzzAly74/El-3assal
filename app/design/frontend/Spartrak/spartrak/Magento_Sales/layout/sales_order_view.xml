@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  ONE ATTRIBUTE, AND IT IS WHY THIS PAGE RENDERED NOTHING AT ALL
+  ===========================================================================
+  Measured on the deployed store, 2026-09-03: /sales/order/view/order_id/41/
+  returned a page whose <body> carried
+
+      class="… sales-order-view page-layout-admin-2columns-left"
+
+  and which had NO `#maincontent` element. Not an empty main column — no main
+  column. Every block the storefront places into `main`, `content`,
+  `content.top` and `sidebar.main` was orphaned, so the page printed the
+  header, the footer, and a void between them.
+
+  THE CAUSE IS NOT IN THIS THEME AND NOT IN MAGENTO. It is
+  app/code/Paymob/Payment/view/frontend/layout/sales_order_view.xml, whose
+  root element reads
+
+      <page … layout="admin-2columns-left" …>
+
+  `admin-2columns-left` is Magento_Backend's page layout. Its containers are
+  the admin's (`header`, `left`, `content`, `footer`); it has no `main`. Paymob
+  only wants to add a payment-info block to `order_payment_additional` — the
+  layout attribute is a copy-paste from an adminhtml file and has nothing to do
+  with what that file is for. The same mistake is in its sales_order_print.xml,
+  which is why the print page is corrected in the sibling file here.
+
+  ===========================================================================
+  WHY THE FIX IS HERE AND NOT IN PAYMOB'S FILE
+  ===========================================================================
+  Paymob_Payment is third-party. Editing it works until the next update
+  replaces it, and Magento gives a supported way to have the last word: the
+  page layout is taken from the LAST merged file that declares one
+  (Magento\Framework\View\Model\Layout\Merge::_loadFileLayoutUpdatesXml), and
+  THEME layout files are collected after every module's. So this file wins
+  unconditionally — no <sequence> on a module we do not depend on, and no
+  guessing at module load order.
+
+  `2columns-left` is the value the page is supposed to have: it is what
+  Magento_Customer's own customer_account.xml declares, and sales_order_view
+  inherits that handle. This restores it rather than choosing something new —
+  Spartrak_CustomerAccount's sales_order_view.xml then collapses the empty rail
+  track with its own `no-rail` body class, exactly as it was already written to.
+
+  Nothing else belongs in this file. The page's blocks, its template and its
+  view models are Spartrak_CustomerAccount's; this repairs the frame they hang
+  in.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      layout="2columns-left"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd"/>

@@ -78,4 +78,42 @@ final class Numbering
 
         return $locale . (str_contains($locale, '@') ? ';' : '@') . self::KEYWORD;
     }
+
+    /**
+     * The same instruction, in BCP-47 form, for JavaScript.
+     *
+     * ===================================================================
+     * WHY A SECOND METHOD AND NOT A str_replace ON THE FIRST
+     * ===================================================================
+     * ICU's legacy keyword syntax (`ar_EG@numbers=latn`) is not valid BCP-47
+     * and `Intl.NumberFormat` / `Number.prototype.toLocaleString` reject it —
+     * they take the Unicode extension form instead:
+     *
+     *     ar-EG-u-nu-latn
+     *
+     * Magento hands a locale to the browser in exactly one place,
+     * Locale\LocaleFormatter::getLocaleJs(), which merely swaps the underscore
+     * for a hyphen. Anything client-side that formats a number with that string
+     * gets Arabic-Indic digits in `ar_EG` — the same defect as the server side,
+     * arriving by a different route.
+     *
+     * @param string|null $locale an ICU or BCP-47 locale, WITHOUT keywords
+     * @return string|null the BCP-47 locale pinned to Latin digits
+     */
+    public static function latinBcp47(?string $locale): ?string
+    {
+        if ($locale === null || $locale === '') {
+            return $locale;
+        }
+
+        $tag = str_replace('_', '-', $locale);
+
+        // Already carries a Unicode extension naming a numbering system — an
+        // explicit caller wins, exactly as in latin() above.
+        if (str_contains($tag, '-u-') && str_contains($tag, 'nu-')) {
+            return $tag;
+        }
+
+        return $tag . (str_contains($tag, '-u-') ? '-nu-latn' : '-u-nu-latn');
+    }
 }

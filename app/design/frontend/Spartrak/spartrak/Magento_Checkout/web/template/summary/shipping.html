@@ -1,6 +1,6 @@
 <!--
 /**
- * Spartrak shipping row - Figma 551:11182.
+ * Spartrak shipping row - Figma 551:11182 / 551:11185 (`مصاريف الشحن`).
  *
  * Free shipping renders in `text/success` with the `(مجانا)` suffix, which is
  * the carrier's own rate title as Spartrak_Shipping builds it - not a string
@@ -9,6 +9,24 @@
  * The `isCalculated()` branch is core's and is kept: before a shipping method
  * is chosen there is no amount, and printing a stale or zero figure there
  * would be a lie about what the shopper is about to pay.
+ *
+ * ===========================================================================
+ * WHAT IS DELIBERATELY NOT HERE: getShippingMethodTitle()
+ * ===========================================================================
+ * Core prints the chosen carrier and method under the label - the
+ * `SpareTrak - شحن اكسبريس` second line. Figma's row (551:11183) is one line,
+ * label and amount, and the method the shopper picked is already on screen as
+ * a selected card in the step beside it. Repeating it inside the totals stack
+ * is the only thing in this card that wraps to two lines, and it breaks the
+ * 24px row rhythm every other total keeps.
+ *
+ * ===========================================================================
+ * THE COMPONENT IS MAGENTO_TAX'S
+ * ===========================================================================
+ * Magento_Tax replaces it on the checkout page and this file is reached
+ * because Spartrak_Checkout's layout names it back as that component's
+ * `template`. `spartrakValue()` resolves the tax display mode to the single
+ * figure this row draws - see js/view/summary/shipping-mixin.js.
  */
 -->
 <!-- ko if: quoteIsVirtual == 0 -->
@@ -16,10 +34,10 @@
      data-bind="css: { 'spartrak-total--free': spartrakIsFree() }">
     <span class="spartrak-total__label" data-bind="i18n: title"></span>
     <!-- ko if: isCalculated() -->
-    <span class="spartrak-total__value" data-bind="text: getValue()"></span>
+    <span class="spartrak-total__value" data-bind="text: spartrakValue()"></span>
     <!-- /ko -->
     <!-- ko ifnot: isCalculated() -->
-    <span class="spartrak-total__value spartrak-total__value--pending" data-bind="text: getValue()"></span>
+    <span class="spartrak-total__value spartrak-total__value--pending" data-bind="text: spartrakValue()"></span>
     <!-- /ko -->
 </div>
 <!-- /ko -->

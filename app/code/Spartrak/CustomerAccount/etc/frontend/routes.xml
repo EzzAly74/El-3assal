@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!--
+  One frontend route, for the account actions Magento does not ship.
+
+  Its own front name rather than extending `customer`: adding actions to
+  Magento_Customer's router would put Spartrak controllers behind core's URL
+  namespace, where a future core action of the same name would collide with
+  ours silently. `spartrak_account/address/setDefault` says who owns it.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:App/etc/routes.xsd">
+    <router id="standard">
+        <route id="spartrak_account" frontName="spartrak_account">
+            <module name="Spartrak_CustomerAccount"/>
+        </route>
+    </router>
+</config>

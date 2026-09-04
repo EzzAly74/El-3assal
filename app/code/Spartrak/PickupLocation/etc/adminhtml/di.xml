@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<!--
+  Save buttons for the three pickup forms.
+
+  Block\Adminhtml\Button\SaveButton carries all the behaviour; the entities
+  differ only in which form the button drives and what it is called. That is
+  the same reasoning etc/di.xml gives for the grid collections: a real class
+  per entity would be boilerplate with no behaviour of its own.
+
+  The formNamespace values must stay in step with the <namespace> in each
+  view/adminhtml/ui_component/spartrak_pickup_*_form.xml.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <virtualType name="Spartrak\PickupLocation\Block\Adminhtml\Button\BranchSaveButton"
+                 type="Spartrak\PickupLocation\Block\Adminhtml\Button\SaveButton">
+        <arguments>
+            <argument name="formNamespace" xsi:type="string">spartrak_pickup_branch_form</argument>
+            <argument name="label" xsi:type="string">Save Branch</argument>
+        </arguments>
+    </virtualType>
+
+    <virtualType name="Spartrak\PickupLocation\Block\Adminhtml\Button\DepotSaveButton"
+                 type="Spartrak\PickupLocation\Block\Adminhtml\Button\SaveButton">
+        <arguments>
+            <argument name="formNamespace" xsi:type="string">spartrak_pickup_depot_form</argument>
+            <argument name="label" xsi:type="string">Save Depot</argument>
+        </arguments>
+    </virtualType>
+
+    <virtualType name="Spartrak\PickupLocation\Block\Adminhtml\Button\OperatorSaveButton"
+                 type="Spartrak\PickupLocation\Block\Adminhtml\Button\SaveButton">
+        <arguments>
+            <argument name="formNamespace" xsi:type="string">spartrak_pickup_operator_form</argument>
+            <argument name="label" xsi:type="string">Save Operator</argument>
+        </arguments>
+    </virtualType>
+
+</config>

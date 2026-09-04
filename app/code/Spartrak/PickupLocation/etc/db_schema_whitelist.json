@@ -80,5 +80,23 @@
             "spartrak_pickup_name": true,
             "spartrak_pickup_address": true
         }
+    },
+    "spartrak_pickup_consignment": {
+        "column": {
+            "consignment_id": true,
+            "order_id": true,
+            "driver_name": true,
+            "driver_phone": true,
+            "plate_number": true,
+            "origin_station": true,
+            "vehicle_photo": true,
+            "created_at": true,
+            "updated_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "SPARTRAK_PICKUP_CONSIGNMENT_ORDER_ID_SALES_ORDER_ENTITY_ID": true,
+            "SPARTRAK_PICKUP_CONSIGNMENT_ORDER_ID": true
+        }
     }
 }

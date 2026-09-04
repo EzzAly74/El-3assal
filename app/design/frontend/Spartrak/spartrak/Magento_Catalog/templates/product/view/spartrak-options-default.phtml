@@ -1,0 +1,80 @@
+<?php
+/**
+ * Spartrak — default body for the PDP "خيارات المنتج" card.
+ *
+ * Figma 526:23403 (desktop) / 650:33662 (mobile). Text copied verbatim from
+ * Figma, which exists in Arabic only.
+ *
+ * WHY THIS FILE EXISTS. The card's body is merchant CONTENT and belongs in a
+ * CMS block (CLAUDE.md section 7) — spartrak-options.phtml still looks for
+ * `spartrak_pdp_product_options` FIRST and this file only renders when that
+ * block is absent for the current store view. So it is a floor, not a
+ * replacement: create the block for a store view and it takes over with no
+ * code change. That is also the English path — an English-scoped CMS block
+ * serves /en/ while /ar/ keeps falling through to the Arabic text below.
+ *
+ * UNTIL such a block exists, /en/ renders this Arabic copy. That is a content
+ * gap, not a bug in this file; the English wording is still owed.
+ *
+ * The three section icons are NOT here. _pdp.less attaches them to the
+ * `spartrak-opt--shipping/--payment/--returns` class names as background
+ * images, so the Figma assets stay under design ownership. Do not add <img>
+ * icons to this markup.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ */
+
+// Payment marks live in pub/media because they are merchant content — the set
+// changes with the store's payment setup, and a merchant replaces one by
+// re-uploading, not by a deploy. getBaseUrl() is used rather than the
+// {{media url=}} directive because directives are only parsed in CMS content,
+// never in a .phtml. NOTE: this resolves media under the store's base URL; if
+// media is ever moved to a separate CDN host, this needs the store's media
+// base URL instead.
+$payBase = '/media/wysiwyg/spartrak/payment/';
+
+// DOM order is the LOGICAL order (first = Visa), not the visual one. Under RTL
+// the flex row starts at the inline-end, so this renders left-to-right as
+// valU, Apple Pay, InstaPay, Mastercard, Visa — exactly as Figma draws it —
+// and mirrors correctly on an LTR store view without a second list. Do not
+// "fix" this into visual order; that would break one direction or the other.
+$payMethods = [
+    ['file' => 'visa.png',       'alt' => 'Visa'],
+    ['file' => 'mastercard.png', 'alt' => 'Mastercard'],
+    ['file' => 'instapay.png',   'alt' => 'InstaPay'],
+    ['file' => 'apple-pay.png',  'alt' => 'Apple Pay'],
+    ['file' => 'valu.png',       'alt' => 'valU'],
+];
+?>
+<div class="spartrak-opt spartrak-opt--shipping">
+    <div class="spartrak-opt__body">
+        <strong><?= $block->escapeHtml(__('Shipping & Delivery')) ?></strong>
+        <p><?= $block->escapeHtml(__('Free shipping within the Republic. Your order will arrive within 7-10 days. Subject to exchange and return policies.')) ?></p>
+    </div>
+</div>
+
+<div class="spartrak-opt spartrak-opt--payment">
+    <div class="spartrak-opt__body">
+        <strong><?= $block->escapeHtml(__('Available payment options')) ?></strong>
+        <ul class="spartrak-pdp__pay-methods">
+            <?php foreach ($payMethods as $payMethod): ?>
+                <li>
+                    <img src="<?= $block->escapeUrl($payBase . $payMethod['file']) ?>"
+                         alt="<?= $block->escapeHtmlAttr($payMethod['alt']) ?>"
+                         width="28" height="28" loading="lazy" decoding="async">
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+</div>
+
+<div class="spartrak-opt spartrak-opt--returns">
+    <div class="spartrak-opt__body">
+        <strong><?= $block->escapeHtml(__('Warranty and Returns')) ?></strong>
+        <ul>
+            <li><?= $block->escapeHtml(__('30 days free exchange and return.')) ?></li>
+            <li><?= $block->escapeHtml(__('2-year warranty against manufacturing defects.')) ?></li>
+            <li><?= $block->escapeHtml(__('The product must be in its original condition and without any defects.')) ?></li>
+        </ul>
+    </div>
+</div>

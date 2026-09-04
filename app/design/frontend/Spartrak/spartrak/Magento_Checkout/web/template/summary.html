@@ -7,15 +7,35 @@
  * measured off the frame, where the inner container's 664px height is exactly
  * 24 + 26 + 28 + 486 + 28 + 48 + 24.
  *
- * `blockLoader: isLoading` is kept from core. It is what dims this column while
- * totals are being recollected after a coupon or a shipping change, and it
- * renders through the project's global loader (see _loader.less), so removing
- * it would lose the only feedback the summary gives during a totals refresh.
+ * ===========================================================================
+ * CORE'S `blockLoader: isLoading` IS DROPPED, AND IT IS NOT A LOSS OF FEEDBACK
+ * ===========================================================================
+ * It was kept in the first pass on the argument that it was the only signal
+ * during a totals refresh. Watched on the live checkout, it is not the only
+ * one — it is the second or third:
+ *
+ *   apply / remove a coupon   Magento_SalesRule's set-coupon-code and
+ *                             cancel-coupon both drive full-screen-loader, so
+ *                             the page-level modal is already up when this
+ *                             column starts recollecting.
+ *   continue to payment       shipping-save-processor/default does the same.
+ *   change address or rate    the shipping-method step shows its own loader,
+ *                             which is where the shopper is looking.
+ *
+ * So every path that sets `isLoading` here already paints an overlay somewhere
+ * the shopper can see, and this one added a second dimmed panel on top of it.
+ * Figma draws one processing state for the whole checkout (554:11231) and no
+ * loading treatment on this card at all — which is also CLAUDE.md §10: the
+ * loader is one global thing, not one per surface.
+ *
+ * Nothing about Magento's loading BEHAVIOUR changed: `totals.isLoading` is
+ * still set and cleared exactly as before, and any other consumer of it still
+ * sees it. Only this card stopped rendering a mask for it.
  */
 -->
-<div class="opc-block-summary spartrak-summary" data-bind="blockLoader: isLoading">
-    <div class="spartrak-summary__inner">
-        <!--
+<div class="opc-block-summary spartrak-summary">
+  <div class="spartrak-summary__inner">
+    <!--
           `Order summary`, not `Order details`.
 
           The desktop frame (551:11109) labels this card `تفاصيل الطلب` and the
@@ -24,9 +44,9 @@
           one string is used - and it is the mobile one, because the CART's
           summary card uses the same words and a shopper meets that first.
         -->
-        <p class="spartrak-summary__title" data-bind="i18n: 'Order summary'"></p>
+    <p class="spartrak-summary__title" data-bind="i18n: 'Order summary'"></p>
 
-        <!--
+    <!--
           `elems()` renders EVERY child of the summary, whatever displayArea it
           declares - the item list, the totals, and the CTA alike.
 
@@ -40,8 +60,8 @@
           this column orders itself, and is the value a merchant's own
           "Checkout Totals Sort Order" setting already speaks to.
         -->
-        <!-- ko foreach: elems() -->
-        <!-- ko template: getTemplate() --><!-- /ko -->
-        <!-- /ko -->
-    </div>
+    <!-- ko foreach: elems() -->
+    <!-- ko template: getTemplate() --><!-- /ko -->
+    <!-- /ko -->
+  </div>
 </div>

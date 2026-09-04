@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  THE INSTAPAY ROW SHIPS WITH ITS BRAND MARK
+  ===========================================================================
+  Model\PresentationCatalog reads checkout/spartrak_payment/rows and returns []
+  when it is unset. Until now nothing set it, so a freshly installed store
+  rendered every payment row as a bare Magento title with no artwork — which is
+  what Figma 554:10500 draws a mark on, and what a shopper uses to recognise
+  the method at a glance.
+
+  A DEFAULT, NOT A HARDCODED VALUE. It seeds core_config_data on install and is
+  editable at Stores > Configuration > Sales > Checkout > Payment row
+  presentation, per store view. The same reasoning as
+  Spartrak_CustomerAddress's optional_zip_countries default.
+
+  `spartrak_instapay` is the method code declared in Spartrak_InstaPay's own
+  etc/payment.xml — not a guess. `instapay` is the key of the mark in
+  Model\BrandMarks, which resolves it to
+  view/frontend/web/images/payment/instapay.png, the asset exported from Figma
+  at its original colours.
+
+  ===========================================================================
+  WHY ONLY THIS ONE ROW
+  ===========================================================================
+  Figma's payment step (551:11313) draws four rows: bank card, e-wallets,
+  InstaPay and instalments. Only two payment methods actually exist in this
+  codebase to attach them to — `spartrak_instapay` and `paymob_payment` — and
+  which of Figma's rows the Paymob method represents depends on how that
+  gateway is configured for the merchant, so guessing it here would put card
+  marks on a wallet row. The wallet and instalment rows have no method at all
+  yet. Those get added as rows when their methods are enabled; seeding a row
+  for a code that does not exist would be dead configuration.
+
+  ===========================================================================
+  NO `description` HERE, DELIBERATELY
+  ===========================================================================
+  Figma gives each row a line of copy ("إدفع بسهولة ولحظيا" for this one). A
+  config.xml default is a single global string that is NOT run through __(),
+  so seeding it would print Arabic copy on the English store view too. Copy is
+  store-view content and belongs in the admin field, per store view — the same
+  content/presentation split as CLAUDE.md section 7. The brand mark is an
+  asset, not copy, so it is safe to default.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <checkout>
+            <spartrak_payment>
+                <rows><![CDATA[{"spartrak_instapay":{"method":"spartrak_instapay","brands":["instapay"],"description":""}}]]></rows>
+            </spartrak_payment>
+        </checkout>
+    </default>
+</config>

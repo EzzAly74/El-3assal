@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WHY THE RECEIPT PREVIEW NEEDS THIS, AND WHY IT IS NOT A WEAKENING
+
+  ===========================================================================
+  THE SYMPTOM
+  ===========================================================================
+  On the transfer page the shopper chose `images.jpg`, and instead of a
+  thumbnail they got the file NAME — the fallback web/js/proof-preview.js falls
+  back to when the browser cannot decode the file. The file was a perfectly
+  ordinary JPEG.
+
+  MEASURED on the deployed store rather than guessed. Two facts:
+
+    1. the response carries an ENFORCED `Content-Security-Policy` header (there
+       is no `-Report-Only` variant, so Magento's `csp/mode/storefront/
+       report_only` has been switched off on this store);
+    2. its `img-src` directive reads, in full:
+           img-src <third-party hosts…> data: 'self' 'unsafe-inline'
+       — `data:` is allowed and `blob:` is NOT.
+
+  `URL.createObjectURL(file)` hands the <img> a `blob:` URL. With `blob:` absent
+  from `img-src` the browser refuses to fetch it and fires `error` on the
+  element, which is exactly the branch that prints the file name. So the preview
+  was working as written and being blocked by policy.
+
+  ===========================================================================
+  WHY `blob:` AND NOT A DATA URL
+  ===========================================================================
+  `FileReader.readAsDataURL()` would sidestep this, because `data:` is already
+  allowed. It was rejected: base64 inflates the bytes by a third, and this
+  module accepts uploads up to 10 MB (Model\ProofStorage::MAX_BYTES) — so a
+  shopper photographing their banking app would have a ~13 MB string built in
+  memory to draw a 96px square. An object URL is a handle to bytes the browser
+  is already holding and costs nothing.
+
+  ===========================================================================
+  IT DOES NOT LOOSEN THE POLICY IN ANY MEANINGFUL SENSE
+  ===========================================================================
+  `data:` is already on this list, and it is the strictly more dangerous of the
+  two: a `data:` URL carries its own arbitrary payload, so injected markup can
+  conjure one out of nothing. A `blob:` URL can only ever reference something
+  SAME-ORIGIN SCRIPT ALREADY CREATED in this document — there is no way to
+  author one from injected markup alone, and it dies with the document. Adding
+  it beside `data:` adds no capability an attacker did not already have, and it
+  touches `img-src` only: script, frame, connect and form-action are untouched.
+
+  ===========================================================================
+  THE FALLBACK STAYS
+  ===========================================================================
+  This file fixes the store whose CSP Magento generates. It cannot fix one whose
+  header is written by a reverse proxy or a CDN, and it will never fix HEIC —
+  which this module accepts because it is what an iPhone produces, and which no
+  desktop browser decodes. proof-preview.js therefore keeps showing the file
+  name whenever the <img> reports `error`, for both of those reasons.
+-->
+<csp_whitelist xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Csp:etc/csp_whitelist.xsd">
+    <policies>
+        <policy id="img-src">
+            <!--
+              `type="host"` because that is the only value type the schema has
+              besides `hash`, and Magento renders host sources into the
+              directive verbatim (Model\Policy\FetchPolicy::getHostSources()).
+              A scheme-source is valid in that position per the CSP grammar.
+            -->
+            <values>
+                <value id="spartrak_instapay_object_url" type="host">blob:</value>
+            </values>
+        </policy>
+    </policies>
+</csp_whitelist>

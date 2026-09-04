@@ -25,14 +25,16 @@
  * setup — so they are `<img>` tags in the CMS block pointing at media the
  * merchant uploads, not theme assets.
  *
- * RENDERS NOTHING until the block exists, rather than showing an empty
- * bordered box. Create it at Content > Blocks with identifier:
+ * The CMS block is looked up FIRST, at Content > Blocks with identifier:
  *
  *     spartrak_pdp_product_options
  *
- * and the markup contract documented in this theme's README note. The store
- * scope makes it per-store-view automatically, which is what a bilingual
- * storefront needs.
+ * Its store scope makes it per-store-view automatically, which is what a
+ * bilingual storefront needs. When no such block exists for the current store
+ * view, spartrak-options-default.phtml supplies the body instead — see that
+ * file for why. So the card never renders as an empty bordered box, and a
+ * merchant who creates the block takes ownership of the wording back with no
+ * code change.
  *
  * @var \Magento\Catalog\Block\Product\View $block
  */
@@ -55,6 +57,17 @@ try {
     // note in Mageplaza_LayeredNavigation/templates/layer/filter.phtml for
     // why an \Error can reach this point.
     $cardHtml = '';
+}
+
+// No block for this store view (or a broken one) — fall back to the theme's
+// own copy rather than dropping the card. setTemplate() is required: a bare
+// Template block has none and renders empty. See the note in
+// spartrak-pdp.phtml for the bug that caused.
+if (trim($cardHtml) === '') {
+    $cardHtml = (string) $block->getLayout()
+        ->createBlock(\Magento\Framework\View\Element\Template::class)
+        ->setTemplate('Magento_Catalog::product/view/spartrak-options-default.phtml')
+        ->toHtml();
 }
 
 if (trim($cardHtml) === '') {

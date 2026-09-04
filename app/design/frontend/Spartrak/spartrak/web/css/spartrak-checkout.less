@@ -1,0 +1,27 @@
+// Spartrak checkout — entry point.
+//
+// Compiled as its own stylesheet and enqueued ONLY on checkout_index_index and
+// checkout_onepage_success. See spartrak-cart.less for the full rationale
+// behind splitting the funnel out of the global bundle; components/_checkout.less
+// is the larger of the two at ~57KB uncompiled and matches nothing outside
+// those two handles.
+//
+// It covers the success page as well as the checkout steps
+// (.checkout-onepage-success), which is why both handles enqueue this one file
+// rather than splitting again for a single rule.
+//
+// Foundation re-imports: same boundary rule as spartrak-cart.less — mixins and
+// plain LESS variables do not cross a compiled-CSS boundary. This file needs
+// @breakpoint-desktop and @breakpoint-header-collapse from _breakpoints.less.
+
+@import "source/foundations/_breakpoints.less";
+@import "source/foundations/_icons.less";
+@import "source/foundations/_a11y.less";
+// The processing modal (Figma 554:11636) spins the design's own 8-dot mark, so
+// this bundle needs .spartrak-spin-animation() and the duration it reads. The
+// two @keyframes blocks it also emits are ~120 bytes and are the price of
+// having one definition of the motion rather than a second copy of the timing
+// written out here by hand.
+@import "source/foundations/_spinner.less";
+
+@import "source/components/_checkout.less";

@@ -9,100 +9,129 @@
 // #ff5f00 / #eb001b / #1434cb (third-party UI-kit residue / logo artwork).
 
 :root {
-    --primitive-navy: #063196;
-    --primitive-navy-hover: #044776;
-    --primitive-yellow: #eebd1d;
-    --primitive-yellow-hover: #E6A800;
-    --primitive-yellow-soft: #FFF6D9;
-    --primitive-star-empty: #f8e5a5;
+  --primitive-navy: #063196;
+  --primitive-navy-hover: #044776;
+  --primitive-yellow: #eebd1d;
+  --primitive-yellow-hover: #e6a800;
+  --primitive-yellow-soft: #fff6d9;
+  --primitive-star-empty: #f8e5a5;
 
-    --primitive-ink: #0c0a20;
-    --primitive-text-secondary: #555463;
-    --primitive-text-muted: #6d6c79;
-    --primitive-text-disabled: #9e9da6;
+  --primitive-ink: #0c0a20;
+  --primitive-text-secondary: #555463;
+  --primitive-text-muted: #6d6c79;
+  --primitive-text-disabled: #9e9da6;
 
-    --primitive-border: #e4e3e5;
-    --primitive-border-strong: #ceced2;
-    --primitive-field-bg: #f3f3f4;
-    --primitive-surface: #ffffff;
-    --primitive-surface-subtle: #f9f9f9;
-    --primitive-page-tint: #f7f8fa;
+  --primitive-border: #e4e3e5;
+  --primitive-border-strong: #ceced2;
+  --primitive-field-bg: #f3f3f4;
+  --primitive-surface: #ffffff;
+  --primitive-surface-subtle: #f9f9f9;
+  --primitive-page-tint: #f7f8fa;
 
-    --primitive-success: #049228;
-    --primitive-danger: #d54033;
-    --primitive-icon-ink: #1a144f;
+  --primitive-success: #049228;
+  --primitive-danger: #d54033;
+  --primitive-icon-ink: #1a144f;
 
-    // Figma `neutral/900`. Confirmed on the homepage category-tiles eyebrow
-    // chip (node 595:15076), which is the only consumer so far. It is NOT
-    // --primitive-ink (#0c0a20): that is neutral/1000, and the two are
-    // visibly different against the navy stage they both sit on.
-    --primitive-neutral-900: #242336;
+  // Figma `neutral/900`. Confirmed on the homepage category-tiles eyebrow
+  // chip (node 595:15076), which is the only consumer so far. It is NOT
+  // --primitive-ink (#0c0a20): that is neutral/1000, and the two are
+  // visibly different against the navy stage they both sit on.
+  --primitive-neutral-900: #242336;
 
-    // Brand chips (third-party marks) — use as given, never re-tint.
-    --brand-caterpillar: #FFCD11;
-    --brand-john-deere: #367C2B;
-    --brand-ford: #005CA9;
+  // Brand chips (third-party marks) — use as given, never re-tint.
+  --brand-caterpillar: #ffcd11;
+  --brand-john-deere: #367c2b;
+  --brand-ford: #005ca9;
 
-    // Alpha primitives — added 2026-08-23 (Phase 4) to mirror
-    // design-tokens.md's "1.-primitives-value.alpha" collection, previously
-    // untranscribed. Only the one actually consumed by a Phase 4 component
-    // (bg.scrim) is added; the remaining alpha.* values are not invented
-    // here — add on demand, same rule as everything else in this file.
-    --primitive-alpha-ink-20: #0C0A2033;
-    --primitive-alpha-white-10: #FFFFFF1A;
+  // Alpha primitives — added 2026-08-23 (Phase 4) to mirror
+  // design-tokens.md's "1.-primitives-value.alpha" collection, previously
+  // untranscribed. Only the one actually consumed by a Phase 4 component
+  // (bg.scrim) is added; the remaining alpha.* values are not invented
+  // here — add on demand, same rule as everything else in this file.
+  --primitive-alpha-ink-20: #0c0a2033;
+  --primitive-alpha-white-10: #ffffff1a;
 
-    // FIGMA HEADER PASS (2026-08-25). Read off the header frames' own
-    // variable bindings via get_variable_defs on node 595:14465 (desktop,
-    // 1440) and 724:25796 (mobile, 440) — not guessed.
-    //
-    //   "blue/0": "#f4f7fd"  -> the account-chip avatar plate (693:45429)
-    --primitive-blue-0: #f4f7fd;
-    //
-    // FIGMA AUTH-MODAL PASS (2026-08-26). Read off the Login/Register modal
-    // frames via get_variable_defs — desktop 561:9925 / 569:10235 / 569:12394
-    // and mobile 688:22943 / 688:24292. Two genuinely new primitives:
-    //
-    //   "action/primary-disabled": "#8faef0" -> the CTA's disabled fill,
-    //   drawn on the register-phone and OTP-incomplete states. NOT a
-    //   transparency of --primitive-navy: #063196 at 45% over white is
-    //   ~#8ea2cd, which is visibly cooler/greyer than #8faef0. It is its own
-    //   value in the Figma collection, so it is its own primitive here.
-    --primitive-navy-disabled: #8faef0;
-    //
-    //   "blue/50": "#c3d3f6" -> the mid-tone dots of the 8-dot loader ring in
-    //   the account-creation state (721:34350 / 688:25653). Sits between
-    //   --primitive-icon-ink (#1a144f, the solid head of the ring) and
-    //   --primitive-blue-0 (#f4f7fd, its faintest tail).
-    --primitive-blue-50: #c3d3f6;
-    //
-    // DELIBERATELY NOT ADDED: an `alpha/white-8` primitive for Figma's
-    // `bg/on-media-subtle` (#ffffff14), which is the declared fill on the
-    // Navbar "Container" frame (595:14475 / 724:25824).
-    //
-    // Transcribing it literally would have rendered the header container
-    // WRONG. rgba(255,255,255,.08) over this storefront's white page resolves
-    // to ~#ffffff, but the Figma frame RENDERS #f9f9f9 — measured off the
-    // 1440 PNG export at nine separate points inside the utility strip, the
-    // main navbar, and the gutters either side of the nav-row card. #f9f9f9
-    // is exactly --primitive-surface-subtle, which already exists.
-    //
-    // So the components use --color-bg-surface-subtle: it reproduces the
-    // Figma render pixel-for-pixel, whereas the literal token would not.
-    // Recorded here rather than silently dropped, because the next person to
-    // read `bg/on-media-subtle` off this node will ask the same question.
+  // FIGMA HEADER PASS (2026-08-25). Read off the header frames' own
+  // variable bindings via get_variable_defs on node 595:14465 (desktop,
+  // 1440) and 724:25796 (mobile, 440) — not guessed.
+  //
+  //   "blue/0": "#f4f7fd"  -> the account-chip avatar plate (693:45429)
+  --primitive-blue-0: #f4f7fd;
+  //
+  // FIGMA AUTH-MODAL PASS (2026-08-26). Read off the Login/Register modal
+  // frames via get_variable_defs — desktop 561:9925 / 569:10235 / 569:12394
+  // and mobile 688:22943 / 688:24292. Two genuinely new primitives:
+  //
+  //   "action/primary-disabled": "#8faef0" -> the CTA's disabled fill,
+  //   drawn on the register-phone and OTP-incomplete states. NOT a
+  //   transparency of --primitive-navy: #063196 at 45% over white is
+  //   ~#8ea2cd, which is visibly cooler/greyer than #8faef0. It is its own
+  //   value in the Figma collection, so it is its own primitive here.
+  --primitive-navy-disabled: #8faef0;
+  //
+  //   "blue/50": "#c3d3f6" -> the mid-tone dots of the 8-dot loader ring in
+  //   the account-creation state (721:34350 / 688:25653). Sits between
+  //   --primitive-icon-ink (#1a144f, the solid head of the ring) and
+  //   --primitive-blue-0 (#f4f7fd, its faintest tail).
+  --primitive-blue-50: #c3d3f6;
+  //
+  // DELIBERATELY NOT ADDED: an `alpha/white-8` primitive for Figma's
+  // `bg/on-media-subtle` (#ffffff14), which is the declared fill on the
+  // Navbar "Container" frame (595:14475 / 724:25824).
+  //
+  // Transcribing it literally would have rendered the header container
+  // WRONG. rgba(255,255,255,.08) over this storefront's white page resolves
+  // to ~#ffffff, but the Figma frame RENDERS #f9f9f9 — measured off the
+  // 1440 PNG export at nine separate points inside the utility strip, the
+  // main navbar, and the gutters either side of the nav-row card. #f9f9f9
+  // is exactly --primitive-surface-subtle, which already exists.
+  //
+  // So the components use --color-bg-surface-subtle: it reproduces the
+  // Figma render pixel-for-pixel, whereas the literal token would not.
+  // Recorded here rather than silently dropped, because the next person to
+  // read `bg/on-media-subtle` off this node will ask the same question.
 
-    // Top Promo Banner "New Badge" gradient (595:14471 / 724:25802):
-    // linear-gradient to bottom, #fff893 -> #ffee00.
-    //
-    // These two are the ONLY raw (non-variable-bound) colours anywhere in
-    // the header subtree. That is not drift: Figma cannot bind a colour
-    // variable to a gradient stop, so a gradient is necessarily raw in a
-    // file that is otherwise 100% token-bound. They are therefore recorded
-    // here as real primitives rather than substituted for the canonical
-    // flat accent — the previous pass swapped in --color-callout-soft
-    // (#FFF6D9) on the assumption that the gradient was stale artwork,
-    // which made the badge visibly wrong (flat cream instead of a yellow
-    // gradient chip). See _top-banner.less.
-    --primitive-yellow-promo-start: #fff893;
-    --primitive-yellow-promo-end: #ffee00;
+  // Top Promo Banner "New Badge" gradient (595:14471 / 724:25802):
+  // linear-gradient to bottom, #fff893 -> #ffee00.
+  //
+  // These two are the ONLY raw (non-variable-bound) colours anywhere in
+  // the header subtree. That is not drift: Figma cannot bind a colour
+  // variable to a gradient stop, so a gradient is necessarily raw in a
+  // file that is otherwise 100% token-bound. They are therefore recorded
+  // here as real primitives rather than substituted for the canonical
+  // flat accent — the previous pass swapped in --color-callout-soft
+  // (#FFF6D9) on the assumption that the gradient was stale artwork,
+  // which made the badge visibly wrong (flat cream instead of a yellow
+  // gradient chip). See _top-banner.less.
+  --primitive-yellow-promo-start: #fff893;
+  --primitive-yellow-promo-end: #ffee00;
+
+  // FIGMA MY-ACCOUNT PASS (2026-09-02)
+  //
+  // Figma binds `action/danger-subtle` = #fdf4f3 on the address card's
+  // 48x48 delete button (721:35518). It is the danger counterpart to
+  // --primitive-blue-0: the faintest wash of the hue, used as a BUTTON
+  // FILL behind a full-strength glyph, not as a text or border colour.
+  //
+  // A real primitive rather than an alpha of --primitive-danger, because
+  // that is how the file publishes it — and because the two are not
+  // interchangeable: rgba(213,64,51,0.04) over the page tint is a
+  // different colour from #fdf4f3 over white, and the card can sit on
+  // either.
+  --primitive-red-0: #fdf4f3;
+
+  // The shipped-order band's wash (562:19702), which Figma paints as
+  //
+  //     linear-gradient(180deg, rgb(237,250,240) 0%, rgba(237,250,240,0) 100%)
+  //
+  // over white. RAW, and necessarily so: get_variable_defs on that whole
+  // frame returns no green other than feedback/success #049228, because
+  // Figma cannot bind a colour variable to a gradient stop. The Top Promo
+  // Banner's badge is recorded above for exactly the same reason, and that
+  // one caught us once already when a previous pass assumed the gradient was
+  // stale artwork and flattened it to the nearest token.
+  //
+  // Only the stop colour is a token; the gradient's geometry stays in the
+  // component, where a gradient belongs.
+  --primitive-green-wash: #edfaf0;
 }

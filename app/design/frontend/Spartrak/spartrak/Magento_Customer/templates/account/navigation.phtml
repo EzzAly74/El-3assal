@@ -1,0 +1,34 @@
+<?php
+/**
+ * The account rail's list — Figma 562:11002.
+ *
+ * ===========================================================================
+ * WHY THIS TEMPLATE EXISTS AT ALL
+ * ===========================================================================
+ * Magento\Framework\View\Element\Html\Links::_toHtml() builds its own
+ * `<ul class="nav items">` in PHP when no template is set, and each child link
+ * builds its own `<li class="nav item">` the same way. That markup carries
+ * Porto's account-nav styling and offers no seam for the icon, the count badge
+ * or the mobile tab strip Figma draws.
+ *
+ * Setting a template on the block is the platform's own opt-out: both
+ * `Links::_toHtml()` and `Link\Current::_toHtml()` hand rendering to the
+ * template engine the moment one is present. So the whole rail is Spartrak
+ * markup with no plugin, no subclass and no override of a core PHP file.
+ *
+ * `getLinks()` rather than `getChildHtml()`: it is the method that applies
+ * SortLinkInterface ordering (Account\Navigation::getLinks() sorts DESC on
+ * sortOrder). getChildHtml() would emit the links in layout-declaration order
+ * and quietly ignore every sortOrder in customer_account.xml.
+ *
+ * @var \Magento\Customer\Block\Account\Navigation $block
+ */
+$links = $block->getLinks();
+?>
+<?php if ($links): ?>
+    <ul class="spartrak-account-nav__list">
+        <?php foreach ($links as $link): ?>
+            <?= /* @noEscape */ $block->renderLink($link) ?>
+        <?php endforeach; ?>
+    </ul>
+<?php endif; ?>

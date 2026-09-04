@@ -19,6 +19,7 @@ var config = {
             spartrakHomeTiles: 'js/spartrak-home-tiles',
             spartrakHomeVideo: 'js/spartrak-home-video',
             spartrakCascadeSearch: 'js/spartrak-cascade-search',
+            spartrakQuickSearch: 'js/spartrak-quick-search',
             spartrakToast: 'js/spartrak-toast',
             spartrakCartQty: 'js/spartrak-cart-qty'
         }
@@ -65,6 +66,9 @@ var config = {
              */
             'Magento_Customer/js/model/authentication-popup': {
                 'js/spartrak-auth-popup-mixin': true
+            },
+            'mage/gallery/gallery': {
+                'js/spartrak-gallery-rtl-mixin': true
             }
         }
     }

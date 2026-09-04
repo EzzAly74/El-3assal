@@ -1,10 +1,17 @@
 <!--
 /**
- * Spartrak estimated total - Figma 551:11187.
+ * Spartrak estimated total - Figma 551:11187 (`المجموع الكلي`).
  *
  * Label at Heading/H4 18/500 in text/secondary, value at Heading/H3 20/700 in
  * text/link. Both larger than the rows above them, which is what makes this
- * read as the figure that matters.
+ * read as the figure that matters. The mobile card (683:16067) keeps both
+ * sizes - it is the one thing in that card that does not shrink.
+ *
+ * The component behind this is Magento_Tax's, not Magento_Checkout's; this
+ * file is reached because Spartrak_Checkout's checkout_index_index.xml names
+ * it back as that component's `template`. `getValue()` is already the
+ * grand total for every tax configuration, so unlike the subtotal and shipping
+ * rows there is no display mode to resolve.
  */
 -->
 <!-- ko if: isDisplayed() -->

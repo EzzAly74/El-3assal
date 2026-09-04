@@ -1,0 +1,413 @@
+// Spartrak component — PAGINATION. Figma 569:14143.
+//
+// ===========================================================================
+// ONE PAGINATION, EVERY PAGED LIST ON THE SITE
+// ===========================================================================
+// These rules were written for the PLP and lived in components/_plp.less,
+// where every selector was qualified with `.spartrak-plp__pagination`. Every
+// other paged list on the storefront renders the SAME markup — Magento's own
+// Html Pager block — and matched none of it:
+//
+//   /sales/order/history   34 orders over 4 pages: bare square boxes, an
+//                          untranslated "Items 1 to 10 of 34 total", and a
+//                          FIFTH empty box where "next" should be.
+//   /wishlist              the same, plus "Item(s) 2" in English.
+//
+// Figma has one pagination component and draws it once, on the PLP. The
+// account section has no pagination frame of its own — its mocks each show a
+// single order — so the design system's single spec is what applies, and the
+// correct fix is to make it a component instead of copying it (CLAUDE.md
+// section 2 step 4, section 9 "no duplicate components").
+//
+// ===========================================================================
+// MOVED VERBATIM FROM _plp.less — NOTHING SIMPLIFIED ON THE WAY OUT
+// ===========================================================================
+// Every declaration below is the one that was already running on the live
+// store, with `.spartrak-plp__pagination` renamed to `.spartrak-pagination`
+// and nothing else touched. That matters more than it sounds: the PLP's
+// pagination had been debugged well past its first draft, and two of the
+// rules here ARE those fixes —
+//
+//   * the `> span:not(.label)` block, which un-hides the word core's own
+//     _pages.less clips to a 1px box. Without it the pills render empty.
+//   * the arrow override plus the icon-font neutralisation, which stop
+//     core's codepoint landing on an unrelated Porto glyph.
+//
+// An earlier attempt at this move was made against a STALE copy of
+// _plp.less from the repository, which still had the simple
+// `justify-content: space-between` first draft. Shipping that would have
+// regressed the live PLP — the empty pills would have come back. The rules
+// here are taken from the deployed file instead.
+//
+// The two `!important` declarations are carried across as they stand: one on
+// the pills' `display`, one neutralising core's `.action.next:before`. Both
+// were added against real, observed behaviour on this store, so removing them
+// as part of a refactor would be changing behaviour while claiming to move
+// code. Flagged, not touched.
+//
+// FORMATTING is the live file's (2-space, double quotes) rather than this
+// directory's usual 4-space house style — deliberately, so the moved block
+// diffs line-for-line against where it came from.
+//
+// ===========================================================================
+// HOW A PAGE OPTS IN
+// ===========================================================================
+//   product/list.phtml            .spartrak-plp__pagination .spartrak-pagination
+//   order/history.phtml           .spartrak-order-history__pager .spartrak-pagination
+//   Magento_Wishlist/spartrak-view.phtml
+//                                 .spartrak-wishlist__pager .spartrak-pagination
+//
+// The page-specific class keeps owning the SPACING around the block (the
+// PLP's 48/32px, the account card's own rhythm); this file owns the control.
+//
+// IMPORTED BY BOTH ENTRY POINTS: spartrak-components.less (the PLP and
+// search) and spartrak-account.less (the order list and the wishlist).
+//
+// WHAT IT DELIBERATELY DOES NOT STYLE: `.toolbar-amount` and `.limiter`.
+// Figma's pagination has neither an item count nor a per-page selector, so
+// rather than dress up controls the design does not draw, the three templates
+// switch them off on the pager block itself with the same three flags core's
+// own PLP toolbar uses.
+//
+// THE BREAKPOINT IS THE LITERAL 767px, not @breakpoint-header-collapse —
+// again as the live file had it. It also means this file has no LESS-variable
+// dependency at all, which is what lets both bundles import it wherever they
+// like in their own import order.
+
+/* -------------------------------------------------------------------
+   WRITTEN AGAINST MAGENTO CORE'S OWN PAGER MARKUP, WHICH IS FLAT.
+
+   Core emits previous, every number and next as direct <li> siblings of
+   one <ul class="items pages-items">, with a screen-reader <span
+   class="label"> inside every single link:
+
+     <li class="item pages-item-previous">
+       <a class="action  previous"><span class="label">صفحة</span>
+                                  <span>السابق</span></a>
+     <li class="item"><a class="page"><span class="label">…</span>
+                                      <span>١</span></a>
+     <li class="item current"><strong class="page">…<span>٣</span></strong>
+     <li class="item pages-item-next">…
+
+   Figma is three GROUPS — a pill hard against each edge with the numbers
+   dead-centred between them. There is no wrapper element to make that a
+   three-child `space-between`, and auto margins cannot fake it either:
+   core OMITS the previous <li> entirely on page 1, so any layout that
+   depends on a first child being the prev pill shifts the whole row
+   sideways the moment a shopper reaches page 2.
+
+   So the numbers are CENTRED in normal flow and the two pills are
+   ABSOLUTELY POSITIONED to the row's inline edges. That is stable whether
+   or not either pill exists, needs no markup grouping, and lands the
+   numbers on the page's true centre line rather than the centre of
+   whatever space is left over.
+   ------------------------------------------------------------------- */
+.spartrak-pagination .pages {
+  display: block;
+  margin: 0;
+  padding: 0;
+  text-align: start;
+}
+
+/* Core puts a screen-reader label in the wrapper AND inside every link
+   ("صفحة", "أنت تتصفح صفحة"). Real text for assistive tech that the design
+   does not show, so it is clipped rather than removed — `display: none`
+   would take it out of the accessibility tree too. */
+.spartrak-pagination .pages .label,
+.spartrak-pagination .pages .pages-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The row. `position: relative` is the containing block the two pills
+   position against; the number pills give it its 40px height. */
+.spartrak-pagination .pages .items.pages-items {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Figma 569:14147 — 12px between the circles. */
+  gap: 12px;
+  min-height: 40px;
+  margin: 0;
+  /* Keeps the centred numbers clear of the two absolutely-positioned
+       pills: 92px of pill plus 8px of air on each side. */
+  padding-inline: 100px;
+  list-style: none;
+}
+
+.spartrak-pagination .pages .item {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+}
+
+/* The two pills, pinned to the row's inline edges.
+
+   DOM order is [previous, numbers, next] and these are LOGICAL insets, so
+   under dir="rtl" — this storefront's primary locale — "السابق" lands on
+   the right and "التالي" on the left, exactly as Figma composes it, and the
+   whole row mirrors itself for an LTR store with no second rule. */
+.spartrak-pagination .pages .pages-item-previous,
+.spartrak-pagination .pages .pages-item-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.spartrak-pagination .pages .pages-item-previous {
+  inset-inline-start: 0;
+}
+
+.spartrak-pagination .pages .pages-item-next {
+  inset-inline-end: 0;
+}
+
+/* ALSO SUPPORTED: the theme's optional Magento_Theme/templates/html/
+   pager.phtml override, which wraps the numbers in their own
+   <li class="pages-item-numbers"><ol class="pages-numbers">. These two
+   rules make that shape lay out identically, so the pager is correct
+   whether or not that file is deployed — nothing above depends on it. */
+.spartrak-pagination .pages .pages-item-numbers {
+  flex: 0 1 auto;
+  justify-content: center;
+  min-width: 0;
+}
+
+.spartrak-pagination .pages .pages-numbers {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Page circles (569:14148 / :14150 / :14152): 40x40, fully rounded, 1px
+   border/default, Label/Large 14/1.3 on text/primary.
+
+   `height` is Figma's 40 exactly. `min-width` rather than `width`, with 8px
+   of inline padding, is the one deliberate deviation: the frame draws only
+   pages 1-3 so every label is one glyph, and a hard 40px box would clip
+   "100" on a control whose whole job is to say which page you are on. For
+   one and two digits it is pixel-identical to the frame.
+
+   `> .page` matches both shapes core emits: an <a class="page"> for a link
+   and a <strong class="page"> for the current page. */
+.spartrak-pagination .pages .item > .page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 12px 18px;
+  height: auto;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--color-text-primary);
+  font-family: var(--font-arabic);
+  font-size: var(--text-14);
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: center;
+  text-decoration: none;
+}
+
+.spartrak-pagination .pages .item > a.page:hover {
+  border-color: var(--color-action-primary);
+  color: var(--color-action-primary);
+}
+
+/* Current page (569:14152): action/primary fill, no border, inverse text.
+   `border-color: transparent` rather than `border: 0` so the box stays
+   exactly the same size as its neighbours. */
+.spartrak-pagination .pages .item.current > .page {
+  border-color: transparent;
+  background: var(--color-action-primary);
+  color: var(--color-action-primary-text);
+}
+
+/* Prev/Next pills (569:14144 / :14154): bg/field, fully rounded, h40,
+   min-width 92, gap 8, Body/Small 14/1.5 on text/primary.
+
+   Figma pads both pills 20px on the physical left and 16px on the right.
+   Expressed logically for RTL that is 16px at the inline-start and 20px at
+   the inline-end, which mirrors correctly for an LTR store.
+
+   `> a` covers core's `<a class="action previous">` and the override's
+   plain `<a>` alike. */
+.spartrak-pagination .pages .pages-item-previous > a,
+.spartrak-pagination .pages .pages-item-next > a {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  gap: 8px;
+  min-width: 92px;
+  height: auto;
+  padding: 16px 20px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-field);
+  color: var(--color-text-primary);
+  font-family: var(--font-arabic);
+  font-size: var(--text-14);
+  font-weight: 500;
+  line-height: 1.5;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.spartrak-pagination .pages .pages-item-previous > a:hover,
+.spartrak-pagination .pages .pages-item-next > a:hover {
+  background: var(--color-border-default);
+}
+
+/* CORE HIDES THE WORDS. THIS PUTS THEM BACK.
+
+   THE SINGLE REASON "التالي" AND "السابق" NEVER APPEARED. Magento core's
+   own _pages.less carries:
+
+       .pages .action.previous > span,
+       .pages .action.next > span {
+           position: absolute; width: 1px; height: 1px;
+           clip: rect(0, 0, 0, 0); overflow: hidden; ...
+       }
+
+   - the standard visually-hidden recipe, applied to EVERY direct <span>
+   of those two anchors. That is deliberate in core's design, where the
+   control is an icon and its text exists only for screen readers. Core's
+   markup is:
+
+       <a class="action next"><span class="label">صفحة</span>
+                              <span>التالي</span></a>
+
+   and `> span` matches BOTH. So the word was always in the DOM, always
+   clipped to a 1px box, and no amount of styling the pill could reveal
+   it. It also explains the empty-looking pills: with its only visible
+   child taken out of flow, the pill collapsed to its 92px min-width and
+   the arrow.
+
+   `:not(.label)` is what makes this surgical. Core hides two spans and
+   only one of them should come back - the word. The other is the
+   screen-reader-only "صفحة" that labels the link for assistive tech, and
+   it stays hidden by the rule further up this file.
+
+   SPECIFICITY: this is (0,4,2) against core's (0,2,1), so it wins on
+   weight and does not depend on which stylesheet the browser loads last -
+   which matters, because core's rule ships inside styles-l.css and this
+   file compiles into a separate bundle. */
+.spartrak-pagination .pages .pages-item-previous > a > span:not(.label),
+.spartrak-pagination .pages .pages-item-next > a > span:not(.label) {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  /* Both forms: core uses the legacy `clip`, and some themes in this
+       chain use `clip-path` for the same effect. Neither may survive. */
+  clip: auto;
+  clip-path: none;
+  white-space: nowrap;
+  border: 0;
+}
+
+/* THE ARROW — AND WHY THIS IS ONE RULE, NOT AN OVERRIDE PLUS A RESET.
+
+   Magento core's own _pages.less draws the prev/next affordance as an
+   icon-FONT character on this exact pseudo-element, and Porto swaps that
+   font — so core's codepoint lands on an unrelated glyph. That is why
+   "previous" rendered a stray chevron while "next" rendered nothing: two
+   different glyph SOURCES fighting over one ::before, not two rotations.
+
+   An earlier attempt added a separate `content: none` reset on
+   `.action.previous::before`. That was a real bug: four classes beat three
+   classes plus a type selector, so the reset outranked THIS rule and blanked
+   the theme's own arrow along with core's glyph. It is gone.
+
+   Overriding in place is the correct shape — same pseudo-element, one
+   declaration block, nothing left to lose a specificity race with.
+   `font-family` and `font-size` are reset explicitly so core's icon font
+   cannot reserve an advance width next to the background image. */
+.spartrak-pagination .pages .pages-item-previous > a::before,
+.spartrak-pagination .pages .pages-item-next > a::after {
+  content: "";
+  flex: none;
+  width: 16px;
+  height: 16px;
+  font-family: var(--font-arabic);
+  font-size: 0;
+  background-image: url("../images/icons/arrow-next.svg");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 16px 16px;
+  transform: var(--spartrak-arrow-rotate, rotate(180deg));
+}
+
+/* DELIBERATELY UNSCOPED, and carried over exactly as it ran on the PLP.
+   Core's icon-font glyph on the NEXT anchor's ::before has no Spartrak use
+   — the theme draws next on ::after — so it is switched off wherever a
+   core pager appears, which is now three pages rather than one. The
+   `!important` is core's inline-ish weight, not a shortcut over anything
+   in this file. */
+.pages .action.next:before {
+  display: none !important;
+}
+
+/* The asset points toward physical right. "Next" must point along the
+   reading direction and "Previous" against it, so exactly one of the two is
+   rotated — and which one swaps with the document direction. `rotate` has no
+   logical form, so this keys off <html dir>, the precedent this theme already
+   set for the PLP filter drawer. */
+.spartrak-pagination .pages .pages-item-previous > a::before {
+  --spartrak-arrow-rotate: rotate(180deg);
+}
+
+html[dir="rtl"] .spartrak-pagination .pages .pages-item-next > a::after {
+  --spartrak-arrow-rotate: rotate(180deg);
+}
+
+html[dir="rtl"] .spartrak-pagination .pages .pages-item-previous > a::before {
+  --spartrak-arrow-rotate: rotate(0deg);
+}
+
+/* Keyboard focus. Lived in _plp.less's shared focus group, which is scoped to
+   that page's controls; it belongs with the component now that the component
+   is shared. */
+.spartrak-pagination .pages a:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* Narrow viewports. The pills come out of absolute positioning and join the
+   flow, the row is allowed to wrap, and the 100px inset that was reserving
+   room for them is dropped — otherwise a 360px screen would centre three
+   circles inside 160px of usable width. Moved out of _plp.less's drawer
+   breakpoint so the account pages get it too. */
+@media (max-width: 767px) {
+  .spartrak-pagination .pages .items.pages-items {
+    flex-wrap: wrap;
+    padding-inline: 0;
+  }
+
+  .spartrak-pagination .pages .pages-item-previous,
+  .spartrak-pagination .pages .pages-item-next {
+    position: static;
+    transform: none;
+  }
+
+  .spartrak-pagination .pages .pages-item-previous > a,
+  .spartrak-pagination .pages .pages-item-next > a {
+    min-width: 0;
+    padding-inline: 12px 16px;
+  }
+}

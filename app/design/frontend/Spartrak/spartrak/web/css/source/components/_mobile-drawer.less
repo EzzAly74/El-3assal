@@ -37,84 +37,84 @@
 // two-row mobile navbar all wrap differently by viewport and locale. The
 // fallback keeps it usable if the property is ever missing.
 .spartrak-mobile-drawer {
-    display: none;
-    position: fixed;
-    inset-inline: 0;
-    inset-block-start: var(--spartrak-drawer-top, 0px);
-    inset-block-end: 0;
-    z-index: 90;
-    background: var(--color-bg-page);
-    overflow-y: auto;
-    // Momentum scrolling inside the panel on iOS without the page behind it
-    // scrolling too.
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
+  display: none;
+  position: fixed;
+  inset-inline: 0;
+  inset-block-start: var(--spartrak-drawer-top, 0px);
+  inset-block-end: 0;
+  z-index: 90;
+  background: var(--color-bg-page);
+  overflow-y: auto;
+  // Momentum scrolling inside the panel on iOS without the page behind it
+  // scrolling too.
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 
-    &[data-open] {
-        display: block;
-    }
+  &[data-open] {
+    display: block;
+  }
 }
 
 // Freezes the page behind the fixed panel. `position: fixed` on the body would
 // scroll-jump to the top on close; `overflow: hidden` keeps the scroll offset,
 // which is what a shopper expects when they dismiss a menu.
 body.spartrak-drawer-open {
-    overflow: hidden;
+  overflow: hidden;
 }
 
 .spartrak-mobile-drawer__panel {
-    display: flex;
-    flex-direction: column;
-    // Figma's Main Content frame gaps its two groups (the row panel and the
-    // profile row) by 26px.
-    gap: 26px;
-    width: 100%;
-    // The profile row sits at the BOTTOM of the menu area in Figma, not
-    // directly under the last row.
-    min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  // Figma's Main Content frame gaps its two groups (the row panel and the
+  // profile row) by 26px.
+  gap: 26px;
+  width: 100%;
+  // The profile row sits at the BOTTOM of the menu area in Figma, not
+  // directly under the last row.
+  min-height: 100%;
 }
 
 // Node 645:39267 "Menus".
 .spartrak-mobile-drawer__menus {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 16px;
-    background: var(--color-bg-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: var(--color-bg-surface);
 }
 
 .spartrak-mobile-drawer__group {
-    display: block;
+  display: block;
 }
 
 // Node 645:39268 "Menu" — one row. Shared by <button> (accordion) and <a>
 // (direct link, e.g. Offers) so the two cannot drift apart visually.
 .spartrak-mobile-drawer__row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-    box-sizing: border-box;
-    width: 100%;
-    min-height: 52px;
-    padding: 16px 0;
-    border: 0;
-    background: none;
-    text-align: start;
-    text-decoration: none;
-    cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 52px;
+  padding: 16px 0;
+  border: 0;
+  background: none;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .spartrak-mobile-drawer__row-label {
-    flex: 1 1 auto;
-    min-width: 0;
-    // Body/Base Medium
-    font-family: var(--font-arabic);
-    font-size: var(--text-16);
-    font-weight: 500;
-    line-height: 1.5;
-    letter-spacing: var(--letter-spacing-normal);
-    color: var(--color-text-primary);
+  flex: 1 1 auto;
+  min-width: 0;
+  // Body/Base Medium
+  font-family: var(--font-arabic);
+  font-size: var(--text-16);
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: var(--letter-spacing-normal);
+  color: var(--color-text-primary);
 }
 
 // Node 724:44915 — a 20px tabler chevron-right, which Figma rotates 180° so it
@@ -126,179 +126,334 @@ body.spartrak-drawer-open {
 // asset points inline-end for LTR; the [dir="rtl"] rule below flips it. This
 // is a genuine mirror, not a physical-property shortcut.
 .spartrak-mobile-drawer__row-chevron {
-    flex: 0 0 auto;
-    .spartrak-icon('chevron-right.svg'; 20px; var(--color-text-primary));
-    transition: transform 120ms ease;
+  flex: 0 0 auto;
+  .spartrak-icon("chevron-right.svg"; 20px; var(--color-text-primary));
+  transition: transform 120ms ease;
 }
 
-[dir='rtl'] .spartrak-mobile-drawer__row-chevron {
-    transform: rotate(180deg);
+[dir="rtl"] .spartrak-mobile-drawer__row-chevron {
+  transform: rotate(180deg);
 }
 
 // Expanded state: the chevron turns to point down, the standard disclosure
 // affordance. Figma does not draw the open state, so this is the conventional
 // reading rather than a measured value.
-.spartrak-mobile-drawer__row[aria-expanded='true'] .spartrak-mobile-drawer__row-chevron,
-.spartrak-mobile-drawer__l1-expand[aria-expanded='true'] .spartrak-mobile-drawer__row-chevron {
-    transform: rotate(90deg);
+.spartrak-mobile-drawer__row[aria-expanded="true"]
+  .spartrak-mobile-drawer__row-chevron,
+.spartrak-mobile-drawer__l1-expand[aria-expanded="true"]
+  .spartrak-mobile-drawer__row-chevron {
+  transform: rotate(90deg);
 }
 
-[dir='rtl'] .spartrak-mobile-drawer__row[aria-expanded='true'] .spartrak-mobile-drawer__row-chevron,
-[dir='rtl'] .spartrak-mobile-drawer__l1-expand[aria-expanded='true'] .spartrak-mobile-drawer__row-chevron {
-    transform: rotate(90deg);
+[dir="rtl"]
+  .spartrak-mobile-drawer__row[aria-expanded="true"]
+  .spartrak-mobile-drawer__row-chevron,
+[dir="rtl"]
+  .spartrak-mobile-drawer__l1-expand[aria-expanded="true"]
+  .spartrak-mobile-drawer__row-chevron {
+  transform: rotate(90deg);
 }
 
 // Author-level [hidden], required because the author `display` declarations in
 // this file would otherwise beat the UA stylesheet's `[hidden]` rule — the
 // same trap documented on the account chip in _utility-header.less.
 .spartrak-mobile-drawer__group-panel[hidden] {
-    display: none;
+  display: none;
 }
 
 .spartrak-mobile-drawer__group-panel {
-    padding-block-end: 8px;
+  padding-block-end: 8px;
 }
 
 .spartrak-mobile-drawer__l1-list,
 .spartrak-mobile-drawer__l2-list,
 .spartrak-mobile-drawer__l3-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .spartrak-mobile-drawer__l1 {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    padding: 8px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 8px 0;
 
-    > a {
-        flex: 1 1 auto;
-        color: var(--color-text-primary);
-        text-decoration: none;
-        font-family: var(--font-arabic);
-        font-size: var(--text-14);
-    }
+  > a {
+    flex: 1 1 auto;
+    color: var(--color-text-primary);
+    text-decoration: none;
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+  }
 }
 
 .spartrak-mobile-drawer__l1-expand {
-    flex: 0 0 auto;
-    display: inline-flex;
-    align-items: center;
-    background: none;
-    border: 0;
-    padding: 4px 8px;
-    cursor: pointer;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: 0;
+  padding: 4px 8px;
+  cursor: pointer;
 }
 
 .spartrak-mobile-drawer__l2-list {
-    flex: 0 0 100%;
-    padding-inline-start: 12px;
+  flex: 0 0 100%;
+  padding-inline-start: 12px;
 
-    &[hidden] {
-        display: none;
-    }
+  &[hidden] {
+    display: none;
+  }
 
-    a {
-        display: block;
-        padding: 6px 0;
-        font-family: var(--font-arabic);
-        font-size: var(--text-14);
-        color: var(--color-text-secondary);
-        text-decoration: none;
-    }
+  a {
+    display: block;
+    padding: 6px 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    color: var(--color-text-secondary);
+    text-decoration: none;
+  }
 }
 
 .spartrak-mobile-drawer__l3-list {
-    padding-inline-start: 12px;
+  padding-inline-start: 12px;
 
-    a {
-        display: block;
-        padding: 4px 0;
-        font-size: var(--text-12);
-        color: var(--color-text-muted);
-        text-decoration: none;
-    }
+  a {
+    display: block;
+    padding: 4px 0;
+    font-size: var(--text-12);
+    color: var(--color-text-muted);
+    text-decoration: none;
+  }
 }
 
 .spartrak-mobile-drawer__view-all {
-    color: var(--color-action-primary);
+  color: var(--color-action-primary);
 }
 
 // ---------------------------------------------------------------------------
 // Profile row — node 645:39280
 // ---------------------------------------------------------------------------
 .spartrak-mobile-drawer__profile {
-    // Pushed to the bottom of the panel per node 645:39280's placement, rather
-    // than sitting directly under the last menu row. Works with the panel's
-    // `min-height: 100%` above and needs no fixed height on the row panel.
-    margin-block-start: auto;
-    background: var(--color-bg-surface);
-    border-block-start: 1px solid var(--color-border-default);
+  // Pushed to the bottom of the panel per node 645:39280's placement, rather
+  // than sitting directly under the last menu row. Works with the panel's
+  // `min-height: 100%` above and needs no fixed height on the row panel.
+  margin-block-start: auto;
+  background: var(--color-bg-surface);
+  border-block-start: 1px solid var(--color-border-default);
 }
 
 .spartrak-mobile-drawer__profile-guest[hidden],
 .spartrak-mobile-drawer__profile-customer[hidden] {
-    display: none;
+  display: none;
 }
 
 .spartrak-mobile-drawer__profile-row {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    box-sizing: border-box;
-    width: 100%;
-    // Figma pl-16 pr-24; the avatar sits at the inline start, so in RTL terms
-    // that is 24 at the start and 16 at the end.
-    padding: 16px;
-    padding-inline-start: 24px;
-    border: 0;
-    background: none;
-    text-align: start;
-    text-decoration: none;
-    cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-sizing: border-box;
+  width: 100%;
+  // Figma pl-16 pr-24; the avatar sits at the inline start, so in RTL terms
+  // that is 24 at the start and 16 at the end.
+  padding: 16px;
+  padding-inline-start: 24px;
+  border: 0;
+  background: none;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 // Node 645:39284. Same no-photograph decision as the desktop account chip:
 // Magento has no customer-avatar feature, and Figma's placeholder is initials
 // ("KK") on a tinted plate — which is exactly what is rendered.
 .spartrak-mobile-drawer__avatar {
-    flex: 0 0 auto;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    border: 1.2px solid var(--color-icon-default);
-    border-radius: var(--radius-pill);
-    background: var(--color-bg-avatar);
-    color: var(--color-action-primary);
-    font-family: var(--font-arabic);
-    font-size: var(--text-16);
-    font-weight: 400;
-    line-height: 1.5;
-    text-transform: uppercase;
-    overflow: hidden;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: 1.2px solid var(--color-icon-default);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-avatar);
+  color: var(--color-action-primary);
+  font-family: var(--font-arabic);
+  font-size: var(--text-16);
+  font-weight: 400;
+  line-height: 1.5;
+  text-transform: uppercase;
+  overflow: hidden;
 }
 
 .spartrak-mobile-drawer__profile-name {
-    flex: 1 1 auto;
-    min-width: 0;
-    // Heading/H4
-    font-family: var(--font-arabic);
-    font-size: var(--text-18);
-    font-weight: 500;
-    line-height: 1.3;
-    color: var(--color-text-primary);
+  flex: 1 1 auto;
+  min-width: 0;
+  // Heading/H4
+  font-family: var(--font-arabic);
+  font-size: var(--text-18);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--color-text-primary);
+}
+
+// ---------------------------------------------------------------------------
+// Account disclosure — nodes 645:39374 (open) / 645:39293 (closed)
+// ---------------------------------------------------------------------------
+// The profile row is an ACCORDION, not a link. Figma draws it with an up/down
+// chevron and five destinations underneath, and the row reuses the drawer's own
+// `[data-accordion-trigger]` handler — so this section is styling only, with no
+// JavaScript of its own.
+//
+// A DIFFERENT chevron from the menu rows above, deliberately. Those use a
+// chevron-right rotated per direction, because they lead somewhere. This one is
+// a disclosure: up when open, down when closed. Up/down needs no RTL mirroring
+// at all, which is why it is a separate rule rather than another rotation of
+// the directional glyph.
+.spartrak-mobile-drawer__profile-chevron {
+  flex: 0 0 auto;
+  .spartrak-icon("chevron-down-20.svg"; 20px; var(--color-text-primary));
+  transition: transform 120ms ease;
+}
+
+.spartrak-mobile-drawer__profile-row[aria-expanded="true"]
+  .spartrak-mobile-drawer__profile-chevron {
+  transform: rotate(180deg);
+}
+
+// Node 645:39380. The panel inherits the profile's own inline padding, so the
+// rows line up with the name above them rather than with the drawer edge.
+.spartrak-mobile-drawer__account-panel {
+  padding-block-end: 0;
+}
+
+.spartrak-mobile-drawer__account-list {
+  display: flex;
+  flex-direction: column;
+  // Figma's gap is 6, and the dashed rule below sits inside each row's own
+  // border-block-end — so the visual 12px between two labels is 6 + 6 with
+  // the line centred between them, which is how the mock measures.
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// Node 645:39381. 48px tall, icon at the reading start, label filling the rest.
+// DOM order is icon then label; in an RTL row the first child sits at the
+// right, which is where Figma puts the 24px glyph (x=376 of a 400 row).
+.spartrak-mobile-drawer__account-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  height: 48px;
+  padding-block: 8px;
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: none;
+  }
+}
+
+// Node 724:45271 — a 1px rule at `stroke-dasharray="2 2"` in border/default,
+// read off the exported SVG rather than guessed.
+//
+// A repeating gradient, not `border-block-end: 1px dashed`: CSS leaves the dash
+// length to the engine (typically 3 on 3 at 1px), so a `dashed` border is
+// visibly coarser than the design's 2 on 2. The gradient states the exact
+// rhythm the SVG does.
+//
+// `to right` rather than a logical direction: a horizontal dotted rule is
+// identical mirrored, so there is nothing for direction to change — and CSS
+// gradients have no logical keyword to use instead.
+.spartrak-mobile-drawer__account-list
+  li:not(:last-child)
+  .spartrak-mobile-drawer__account-link {
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--color-border-default) 0,
+    var(--color-border-default) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+  background-repeat: no-repeat;
+  background-position: bottom center;
+  background-size: 100% 1px;
+}
+
+.spartrak-mobile-drawer__account-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  // Body/Base Medium
+  font-family: var(--font-arabic);
+  font-size: var(--text-16);
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: var(--letter-spacing-normal);
+  color: var(--color-text-secondary);
+}
+
+// 24px here against the desktop menu's 20px — node 724:45265 is explicit about
+// it, and a phone row is taller so the glyph carries more of the target.
+//
+// The mask files are the SAME assets the desktop account menu uses. Figma
+// exports these five at 24 and the desktop pass exported them at 20, which
+// produces a different tight bounding box per size; the PATH data is the same
+// glyph in every case (compared command by command), and a mask scales with
+// `mask-size: contain` — so there is one asset per icon rather than two
+// near-identical files.
+.spartrak-mobile-drawer__account-icon {
+  .spartrak-icon("account-user.svg"; 24px; currentColor);
+  color: var(--color-icon-default);
+
+  &--orders {
+    -webkit-mask-image: url("../images/icons/account-orders.svg");
+    mask-image: url("../images/icons/account-orders.svg");
+  }
+
+  &--addresses {
+    -webkit-mask-image: url("../images/icons/account-addresses.svg");
+    mask-image: url("../images/icons/account-addresses.svg");
+  }
+
+  &--wishlist {
+    -webkit-mask-image: url("../images/icons/heart.svg");
+    mask-image: url("../images/icons/heart.svg");
+  }
+
+  &--support {
+    -webkit-mask-image: url("../images/icons/account-support.svg");
+    mask-image: url("../images/icons/account-support.svg");
+  }
+
+  &--logout {
+    -webkit-mask-image: url("../images/icons/account-logout.svg");
+    mask-image: url("../images/icons/account-logout.svg");
+  }
+}
+
+// Node 645:39394 — the only row that is not text/secondary.
+.spartrak-mobile-drawer__account-link--logout {
+  .spartrak-mobile-drawer__account-label {
+    color: var(--color-feedback-danger);
+  }
+
+  .spartrak-mobile-drawer__account-icon {
+    color: var(--color-feedback-danger);
+  }
 }
 
 // Desktop: this whole component is mobile-only — the desktop header has the
 // nav-row card and the account chip instead.
 @media (min-width: (@breakpoint-header-collapse + 1)) {
-    .spartrak-mobile-drawer {
-        display: none;
-    }
+  .spartrak-mobile-drawer {
+    display: none;
+  }
 }

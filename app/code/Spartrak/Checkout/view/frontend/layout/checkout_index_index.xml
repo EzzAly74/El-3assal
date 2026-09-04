@@ -213,8 +213,148 @@
                                 -->
                                 <item name="sidebar" xsi:type="array">
                                     <item name="children" xsi:type="array">
+                                        <!--
+                                          FIGMA DRAWS NO SHIP-TO REVIEW BLOCK ON THIS STEP
+                                          ============================================
+                                          Core renders `shipping-information` into the
+                                          payment step: a panel repeating the chosen
+                                          address and shipping method, each with an
+                                          "edit" button. Read off 554:10780, the payment
+                                          frame's left column holds exactly two things —
+                                          Order summary container (528x680) and Promo
+                                          code container (528x178). There is no third
+                                          panel, on this frame or on the 440 one.
+
+                                          DISABLED, NOT HIDDEN IN CSS. The node carries
+                                          four child components of its own; display:none
+                                          would still build and bind every one of them,
+                                          and would leave their markup in the DOM for
+                                          screen readers to read out. componentDisabled
+                                          stops the renderer before it instantiates the
+                                          subtree (Magento_Ui .../renderer/layout.js:291).
+
+                                          Going back is not lost with it. Those "edit"
+                                          buttons are core's only route back, but this
+                                          checkout has its own: the progress bar's
+                                          markers jump to any completed step
+                                          (Spartrak_Checkout/js/view/progress-bar.js),
+                                          which is the affordance 554:10848 draws.
+                                        -->
+                                        <item name="shipping-information" xsi:type="array">
+                                            <item name="componentDisabled" xsi:type="boolean">true</item>
+                                        </item>
                                         <item name="summary" xsi:type="array">
                                             <item name="children" xsi:type="array">
+                                                <!--
+                                                  ===================================================
+                                                  THE CARD'S ORDER IS DECLARED, NOT INHERITED
+                                                  ===================================================
+                                                  Figma 551:11106 stacks the card as
+                                                  title -> line items -> totals -> CTA.
+
+                                                  Magento_Checkout declares `totals` BEFORE
+                                                  `cart_items` and gives neither a sortOrder, so
+                                                  `elems()` handed the summary template the totals
+                                                  first and the products second - which is what the
+                                                  page rendered.
+
+                                                  Every child of this card now names its own
+                                                  sortOrder. Leaving some unsorted would put them
+                                                  back at the mercy of registration order, which is
+                                                  the bug that was here.
+                                                -->
+                                                <item name="itemsBefore" xsi:type="array">
+                                                    <item name="sortOrder" xsi:type="string">5</item>
+                                                </item>
+                                                <item name="cart_items" xsi:type="array">
+                                                    <item name="sortOrder" xsi:type="string">10</item>
+                                                </item>
+                                                <item name="itemsAfter" xsi:type="array">
+                                                    <item name="sortOrder" xsi:type="string">20</item>
+                                                </item>
+
+                                                <!--
+                                                  ===================================================
+                                                  MAGENTO_TAX OWNS THESE THREE TEMPLATES, NOT
+                                                  MAGENTO_CHECKOUT - WHICH IS WHY THE THEME'S
+                                                  OVERRIDES NEVER RENDERED
+                                                  ===================================================
+                                                  The theme ships
+                                                  Magento_Checkout/web/template/summary/{subtotal,
+                                                  shipping,grand-total}.html, and those are the
+                                                  right files. They were simply never asked for:
+                                                  Magento_Tax's own checkout_index_index.xml
+                                                  REPLACES all three components with
+                                                  `Magento_Tax/js/view/checkout/summary/*`, whose
+                                                  defaults point at `Magento_Tax/checkout/summary/*`.
+
+                                                  So the checkout rendered core's tax templates -
+                                                  three `<tr>` roots inside the theme's
+                                                  `<div class="spartrak-summary-totals">`. A `<tr>`
+                                                  in a flex container blockifies, its `<th>`/`<td>`
+                                                  generate an anonymous inline table, and the row
+                                                  shrink-wraps: label and value sat next to each
+                                                  other at the reading edge instead of spanning the
+                                                  card, the dividers never appeared, the grand total
+                                                  never turned blue, and the shipping row printed
+                                                  `getShippingMethodTitle()` on a second line.
+                                                  Meanwhile Magento_SalesRule's savings row - the
+                                                  one override that IS reached - spread the full
+                                                  width, which is the mismatch visible on the page.
+
+                                                  The COMPONENT stays Magento_Tax's. It is the
+                                                  tax-aware one and nothing here wants to lose that;
+                                                  only the template is named back. `title` is set
+                                                  alongside it for the two rows whose wording Figma
+                                                  states (551:11185 / 551:11189) - as NEW source
+                                                  strings rather than by retranslating "Shipping"
+                                                  and "Order Total", which the progress bar and the
+                                                  cart also use.
+                                                -->
+                                                <item name="totals" xsi:type="array">
+                                                    <item name="sortOrder" xsi:type="string">100</item>
+                                                    <item name="children" xsi:type="array">
+                                                        <item name="subtotal" xsi:type="array">
+                                                            <item name="config" xsi:type="array">
+                                                                <item name="template" xsi:type="string">Magento_Checkout/summary/subtotal</item>
+                                                            </item>
+                                                        </item>
+                                                        <item name="shipping" xsi:type="array">
+                                                            <item name="config" xsi:type="array">
+                                                                <item name="template" xsi:type="string">Magento_Checkout/summary/shipping</item>
+                                                                <item name="title" xsi:type="string" translate="true">Shipping charges</item>
+                                                            </item>
+                                                        </item>
+                                                        <item name="grand-total" xsi:type="array">
+                                                            <item name="config" xsi:type="array">
+                                                                <item name="template" xsi:type="string">Magento_Checkout/summary/grand-total</item>
+                                                                <item name="title" xsi:type="string" translate="true">Order grand total</item>
+                                                            </item>
+                                                        </item>
+
+                                                        <!--
+                                                          Figma draws no tax row and no fixed-fee
+                                                          row, and this store collects neither
+                                                          today. They are pointed at the generic
+                                                          Spartrak row anyway: both components stay
+                                                          registered, both decide for themselves
+                                                          whether to display, and the day a merchant
+                                                          switches one on it joins the stack as a
+                                                          styled row instead of a stray `<tr>`.
+                                                        -->
+                                                        <item name="tax" xsi:type="array">
+                                                            <item name="config" xsi:type="array">
+                                                                <item name="template" xsi:type="string">Magento_Checkout/summary/total-row</item>
+                                                            </item>
+                                                        </item>
+                                                        <item name="weee" xsi:type="array">
+                                                            <item name="config" xsi:type="array">
+                                                                <item name="template" xsi:type="string">Magento_Checkout/summary/total-row</item>
+                                                            </item>
+                                                        </item>
+                                                    </item>
+                                                </item>
+
                                                 <!--
                                                   The CTA is the LAST thing in the
                                                   summary card, under the totals

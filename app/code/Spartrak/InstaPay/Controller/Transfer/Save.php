@@ -14,6 +14,9 @@ use Magento\Framework\Controller\Result\RedirectFactory;
 use Magento\Framework\Controller\ResultInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Message\ManagerInterface as MessageManager;
+use Magento\Framework\Stdlib\Cookie\CookieMetadataFactory;
+use Magento\Framework\Stdlib\CookieManagerInterface;
+use Magento\Quote\Api\CartManagementInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Psr\Log\LoggerInterface;
@@ -24,28 +27,48 @@ use Spartrak\InstaPay\Model\TransferFactory;
 use Spartrak\InstaPay\Model\Ui\ConfigProvider;
 
 /**
- * Records the transfer the shopper says they made, then finishes the order.
+ * Records the transfer the shopper says they made, AND places the order.
  *
  * ===========================================================================
- * WHAT THIS DOES AND DOES NOT CLAIM
+ * THE ORDER IS CREATED HERE. IT DID NOT USED TO BE.
+ * ===========================================================================
+ * The checkout used to create the order in `pending_payment` and redirect to
+ * the transfer page, so an order existed the moment the shopper glanced at this
+ * form - and pressing back cancelled it. The sales grid filled with orders
+ * nobody placed and orders nobody cancelled on purpose.
+ *
+ * Now the quote survives all the way to this request and the order is created
+ * from it once there is a receipt to attach. Opening the page costs nothing;
+ * leaving it costs nothing; the basket is still the shopper's until they
+ * actually submit.
+ *
+ * ===========================================================================
+ * THE ORDER OF OPERATIONS IS THE SAFETY ARGUMENT
+ * ===========================================================================
+ *   1. read and validate the phone number
+ *   2. validate and STORE the proof file
+ *   3. place the order
+ *   4. save the transfer row against it, and comment the order
+ *
+ * Steps 1-2 are the ones a shopper can get wrong, and they happen BEFORE any
+ * order exists - so a bad file or a missing number sends them back to the form
+ * with nothing created behind them.
+ *
+ * Step 3 before step 4 because the transfer row is keyed on an order id, so
+ * there is nothing to key it to until the order exists. If 4 fails after 3
+ * succeeded the shopper has a real order with no proof attached: that is logged
+ * at error level with the increment id, and it is recoverable by a human, which
+ * is the least bad of the three orderings.
+ *
+ * ===========================================================================
+ * WHAT THIS STILL DOES NOT CLAIM
  * ===========================================================================
  * It does not verify anything. Nothing here talks to a bank, so the only honest
  * description of what is stored is "the customer says they sent this, and here
- * is their screenshot". The order therefore moves from `pending_payment` to
- * `new` - received, awaiting review - and NOT to processing or paid. A human
- * decides that, from the admin, having looked at the receipt.
- *
- * Getting this wrong in the other direction is how a store ships goods against
- * a screenshot of somebody else's transfer.
- *
- * ===========================================================================
- * THE ORDER IS ALREADY PLACED BY THE TIME WE GET HERE
- * ===========================================================================
- * The checkout creates it in `pending_payment` and redirects here. That order
- * of events is deliberate: the cart is converted and stock is reserved while
- * the shopper is making the transfer, so two people cannot pay for the last
- * one. An abandoned transfer leaves a pending_payment order, which is exactly
- * the state a merchant cancels or chases.
+ * is their screenshot". The order is moved to `new` - received, awaiting review
+ * - and NOT to processing or paid. A human decides that, from the admin, having
+ * looked at the receipt. Getting this wrong in the other direction is how a
+ * store ships goods against a screenshot of somebody else's transfer.
  *
  * ===========================================================================
  * CSRF
@@ -73,7 +96,10 @@ class Save implements HttpPostActionInterface
         private readonly ProofStorage $proofStorage,
         private readonly TransferFactory $transferFactory,
         private readonly TransferRepositoryInterface $transferRepository,
+        private readonly CartManagementInterface $cartManagement,
         private readonly OrderRepositoryInterface $orderRepository,
+        private readonly CookieManagerInterface $cookieManager,
+        private readonly CookieMetadataFactory $cookieMetadataFactory,
         private readonly LoggerInterface $logger
     ) {
     }
@@ -81,29 +107,92 @@ class Save implements HttpPostActionInterface
     public function execute(): ResultInterface
     {
         $redirect = $this->redirectFactory->create();
-        $order = $this->checkoutSession->getLastRealOrder();
+        $quote = $this->checkoutSession->getQuote();
 
-        if (!$order->getId()) {
+        // The same three questions Index.php asks, asked again. A guard on the
+        // page that renders a form is not a guard on the endpoint it posts to.
+        if (!$quote->getId() || (int) $quote->getItemsCount() === 0) {
             return $redirect->setPath('checkout/cart');
         }
 
-        $payment = $order->getPayment();
+        $payment = $quote->getPayment();
 
         if ($payment === null || $payment->getMethod() !== ConfigProvider::CODE) {
-            return $redirect->setPath('checkout/onepage/success');
+            return $redirect->setPath('checkout');
         }
 
         try {
+            // 1 + 2 — everything the shopper can get wrong, before anything is
+            // created.
             $phone = $this->readPhone();
             $file = $this->request->getFiles('proof');
             $file = is_array($file) ? $file : [];
 
             $relativePath = $this->proofStorage->store($file);
+        } catch (LocalizedException $e) {
+            // A missing file, a wrong format, a number they did not type. Back
+            // to the form with the reason, and no order behind them.
+            $this->messageManager->addErrorMessage($e->getMessage());
 
+            return $redirect->setPath('spartrak_instapay/transfer/index');
+        }
+
+        try {
+            // 3 — placeOrder() also writes last_real_order_id and friends onto
+            // the checkout session (Magento\Quote\Model\QuoteManagement), which
+            // is what lets the success page render.
+            $orderId = (int) $this->cartManagement->placeOrder((int) $quote->getId());
+            $order = $this->orderRepository->get($orderId);
+        } catch (LocalizedException $e) {
+            /**
+             * The basket changed under them while they were in their banking
+             * app: something went out of stock, a price rule expired, the
+             * address stopped being deliverable.
+             *
+             * THIS IS THE COST OF PLACING LATE, AND IT IS SAID OUT LOUD. The
+             * shopper may already have transferred the money. The message names
+             * that possibility rather than pretending the click simply failed,
+             * because someone who has paid needs to contact the merchant rather
+             * than try again and pay twice. The proof file is already stored, so
+             * support has something to match against.
+             */
+            $this->logger->error('Spartrak InstaPay: could not place an order for an uploaded transfer.', [
+                'quote_id'   => $quote->getId(),
+                'proof_path' => $relativePath,
+                'exception'  => $e,
+            ]);
+            $this->messageManager->addErrorMessage(
+                __(
+                    'We could not complete your order: %1. If you have already sent the transfer, '
+                    . 'please contact us before trying again so we do not take the payment twice.',
+                    $e->getMessage()
+                )
+            );
+
+            return $redirect->setPath('spartrak_instapay/transfer/index');
+        } catch (\Exception $e) {
+            $this->logger->error('Spartrak InstaPay: could not place an order for an uploaded transfer.', [
+                'quote_id'   => $quote->getId(),
+                'proof_path' => $relativePath,
+                'exception'  => $e,
+            ]);
+            $this->messageManager->addErrorMessage(
+                __(
+                    'We could not complete your order. If you have already sent the transfer, '
+                    . 'please contact us before trying again so we do not take the payment twice.'
+                )
+            );
+
+            return $redirect->setPath('spartrak_instapay/transfer/index');
+        }
+
+        try {
+            // 4 — the order exists, so the transfer row finally has something
+            // to belong to.
             /** @var TransferInterface $transfer */
             $transfer = $this->transferFactory->create();
-            $transfer->setOrderId((int) $order->getId())
-                ->setQuoteId($order->getQuoteId() ? (int) $order->getQuoteId() : null)
+            $transfer->setOrderId($orderId)
+                ->setQuoteId((int) $quote->getId())
                 ->setCustomerPhone($phone)
                 ->setProofPath($relativePath)
                 ->setOriginalName(isset($file['name']) ? (string) $file['name'] : null)
@@ -112,24 +201,24 @@ class Save implements HttpPostActionInterface
 
             $this->transferRepository->save($transfer);
             $this->markOrderAwaitingReview($order, $phone);
-        } catch (LocalizedException $e) {
-            // The shopper can fix this - a missing file, a wrong format, a
-            // number they did not type. Send them back to the form with the
-            // reason rather than to a dead end.
-            $this->messageManager->addErrorMessage($e->getMessage());
-
-            return $redirect->setPath('spartrak_instapay/transfer/index');
         } catch (\Exception $e) {
-            $this->logger->error('Spartrak InstaPay: could not record a transfer.', [
-                'order_id'  => $order->getId(),
-                'exception' => $e,
+            /**
+             * The order is real and paid for as far as the shopper is
+             * concerned, so this does NOT send them back to the form - doing so
+             * would invite a second order. It is logged loudly with the
+             * increment id and the file that is sitting on disk, which is
+             * everything a human needs to attach it by hand.
+             */
+            $this->logger->critical('Spartrak InstaPay: order placed but its transfer could not be recorded.', [
+                'order_id'     => $orderId,
+                'increment_id' => $order->getIncrementId(),
+                'proof_path'   => $relativePath,
+                'phone'        => $phone,
+                'exception'    => $e,
             ]);
-            $this->messageManager->addErrorMessage(
-                __('We could not record your transfer. Please try again, or contact us and quote order %1.', $order->getIncrementId())
-            );
-
-            return $redirect->setPath('spartrak_instapay/transfer/index');
         }
+
+        $this->refreshCustomerSections($order);
 
         return $redirect->setPath('checkout/onepage/success');
     }
@@ -176,5 +265,80 @@ class Save implements HttpPostActionInterface
         );
 
         $this->orderRepository->save($order);
+    }
+
+    /**
+     * Tell the browser its cached customer-data sections are wrong.
+     *
+     * ===================================================================
+     * THIS MOVED HERE FROM Cancel.php, AND THAT IS THE POINT
+     * ===================================================================
+     * The minicart, its counter and the drawer are served from `customer-data`,
+     * a localStorage cache. It has to be invalidated whenever the basket
+     * changes underneath it - and with the order now placed HERE, this is the
+     * only request in the InstaPay flow that empties it. Cancel no longer
+     * touches the quote at all, so it no longer needs to say anything.
+     *
+     * `section_data_clean` is the server's own signal and cannot miss:
+     * `customer-data.init()` reads the cookie, reloads every section, clears
+     * it. Magento sets the same cookie when a shopper switches store view -
+     * the same situation, a browser holding data for a state that no longer
+     * exists. It is belt-and-braces over etc/frontend/sections.xml, which
+     * declares the same thing but depends on `section-config` canonising a URL
+     * that on this store carries a store code.
+     *
+     * Without it the shopper reaches the success page with the old basket still
+     * in the header, and only an add-to-cart shakes it loose - which is exactly
+     * the symptom this flow was reported with.
+     *
+     * ===================================================================
+     * THE VALUE IS THE STORE CODE, AND IT HAS TO BE SOMETHING LIKE IT
+     * ===================================================================
+     * This cookie used to be set to the string `'1'`, and that silently did
+     * nothing at all - which is why the drawer kept the items after an InstaPay
+     * order and only emptied when the shopper opened the cart page (the cart
+     * page is rendered server-side from the real quote; the drawer is served
+     * from the localStorage cache this cookie exists to invalidate).
+     *
+     * The reader is `customer-data.js`:
+     *
+     *     if (!_.isEmpty($.cookieStorage.get('section_data_clean'))) { ... }
+     *
+     * `$.cookieStorage.get()` JSON-parses the cookie and falls back to the raw
+     * string only when the parse throws (js-storage's `js.storage.js`). `"1"`
+     * parses cleanly - to the NUMBER 1. And underscore's `isEmpty` on a number
+     * returns TRUE: it has no `length`, so `isEmpty` falls through to
+     * `keys(1).length === 0`. So the guard read "empty", the reload never ran,
+     * and the only symptom was a stale cart.
+     *
+     * Magento's own writer of this cookie - Magento\Store\Controller\Store\
+     * SwitchAction\CookieManager - stores the target store's CODE, e.g. `ar`,
+     * which does not parse as JSON and therefore survives as a non-empty
+     * string. This does the same thing, with the code of the store the order
+     * was placed in. Any non-numeric marker would work; matching the platform's
+     * own value means the next person to read this file finds one convention,
+     * not two.
+     */
+    private function refreshCustomerSections(Order $order): void
+    {
+        try {
+            $metadata = $this->cookieMetadataFactory->createPublicCookieMetadata()
+                ->setHttpOnly(false)
+                ->setDuration(15)
+                ->setPath('/');
+
+            $this->cookieManager->setPublicCookie(
+                'section_data_clean',
+                (string) $order->getStore()->getCode(),
+                $metadata
+            );
+        } catch (\Exception $e) {
+            // A cookie that could not be set is not a reason to fail an order
+            // that has already been placed. The worst case is a stale counter
+            // until the shopper's next navigation.
+            $this->logger->warning('Spartrak InstaPay: could not flag the customer sections for refresh.', [
+                'exception' => $e,
+            ]);
+        }
     }
 }

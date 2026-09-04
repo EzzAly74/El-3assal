@@ -65,6 +65,42 @@ define([
                 return count === 1
                     ? '(' + count + ' ' + $t('product') + ')'
                     : '(' + count + ' ' + $t('products') + ')';
+            },
+
+            /**
+             * The figure the row prints.
+             *
+             * ===================================================================
+             * WHY THE TEMPLATE DOES NOT JUST CALL getValue()
+             * ===================================================================
+             * Magento_Tax replaces this component and gives it THREE display
+             * modes, chosen by Stores > Configuration > Sales > Tax > "Display
+             * Subtotal": excluding tax, including tax, or both. Its own template
+             * branches on them; the Spartrak row draws one line, so the choice
+             * has to be made here instead - a template that decided it would be
+             * business logic in a .phtml's Knockout cousin (CLAUDE.md §8).
+             *
+             * "Both" collapses to the including-tax figure: two subtotals in a
+             * card Figma draws with one row would be worse than showing the
+             * number the shopper is actually charged.
+             *
+             * The feature-tests are not defensive noise. When Magento_Tax is
+             * disabled the component is Magento_Checkout's, which has neither
+             * method, and this mixin is registered against that one too.
+             *
+             * @return {String}
+             */
+            spartrakValue: function () {
+                var bothPrices = typeof this.isBothPricesDisplayed === 'function' &&
+                        this.isBothPricesDisplayed(),
+                    inclTax = typeof this.isIncludingTaxDisplayed === 'function' &&
+                        this.isIncludingTaxDisplayed();
+
+                if ((bothPrices || inclTax) && typeof this.getValueInclTax === 'function') {
+                    return this.getValueInclTax();
+                }
+
+                return this.getValue();
             }
         });
     };

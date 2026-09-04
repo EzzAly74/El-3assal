@@ -5,14 +5,28 @@
  * Figma's label reads `المجموع الفرعي (3 منتجات)` - the count is part of the
  * label. It comes from the quote, via Spartrak_Checkout's subtotal mixin, so
  * it is the real number of items and not a fixed string.
+ *
+ * ===========================================================================
+ * THE COMPONENT BEHIND THIS IS MAGENTO_TAX'S, NOT MAGENTO_CHECKOUT'S
+ * ===========================================================================
+ * Magento_Tax swaps the component out on the checkout page; this file is only
+ * reached because Spartrak_Checkout's checkout_index_index.xml names it back
+ * as that component's `template`. Two consequences are visible here:
+ *
+ *   `i18n: title`      title arrives as the untranslated source string from
+ *                      jsLayout ("Cart Subtotal"). `text:` would print the
+ *                      English on the Arabic storefront.
+ *   `spartrakValue()`  the tax display mode decides which of two subtotals to
+ *                      print, and that decision lives in the mixin - see
+ *                      js/view/summary/subtotal-mixin.js.
  */
 -->
 <div class="spartrak-total spartrak-total--subtotal">
     <span class="spartrak-total__label">
-        <span data-bind="text: title"></span>
+        <span data-bind="i18n: title"></span>
         <!-- ko if: spartrakItemCount() -->
         <span data-bind="text: spartrakItemCountLabel()"></span>
         <!-- /ko -->
     </span>
-    <span class="spartrak-total__value" data-bind="text: getValue()"></span>
+    <span class="spartrak-total__value" data-bind="text: spartrakValue()"></span>
 </div>

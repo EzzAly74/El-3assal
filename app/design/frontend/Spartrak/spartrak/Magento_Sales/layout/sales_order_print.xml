@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!--
+  The same one-attribute repair as the sibling sales_order_view.xml — see that
+  file for the full finding, the measurement and why a theme file is the
+  supported place to make it.
+
+  app/code/Paymob/Payment/view/frontend/layout/sales_order_print.xml also
+  declares `layout="admin-2columns-left"` on a FRONTEND handle, so "Print
+  Order" produced the same structureless page: an admin page layout has no
+  `main` container for the invoice to render into.
+
+  `1column`, because that is what this handle is supposed to inherit —
+  Magento_Sales' sales_order_print.xml does `<update handle="print"/>`, and
+  Magento_Theme's print.xml declares `layout="1column"`. Restored, not
+  reinvented.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      layout="1column"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd"/>

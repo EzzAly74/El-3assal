@@ -1,326 +1,1434 @@
-// Spartrak component — PLP / Category / Search grid, filters, toolbar
-// (Phase 6).
+// Spartrak component — PLP: content band, grid, toolbar and the
+// layered-navigation filter sidebar.
 //
-// Restyle-only, per this project's "reuse Magento's/Porto's existing
-// catalog infrastructure" rule: every selector below targets real,
-// already-functioning markup from Magento_LayeredNavigation,
-// Mageplaza_LayeredNavigation/Mageplaza_AjaxLayer (confirmed live in
-// Phase 6 discovery — real class names read directly from those modules'
-// own templates, not guessed), and Porto's toolbar/breadcrumbs. No PHTML
-// override was needed for any of this except the one genuine functional
-// gap noted below (mobile filter toggle).
+// Figma 569:13630 (Explore) / 569:13635 (toolbar) / 569:14157 (filter
+// sidebar), read live via the Figma MCP server against file
+// 6FRlQfPIncVUvNiJLn2kbT.
 //
-// ASSUMPTION — REQUIRES FIGMA VERIFICATION: no Figma pass has captured
-// the PLP's desktop filter-sidebar chrome or sort-control styling
-// (01-FIGMA-AUDIT.md) — spacing/borders/colors below are documented
-// defaults built from this theme's own token set, not invented values.
+// PAGINATION IS NO LONGER IN THIS FILE. Figma 569:14143 now lives in
+// components/_pagination.less under the root class `.spartrak-pagination`,
+// because the order list and the wishlist render the same core pager markup
+// and matched none of it while every selector was qualified with
+// `.spartrak-plp__pagination`. See section 5 below.
+//
+// --- WHERE THIS CAME FROM --------------------------------------------------
+// These rules previously lived in a TEMPORARY inline <style> block inside
+// Magento_Catalog/templates/product/list.phtml — ~34 KB re-sent inside every
+// category and search response, re-sent again with every Mageplaza AJAX
+// filter/sort response, and impossible to cache separately from the HTML.
+// That block existed so the Figma pass could be reviewed by uploading .phtml
+// only, with no setup:static-content:deploy. It has served its purpose and is
+// gone; the rules are here, where they compile into spartrak-components.css
+// and are fetched once. This mirrors the move already done for
+// _product-card.less and _pdp.less.
+//
+// The five icons the inline block carried as data: URIs are now ordinary
+// cacheable asset requests. All five already shipped in this theme's
+// web/images/icons/ and were byte-compared against the inlined path data
+// before the swap, so nothing about the rendering changed:
+//   chevron-down-16.svg  sort control          (Figma 718:25216)
+//   chevron-down-20.svg  collapsed filter group (Figma 718:25424)
+//   chevron-up-20.svg    expanded filter group  (Figma 718:25388)
+//   arrow-next.svg       pagination arrows      (Figma 718:25381)
+//   slider-grip.svg      price-slider handle    (Figma 569:14194)
+//
+// The two design tokens that block declared locally (--color-border-subtle,
+// --shadow-input) are NOT redeclared here: both are already promoted into
+// foundations/_semantic.less and foundations/_shadows.less respectively, and
+// a component file must consume role tokens, never define them.
+//
+// --- HOW IT TARGETS THE PAGE -----------------------------------------------
+// Restyle-only. Every selector below targets real, already-functioning markup
+// from Magento_LayeredNavigation, Mageplaza_LayeredNavigation /
+// Mageplaza_AjaxLayer, Magento's own pager, and this theme's own
+// product/list.phtml + product/list/toolbar.phtml. Filter-sidebar rules are
+// keyed off #layered-filter-block because that is the real id Mageplaza's
+// layer/view.phtml emits — matching that selector shape means this file wins
+// on source order (it is imported after _porto-chrome.less) instead of
+// escalating specificity.
+//
+// TWO !important DECLARATIONS REMAIN in this file: `.toolbar select` in
+// section 2 and `background-size` on an image swatch. Both are against
+// behaviour that cannot be reached otherwise, not a specificity shortcut over
+// another rule here. (The pagination section carried two more; they moved
+// with it, unchanged.)
 
-// --- Product grid ---------------------------------------------------
+// -------------------------------------------------------------------
+//  1. Content band — Figma 569:13631
+//  The PLP's content band is 1344 wide inside a 1440 viewport: the page is
+//  FULL WIDTH with 48px gutters, not a centred fixed-width column.
+//
+//  Porto ships `layout-1220` -> `.page-main { max-width: 1420px }` and
+//  Magento core adds `margin-inline: auto` on top. Together those were
+//  capping the grid: past 1420px the container stopped growing, so the four
+//  cards held a fixed pixel width and drifted away from the screen edges as
+//  the viewport got wider — which is exactly what reads as "the cards get
+//  smaller when I zoom out".
+//
+//  Scoped to the two routes this component owns. Every other page keeps
+//  Porto's centred container untouched — this is deliberately NOT a global
+//  container change.
+//
+//  Specificity is identical to Porto's rule (0,2,0), so this wins purely on
+//  source order: spartrak-components.less imports _porto-chrome.less at line
+//  25 and this file at line 48, and spartrak-components.css is linked after
+//  styles-l.css in Magento_Theme/layout/default_head_blocks.xml.
+// -------------------------------------------------------------------
+
+// @plp-gutter / @plp-gutter-tablet / @plp-gutter-mobile are DECLARED IN
+// foundations/_page-metrics.less, not here.
+//
+// They were briefly declared at this spot, and _category-top.less consumed
+// them as a later sibling @import. That broke a static-content deploy on a
+// stale var/view_preprocessed entry — the full finding is written up in
+// foundations/_page-metrics.less. Do not move them back: this file must consume
+// that number, never own it, because _category-top.less applies its exact
+// negative to take the hero and tile bands full bleed out of the same
+// .page-main this rule pads.
+
+.catalog-category-view,
+.catalogsearch-result-index {
+  .page-main {
+    max-width: none;
+    margin-inline: 0;
+    padding-inline: @plp-gutter;
+  }
+
+  // NO BREADCRUMB RULE HERE ANY MORE. The band used to be re-cut alongside
+  // `.page-main` above, because core renders it outside `.page-main` and it
+  // would otherwise indent to a different edge than the grid. It is now a
+  // child of `.page-main` instead — Magento_Theme/layout/default.xml moves
+  // the block into `columns.top` — so it inherits the gutter this rule sets,
+  // and re-cutting it again here would double the inset to 96px.
+}
+
+// Below the desktop band the 48px gutter is too generous; fall back to the
+// gutter Magento core already uses for .page-main at these widths.
+@media (max-width: 1023px) {
+  .catalog-category-view,
+  .catalogsearch-result-index {
+    .page-main {
+      padding-inline: @plp-gutter-tablet;
+    }
+  }
+}
+
+@media (max-width: 767px) {
+  .catalog-category-view,
+  .catalogsearch-result-index {
+    .page-main {
+      padding-inline: @plp-gutter-mobile;
+    }
+  }
+}
+
+/* -------------------------------------------------------------------
+   2. Two-column shell — Figma 569:13631
+   Grid 1024 | 24px gutter | sidebar 296, inside a 1344 band.
+   `order` puts the sidebar first in the flex line, which resolves to the
+   right under RTL (as designed) and to the left for an LTR store — the
+   2columns-left layout this page already uses.
+
+   Porto also drops two overlay elements straight into .columns
+   (.sidebar-overlay for the mobile drawer, #ln_overlay for Mageplaza's
+   AJAX spinner). They are real, working elements, but as flex children
+   they would each claim a column, so they are taken out of flow here
+   rather than removed.
+   ------------------------------------------------------------------- */
+.page-layout-2columns-left .columns {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.page-layout-2columns-left .columns .column.main {
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
+  padding: 0;
+  order: 2;
+}
+.toolbar select {
+  border: none !important;
+}
+.page-layout-2columns-left .columns .sidebar-main {
+  flex: 0 0 296px;
+  width: 296px;
+  max-width: 296px;
+  padding: 0;
+  order: 1;
+}
+
+.page-layout-2columns-left .columns .sidebar-additional {
+  flex: 0 0 296px;
+  width: 296px;
+  padding: 0;
+  order: 3;
+}
+
+.page-layout-2columns-left .columns > .sidebar-overlay,
+.page-layout-2columns-left .columns > #ln_overlay {
+  position: absolute;
+}
+
+/* Porto's page layout wraps the sidebar's blocks in .sidebar-content, and
+   its sidebar-sticky script (Smartwave_Porto/templates/html/
+   sidebar_sticky.phtml, gated by porto_settings/general/sidebar_sticky)
+   wraps THAT in .pin-wrapper and writes inline width/height onto both.
+   Neither wrapper should introduce geometry of its own. NOTE: the inline
+   styles that script writes cannot be undone from CSS without
+   !important — turn `Sidebar Sticky` off in the Porto admin section to
+   stop them being written at all. Figma's sidebar is a plain column, not
+   a sticky one, and dropping the script also drops a scroll handler that
+   reads offsets on every frame. */
+.page-layout-2columns-left .columns .sidebar-main .sidebar-content,
+.page-layout-2columns-left .columns .sidebar-main .pin-wrapper {
+  display: block;
+  max-width: 100%;
+}
+
+/* -------------------------------------------------------------------
+   3. Product grid — Figma 569:13666
+   4 columns, column-gap 16, row-gap 24. Cards stretch to a common row
+   height (the design equalises its own row 1 the same way — node
+   569:13749's content block is stretched by exactly the 29px needed to
+   match its taller siblings), with each card's price row pinned to the
+   bottom by _product-card's margin-block-start:auto.
+
+   BREAKPOINTS ARE A DOCUMENTED DEFAULT, NOT FROM FIGMA (no mobile PLP
+   frame exists). 768px and 1200px are Magento core's own @screen__m and
+   @screen__l, the widths at which the rest of this page's chrome already
+   flips — the same reasoning _breakpoints.less records for the header.
+   ------------------------------------------------------------------- */
 .spartrak-plp__grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-    margin-block: 16px;
-
-    @media (min-width: @breakpoint-mobile) {
-        grid-template-columns: repeat(3, 1fr);
-    }
-
-    @media (min-width: @breakpoint-desktop) {
-        grid-template-columns: repeat(var(--spartrak-plp-columns, 4), 1fr);
-    }
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 16px;
+  row-gap: 24px;
+  align-items: stretch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.products.wrapper.list .spartrak-plp__grid {
-    grid-template-columns: 1fr;
+.spartrak-plp__item {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-// --- Empty state (native Magento "message info empty") --------------
+@media (min-width: 768px) {
+  .spartrak-plp__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .spartrak-plp__grid {
+    grid-template-columns: repeat(
+      var(--spartrak-plp-columns, 4),
+      minmax(0, 1fr)
+    );
+  }
+}
+
+/* Figma: 16px between the toolbar block and the first card row, 48px
+   between the last row and the pagination. */
+.spartrak-plp__toolbar {
+  margin-block-end: 16px;
+}
+
+.spartrak-plp__pagination {
+  margin-block-start: 48px;
+}
+
+/* Empty state — native Magento "message info empty", no Figma frame. */
 .spartrak-plp__empty {
-    padding: 32px 16px;
-    text-align: center;
-    background: var(--color-bg-surface-subtle);
-    border-radius: var(--radius-10);
-    color: var(--color-text-secondary);
-    font-size: var(--text-16);
+  padding: 32px 16px;
+  border-radius: var(--radius-10);
+  background: var(--color-bg-surface-subtle);
+  color: var(--color-text-secondary);
+  font-family: var(--font-arabic);
+  font-size: var(--text-16);
+  text-align: center;
 }
 
-// --- Layered navigation sidebar (Mageplaza_LayeredNavigation) --------
+/* -------------------------------------------------------------------
+   4. Toolbar — Figma 569:13635
+   ------------------------------------------------------------------- */
+.spartrak-toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+/* Row 1 — results heading (569:13636). DOM is [count, label]: under RTL
+   the number lands at the inline-start (right) edge with the sentence to
+   its left, which is how the design renders. */
+.spartrak-toolbar__head {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+
+/* Figma "Heading/H2": arabic bold, size/2xl 24px, line-height 1.3. */
+.spartrak-toolbar__count {
+  color: var(--color-text-primary);
+  font-family: var(--font-arabic);
+  font-size: var(--text-24);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+/* Figma "Body/Small": arabic regular 14/1.5 on greyscale/500, with the
+   search term itself bold on text/primary (569:13638's own mixed run). */
+.spartrak-toolbar__label {
+  padding-block-end: 2px;
+  color: var(--color-text-secondary);
+  font-family: var(--font-arabic);
+  font-size: var(--text-14);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.spartrak-toolbar__term {
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
+/* Row 2 — quick-sort chips + sort control (569:13640). */
+.spartrak-toolbar__controls {
+  display: flex;
+  align-self: stretch;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.spartrak-toolbar__quick {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* The sort control is pushed to the inline-end edge with an auto margin
+   rather than space-between, so the row still lays out correctly when no
+   quick-sort chip is available to render (see toolbar.phtml's header). */
+.spartrak-toolbar__sort {
+  margin-inline-start: auto;
+}
+
+/* Chips (569:13647 / :13653 / :13660): h40, px16, gap 8, 1px
+   border/default, bg/surface, SQUARE corners, Shadow/Input,
+   Label/Large 14/1.3. DOM is [icon, label] so the icon sits at the
+   inline-start edge — the right under RTL, matching the design. */
+.spartrak-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding-inline: 16px;
+  border: 1px solid var(--color-border-default);
+  border-radius: 0;
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-input);
+  color: var(--color-text-primary);
+  font-family: var(--font-arabic);
+  font-size: var(--text-14);
+  font-weight: 500;
+  line-height: 1.3;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.spartrak-chip__icon {
+  display: block;
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.spartrak-chip:hover {
+  border-color: var(--color-border-strong);
+}
+
+/* Figma has no "selected chip" variant. This is the same navy the design
+   already uses for the selected pagination page and the slider handles —
+   the design system's own "this one is active" colour — not a new
+   invented treatment. */
+.spartrak-chip--active {
+  border-color: var(--color-action-primary);
+  color: var(--color-action-primary);
+}
+
+/* A chip whose sort key does not exist in the toolbar yet is emitted as an
+   inert <span> rather than a link — see toolbar.phtml's header for why.
+   Figma has no "pending" variant and this deliberately does not invent one:
+   the chip stays pixel-identical to a live one. The only two changes are
+   honesty about interaction — the cursor does not promise a click, and the
+   hover border does not respond to a pointer that has nothing to press. */
+.spartrak-chip--pending {
+  cursor: default;
+}
+
+.spartrak-chip--pending:hover {
+  border-color: var(--color-border-default);
+}
+
+/* Sort control (569:13641 / :13642 / :13643): h40, px20, same border and
+   shadow, square corners; chevron 16px at 6px from the text. DOM is
+   [text, chevron] so the chevron lands at the inline-end edge (the left
+   under RTL). Label and <select> sit inline inside one span so the space
+   between "Sort:" and the current value is a real text space, as it is in
+   Figma's single text node. */
+.spartrak-sorter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding-inline: 20px;
+  border: 1px solid var(--color-border-default);
+  border-radius: 0;
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-input);
+}
+
+.spartrak-sorter__text {
+  display: inline;
+  white-space: nowrap;
+}
+
+.spartrak-sorter__label,
+.spartrak-sorter__select {
+  color: var(--color-text-primary);
+  font-family: var(--font-arabic);
+  font-size: var(--text-14);
+  font-weight: 500;
+  line-height: 1.3;
+  vertical-align: middle;
+}
+
+.spartrak-sorter__label {
+  margin: 0;
+  cursor: pointer;
+}
+
+/* The native [data-role=sorter] control, chrome removed. Keeping the real
+   <select> is what keeps productListToolbarForm — and therefore sorting —
+   working untouched, and it gives keyboard and screen-reader support for
+   free that a custom dropdown would have to re-implement. */
+.spartrak-sorter__select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.spartrak-sorter__chevron {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  background-image: url("../images/icons/chevron-down-16.svg");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 16px 16px;
+}
+
+/* Porto's mobile filter toggle — below the collapse breakpoint only. */
+.spartrak-toolbar .porto-product-filters-toggle {
+  display: none;
+}
+
+/* -------------------------------------------------------------------
+   5. Pagination — Figma 569:14143
+
+   MOVED, 2026-09-03, to components/_pagination.less. Root class is now
+   `.spartrak-pagination`, and product/list.phtml carries both:
+   `spartrak-plp__pagination spartrak-pagination`.
+
+   EVERY DECLARATION WENT ACROSS UNCHANGED. That includes the two that were
+   the actual fixes for the empty-looking pills — the `> span:not(.label)`
+   rule that un-hides the word core's own _pages.less clips to 1px, and the
+   icon-font neutralisation on the arrow pseudo-elements — and the four
+   mobile overrides that used to sit inside the drawer breakpoint at the
+   foot of this file. Nothing was simplified on the way out.
+
+   WHY IT MOVED: /sales/order/history and /wishlist render the SAME core
+   pager markup and matched none of these rules, because every selector was
+   qualified with `.spartrak-plp__pagination`. They came out as bare square
+   boxes with an unlabelled empty box where "next" should be. Figma has one
+   pagination component and the account section has no pagination frame of
+   its own, so it became a shared component instead of a second copy
+   (CLAUDE.md section 9, "no duplicate components").
+
+   WHAT IS LEFT HERE: the two spacing rules only — 48px above the control on
+   this page (section 3) and 32px in the breakpoint below. Space around the
+   control is the page's business; the control is not.
+   ------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------
+   6. Filter sidebar — Figma 569:14157
+   Restyle only. Every selector below targets real, already-working markup
+   emitted by Mageplaza_LayeredNavigation's layer/view.phtml and
+   layer/filter.phtml, so filtering behaviour is untouched.
+   ------------------------------------------------------------------- */
+#layered-filter-block-container {
+  display: block;
+}
+
 #layered-filter-block {
+  padding: 8px;
+  margin: 0;
+  border: 0;
+  border-radius: var(--radius-4);
+  background: var(--color-bg-surface-subtle);
+  box-shadow: none;
+}
+
+/* Mageplaza renders TWO headings: `.filter-title` ("Shop By") and
+   `.filter-subtitle` ("Shopping Options"). Figma's sidebar has exactly one
+   title and it reads "خيارات التسوق" = Shopping Options, so the subtitle
+   becomes the heading and the redundant one is dropped on desktop. It
+   stays visible below the collapse breakpoint, where it is the drawer's
+   own open/close control. */
+@media (min-width: 768px) {
+  #layered-filter-block > .block-title.filter-title {
+    display: none;
+  }
+}
+
+/* Source order in the markup is [state, actions, subtitle, options];
+   Figma's order is [title, active filters, options]. `order` reflows it
+   without touching Mageplaza's template. */
+#layered-filter-block > .block-content.filter-content {
+  display: flex;
+  flex-direction: column;
+}
+
+#layered-filter-block .filter-subtitle {
+  order: -2;
+  display: block;
+  margin: 0 0 16px;
+  color: var(--color-text-primary);
+  font-family: var(--font-arabic);
+  font-size: var(--text-24);
+
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: start;
+}
+
+#layered-filter-block .filter-current {
+  order: -1;
+}
+
+#layered-filter-block .filter-actions {
+  order: 0;
+}
+
+/* Figma 569:14161: 24px above and 24px below each divider, i.e. 48px
+   between filter groups with a dashed rule at the midpoint. */
+#layered-filter-block .filter-options {
+  order: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  margin: 0;
+  padding: 0;
+}
+
+#layered-filter-block .filter-options-item {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* Figma's divider asset (718:25423) is a 1px #CECED2 line with
+   stroke-dasharray "2 2". A repeating gradient reproduces that 2-on/2-off
+   pattern exactly and costs no request — `border-style: dashed` would not
+   (browsers pick their own dash length). */
+#layered-filter-block .filter-options-item + .filter-options-item::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: -24px;
+  height: 1px;
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--color-border-strong) 0 2px,
+    transparent 2px 4px
+  );
+}
+
+/* Group header (569:14163 / :14222 / :14232 ...): Heading/H5 arabic bold
+   16/1.3, with the 20px toggle chevron at the inline-end edge. Both
+   chevrons are the real Figma assets. */
+#layered-filter-block .filter-options-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  color: var(--color-text-primary);
+  font-family: var(--font-arabic);
+  font-size: var(--text-16);
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: start;
+  cursor: pointer;
+}
+
+// Magento core (Magento_LayeredNavigation/web/css/source/_module.less) draws
+// the collapse affordance as an icon-FONT glyph on .filter-options-title's
+// :after. Porto swaps that font for porto-icons, so the codepoint core picked
+// can land on an unrelated character — which is what makes the arrows look
+// wrong rather than simply doubled. The design uses a real SVG chevron on the
+// `.toggle` span instead, so both core pseudo-elements are neutralised.
+// `content: none` as well as `display: none`: display alone still leaves the
+// generated glyph in the accessibility tree.
+#layered-filter-block .filter-options-title::after,
+#layered-filter-block .filter-options-title::before {
+  content: none;
+  display: none;
+}
+
+// ...and nothing may draw into the toggle span itself either.
+#layered-filter-block .filter-options-title .toggle::after,
+#layered-filter-block .filter-options-title .toggle::before {
+  content: none;
+}
+
+#layered-filter-block .filter-options-title .toggle {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  background-image: url("../images/icons/chevron-down-20.svg");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 20px 20px;
+}
+
+/* Mageplaza's accordion marks the open group `.active`. */
+#layered-filter-block
+  .filter-options-item.active
+  > .filter-options-title
+  .toggle {
+  background-image: url("../images/icons/chevron-up-20.svg");
+}
+
+#layered-filter-block .filter-options-content {
+  margin: 16px 0 0;
+  padding: 0;
+}
+
+/* Figma 569:14205: 16px between option rows. */
+#layered-filter-block .filter-options-content .items {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Option row (569:14206). Mageplaza's DOM is [input, a[label, count]],
+   which under RTL already resolves to the Figma order without any
+   reordering: the control at the inline-start (right) edge, the label
+   beside it, the count pill pushed to the far inline-end (left). */
+#layered-filter-block .filter-options-content .item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  line-height: 1.3;
+}
+
+#layered-filter-block .filter-options-content .item > a {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--color-text-primary);
+  font-family: var(--font-arabic);
+  font-size: var(--text-14);
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: start;
+  text-decoration: none;
+}
+
+#layered-filter-block .filter-options-content .item > a:hover {
+  color: var(--color-action-primary);
+}
+
+/* Count pill (718:25410): bg/field, h20, px8, pill, Label/Base 12/1.3. */
+#layered-filter-block .count {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  padding-inline: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-field);
+  color: var(--color-text-primary);
+  font-family: var(--font-arabic);
+  font-size: var(--text-12);
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+#layered-filter-block .filter-count-label {
+  display: none;
+}
+
+/* Radio (718:25413): 16px, 0.667px border/strong, pill, bg/surface,
+   shadow 0 0.667px 1px rgba(44,54,53,.03). Figma documents only the
+   UNCHECKED state and has no multi-select control at all, so:
+     - :checked reuses the construction the design already uses for a
+       selected control in this very frame — the price-slider handle
+       (569:14192): action/primary body with a white centre;
+     - the checkbox (Mageplaza's multi-select filters) takes radius-4 and a
+       solid action/primary fill rather than a checkmark glyph, because no
+       checkmark asset exists in Figma and one must not be drawn.
+   Both are flagged for a design decision. */
+#layered-filter-block .filter-options-content .item > input[type="radio"],
+#layered-filter-block .filter-options-content .item > input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 0.667px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-surface);
+  box-shadow: 0 0.667px 1px rgba(44, 54, 53, 0.03);
+  cursor: pointer;
+}
+
+#layered-filter-block .filter-options-content .item > input[type="checkbox"] {
+  border-radius: var(--radius-4);
+}
+
+#layered-filter-block
+  .filter-options-content
+  .item
+  > input[type="radio"]:checked {
+  border-color: var(--color-action-primary);
+  background: var(--color-action-primary)
+    radial-gradient(
+      circle at 50% 50%,
+      var(--color-bg-surface) 0 2.5px,
+      transparent 2.5px
+    );
+}
+
+#layered-filter-block
+  .filter-options-content
+  .item
+  > input[type="checkbox"]:checked {
+  border-color: var(--color-action-primary);
+  background: var(--color-action-primary);
+}
+
+#layered-filter-block .filter-options-content .item > input:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* The pagination's own focus ring left this group when the component moved;
+   it is declared in components/_pagination.less now. */
+#layered-filter-block .filter-options-content .item > input:focus-visible,
+#layered-filter-block .filter-options-content .item > a:focus-visible,
+#layered-filter-block .filter-options-title:focus-visible,
+.spartrak-chip:focus-visible,
+.spartrak-sorter__select:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* --- PRICE RANGE ROWS - Figma 569:14205 / 864:20665 ----------------- */
+/* Three derived choices: under the low field, between the two, above the
+   high field. See the filter template for the business rule.
+
+   EACH ROW IS A LINK, and that is the fix for "clicking a range does
+   nothing". The row used to be a bare <input type="radio"> beside a
+   separate <a>: a radio outside a form with nothing bound to it is inert,
+   so a click checked a dot and navigated nowhere. The radio below is drawn
+   in CSS INSIDE the link — the control's job is navigation, and <a> is the
+   element for navigation.
+
+   Figma 864:20666 composes the row [count pill][label][radio] left to
+   right. Under RTL the DOM order [radio, label, count] resolves to exactly
+   that, so there is no reordering here and it mirrors for an LTR store. */
+.spartrak-price-ranges {
+  display: flex;
+  flex-direction: column;
+  /* Figma 864:20665 - the three rows sit 16px apart. */
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The three rows are always in the DOM so the price script can fill them in
+   as the shopper types; they are `hidden` until there are two bounds to build
+   them from.
+
+   BOTH selectors are needed, and the second one is the load-bearing half.
+   `[hidden]` alone is (0,2,0) and loses to
+   `#layered-filter-block .filter-options-content .items` at (1,2,0) further
+   up this file, which sets `display: flex` — so the list stayed on screen as
+   three empty circles with no labels. Matching that rule's shape and adding
+   the attribute takes it to (1,3,0), which wins without an !important. The
+   bare selector stays for any context outside #layered-filter-block. */
+.spartrak-price-ranges[hidden],
+#layered-filter-block .filter-options-content .items[hidden] {
+  display: none;
+}
+
+.spartrak-price-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-primary);
+  font-family: var(--font-arabic);
+  font-size: var(--text-14);
+  font-weight: 500;
+  line-height: 1.3;
+  text-decoration: none;
+}
+
+/* Figma 864:20680 - the label takes the remaining width so the count pill
+   is pushed to the far inline-end edge. */
+.spartrak-price-range__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: start;
+}
+
+/* Figma 864:20681 - a 16px circle, 0.667px border/strong on bg/surface
+   with a hairline shadow. Drawn on a <span>, not an <input>: see above. */
+.spartrak-price-range__radio {
+  display: block;
+  flex: none;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border: 0.667px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-surface);
+  box-shadow: 0 0.667px 1px rgba(44, 54, 53, 0.03);
+}
+
+/* Mageplaza's multi-select filters are a checkbox, not a radio. Figma has
+   no multi-select control anywhere in this sidebar, so this reuses the
+   radio construction with the square radius the rest of the design system
+   uses for a box - flagged for a Figma pass rather than invented further. */
+.spartrak-price-range__radio--box {
+  border-radius: var(--radius-4);
+}
+
+/* Chosen. Figma documents only the UNCHECKED state, so this reuses the
+   construction the design already uses for a selected control in this very
+   frame - the price-slider handle (569:14192): an action/primary body with
+   a white centre. Not a new invented treatment. */
+.spartrak-price-range--chosen .spartrak-price-range__radio {
+  border-color: var(--color-action-primary);
+  background: var(--color-action-primary)
+    radial-gradient(
+      circle at 50% 50%,
+      var(--color-bg-surface) 0 2.5px,
+      transparent 2.5px
+    );
+}
+
+.spartrak-price-range--chosen .spartrak-price-range__label {
+  color: var(--color-action-primary);
+}
+
+.spartrak-price-range:hover .spartrak-price-range__radio {
+  border-color: var(--color-action-primary);
+}
+
+.spartrak-price-range:hover .spartrak-price-range__label {
+  color: var(--color-action-primary);
+}
+
+/* CLAUDE.md section 15 - the whole row is the control, so the ring goes
+   round the whole row. */
+.spartrak-price-range:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* --- Price range filter — Figma 569:14166 --------------------------- */
+
+/* Figma 569:14167: histogram + track, then 16px, then the min/max inputs.
+   The bars and the inputs come from this theme's own
+   Mageplaza_LayeredNavigation/templates/layer/filter.phtml override; the
+   slider itself is still Mageplaza's jQuery UI widget, untouched. */
+#layered-filter-block .ln_slider_container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0;
+  margin: 0;
+}
+
+/* Histogram (569:14169): 19 columns of 12px, 80px tall, space-between,
+   sitting directly on the track (Figma pulls it down 12px into it).
+   Bars inside the selected range take action/primary, bars outside take
+   bg/field — exactly the two fills the design uses. */
+.spartrak-price-histogram {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 80px;
+  margin-block-end: -12px;
+  overflow: hidden;
+}
+
+/* Figma: 19 columns of exactly 12px inside a 280px row, distributed by
+   space-between (280 - 19*12 = 52px spread over 18 gaps). `flex: 0 1 12px`
+   keeps that at 280px and lets the columns shrink rather than overflow on a
+   narrower drawer. */
+.spartrak-price-histogram__bar {
+  flex: 0 1 12px;
+  max-width: 12px;
+  min-height: 2px;
+  height: var(--spartrak-bar-height, 2px);
+  background: var(--color-action-primary);
+}
+
+.spartrak-price-histogram__bar--muted {
+  background: var(--color-bg-field);
+}
+
+/* Track (569:14189): 24px tall band with a 2px rule; range fill and two
+   24px handles. */
+#layered-filter-block .ui-slider {
+  position: relative;
+  height: 2px;
+  margin-block: 11px;
+  border: 0;
+  border-radius: 0;
+  background: var(--color-border-default);
+}
+
+#layered-filter-block .ui-slider .ui-slider-range {
+  position: absolute;
+  block-size: 100%;
+  border-radius: 0;
+  background: var(--color-action-primary);
+}
+
+/* Handle (569:14192): 1.5px white outer ring, a 2px action/primary body
+   and a white centre carrying the real 6x10 grip asset. Painting order is
+   background-colour, then background-image, then the inset shadow on
+   top — which is exactly the design's ring-inside-ring construction. */
+#layered-filter-block .ui-slider .ui-slider-handle {
+  position: absolute;
+  inset-block-start: 50%;
+  width: 24px;
+  height: 24px;
+  margin-inline-start: -12px;
+  transform: translateY(-50%);
+  border: 1.5px solid var(--color-text-inverse);
+  border-radius: var(--radius-pill);
+  // Longhand rather than the `background:` shorthand — LESS parses the `/`
+  // in `center / 6px 10px` as division and mangles it (same note as
+  // _product-card.less and _icons.less).
+  background-color: var(--color-bg-surface);
+  background-image: url("../images/icons/slider-grip.svg");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 6px 10px;
+  box-shadow: inset 0 0 0 2px var(--color-action-primary);
+  cursor: pointer;
+}
+
+#layered-filter-block .ui-slider .ui-slider-handle:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* Min/max inputs (569:14202 / 718:25390): two equal columns, 12px apart;
+   each is a 12px label above a 40px h input with border/default and
+   Shadow/Input. */
+.spartrak-price-inputs {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0;
+}
+
+.spartrak-price-inputs__field {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.spartrak-price-inputs__label {
+  color: var(--color-text-primary);
+  font-family: var(--font-arabic);
+  font-size: var(--text-12);
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: start;
+}
+
+.spartrak-price-inputs__input {
+  width: 100%;
+  height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border-default);
+  border-radius: 0;
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-input);
+  color: var(--color-text-primary);
+  font-family: var(--font-arabic);
+  font-size: var(--text-14);
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: start;
+}
+
+/* Both fields are empty until the shopper types, showing "0.00". Muted so it
+   reads as a prompt rather than a value already applied - the fields used to
+   be seeded with a real 0.00 and looked like a broken filter. `opacity: 1`
+   because Firefox dims placeholders by default. */
+.spartrak-price-inputs__input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
+}
+
+.spartrak-price-inputs__input:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 1px;
+}
+
+/* Figma shows no Apply button — the range applies when the field is
+   committed. A real submit button is still in the markup so that Enter
+   submits reliably and assistive tech has something to activate; it is
+   hidden visually only, never with display:none (which would take it out
+   of the accessibility tree too). */
+.spartrak-price-inputs__submit {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Mageplaza's own range readout. Figma replaces it with the two inputs
+   above, so it stays in the DOM (its JS writes to it on every slide) but
+   is not shown twice. */
+#layered-filter-block [id^="ln_slider_text_"] {
+  display: none;
+}
+
+/* --- Swatch-based filters (e.g. Brand) ----------------------------- */
+/* NO FIGMA REFERENCE: every filter group in Figma's sidebar is collapsed,
+   so no option styling exists for an image-swatch filter. These are laid
+   out to the same language as the rest of the sidebar — bordered tiles on
+   bg/surface — and flagged for a Figma pass. */
+#layered-filter-block .swatch-attribute-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+#layered-filter-block .swatch-option-link-layered {
+  display: block;
+  text-decoration: none;
+}
+
+#layered-filter-block .swatch-option.image {
+  width: 56px;
+  height: 40px;
+  margin: 0;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-4);
+  background-color: var(--color-bg-surface);
+  background-size: contain !important;
+}
+
+#layered-filter-block .swatch-option.image:hover,
+#layered-filter-block
+  .swatch-option-link-layered:focus-visible
+  .swatch-option.image {
+  border-color: var(--color-action-primary);
+}
+
+/* --- Category list block: GONE, NOT HIDDEN -------------------------- */
+/* `.sidebar-main .block-category-list` used to be styled here. Porto's
+   `category_leftnav` block is now REMOVED outright — see this theme's
+   Mageplaza_LayeredNavigation/layout/catalog_category_view_type_layered.xml
+   — because the Spartrak tile rail renders the same child categories from
+   the same source, and the two together printed every child twice.
+
+   The rules are deleted rather than left in place "in case it comes back":
+   dead selectors for markup that can no longer exist are exactly the
+   commented-out code CLAUDE.md section 18 forbids, and they would quietly
+   restyle the block if some other route ever mounted it. */
+
+/* Active filter chips (Magento_LayeredNavigation state.phtml) and
+   "Clear All". Neither is in the Figma sidebar, so both keep the
+   token-consistent treatment the theme already gave them. */
+#layered-filter-block .filter-current,
+#layered-filter-block .filter-actions {
+  margin-block-end: 24px;
+}
+
+#layered-filter-block .filter-actions .filter-clear {
+  display: inline-block;
+  color: var(--color-action-primary);
+  font-family: var(--font-arabic);
+  font-size: var(--text-14);
+  text-decoration: none;
+}
+
+#layered-filter-block .filter-actions .filter-clear:hover {
+  text-decoration: underline;
+}
+
+/* -------------------------------------------------------------------
+   7. Below the collapse breakpoint — the filter DRAWER (Figma 864:20389)
+
+   THE SIDEBAR BECOMES THE DRAWER. Nothing is duplicated and no second
+   copy of the filters is rendered: the same .sidebar-main that is a
+   plain column on desktop is turned into a fixed panel here, with its
+   header and footer mounted inside it as ordinary blocks (see the
+   layered layout XML).
+
+   That is the whole reason this is CSS and not a new component. A
+   second, drawer-only copy of the filter list would have to be kept in
+   step with Mageplaza's own AJAX layer, which re-renders
+   #layered-filter-block in place — the copy would go stale the first
+   time a shopper picked anything.
+
+   767px, not the 440px an earlier revision used: 440 is the Figma MOBILE
+   FRAME WIDTH, not a switch point, and keying off it left every viewport
+   from 441 to 1439 rendering a 296px desktop sidebar inside a phone.
+   ------------------------------------------------------------------- */
+
+/* The drawer chrome is mobile-only. Figma's desktop sidebar (488:12197)
+   has no header and no CTA, so both are gone above the breakpoint —
+   removed from the flow entirely, not just made invisible. */
+.spartrak-filter-drawer__head,
+.spartrak-filter-drawer__foot {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .page-layout-2columns-left .columns {
+    display: block;
+  }
+
+  /* ---------------------------------------------------------------
+       THE PANEL
+       .sidebar-main is the full-screen scrim; .sidebar-content inside it
+       is the white panel. Two elements because the scrim must cover the
+       viewport to catch a dismissing tap, while the panel must scroll
+       independently of it.
+       --------------------------------------------------------------- */
+  .page-layout-2columns-left .columns .sidebar-main {
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    width: auto;
+    max-width: none;
+    padding: 0;
+    background: var(--color-scrim);
+    /* Closed by default, and closed is the state with NO class on the
+           root — so a failed script leaves the page usable rather than
+           stuck behind an undismissable overlay. */
+    visibility: hidden;
+    opacity: 0;
+    transition:
+      opacity 0.2s ease,
+      visibility 0s linear 0.2s;
+  }
+
+  .spartrak-filters-open .page-layout-2columns-left .columns .sidebar-main {
+    visibility: visible;
+    opacity: 1;
+    transition: opacity 0.2s ease;
+  }
+
+  /* Figma 864:20532 — the white panel: bg/surface, 16px inline padding,
+       8px at the foot. Full height so the filter list can be long, and its
+       own scroll container so the page behind it does not move. */
+  .page-layout-2columns-left .columns .sidebar-main .sidebar-content,
+  .page-layout-2columns-left .columns .sidebar-main .pin-wrapper {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 8px 16px;
     background: var(--color-bg-surface);
-    border: 1px solid var(--color-border-default);
-    border-radius: var(--radius-10);
-    padding: 16px;
-    margin-block-end: 16px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    /* Slides up from the bottom edge, and settles when the root class
+           lands. transform composites, so this costs no layout. */
+    transform: translateY(2%);
+    transition: transform 0.2s ease;
+  }
 
-    .filter-title {
-        font-size: var(--text-18);
-        color: var(--color-text-primary);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
+  .spartrak-filters-open
+    .page-layout-2columns-left
+    .columns
+    .sidebar-main
+    .sidebar-content,
+  .spartrak-filters-open
+    .page-layout-2columns-left
+    .columns
+    .sidebar-main
+    .pin-wrapper {
+    transform: none;
+  }
 
-    .filter-subtitle {
-        display: block;
-        font-size: var(--text-14);
-        color: var(--color-text-secondary);
-        margin-block: 12px 8px;
-    }
-
-    .filter-options-item {
-        border-block-start: 1px solid var(--color-border-default);
-        padding-block: 12px;
-
-        &:first-child {
-            border-block-start: 0;
-        }
-    }
-
-    .filter-options-title {
-        font-size: var(--text-14);
-        font-weight: 600;
-        color: var(--color-text-primary);
-        margin-block-end: 8px;
-    }
-
-    .filter-options-content .items {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-
-        .item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding-block: 4px;
-            font-size: var(--text-14);
-
-            a {
-                color: var(--color-text-primary);
-                text-decoration: none;
-                display: flex;
-                align-items: center;
-                gap: 4px;
-
-                &:hover {
-                    color: var(--color-action-primary);
-                }
-            }
-        }
-    }
-
-    .count {
-        color: var(--color-text-muted);
-        font-size: var(--text-12);
-    }
-
-    .filter-count-label {
-        display: none;
-    }
-
-    // Price range slider (jQuery UI slider, Mageplaza's own JS-generated
-    // markup — standard jQuery UI classes, restyled here to match tokens).
-    .ln_slider_container {
-        padding-inline: 4px;
-        padding-block: 12px 4px;
-    }
-
-    .ui-slider {
-        position: relative;
-        height: 4px;
-        background: var(--color-border-default);
-        border-radius: var(--radius-pill);
-    }
-
-    .ui-slider-range {
-        position: absolute;
-        block-size: 100%;
-        background: var(--color-action-primary);
-        border-radius: var(--radius-pill);
-    }
-
-    .ui-slider-handle {
-        position: absolute;
-        inset-block-start: 50%;
-        width: 16px;
-        height: 16px;
-        margin-inline-start: -8px;
-        transform: translateY(-50%);
-        background: var(--color-bg-surface);
-        border: 2px solid var(--color-action-primary);
-        border-radius: 50%;
-        cursor: pointer;
-        outline: none;
-    }
-
-    #ln_slider_text_price {
-        margin-block-start: 12px;
-        font-size: var(--text-14);
-        color: var(--color-text-secondary);
-    }
-
-    .filter-actions .filter-clear {
-        display: inline-block;
-        margin-block-end: 12px;
-        font-size: var(--text-14);
-        color: var(--color-action-primary);
-        text-decoration: none;
-
-        &:hover {
-            text-decoration: underline;
-        }
-    }
-}
-
-// --- Active/applied filter chips (Magento_LayeredNavigation state.phtml) --
-.filter-current {
-    margin-block-end: 16px;
-
-    .filter-current-subtitle {
-        display: block;
-        font-size: var(--text-14);
-        color: var(--color-text-secondary);
-        margin-block-end: 8px;
-    }
-
-    .items {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-    }
-
-    .item {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 10px;
-        border: 1px solid var(--color-border-default);
-        border-radius: var(--radius-pill);
-        font-size: var(--text-12);
-        background: var(--color-bg-surface-subtle);
-    }
-
-    .filter-label {
-        color: var(--color-text-secondary);
-    }
-
-    .filter-value {
-        color: var(--color-text-primary);
-        font-weight: 600;
-    }
-
-    .action.remove {
-        color: var(--color-text-muted);
-        text-decoration: none;
-
-        &:hover {
-            color: var(--color-feedback-danger);
-        }
-    }
-}
-
-// --- Toolbar (sorter/pager/limiter/viewmode — Porto's own toolbar.phtml,
-// untouched, restyled only) ------------------------------------------
-.toolbar-products {
+  /* ---------------------------------------------------------------
+       HEADER — Figma 864:20534
+       --------------------------------------------------------------- */
+  .spartrak-filter-drawer__head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-    padding-block: 12px;
-}
+    gap: 16px;
+    flex: none;
+    padding-block: 8px;
+    /* Stays put while the filter list scrolls under it. */
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--color-bg-surface);
+  }
 
-// Porto's mobile filter toggle button exists in toolbar.phtml but ships
-// with no working click handler (confirmed live in Phase 6 discovery —
-// see spartrak-plp-filter-toggle.js for the fix). Restyled here as a
-// pill button consistent with this theme's action-button treatment.
-.porto-product-filters-toggle {
+  /* Figma 864:20537 — Heading/H2 24/1.3 in text/BRAND, not text/primary.
+       The only place in this sidebar that uses the brand colour for a
+       heading, so it is called out rather than assumed to be a mistake. */
+  .spartrak-filter-drawer__title {
+    margin: 0;
+    color: var(--color-action-primary);
+    font-family: var(--font-arabic);
+    font-size: var(--text-24);
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  /* Figma 872:20803 — a 32px circle on bg/field holding a 20px glyph. The
+       same close control the quick-search dialog uses. */
+  .spartrak-filter-drawer__close {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--color-bg-field);
+    cursor: pointer;
+  }
+
+  .spartrak-filter-drawer__close:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
+
+  .spartrak-filter-drawer__close-icon {
+    display: block;
+    width: 20px;
+    height: 20px;
+    background-image: url("../images/icons/close.svg");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 20px 20px;
+  }
+
+  /* ---------------------------------------------------------------
+       FOOTER CTA — Figma 864:20759
+       --------------------------------------------------------------- */
+  .spartrak-filter-drawer__foot {
+    display: block;
+    flex: none;
+    /* Pinned to the bottom of the panel while the list scrolls behind,
+           so "اعرض النتائج" is reachable without scrolling to the end of
+           every filter group. */
+    position: sticky;
+    bottom: 0;
+    padding-block: 8px;
+    background: var(--color-bg-surface);
+  }
+
+  /* action/primary, radius 12, py 16, 18px bold — note the radius: the
+       chips and inputs in this design are square, this CTA is not. */
+  .spartrak-filter-drawer__cta {
+    display: block;
+    width: 100%;
+    padding: 16px 24px;
+    border: 0;
+    border-radius: var(--radius-12);
+    background: var(--color-action-primary);
+    color: var(--color-action-primary-text);
+    font-family: var(--font-arabic);
+    font-size: var(--text-18);
+    font-weight: 700;
+    line-height: 1.3;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .spartrak-filter-drawer__cta:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
+
+  /* The filter block itself takes the space between header and CTA. */
+  #layered-filter-block-container {
+    flex: 1 1 auto;
+  }
+
+  /* Mageplaza's own "Shop By" title is the drawer header's job now. */
+  #layered-filter-block > .block-title.filter-title {
+    display: none;
+  }
+
+  /* ---------------------------------------------------------------
+       THE TOOLBAR ROW — Figma 864:20389's two equal controls
+       --------------------------------------------------------------- */
+  /* Chips take a full row of their own, then the sort control and the
+       filter button split the row beneath them 50/50 — which is what the
+       design shows and what the auto margin on the sorter would otherwise
+       prevent. */
+  .spartrak-toolbar__quick {
+    flex: 1 0 100%;
+  }
+
+  .spartrak-toolbar__sort,
+  .spartrak-toolbar__filter {
+    flex: 1 1 0;
+    min-width: 0;
+    margin-inline-start: 0;
+  }
+
+  /* Matches the sort control exactly: same height, border, shadow and
+       square corners, so the two read as one pair. */
+  .spartrak-toolbar .spartrak-toolbar__filter {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
     gap: 6px;
-    padding: 8px 14px;
+    height: 40px;
+    padding-inline: 20px;
     border: 1px solid var(--color-border-default);
-    border-radius: var(--radius-pill);
+    border-radius: 0;
+    background: var(--color-bg-surface);
+    box-shadow: var(--shadow-input);
     color: var(--color-text-primary);
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
     text-decoration: none;
-    font-size: var(--text-14);
+    white-space: nowrap;
+    cursor: pointer;
+  }
 
-    svg {
-        width: 16px;
-        height: 16px;
-    }
+  .spartrak-toolbar .spartrak-toolbar__filter svg {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: var(--color-icon-default);
+    stroke-width: 1.5px;
+  }
+
+  .spartrak-toolbar__filter-chevron {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    background-image: url("../images/icons/chevron-down-16.svg");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 16px 16px;
+  }
+
+  .spartrak-toolbar .spartrak-toolbar__filter:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
+
+  /* The control's own mobile rules moved with the component into
+       components/_pagination.less. This is only the space above it. */
+  .spartrak-plp__pagination {
+    margin-block-start: 32px;
+  }
 }
 
-// --- Category header / breadcrumbs / description ---------------------
-.category-title,
-.page-title-wrapper .page-title {
-    font-size: var(--text-28);
-    color: var(--color-text-primary);
+/* The page behind the drawer must not scroll with it. Set on the ROOT rather
+   than on <body>, so it is the same element the widget toggles and there is
+   one source of truth for "the drawer is open". */
+.spartrak-filters-open {
+  overflow: hidden;
 }
 
-.breadcrumbs {
-    font-size: var(--text-12);
-    color: var(--color-text-secondary);
-    margin-block-end: 12px;
-
-    a {
-        color: var(--color-text-secondary);
-    }
+/* Above the breakpoint the drawer does not exist, so neither does its
+   scroll lock — a stale class from a resize cannot freeze the desktop page. */
+@media (min-width: 768px) {
+  .spartrak-filters-open {
+    overflow: visible;
+  }
 }
 
-.category-description {
-    font-size: var(--text-14);
-    color: var(--color-text-secondary);
-    margin-block-end: 16px;
-}
+@media (prefers-reduced-motion: reduce) {
+  .page-layout-2columns-left .columns .sidebar-main,
+  .page-layout-2columns-left .columns .sidebar-main .sidebar-content,
+  .page-layout-2columns-left .columns .sidebar-main .pin-wrapper {
+    transition: none;
+    transform: none;
+  }
 
-.toolbar-amount {
-    font-size: var(--text-14);
-    color: var(--color-text-secondary);
-}
-
-// --- Mobile filter drawer ---------------------------------------------
-// Mageplaza's own accordion widget already toggles `.filter-active` on
-// <body> (confirmed live) — this is a genuine, working native mechanism,
-// not something Spartrak invented. Restyled as an off-canvas drawer only
-// below the mobile breakpoint; desktop is untouched (sidebar stays
-// inline). `inset-inline-start` positions the drawer logically (mirrors
-// automatically), but the slide-in transform's sign is a genuine
-// per-direction difference — no logical "translate" property exists yet
-// — so it keys off the theme's own `<html dir="ltr|rtl">` attribute
-// (Phase 4's established precedent for this exact class of case).
-@media (max-width: @breakpoint-mobile) {
-    #layered-filter-block {
-        position: fixed;
-        inset-block: 0;
-        inset-inline-start: 0;
-        z-index: 1000;
-        width: 85vw;
-        max-width: 360px;
-        overflow-y: auto;
-        transition: transform 0.25s ease;
-        border-radius: 0;
-        margin: 0;
-    }
-
-    html[dir="ltr"] #layered-filter-block {
-        transform: translateX(-100%);
-    }
-
-    html[dir="rtl"] #layered-filter-block {
-        transform: translateX(100%);
-    }
-
-    body.filter-active {
-        overflow: hidden;
-
-        #layered-filter-block {
-            transform: translateX(0);
-        }
-    }
+  #layered-filter-block {
+    transition: none;
+  }
 }

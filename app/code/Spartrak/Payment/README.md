@@ -84,3 +84,24 @@ the hosted page — is untouched.
 | `Model/PresentationCatalog.php` | The boundary between "which methods exist" and "how a row looks", and why this is config rather than an entity. |
 | `view/frontend/web/js/view/payment/method-row-mixin.js` | Why the mixin is on the base renderer, and why it assigns in `initialize()`. |
 | `Model/BrandMarks.php` | Why the marks live here, and why they are never masked. |
+
+## The order page reuses this module's marks
+
+`ViewModel\OrderPaymentBrand` answers one question for
+`Spartrak_CustomerAccount`'s order page: which 44px logo goes on the
+`وسيلة الدفع` card (Figma `573:21506`). It reads `Model\PresentationCatalog` —
+the same admin rows the checkout's payment row uses — so the two surfaces cannot
+disagree about what a method looks like, and enabling a method with a new logo
+stays a configuration change.
+
+It returns the FIRST configured mark, not the list: the checkout's row
+legitimately shows a strip (a card row carries Visa, Mastercard and Meeza
+together), while the order card draws a single avatar. `null` when a method has
+no mark, and the template then draws no ring rather than an empty one.
+
+The card's TITLE and its line of explanation are deliberately not here. They come
+from the payment method's own Magento info block, which
+`.spartrak-order-panel__payment` already styles to Figma's metrics — and that
+block is shared with the order confirmation email, so re-rendering the title from
+here would have put the method's name on the page twice and forced a choice
+between duplicating and suppressing the email's copy.

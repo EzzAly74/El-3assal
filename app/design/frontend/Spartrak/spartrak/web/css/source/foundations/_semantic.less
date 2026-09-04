@@ -3,140 +3,186 @@
 // consumes ONLY these role tokens, never a --primitive-* value directly.
 
 :root {
-    --color-action-primary: var(--primitive-navy);
-    --color-action-primary-hover: var(--primitive-navy-hover);
-    --color-action-primary-text: var(--primitive-surface); // Figma: action.primary-text = neutral.0
+  --color-action-primary: var(--primitive-navy);
+  --color-action-primary-hover: var(--primitive-navy-hover);
+  --color-action-primary-text: var(
+    --primitive-surface
+  ); // Figma: action.primary-text = neutral.0
 
-    // FIGMA AUTH-MODAL PASS (2026-08-26). Figma: action/primary-disabled.
-    // The disabled primary CTA on the register-phone and OTP-incomplete
-    // states. Distinct from --color-text-disabled, which tints disabled TEXT;
-    // this is a disabled BUTTON FILL and the two are not interchangeable.
-    --color-action-primary-disabled: var(--primitive-navy-disabled);
-    // Label colour on that fill. The two Figma variants disagree — the
-    // desktop node binds `action/secondary` (#ffffff), the mobile node binds
-    // `action/favorite-inactive` (#1a144f). Resolved to the ink value on
-    // contrast grounds (CLAUDE.md §15): #1a144f on #8faef0 is ~5.6:1 and
-    // clears WCAG AA, whereas #ffffff on #8faef0 is ~2.2:1 and fails it. The
-    // mobile variant is therefore the correct one and the desktop binding is
-    // treated as the authoring slip.
-    --color-action-primary-disabled-text: var(--primitive-icon-ink);
-    --color-action-accent: var(--primitive-yellow);
-    --color-action-accent-hover: var(--primitive-yellow-hover);
-    --color-action-accent-text: var(--primitive-ink); // Figma: action.accent-text = neutral.1000
-    --color-callout-soft: var(--primitive-yellow-soft);
-    --color-rating-empty: var(--primitive-star-empty);
-    --color-border-focus: var(--primitive-navy); // Figma: border.focus = blue.500
+  // FIGMA AUTH-MODAL PASS (2026-08-26). Figma: action/primary-disabled.
+  // The disabled primary CTA on the register-phone and OTP-incomplete
+  // states. Distinct from --color-text-disabled, which tints disabled TEXT;
+  // this is a disabled BUTTON FILL and the two are not interchangeable.
+  --color-action-primary-disabled: var(--primitive-navy-disabled);
+  // Label colour on that fill. The two Figma variants disagree — the
+  // desktop node binds `action/secondary` (#ffffff), the mobile node binds
+  // `action/favorite-inactive` (#1a144f). Resolved to the ink value on
+  // contrast grounds (CLAUDE.md §15): #1a144f on #8faef0 is ~5.6:1 and
+  // clears WCAG AA, whereas #ffffff on #8faef0 is ~2.2:1 and fails it. The
+  // mobile variant is therefore the correct one and the desktop binding is
+  // treated as the authoring slip.
+  --color-action-primary-disabled-text: var(--primitive-icon-ink);
+  --color-action-accent: var(--primitive-yellow);
+  --color-action-accent-hover: var(--primitive-yellow-hover);
+  --color-action-accent-text: var(
+    --primitive-ink
+  ); // Figma: action.accent-text = neutral.1000
+  --color-callout-soft: var(--primitive-yellow-soft);
+  --color-rating-empty: var(--primitive-star-empty);
+  --color-border-focus: var(--primitive-navy); // Figma: border.focus = blue.500
 
-    --color-text-primary: var(--primitive-ink);
-    --color-text-secondary: var(--primitive-text-secondary);
-    --color-text-muted: var(--primitive-text-muted);
-    --color-text-disabled: var(--primitive-text-disabled); // disabled state only — never live text
-    --color-text-inverse: var(--primitive-surface); // Figma: text.inverse = neutral.0
+  --color-text-primary: var(--primitive-ink);
+  --color-text-secondary: var(--primitive-text-secondary);
+  --color-text-muted: var(--primitive-text-muted);
+  --color-text-disabled: var(
+    --primitive-text-disabled
+  ); // disabled state only — never live text
+  --color-text-inverse: var(
+    --primitive-surface
+  ); // Figma: text.inverse = neutral.0
 
-    --color-border-default: var(--primitive-border);
-    --color-border-strong: var(--primitive-border-strong);
-    // Figma: border.subtle = #f3f3f4 — the SAME hex the file also publishes as
-    // bg.field, but a distinct semantic name with a distinct job: the hairline
-    // that separates a card from the surface behind it, where border.default
-    // would read as a hard edge. Added 2026-08-27 for the search-suggestion
-    // card (node 864:8905), which is the first component to consume it.
-    // Aliased to the shared primitive rather than re-declaring the literal, so
-    // the two names cannot drift apart if the palette moves.
-    --color-border-subtle: var(--primitive-field-bg);
-    --color-border-on-media: var(--primitive-alpha-white-10); // Figma: border.on-media = alpha.white-10
+  --color-border-default: var(--primitive-border);
+  --color-border-strong: var(--primitive-border-strong);
+  // Figma: border.subtle = #f3f3f4 — the SAME hex the file also publishes as
+  // bg.field, but a distinct semantic name with a distinct job: the hairline
+  // that separates a card from the surface behind it, where border.default
+  // would read as a hard edge. Added 2026-08-27 for the search-suggestion
+  // card (node 864:8905), which is the first component to consume it.
+  // Aliased to the shared primitive rather than re-declaring the literal, so
+  // the two names cannot drift apart if the palette moves.
+  --color-border-subtle: var(--primitive-field-bg);
+  --color-border-on-media: var(
+    --primitive-alpha-white-10
+  ); // Figma: border.on-media = alpha.white-10
 
-    --color-bg-field: var(--primitive-field-bg);
-    --color-bg-surface: var(--primitive-surface);
-    --color-bg-surface-subtle: var(--primitive-surface-subtle);
-    --color-bg-page: var(--primitive-page-tint);
-    --color-bg-inverse: var(--primitive-ink); // Figma: bg.inverse = neutral.1000
-    // One step lighter than bg-inverse. Used where Figma needs a dark chip to
-    // read as a distinct layer ON a dark surface rather than merge into it.
-    --color-neutral-900: var(--primitive-neutral-900);
+  --color-bg-field: var(--primitive-field-bg);
+  --color-bg-surface: var(--primitive-surface);
+  --color-bg-surface-subtle: var(--primitive-surface-subtle);
+  --color-bg-page: var(--primitive-page-tint);
+  --color-bg-inverse: var(--primitive-ink); // Figma: bg.inverse = neutral.1000
+  // One step lighter than bg-inverse. Used where Figma needs a dark chip to
+  // read as a distinct layer ON a dark surface rather than merge into it.
+  --color-neutral-900: var(--primitive-neutral-900);
 
-    --color-feedback-success: var(--primitive-success);
-    --color-feedback-danger: var(--primitive-danger);
-    --color-icon-ink: var(--primitive-icon-ink);
-    --color-scrim: var(--primitive-alpha-ink-20); // Figma: bg.scrim = alpha.ink-20
+  --color-feedback-success: var(--primitive-success);
+  --color-feedback-danger: var(--primitive-danger);
+  --color-icon-ink: var(--primitive-icon-ink);
+  --color-scrim: var(
+    --primitive-alpha-ink-20
+  ); // Figma: bg.scrim = alpha.ink-20
 
-    // FIGMA HEADER PASS (2026-08-25) — role names mirror the Figma
-    // "2. Semantic" variable names returned by get_variable_defs on the
-    // header frames, so the mapping stays greppable in both directions.
-    // Figma: icon/default. An alias of --color-icon-ink (same primitive) —
-    // kept because the header nodes bind this NAME, so a reader diffing the
-    // Figma variable list against this file finds it.
-    --color-icon-default: var(--primitive-icon-ink);
-    // Figma: blue/0 — the account-chip avatar plate (693:45429).
-    --color-bg-avatar: var(--primitive-blue-0);
+  // FIGMA HEADER PASS (2026-08-25) — role names mirror the Figma
+  // "2. Semantic" variable names returned by get_variable_defs on the
+  // header frames, so the mapping stays greppable in both directions.
+  // Figma: icon/default. An alias of --color-icon-ink (same primitive) —
+  // kept because the header nodes bind this NAME, so a reader diffing the
+  // Figma variable list against this file finds it.
+  --color-icon-default: var(--primitive-icon-ink);
+  // Figma: blue/0 — the account-chip avatar plate (693:45429).
+  --color-bg-avatar: var(--primitive-blue-0);
 
-    // Promo badge gradient stops — see _tokens.less for why these are raw
-    // in Figma and therefore real primitives here.
-    --color-badge-promo-start: var(--primitive-yellow-promo-start);
-    --color-badge-promo-end: var(--primitive-yellow-promo-end);
+  // Promo badge gradient stops — see _tokens.less for why these are raw
+  // in Figma and therefore real primitives here.
+  --color-badge-promo-start: var(--primitive-yellow-promo-start);
+  --color-badge-promo-end: var(--primitive-yellow-promo-end);
 
-    // FIGMA CHECKOUT PASS (2026-08-30) — the seven role names the checkout
-    // frames bind that this file had not surfaced yet. Read off
-    // get_variable_defs on the checkout content area (549:26240); every one is
-    // already a published variable in the Figma "2. Semantic" collection and in
-    // design_system.json, so none of these is a new design decision — they are
-    // names that simply had no consumer until now.
-    //
-    // All seven alias an EXISTING primitive rather than re-declaring a literal,
-    // so the palette stays single-source.
-    //
-    // text/brand and text/link are the same navy as --color-action-primary, and
-    // are kept as separate names for the same reason --color-icon-default is:
-    // the nodes bind these names, so a reader diffing Figma's variable list
-    // against this file needs to find them. design_system.json publishes both
-    // (text.brand = text.link = blue.500).
-    --color-text-brand: var(--primitive-navy);       // Figma: text/brand   #063196
-    --color-text-link: var(--primitive-navy);        // Figma: text/link    #063196
-    // The free-shipping amount on the shipping-method card (551:9707).
-    --color-text-success: var(--primitive-success);  // Figma: text/success #049228
+  // FIGMA CHECKOUT PASS (2026-08-30) — the seven role names the checkout
+  // frames bind that this file had not surfaced yet. Read off
+  // get_variable_defs on the checkout content area (549:26240); every one is
+  // already a published variable in the Figma "2. Semantic" collection and in
+  // design_system.json, so none of these is a new design decision — they are
+  // names that simply had no consumer until now.
+  //
+  // All seven alias an EXISTING primitive rather than re-declaring a literal,
+  // so the palette stays single-source.
+  //
+  // text/brand and text/link are the same navy as --color-action-primary, and
+  // are kept as separate names for the same reason --color-icon-default is:
+  // the nodes bind these names, so a reader diffing Figma's variable list
+  // against this file needs to find them. design_system.json publishes both
+  // (text.brand = text.link = blue.500).
+  --color-text-brand: var(--primitive-navy); // Figma: text/brand   #063196
+  --color-text-link: var(--primitive-navy); // Figma: text/link    #063196
+  // The free-shipping amount on the shipping-method card (551:9707).
+  --color-text-success: var(--primitive-success); // Figma: text/success #049228
 
-    // The quiet button pair: a white fill with ink text, used by the address
-    // card's "تعديل" (edit) control (720:26509). Distinct from action/primary,
-    // and distinct from bg/surface even though the hex matches — this is a
-    // BUTTON FILL, and naming it as one is what lets the button component stay
-    // ignorant of what colour a surface happens to be.
-    --color-action-secondary: var(--primitive-surface);   // Figma: action/secondary      #ffffff
-    --color-action-secondary-text: var(--primitive-ink);  // Figma: action/secondary-text #0c0a20
+  // The quiet button pair: a white fill with ink text, used by the address
+  // card's "تعديل" (edit) control (720:26509). Distinct from action/primary,
+  // and distinct from bg/surface even though the hex matches — this is a
+  // BUTTON FILL, and naming it as one is what lets the button component stay
+  // ignorant of what colour a surface happens to be.
+  --color-action-secondary: var(
+    --primitive-surface
+  ); // Figma: action/secondary      #ffffff
+  --color-action-secondary-text: var(
+    --primitive-ink
+  ); // Figma: action/secondary-text #0c0a20
 
-    // Glyph on a filled navy step marker (817:22387) — the inverse of
-    // --color-icon-default, and the icon-layer counterpart to text/inverse.
-    --color-icon-inverse: var(--primitive-surface);  // Figma: icon/inverse #ffffff
-    // The not-yet-reached step marker in the progress bar, and the phone/pin
-    // glyphs inside an address card.
-    --color-icon-muted: var(--primitive-text-muted); // Figma: icon/muted   #6d6c79
+  // Glyph on a filled navy step marker (817:22387) — the inverse of
+  // --color-icon-default, and the icon-layer counterpart to text/inverse.
+  --color-icon-inverse: var(--primitive-surface); // Figma: icon/inverse #ffffff
+  // The not-yet-reached step marker in the progress bar, and the phone/pin
+  // glyphs inside an address card.
+  --color-icon-muted: var(
+    --primitive-text-muted
+  ); // Figma: icon/muted   #6d6c79
 
-    // FIGMA CART PASS (2026-08-30) — the struck-through original price on a
-    // discounted cart line (817:22931).
-    //
-    // Figma publishes text/price-sale as #d54033, which is byte-identical to
-    // the danger primitive this theme already holds. Aliased rather than
-    // re-declared, for the same single-source reason as every role above — but
-    // kept as its OWN NAME because the two say different things: one is "this
-    // went wrong", the other is "this used to cost more". A palette change that
-    // moved error red would otherwise silently restyle every sale price.
-    --color-text-price-sale: var(--primitive-danger); // Figma: text/price-sale #d54033
+  // FIGMA CART PASS (2026-08-30) — the struck-through original price on a
+  // discounted cart line (817:22931).
+  //
+  // Figma publishes text/price-sale as #d54033, which is byte-identical to
+  // the danger primitive this theme already holds. Aliased rather than
+  // re-declared, for the same single-source reason as every role above — but
+  // kept as its OWN NAME because the two say different things: one is "this
+  // went wrong", the other is "this used to cost more". A palette change that
+  // moved error red would otherwise silently restyle every sale price.
+  --color-text-price-sale: var(
+    --primitive-danger
+  ); // Figma: text/price-sale #d54033
 
-    // FIGMA CHECKOUT PASS (2026-08-31)
+  // FIGMA CHECKOUT PASS (2026-08-31)
 
-    // The dark button. Figma calls it action/inverse, and it is the promo
-    // panel's "تطبيق الخصم" (554:11160) — the one primary-weight control in
-    // this design that is deliberately NOT navy, so it does not compete with
-    // the checkout's real CTA a few hundred pixels above it.
-    //
-    // Its hex is the ink primitive, and --color-bg-inverse already aliases the
-    // same primitive. Both are kept, because they say different things: one is
-    // a page-level surface, the other is a button fill. A future palette that
-    // darkened surfaces without darkening buttons would need them apart.
-    --color-action-inverse: var(--primitive-ink);          // Figma: action/inverse      #0c0a20
-    --color-action-inverse-text: var(--primitive-surface); // Figma: action/inverse-text #ffffff
+  // The dark button. Figma calls it action/inverse, and it is the promo
+  // panel's "تطبيق الخصم" (554:11160) — the one primary-weight control in
+  // this design that is deliberately NOT navy, so it does not compete with
+  // the checkout's real CTA a few hundred pixels above it.
+  //
+  // Its hex is the ink primitive, and --color-bg-inverse already aliases the
+  // same primitive. Both are kept, because they say different things: one is
+  // a page-level surface, the other is a button fill. A future palette that
+  // darkened surfaces without darkening buttons would need them apart.
+  --color-action-inverse: var(
+    --primitive-ink
+  ); // Figma: action/inverse      #0c0a20
+  --color-action-inverse-text: var(
+    --primitive-surface
+  ); // Figma: action/inverse-text #ffffff
 
-    // The soft brand wash behind the "الافتراضي" (default) badge on an address
-    // card (720:26521). Figma names the variable blue/0 — a primitive name for
-    // a role, which is exactly the leak this layer exists to stop, so it is
-    // given a role name here.
-    --color-bg-brand-subtle: var(--primitive-blue-0);      // Figma: blue/0 #f4f7fd
+  // The soft brand wash behind the "الافتراضي" (default) badge on an address
+  // card (720:26521). Figma names the variable blue/0 — a primitive name for
+  // a role, which is exactly the leak this layer exists to stop, so it is
+  // given a role name here.
+  --color-bg-brand-subtle: var(--primitive-blue-0); // Figma: blue/0 #f4f7fd
+  // FIGMA MY-ACCOUNT PASS (2026-09-02)
+
+  // The quiet destructive button: a near-white red wash carrying a
+  // full-strength danger glyph. Its one consumer is the address card's
+  // 48x48 delete control (721:35518), which is deliberately the least
+  // shouty thing on the card even though it is the only irreversible one.
+  //
+  // Kept apart from --color-feedback-danger for the same reason
+  // --color-text-price-sale is: that name means "this went wrong", this
+  // one means "this button destroys something". They are different jobs
+  // and a palette change could reasonably move one without the other.
+  --color-action-danger-subtle: var(
+    --primitive-red-0
+  ); // Figma: action/danger-subtle #fdf4f3
+  --color-action-danger-text: var(--primitive-danger); // the glyph on that fill
+
+  // The top stop of the shipped-order band's wash. A role name rather than
+  // the primitive, because "the surface that says something good happened"
+  // is what the component is asking for — and because the primitive is a raw
+  // gradient stop, which is precisely the sort of value this layer exists to
+  // keep out of components.
+  --color-bg-success-wash: var(--primitive-green-wash);
 }

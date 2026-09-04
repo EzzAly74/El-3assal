@@ -1,0 +1,200 @@
+// Spartrak component — BREADCRUMBS. Figma 488:18402.
+//
+// ===========================================================================
+// GLOBAL, AND THE ONLY OWNER
+// ===========================================================================
+// One breadcrumb for the whole storefront: category, search, PDP, cart,
+// account, CMS. Imported by spartrak-components.less, which is linked on every
+// page, so there is nothing per-page to remember.
+//
+// Before this file the breadcrumb was Porto's, and it was Porto's THREE TIMES
+// OVER — spartrak_rtl, spartrak and porto each carried a copy of
+// `source/_breadcrumbs.less`, and the one that won was whichever the theme
+// fallback reached first (spartrak_rtl, for the Arabic store). The two
+// Spartrak copies are now deliberately empty and say why; this file replaces
+// all of it. The PDP also carried its own breadcrumb typography in
+// components/_pdp.less, which is gone for the same reason: one component, one
+// declaration site (CLAUDE.md section 9).
+//
+// WHAT PORTO WAS DOING, AND WHY NONE OF IT SURVIVES
+//   * the separator was an icon-FONT glyph (porto-icons "\e819" / "\e81a").
+//     Figma draws a real 16px chevron, and an icon font that fails to load
+//     leaves a tofu box between every crumb;
+//   * "Home" was hidden with `text-indent: -9999px` and replaced by a house
+//     glyph. Figma writes the WORD — الرئيسية, now in the theme's ar_EG.csv,
+//     because Porto's glyph was hiding the fact that core emits it in English;
+//   * every crumb was `text-transform: uppercase`, which does nothing in
+//     Arabic and shouts in English;
+//   * the row was 0.75rem. Figma is 14px.
+//
+// ===========================================================================
+// ALIGNMENT IS A LAYOUT FACT NOW, NOT A CSS ONE
+// ===========================================================================
+// This file states NO inline padding and NO max-width, and that is the whole
+// point.
+//
+// Figma pads the row by the page gutter so the crumb starts on the same
+// vertical line as the content below it. Core renders the block in `page.top`,
+// outside `main.content`, so it had no relationship to the content column at
+// all — on the live PDP the crumb sat against the window edge while the
+// product started ~190px in.
+//
+// The first attempt mirrored `.page-main`'s gutter onto the band. It does not
+// hold, because this theme re-cuts `.page-main` PER PAGE and every page picks
+// a different box: full-width 48/20/15 on the PLP, max-1440 + 48 on the PDP,
+// 48 on the cart, 48 with no cap on the account section, Magento's centred
+// 1140 + 10 everywhere else. Five rules to keep in step by hand, and the sixth
+// page someone re-cuts breaks the crumb again silently.
+//
+// So Magento_Theme/layout/default.xml MOVES the block into `columns.top`,
+// which is inside `main.content`. The breadcrumb is now a direct child of
+// `.page-main` (that container emits no wrapper of its own) and inherits
+// whatever box the page gave it — including for pages not written yet. See
+// that layout file for the full note.
+//
+// Consequently the selectors below are rooted on the bare `.breadcrumbs`
+// class, not on `.page-wrapper > .breadcrumbs` as Porto's were: after the move
+// that ancestor no longer matches, which is also what silences Magento's own
+// container-group rule for this element. Keeping the root unqualified means
+// the type is right in either position, so a page layout that somehow misses
+// the move still gets a correct-looking crumb — just an unaligned one, which
+// is obvious rather than subtle.
+
+.breadcrumbs {
+    // No inline padding, no max-width, no auto margins: `.page-main` supplies
+    // all three. Stated as zero rather than omitted because Magento's own
+    // `.breadcrumbs` rules set a padding this component must not inherit.
+    padding: 0;
+    // The 4px above and below the text belongs to the list, as Figma composes
+    // it (py-4 on 488:18402). The band contributes no vertical rhythm.
+    margin: 0;
+    // Figma gives the row no fill. `@breadcrumbs__background-color` is already
+    // `transparent` in _spartrak-magento-bindings.less; stated on the element
+    // so the row does not depend on that binding surviving.
+    background: none;
+    border: 0;
+}
+
+// 488:18402 — a 4px-gapped row, hard against the reading start.
+//
+// `justify-content: flex-start` and not `flex-end`: Figma's auto-layout is
+// physically left-to-right and pins the row to its right edge, which under
+// `dir="rtl"` — this storefront's primary locale — IS the start. Written
+// logically so the English store view mirrors it with no second rule
+// (CLAUDE.md section 16).
+.breadcrumbs .items {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 0;
+    padding-block: 4px;
+    padding-inline: 0;
+    list-style: none;
+    // Magento sets 0.75rem on the band and the list inherits it; every crumb
+    // below states its own size, so this only stops an unstyled child
+    // inheriting 12px.
+    font-size: var(--text-14);
+}
+
+// Each crumb is itself a 4px row, because the separator is drawn on the item
+// rather than between them — there is no element between two <li>s to hang it
+// on. Item gap plus list gap gives the uniform 4px either side of the chevron
+// that 488:18402 draws.
+.breadcrumbs .items > li {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    // Porto shouted these. Arabic has no case and English should not shout.
+    text-transform: none;
+    text-shadow: none;
+}
+
+// The ancestors — 488:18406 "الرئيسية": Body/Small on text/primary.
+//
+// Note which crumb is which. In Figma the LINK is the quiet one and the
+// CURRENT page is the brand-coloured one (below) — the opposite of the usual
+// convention, and deliberate in the design: the row emphasises where you ARE,
+// not where you can go. Followed as drawn.
+.breadcrumbs .items > li > a {
+    display: inline-flex;
+    align-items: center;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    text-decoration: none;
+    // Porto displaced the home crumb's text to swap in a glyph. Figma writes
+    // the word, so anything that moved it is undone here as well as at the
+    // source — a stale styles-m from a half-finished deploy must not leave
+    // "الرئيسية" nine thousand pixels off screen.
+    width: auto;
+    text-indent: 0;
+}
+
+.breadcrumbs .items > li > a:hover,
+.breadcrumbs .items > li > a:focus {
+    color: var(--color-text-brand);
+    text-decoration: none;
+}
+
+.breadcrumbs .items > li > a:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-4);
+}
+
+// The current page — 488:18404 "جون ديير": Label/Large on text/brand.
+// Magento renders the last crumb as <strong>, which is the right element for
+// "you are here"; only its weight is restated, since core's own bold would
+// overshoot the design's 500.
+.breadcrumbs .items > li > strong {
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-text-brand);
+}
+
+// The separator — 705:29627, a 16px tabler chevron on icon/muted.
+//
+// A MASK, NOT AN ICON FONT. web/images/icons/chevron-right-16.svg is the
+// byte-exact Figma export; the mask reads its alpha and takes its colour from
+// `background-color`, so the #6D6C79 baked into the file is irrelevant and the
+// tint stays a token (see foundations/_icons.less).
+//
+// On the ITEM's ::after rather than a `+` sibling selector so it survives
+// Magento re-rendering the list, and `:not(:last-child)` so the current page
+// is not followed by a chevron pointing at nothing.
+.breadcrumbs .items > li:not(:last-child)::after {
+    content: '';
+    // Porto floated and offset this pseudo-element and gave it a fixed 20px
+    // box; as a flex child it needs none of that.
+    position: static;
+    float: none;
+    margin: 0;
+    text-align: initial;
+    .spartrak-icon('chevron-right-16.svg'; 16px; var(--color-icon-muted));
+    // The asset points toward physical right. A breadcrumb chevron must point
+    // ALONG the reading direction, so it is rotated for RTL and left alone for
+    // LTR. `rotate` has no logical form — this is the same <html dir> key the
+    // pagination arrows and the PLP filter drawer already use.
+    transform: var(--spartrak-crumb-chevron, none);
+}
+
+html[dir='rtl'] .breadcrumbs .items > li:not(:last-child)::after {
+    --spartrak-crumb-chevron: rotate(180deg);
+}
+
+// Magento's own separator, whatever a future core version draws it with, must
+// not stack on top of the chevron above.
+.breadcrumbs .items > li:not(:last-child)::before {
+    content: none;
+}

@@ -1,0 +1,61 @@
+<?php
+/**
+ * One row in the account rail — Figma 562:11004 (plain) and 562:11007 (with a
+ * count badge).
+ *
+ * ===========================================================================
+ * READING ORDER IS DOM ORDER
+ * ===========================================================================
+ * icon, then label, then badge. Figma puts the icon at the far reading start
+ * (x=208 in a 240-wide rail), the label right up against it, and the count at
+ * the far reading end (x=12). In an RTL flex row the first child sits at the
+ * right, so that visual arrangement IS this DOM order with `flex: 1` on the
+ * label — and it mirrors correctly for the English store view with no second
+ * rule, which is what CLAUDE.md section 16 asks for.
+ *
+ * ===========================================================================
+ * WHY THE ICON IS A MODIFIER AND NOT A FILENAME
+ * ===========================================================================
+ * `modifier` comes from layout XML and selects a CSS rule that owns the mask.
+ * Passing a filename instead would put an asset path in layout and a
+ * `background-image: url()` in an inline style — an unmaskable icon that
+ * cannot take a colour token, and a style attribute the CSP has to allow.
+ * See foundations/_icons.less for why every icon in this theme is a mask.
+ *
+ * ===========================================================================
+ * aria-current, NOT ONLY A CLASS
+ * ===========================================================================
+ * `isCurrent()` is core's own path comparison. The class drives the fill and
+ * the mobile underline; aria-current is what tells assistive tech which of the
+ * four destinations the shopper is already on, and it is also the selector the
+ * stylesheet uses — one source of truth for "this row is active".
+ *
+ * @var \Magento\Customer\Block\Account\SortLink $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+use Spartrak\CustomerAccount\ViewModel\Navigation;
+
+$modifier = (string) $block->getData('modifier');
+$badgeSource = $block->getData('badge_source');
+$badge = $badgeSource instanceof Navigation && $badgeSource->hasOrders()
+    ? $badgeSource->getOrderCount()
+    : null;
+$isCurrent = $block->isCurrent();
+?>
+<li class="spartrak-account-nav__item">
+    <a class="spartrak-account-nav__link<?= $modifier !== ''
+            ? ' spartrak-account-nav__link--' . $escaper->escapeHtmlAttr($modifier)
+            : '' ?>"
+       href="<?= $escaper->escapeUrl($block->getHref()) ?>"
+       <?php if ($isCurrent): ?>aria-current="page"<?php endif; ?>>
+        <span class="spartrak-account-nav__icon" aria-hidden="true"></span>
+        <span class="spartrak-account-nav__label"><?= $escaper->escapeHtml(__($block->getLabel())) ?></span>
+        <?php if ($badge !== null): ?>
+            <span class="spartrak-account-nav__badge">
+                <?= $escaper->escapeHtml($badge) ?>
+                <span class="spartrak-visually-hidden"><?= $escaper->escapeHtml(__('orders')) ?></span>
+            </span>
+        <?php endif; ?>
+    </a>
+</li>

@@ -1,0 +1,529 @@
+<?php
+/**
+ * "تتبع الطلب" — the order page. Figma 562:18903 and its state variants.
+ *
+ * ===========================================================================
+ * COLUMN ORDER IS DOM ORDER
+ * ===========================================================================
+ * Figma puts the item list at x=0 and the four summary panels at x=984, i.e.
+ * the panels are on the RIGHT — the reading start of an RTL page. The first
+ * child of an RTL flex row sits at the right, so the aside is written FIRST
+ * and the main column second. The same markup mirrors correctly for the
+ * English store view with no direction-specific rule.
+ *
+ * The same reversal applies inside every row here — icon before label, value
+ * before its heading — because Figma's export lists children left to right and
+ * this document is rtl. See Magento_Sales/templates/order/history.phtml for
+ * the full note.
+ *
+ * ===========================================================================
+ * THE TRACKER
+ * ===========================================================================
+ * Four stations, rendered as an ordered list with the reached ones marked. The
+ * rail's fill is driven by one custom property — the completion ratio from
+ * Spartrak\CustomerAccount\Model\OrderProgress — so the geometry (padding, dot
+ * size, which end it grows from) stays entirely in the stylesheet where the
+ * RTL mirroring already lives.
+ *
+ * An <ol> rather than a row of <div>s: it is a sequence of states, the current
+ * one is announced with aria-current, and a screen-reader user gets "step 2 of
+ * 4" from the list semantics instead of four unrelated words.
+ *
+ * A CANCELLED order has no station on this rail (OrderProgress::isOffRail),
+ * and Figma draws no cancelled variant — so the tracker is replaced by the
+ * order's own status, which is the one true thing there is to say.
+ *
+ * @var \Magento\Sales\Block\Order\View $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+use Magento\Framework\Exception\LocalizedException;
+use Spartrak\CustomerAccount\Model\OrderProgress;
+use Spartrak\CustomerAccount\ViewModel\OrderView;
+use Spartrak\Payment\ViewModel\OrderPaymentBrand;
+use Spartrak\PickupLocation\ViewModel\OrderConsignment;
+
+$order = $block->getOrder();
+/** @var OrderView|null $orderView */
+$orderView = $block->getData('order_view');
+/** @var OrderConsignment|null $consignmentView */
+$consignmentView = $block->getData('consignment');
+/**
+ * The 44px logo on the payment card (573:21506). Nullable and used with `?->`
+ * throughout, unlike `order_view` above, because it is presentation with a
+ * sensible absence: no view model, or no mark configured for the method, means
+ * the card renders without an avatar. That is a different class of thing from a
+ * missing `order_view`, which means the layout file did not apply at all and is
+ * therefore thrown for below.
+ */
+/** @var OrderPaymentBrand|null $paymentBrand */
+$paymentBrand = $block->getData('payment_brand');
+
+/*
+ * ===========================================================================
+ * THIS USED TO `return;` — WHICH IS WHY THE PAGE WENT BLANK
+ * ===========================================================================
+ * Both of these are impossible in a correctly wired request, and each has
+ * exactly one cause when it happens:
+ *
+ *   $order === null      — `current_order` is not in the registry. The route's
+ *                          own controller (Magento\Sales\Controller\Order\View)
+ *                          registers it and redirects when it cannot, so this
+ *                          means something removed or replaced that controller.
+ *
+ *   $orderView === null  — this theme's sales_order_view.xml did not reach the
+ *                          block, so the <argument> was never applied. Which
+ *                          also means the four `remove="true"` directives in
+ *                          that file did not apply either.
+ *
+ * Returning early turned both into a BLANK CONTENT AREA — and because the
+ * layout had already stripped core's item table and info blocks, the page came
+ * back as a valid 200 with nothing in it and nothing in the log. That is the
+ * "hide or silently swallow errors" CLAUDE.md section 9 rules out, and it cost
+ * a full debugging session to tell apart from a missing template file (which
+ * produces the identical symptom, minus the log line Magento writes for it).
+ *
+ * Throwing is right for a wiring fault: a customer gets Magento's error page
+ * with a report id instead of a blank one, and `var/report/<id>` names which of
+ * the two it was. Neither branch is reachable from anything a shopper can do,
+ * so this cannot fire on a healthy store.
+ */
+if ($order === null) {
+    throw new LocalizedException(
+        __('The order could not be loaded. `current_order` is missing from the registry.')
+    );
+}
+
+if ($orderView === null) {
+    throw new LocalizedException(
+        __(
+            'This order page is misconfigured: the `order_view` argument did not reach '
+            . '`sales.order.view`, so this theme\'s Magento_Sales/layout/sales_order_view.xml '
+            . 'was not applied.'
+        )
+    );
+}
+
+$progress = $orderView->getProgress();
+$step = $progress->getStep($order);
+// The order is passed so the four stations are named in the vocabulary of the
+// channel this shopper actually chose — see OrderProgress::CHANNEL_LABELS.
+// Without it the rail told a branch-collection shopper their parcel was "on its
+// way to you" and a station-collection shopper that it had been "delivered".
+$labels = $progress->getLabels($order);
+$items = $orderView->getVisibleItems($order);
+$eta = $orderView->getEstimatedArrival($order);
+$paymentInfoHtml = $orderView->getPaymentInfoHtml($order);
+$shipToLines = $orderView->getShipToLines($order);
+$shipToPhone = $orderView->getShipToPhone($order);
+$isPickup = $orderView->isPickup($order);
+?>
+<div class="spartrak-order-view">
+    <a class="spartrak-order-view__back"
+       href="<?= $escaper->escapeUrl($block->getUrl('customer/account')) ?>">
+        <span class="spartrak-order-view__back-icon" aria-hidden="true"></span>
+        <span><?= $escaper->escapeHtml(__('Back to my profile')) ?></span>
+    </a>
+
+    <?php if ($consignmentView !== null && $consignmentView->isVisible($order)): ?>
+        <?php
+        $consignment = $consignmentView->get($order);
+        $vehiclePhotoUrl = $consignmentView->getVehiclePhotoUrl($order);
+        ?>
+        <!--
+          ===================================================================
+          THE `موقف` CARD — Figma 573:21642, rules in BUSINESS.md section 12
+          ===================================================================
+          Full content width, above the two-column area, exactly where Figma
+          puts it (573:21642 sits in Main Container at y=128, pushing the
+          columns down to y=412).
+
+          It renders only from `شحنتك في الطريق اليك` onward — §6 — and the view
+          model owns that decision, not this template. The mock's own
+          contradiction (§8: the card visible beside a
+          `حالة التوصيل الحالية: بانتظار الموافقة`) is therefore not
+          reproducible here.
+
+          Photo first in the DOM. Figma puts it at x=8, the LEFT half, which is
+          the reading END of an RTL row — so it is the LAST child. The label
+          block comes first and lands on the right, where §5 says the labels go.
+        -->
+        <section class="spartrak-consignment">
+            <div class="spartrak-consignment__details">
+                <h2 class="spartrak-consignment__title">
+                    <?= $escaper->escapeHtml($consignmentView->getTitle($order)) ?>
+                </h2>
+                <dl class="spartrak-consignment__facts">
+                    <div class="spartrak-consignment__fact">
+                        <dt><?= $escaper->escapeHtml(__('Driver name')) ?></dt>
+                        <dd><?= $escaper->escapeHtml($consignment->getDriverName()) ?></dd>
+                    </div>
+                    <div class="spartrak-consignment__fact">
+                        <dt><?= $escaper->escapeHtml(__('Driver phone')) ?></dt>
+                        <dd>
+                            <!--
+                              A telephone link, because §3 step 7 is "the
+                              customer calls the driver directly to arrange the
+                              handover" — and most of them are reading this on a
+                              phone, at the station.
+                            -->
+                            <a href="tel:<?= $escaper->escapeHtmlAttr(
+                                preg_replace('/[^0-9+]/', '', $consignment->getDriverPhone())
+                            ) ?>" dir="ltr"><?= $escaper->escapeHtml($consignment->getDriverPhone()) ?></a>
+                        </dd>
+                    </div>
+                    <div class="spartrak-consignment__fact">
+                        <dt><?= $escaper->escapeHtml(__('Vehicle plate number')) ?></dt>
+                        <dd><?= $escaper->escapeHtml($consignment->getPlateNumber()) ?></dd>
+                    </div>
+                    <div class="spartrak-consignment__fact">
+                        <dt><?= $escaper->escapeHtml(__('From station')) ?></dt>
+                        <dd><?= $escaper->escapeHtml($consignment->getOriginStation()) ?></dd>
+                    </div>
+                    <?php $destination = $consignmentView->getDestinationStation($order); ?>
+                    <?php if ($destination !== null): ?>
+                        <div class="spartrak-consignment__fact">
+                            <dt><?= $escaper->escapeHtml(__('To station')) ?></dt>
+                            <dd><?= $escaper->escapeHtml($destination) ?></dd>
+                        </div>
+                    <?php endif; ?>
+                </dl>
+            </div>
+            <?php if ($vehiclePhotoUrl !== null): ?>
+                <img class="spartrak-consignment__photo"
+                     src="<?= $escaper->escapeUrl($vehiclePhotoUrl) ?>"
+                     alt="<?= $escaper->escapeHtmlAttr(
+                         __('The vehicle carrying your order, plate %1', $consignment->getPlateNumber())
+                     ) ?>"
+                     loading="lazy"
+                     decoding="async">
+            <?php endif; ?>
+        </section>
+    <?php endif; ?>
+
+    <div class="spartrak-order-view__layout">
+        <aside class="spartrak-order-view__aside">
+            <!-- تفاصيل عن الطلب (562:19508) -->
+            <section class="spartrak-order-panel spartrak-order-panel--details">
+                <div class="spartrak-order-panel__head">
+                    <h2 class="spartrak-order-panel__title"><?= $escaper->escapeHtml(__('Order details')) ?></h2>
+                    <div class="spartrak-order-panel__identity">
+                        <span class="spartrak-order-panel__identity-icon" aria-hidden="true"></span>
+                        <div class="spartrak-order-panel__identity-text">
+                            <p class="spartrak-order-panel__order-id">
+                                <?= $escaper->escapeHtml(__('ID')) ?> :
+                                <span dir="ltr">#<?= $escaper->escapeHtml($order->getIncrementId()) ?></span>
+                            </p>
+                            <?php if ($eta !== null): ?>
+                                <p class="spartrak-order-panel__eta">
+                                    <?= $escaper->escapeHtml(__('Estimated arrival %1', $eta)) ?>
+                                </p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                <dl class="spartrak-order-panel__facts">
+                    <div class="spartrak-order-panel__fact">
+                        <dt><?= $escaper->escapeHtml(__('Current delivery status')) ?></dt>
+                        <dd><?= $escaper->escapeHtml($progress->getCurrentLabel($order)) ?></dd>
+                    </div>
+                    <?php $placedAt = $orderView->getPlacedAt($order); ?>
+                    <?php if ($placedAt !== null): ?>
+                        <div class="spartrak-order-panel__fact">
+                            <dt><?= $escaper->escapeHtml(__('Ordered on')) ?></dt>
+                            <dd><?= $escaper->escapeHtml($placedAt) ?></dd>
+                        </div>
+                    <?php endif; ?>
+                </dl>
+            </section>
+
+            <!-- وسيلة الدفع (562:19531, and 573:21502 with a receipt) -->
+            <?php if ($paymentInfoHtml !== ''): ?>
+                <?php
+                $brand = $paymentBrand?->get($order);
+                /*
+                 * The method's own extra detail, if its module contributes any.
+                 * Spartrak_InstaPay puts the `صورة التحويل` row here through its
+                 * own sales_order_view.xml; this template names a slot and does
+                 * not know what fills it. The ORDER is handed over explicitly
+                 * rather than left for the child to find, so the slot works
+                 * wherever it is placed and the child needs no registry lookup.
+                 */
+                $extra = $block->getChildBlock('spartrak_payment_extra');
+
+                if ($extra) {
+                    $extra->setData('order', $order);
+                }
+                ?>
+                <section class="spartrak-order-panel spartrak-order-panel--payment">
+                    <h2 class="spartrak-order-panel__title"><?= $escaper->escapeHtml(__('Payment method')) ?></h2>
+                    <div class="spartrak-order-panel__payment">
+                        <?php /*
+                          573:21505 — the mark and the text side by side.
+
+                          TEXT FIRST IN THE DOM. Figma puts the 44px avatar at
+                          x=0, the LEFT edge, which on this rtl page is the
+                          reading END — so it is written last and lands there.
+                          Same rule as everywhere else on this page.
+
+                          The text column IS the payment method's own info block,
+                          unchanged: `.spartrak-order-panel__payment` already
+                          styles that `<dl>` to Figma's metrics (dt 16/700 is
+                          573:21508, dd 14/400 secondary is 573:21510). Nothing
+                          re-renders the method's name, which also keeps the one
+                          copy of it that the confirmation email shares.
+                        */ ?>
+                        <div class="spartrak-order-panel__payment-head">
+                            <div class="spartrak-order-panel__payment-text">
+                                <?= /* @noEscape */ $paymentInfoHtml ?>
+                            </div>
+                            <?php if ($brand !== null): ?>
+                                <span class="spartrak-order-panel__payment-brand">
+                                    <img src="<?= $escaper->escapeUrl($brand['url']) ?>"
+                                         alt="<?= $escaper->escapeHtmlAttr($brand['label']) ?>"
+                                         width="44" height="44"
+                                         loading="lazy" decoding="async">
+                                </span>
+                            <?php endif; ?>
+                        </div>
+
+                        <?= /* @noEscape */ $block->getChildHtml('spartrak_payment_extra') ?>
+                    </div>
+                </section>
+            <?php endif; ?>
+
+            <!-- عنوان الشحن (562:19549) -->
+            <?php if ($shipToLines !== []): ?>
+                <section class="spartrak-order-panel spartrak-order-panel--address">
+                    <?php /*
+                      THE HEADING NAMES THE CHANNEL THE SHOPPER CHOSE.
+
+                      It used to be a two-way `$isPickup ? 'Collection point' :
+                      'Shipping address'`, which never told them which of the
+                      three ways they had picked and called a public transport
+                      station a "collection point". The three answers come from
+                      Spartrak_PickupLocation's FulfilmentChannel, which derives
+                      the channel from the order's own carrier — so this heading
+                      cannot disagree with the rail above it.
+                    */ ?>
+                    <h2 class="spartrak-order-panel__title">
+                        <?= $escaper->escapeHtml($orderView->getDestinationHeading($order)) ?>
+                    </h2>
+                    <div class="spartrak-order-panel__address">
+                        <span class="spartrak-order-panel__address-icon" aria-hidden="true"></span>
+                        <div class="spartrak-order-panel__address-text">
+                            <?php /*
+                              On a pickup the PLACE's name leads, because that is
+                              what the shopper navigates by — "موقف السلام" is
+                              what they say to a taxi driver, not the street.
+                              The recipient's own name follows it. On a delivery
+                              there is no named place and the recipient leads, as
+                              before.
+                            */ ?>
+                            <?php $destinationName = $orderView->getDestinationName($order); ?>
+                            <?php if ($destinationName !== null): ?>
+                                <p class="spartrak-order-panel__address-name">
+                                    <?= $escaper->escapeHtml($destinationName) ?>
+                                </p>
+                            <?php endif; ?>
+                            <?php $shipToName = $orderView->getShipToName($order); ?>
+                            <?php if ($shipToName !== null): ?>
+                                <p class="spartrak-order-panel__address-<?= $destinationName !== null
+                                    ? 'line'
+                                    : 'name' ?>">
+                                    <?= $escaper->escapeHtml($shipToName) ?>
+                                </p>
+                            <?php endif; ?>
+                            <?php foreach ($shipToLines as $line): ?>
+                                <p class="spartrak-order-panel__address-line">
+                                    <?= $escaper->escapeHtml($line) ?>
+                                </p>
+                            <?php endforeach; ?>
+                            <?php if ($shipToPhone !== null): ?>
+                                <p class="spartrak-order-panel__address-line" dir="ltr">
+                                    <?= $escaper->escapeHtml($shipToPhone) ?>
+                                </p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </section>
+            <?php endif; ?>
+
+            <!-- ملخص الطلب (562:20116) -->
+            <section class="spartrak-order-panel spartrak-order-panel--summary">
+                <h2 class="spartrak-order-panel__title"><?= $escaper->escapeHtml(__('Order summary')) ?></h2>
+                <dl class="spartrak-order-summary">
+                    <div class="spartrak-order-summary__row">
+                        <dt><?= $escaper->escapeHtml(
+                            __('Subtotal (%1 items)', $orderView->getItemCount($order))
+                        ) ?></dt>
+                        <dd><?= $escaper->escapeHtml(
+                            $orderView->formatPrice($order, (float) $order->getSubtotalInclTax())
+                        ) ?></dd>
+                    </div>
+
+                    <?php if ($orderView->hasSavings($order)): ?>
+                        <div class="spartrak-order-summary__row spartrak-order-summary__row--savings">
+                            <dt>
+                                <span class="spartrak-order-summary__savings-icon" aria-hidden="true"></span>
+                                <?= $escaper->escapeHtml(__('You saved')) ?>
+                            </dt>
+                            <dd>-<?= $escaper->escapeHtml(
+                                $orderView->formatPrice($order, $orderView->getSavings($order))
+                            ) ?></dd>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="spartrak-order-summary__row spartrak-order-summary__row--divided">
+                        <dt><?= $escaper->escapeHtml(__('Shipping')) ?></dt>
+                        <dd<?= $orderView->isFreeShipping($order)
+                                ? ' class="spartrak-order-summary__free"'
+                                : '' ?>>
+                            <?= $escaper->escapeHtml(
+                                $orderView->formatPrice($order, (float) $order->getShippingInclTax())
+                            ) ?>
+                            <?php if ($orderView->isFreeShipping($order)): ?>
+                                <?= $escaper->escapeHtml(__('(free)')) ?>
+                            <?php endif; ?>
+                        </dd>
+                    </div>
+
+                    <div class="spartrak-order-summary__row spartrak-order-summary__row--total">
+                        <dt><?= $escaper->escapeHtml(__('Total')) ?></dt>
+                        <dd><?= $escaper->escapeHtml(
+                            $orderView->formatPrice($order, (float) $order->getGrandTotal())
+                        ) ?></dd>
+                    </div>
+                </dl>
+            </section>
+        </aside>
+
+        <div class="spartrak-order-view__main">
+            <?php if ($step === OrderProgress::STEP_IN_TRANSIT): ?>
+                <!--
+                  562:19702 — a second header band stacked above the tracking
+                  one inside the same card, not a floating banner. Shown only
+                  in transit: once delivered, "check nothing is missing when it
+                  arrives" is advice about something that already happened.
+
+                  Text before illustration, because Figma puts the 96px art at
+                  x=24 — the LEFT edge, i.e. the reading END of an RTL row.
+                -->
+                <div class="spartrak-order-shipped">
+                    <div class="spartrak-order-shipped__text">
+                        <p class="spartrak-order-shipped__title">
+                            <!--
+                              A station order reads "الأوردر مع السواق الآن" and
+                              a couriered one "لقد تم شحن الطلب الخاص بك" — §5.
+                              Same band, same illustration, same sub-line; the
+                              heading differs because a station shipment is with
+                              a person the customer is about to phone.
+                            -->
+                            <?= $escaper->escapeHtml(
+                                $consignmentView !== null
+                                    ? $consignmentView->getDispatchHeading($order)
+                                    : __('Your order has been shipped')
+                            ) ?>
+                        </p>
+                        <p class="spartrak-order-shipped__note">
+                            <?= $escaper->escapeHtml(
+                                __('Please check the item arrives exactly as you ordered it, with nothing missing.')
+                            ) ?>
+                        </p>
+                    </div>
+                    <img class="spartrak-order-shipped__art"
+                         src="<?= $escaper->escapeUrl(
+                             $block->getViewFileUrl('images/illustrations/order-shipped.svg')
+                         ) ?>"
+                         alt=""
+                         width="96" height="96" loading="lazy" decoding="async">
+                </div>
+            <?php endif; ?>
+
+            <div class="spartrak-order-card__head spartrak-order-view__header">
+                <h1 class="spartrak-order-view__title">
+                    <?= $escaper->escapeHtml(__('Track order')) ?>
+                    <span class="spartrak-order-view__title-id" dir="ltr">
+                        <?= $escaper->escapeHtml(__('ID')) ?> :
+                        #<?= $escaper->escapeHtml($order->getIncrementId()) ?>
+                    </span>
+                </h1>
+                <?php if ($eta !== null): ?>
+                    <p class="spartrak-order-view__eta">
+                        <?= $escaper->escapeHtml(__('Estimated arrival %1', $eta)) ?>
+                    </p>
+                <?php endif; ?>
+            </div>
+
+            <div class="spartrak-order-view__tracker">
+                <?php if ($step !== null): ?>
+                    <ol class="spartrak-order-tracker"
+                        style="--spartrak-order-progress: <?= $escaper->escapeHtmlAttr(
+                            (string) $progress->getCompletion($order)
+                        ) ?>">
+                        <?php foreach ($labels as $index => $label): ?>
+                            <li class="spartrak-order-tracker__step<?= $index <= $step
+                                    ? ' spartrak-order-tracker__step--reached'
+                                    : '' ?>"
+                                <?php if ($index === $step): ?>aria-current="step"<?php endif; ?>>
+                                <?= $escaper->escapeHtml($label) ?>
+                            </li>
+                        <?php endforeach; ?>
+                    </ol>
+                <?php else: ?>
+                    <p class="spartrak-order-tracker__off-rail">
+                        <?= $escaper->escapeHtml($progress->getCurrentLabel($order)) ?>
+                    </p>
+                <?php endif; ?>
+            </div>
+
+            <section class="spartrak-order-view__items">
+                <h2 class="spartrak-order-view__items-title">
+                    <?= $escaper->escapeHtml(__('Order contents (%1)', count($items))) ?>
+                </h2>
+                <ul class="spartrak-order-view__item-list">
+                    <?php foreach ($items as $item): ?>
+                        <?php
+                        $image = $orderView->getItemImage($item);
+                        $productUrl = $orderView->getItemProductUrl($item);
+                        $wasPrice = $orderView->getItemOriginalRowTotal($order, $item);
+                        ?>
+                        <li class="spartrak-order-line">
+                            <span class="spartrak-order-line__thumb">
+                                <?php if ($image !== null): ?>
+                                    <img src="<?= $escaper->escapeUrl($image->getUrl()) ?>"
+                                         alt=""
+                                         width="<?= $escaper->escapeHtmlAttr($image->getWidth()) ?>"
+                                         height="<?= $escaper->escapeHtmlAttr($image->getHeight()) ?>"
+                                         loading="lazy"
+                                         decoding="async">
+                                <?php endif; ?>
+                            </span>
+                            <div class="spartrak-order-line__content">
+                                <p class="spartrak-order-line__name">
+                                    <?php if ($productUrl !== null): ?>
+                                        <a href="<?= $escaper->escapeUrl($productUrl) ?>">
+                                            <?= $escaper->escapeHtml($item->getName()) ?>
+                                        </a>
+                                    <?php else: ?>
+                                        <?= $escaper->escapeHtml($item->getName()) ?>
+                                    <?php endif; ?>
+                                </p>
+                                <p class="spartrak-order-line__price">
+                                    <?php if ($wasPrice !== null): ?>
+                                        <s class="spartrak-order-line__was">
+                                            <?= $escaper->escapeHtml($wasPrice) ?>
+                                        </s>
+                                    <?php endif; ?>
+                                    <span class="spartrak-order-line__now">
+                                        <?= $escaper->escapeHtml($orderView->getItemRowTotal($order, $item)) ?>
+                                    </span>
+                                </p>
+                            </div>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </section>
+        </div>
+    </div>
+</div>

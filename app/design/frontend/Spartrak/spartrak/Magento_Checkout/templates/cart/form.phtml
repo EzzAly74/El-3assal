@@ -70,8 +70,15 @@
     <?= $block->getBlockHtml('formkey') ?>
 
     <div class="spartrak-cart__header">
+        <?php /* `Your shopping cart`, not `Shopping cart`. Figma 553:4806 reads
+                 `عربة التسوق لديك`, and `Shopping cart` is already taken: it is
+                 the string Magento uses for the page title and the breadcrumb,
+                 both of which translate to `سلة التسوق` and both of which are
+                 on this page. Reusing it would have given the heading whichever
+                 of the two wordings the translation file happened to carry —
+                 which is why the header rendered `سلة التسوق` twice. */ ?>
         <h1 class="spartrak-cart__title">
-            <?= $escaper->escapeHtml(__('Shopping cart')) ?>
+            <?= $escaper->escapeHtml(__('Your shopping cart')) ?>
         </h1>
 
         <?php if ($block->getViewModel()->isClearShoppingCartEnabled()): ?>

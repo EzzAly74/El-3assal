@@ -45,18 +45,40 @@
  *   - the sort DIRECTION toggle (Magento's sort-asc/sort-desc anchor). The
  *     design's sort control is a single dropdown with no direction control.
  *
- * BACKEND REQUIRED — NOT FAKED. The three chips Figma names are
- * "الأكثر مبيعا" (best selling), "الأكثر بحثا" (most searched) and
- * "خصومات مميزه" (special discounts). None of the three is a native Magento
- * sort option, and wiring a chip to a product_list_order value the toolbar
- * does not know would give a control that silently does nothing. So each
- * chip renders only when its sort key really exists in
- * getAvailableOrders(); on today's catalog that means none of them render.
- * All three are implementable from data Magento already keeps —
- * sales_bestsellers_aggregated_* for best-selling, Reports' product-view
- * aggregates for most-searched, special_price for discounts — via a small
- * module that registers the sort options and their collection modifiers.
- * That module is the next step, not a gap in this file.
+ * THE THREE CHIPS, AND WHAT IS AND IS NOT REAL ABOUT THEM
+ * ---------------------------------------------------------------------
+ * Figma names them "الأكثر مبيعا" (best selling), "الأكثر بحثا" (most
+ * searched) and "خصومات مميزه" (special discounts). None of the three is a
+ * native Magento sort option.
+ *
+ * An earlier revision of this file rendered a chip ONLY when its sort key
+ * already existed in getAvailableOrders(), which on this catalog meant the
+ * row was empty and the design's most recognisable control was missing from
+ * the page. All three now render, always, exactly as drawn — but a chip whose
+ * sort key does not exist yet is emitted as a NON-INTERACTIVE <span>, not as
+ * an <a> pointing at a product_list_order value the toolbar would ignore.
+ *
+ * That distinction is the whole point and must not be "tidied" into a link:
+ *   - a link that silently does nothing is a broken control, and it is
+ *     announced to a screen reader and to a crawler as a real destination;
+ *   - a <span aria-disabled="true"> looks identical, is honest about being
+ *     inert, is skipped by keyboard navigation and adds no crawlable URL.
+ *
+ * The moment a sort key is registered — see below — its chip becomes a real
+ * link on the next request with no change to this file.
+ *
+ * MAKING THEM REAL. All three are computable from data Magento already keeps:
+ *   bestsellers    sales_bestsellers_aggregated_* (Magento_Sales' own
+ *                  aggregation, refreshed by its cron)
+ *   most_viewed    report_viewed_product_aggregated_* (Magento_Reports)
+ *   special_price  the native attribute, or price - final_price out of
+ *                  catalog_product_index_price
+ * Each needs (a) an afterGetAttributeUsedForSortByArray plugin on
+ * Magento\Catalog\Model\Config to register the option, and (b) something that
+ * applies the ordering — which, on a storefront running Elasticsearch, means
+ * indexing the value as a sortable field rather than bolting an ORDER BY onto
+ * a collection that has already been paginated by the search engine. That is
+ * a real piece of work with its own indexer, not a line in a template.
  *
  * @var $block \Magento\Catalog\Block\Product\ProductList\Toolbar
  */
@@ -88,30 +110,34 @@ $quickSortMap = [
 $availableOrders = (array) $block->getAvailableOrders();
 $currentOrder = (string) $block->getCurrentOrder();
 
+/*
+ * Every chip in the design is rendered. `wired` records whether the toolbar
+ * actually knows the sort key behind it, and that single flag is what decides
+ * <a> vs inert <span> below — see the header for why the distinction matters.
+ */
 $quickSorts = [];
 foreach ($quickSortMap as $orderKey => $chip) {
-    if (array_key_exists($orderKey, $availableOrders)) {
-        $quickSorts[$orderKey] = $chip;
-    }
+    $chip['wired'] = array_key_exists($orderKey, $availableOrders);
+    $quickSorts[$orderKey] = $chip;
 }
 
-// Magento's own pager child block. It is NOT rendered here — list.phtml
-// renders it once, on its own, below the grid where Figma puts it
-// (node 569:14143). Giving it anchor text makes it render the words
-// "Previous"/"Next" inside the pill instead of an empty span for a CSS
-// icon to fill — translatable and readable by assistive tech, which a CSS
-// `content` string is not. Setting it here rather than in list.phtml keeps
-// all toolbar configuration in the toolbar's own template.
-$pagerBlock = $block->getChildBlock('product_list_toolbar_pager');
-if ($pagerBlock) {
-    $pagerBlock->setAnchorTextForPrevious(__('Previous'))->setAnchorTextForNext(__('Next'));
-}
+/*
+ * NOTHING IS CONFIGURED ON THE PAGER FROM HERE ANY MORE.
+ *
+ * This used to call setAnchorTextForPrevious()/setAnchorTextForNext() so core
+ * would print "السابق" / "التالي" inside the two pills. It did not work — both
+ * rendered with the CSS arrow and no words — and rather than keep guessing at
+ * core's conditions for honouring a setter applied from a template that runs
+ * before the pager renders, the words now live in the markup itself:
+ * Magento_Theme/templates/html/pager.phtml in this theme.
+ *
+ * The pager block is still NOT rendered here. list.phtml renders it once, on
+ * its own, below the grid where Figma puts it (node 569:14143).
+ */
 ?>
 <?php if ($collectionSize) : ?>
     <div class="toolbar toolbar-products spartrak-toolbar" data-mage-init='<?= /* @noEscape */ $block->getWidgetOptionsJson() ?>'>
 
-        <?php /* Porto's mobile filter toggle — carried over verbatim, see header. */ ?>
-        <a href="#" class="porto-product-filters-toggle sidebar-toggle d-inline-flex d-lg-none"><svg data-name="Layer 3" id="Layer_3" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><line class="cls-1" x1="15" x2="26" y1="9" y2="9"></line><line class="cls-1" x1="6" x2="9" y1="9" y2="9"></line><line class="cls-1" x1="23" x2="26" y1="16" y2="16"></line><line class="cls-1" x1="6" x2="17" y1="16" y2="16"></line><line class="cls-1" x1="17" x2="26" y1="23" y2="23"></line><line class="cls-1" x1="6" x2="11" y1="23" y2="23"></line><path class="cls-2" d="M14.5,8.92A2.6,2.6,0,0,1,12,11.5,2.6,2.6,0,0,1,9.5,8.92a2.5,2.5,0,0,1,5,0Z"></path><path class="cls-2" d="M22.5,15.92a2.5,2.5,0,1,1-5,0,2.5,2.5,0,0,1,5,0Z"></path><path class="cls-3" d="M21,16a1,1,0,1,1-2,0,1,1,0,0,1,2,0Z"></path><path class="cls-2" d="M16.5,22.92A2.6,2.6,0,0,1,14,25.5a2.6,2.6,0,0,1-2.5-2.58,2.5,2.5,0,0,1,5,0Z"></path></svg> <span><?= $block->escapeHtml(__('Filters')) ?></span></a>
 
         <?php /*
           Row 1 — results heading (Figma 569:13636). DOM order is
@@ -137,19 +163,44 @@ if ($pagerBlock) {
         <div class="spartrak-toolbar__controls">
             <div class="spartrak-toolbar__quick">
                 <?php foreach ($quickSorts as $orderKey => $chip) : ?>
-                    <?php $isActive = ($currentOrder === $orderKey); ?>
-                    <a class="spartrak-chip<?= $isActive ? ' spartrak-chip--active' : '' ?>"
-                       href="<?= $block->escapeUrl($block->getOrderUrl($orderKey, 'desc')) ?>"
-                       <?= $isActive ? 'aria-current="true"' : '' ?>>
-                        <img class="spartrak-chip__icon"
-                             src="<?= $block->escapeUrl($block->getViewFileUrl('images/icons/' . $chip['icon'])) ?>"
-                             alt=""
-                             width="16"
-                             height="16"
-                             loading="lazy"
-                             decoding="async" />
-                        <span class="spartrak-chip__label"><?= $block->escapeHtml($chip['label']) ?></span>
-                    </a>
+                    <?php
+                    $isActive = $chip['wired'] && $currentOrder === $orderKey;
+                    // One shared inner body, so a wired and an unwired chip
+                    // are pixel-identical and can never drift apart.
+                    $chipIcon = $block->escapeUrl($block->getViewFileUrl('images/icons/' . $chip['icon']));
+                    $chipClass = 'spartrak-chip'
+                        . ($isActive ? ' spartrak-chip--active' : '')
+                        . ($chip['wired'] ? '' : ' spartrak-chip--pending');
+                    ?>
+                    <?php if ($chip['wired']) : ?>
+                        <a class="<?= $block->escapeHtmlAttr($chipClass) ?>"
+                           href="<?= $block->escapeUrl($block->getOrderUrl($orderKey, 'desc')) ?>"
+                           <?= $isActive ? 'aria-current="true"' : '' ?>>
+                    <?php else : ?>
+                        <?php /*
+                          NOT a link and NOT a disabled <button>. There is no
+                          destination to point at yet, so an <a> would be a
+                          broken control announced as a real one; and a
+                          <button disabled> would still be a form control the
+                          design does not draw, greyed by the UA. A span with
+                          aria-disabled is inert, keyboard-skipped, crawler-
+                          invisible and visually identical to the real thing.
+                        */ ?>
+                        <span class="<?= $block->escapeHtmlAttr($chipClass) ?>" aria-disabled="true">
+                    <?php endif; ?>
+                            <img class="spartrak-chip__icon"
+                                 src="<?= /* @noEscape */ $chipIcon ?>"
+                                 alt=""
+                                 width="16"
+                                 height="16"
+                                 loading="lazy"
+                                 decoding="async" />
+                            <span class="spartrak-chip__label"><?= $block->escapeHtml($chip['label']) ?></span>
+                    <?php if ($chip['wired']) : ?>
+                        </a>
+                    <?php else : ?>
+                        </span>
+                    <?php endif; ?>
                 <?php endforeach; ?>
             </div>
 
@@ -169,6 +220,54 @@ if ($pagerBlock) {
                     <span class="spartrak-sorter__chevron" aria-hidden="true"></span>
                 </div>
             <?php endif; ?>
+
+            <?php /*
+              THE MOBILE FILTER BUTTON — Figma 864:20389.
+
+              Porto ships this control as an <a href="#"> at the very TOP of
+              the toolbar, above the results heading. Two things are changed
+              and both are deliberate:
+
+                - it MOVES here, beside the sort control, because that is
+                  where the design puts it: one row of two equal controls
+                  under the quick-sort chips;
+                - it becomes a <button>. It opens a drawer rather than
+                  navigating, and `href="#"` on a control that never goes
+                  anywhere adds a history entry and a jump-to-top on every
+                  press.
+
+              Porto's own class names are KEPT so nothing else that keys off
+              them breaks, and its inline SVG is carried over verbatim — it is
+              the sliders glyph the design draws, and it already ships here.
+
+              Rendered unconditionally: the stylesheet shows it only below the
+              collapse breakpoint, so the desktop sidebar is untouched.
+            */ ?>
+            <?php /*
+              MOUNTED HERE, ON THE TRIGGER ITSELF.
+
+              It used to be mounted from layout as a data-mage-init attribute
+              on <body>, declared separately in the category and the search
+              layout XML. Two files had to keep a widget name in sync with
+              this template for the button to do anything, and when the chain
+              broke it broke silently. The behaviour now ships with the markup
+              it belongs to, and the search route picks it up for free because
+              both routes render this same toolbar.
+
+              The module delegates from `document`, so it does not care that
+              it is mounted on the trigger rather than on an ancestor of the
+              sidebar it opens.
+            */ ?>
+            <button type="button"
+                    class="porto-product-filters-toggle spartrak-toolbar__filter"
+                    data-mage-init='{"spartrakPlpFilterToggle":{}}'
+                    data-filter-drawer-open
+                    aria-haspopup="dialog"
+                    aria-expanded="false">
+                <svg data-name="Layer 3" id="Layer_3" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><line class="cls-1" x1="15" x2="26" y1="9" y2="9"></line><line class="cls-1" x1="6" x2="9" y1="9" y2="9"></line><line class="cls-1" x1="23" x2="26" y1="16" y2="16"></line><line class="cls-1" x1="6" x2="17" y1="16" y2="16"></line><line class="cls-1" x1="17" x2="26" y1="23" y2="23"></line><line class="cls-1" x1="6" x2="11" y1="23" y2="23"></line><path class="cls-2" d="M14.5,8.92A2.6,2.6,0,0,1,12,11.5,2.6,2.6,0,0,1,9.5,8.92a2.5,2.5,0,0,1,5,0Z"></path><path class="cls-2" d="M22.5,15.92a2.5,2.5,0,1,1-5,0,2.5,2.5,0,0,1,5,0Z"></path><path class="cls-3" d="M21,16a1,1,0,1,1-2,0,1,1,0,0,1,2,0Z"></path><path class="cls-2" d="M16.5,22.92A2.6,2.6,0,0,1,14,25.5a2.6,2.6,0,0,1-2.5-2.58,2.5,2.5,0,0,1,5,0Z"></path></svg>
+                <span class="spartrak-toolbar__filter-label"><?= $block->escapeHtml(__('Filter')) ?></span>
+                <span class="spartrak-toolbar__filter-chevron" aria-hidden="true"></span>
+            </button>
         </div>
     </div>
 <?php endif; ?>

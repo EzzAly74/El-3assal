@@ -27,4 +27,35 @@
         <plugin name="spartrak_latin_price_format" type="Spartrak\Locale\Plugin\LatinPriceFormat"/>
     </type>
 
+    <!--
+      Seam 6: PLAIN NUMBERS — page numbers, item counts, "showing X-Y of Z".
+      Locale\LocaleFormatter builds its own ICU formatter with a bare
+      numfmt_create(), which no preference or plugin on the other seams can
+      reach; it is why pagination still rendered ٠١٢٣ after prices were fixed.
+      A preference, because the formatter is cached in a private property. It
+      also pins the locale handed to JavaScript. See the class.
+    -->
+    <preference for="Magento\Framework\Locale\LocaleFormatter"
+                type="Spartrak\Locale\Model\LocaleFormatter"/>
+
+    <!--
+      Seam 4: DATES. A different ICU class (\IntlDateFormatter) reading the same
+      locale, so the first three seams never touched it — every date in `ar_EG`
+      rendered as ٣٠ يوليو ٢٠٢٦. This factory is the single point at which the
+      platform builds every date formatter. See the plugin class.
+    -->
+    <type name="Magento\Framework\Stdlib\DateTime\Intl\DateFormatterFactory">
+        <plugin name="spartrak_latin_date_formatter" type="Spartrak\Locale\Plugin\LatinDateFormatter"/>
+    </type>
+
+    <!--
+      Seam 5: TRAILING ".00". Not a numbering-system question at all — a
+      presentation rule about precision — but it belongs with the other price
+      formatting so there is one module that owns how this store writes a
+      number. See the plugin class.
+    -->
+    <type name="Magento\Directory\Model\Currency">
+        <plugin name="spartrak_whole_price_precision" type="Spartrak\Locale\Plugin\WholePricePrecision"/>
+    </type>
+
 </config>

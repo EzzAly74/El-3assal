@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  THIS REGISTRATION HAS TO BE IN `frontend`, NOT GLOBAL
+  ===========================================================================
+  It lived in etc/di.xml and was never invoked. The symptom was severe and
+  looked like something else entirely: a shopper chose InstaPay, the order was
+  created (POST /rest/ar/V1/carts/mine/payment-information -> 200), and then
+  they were sent to the success page instead of the transfer page, so the
+  receipt was never collected and the order sat in pending_payment unpaid.
+
+  Diagnosed by elimination on the live store, after the class itself was
+  confirmed correct, deployed, DI-compiled and cache-flushed:
+
+    - `transferUrl` appeared NOWHERE in a fresh 297KB checkout page.
+    - The module was demonstrably enabled and etc/di.xml demonstrably read —
+      SpartrakInstaPayFacade is declared in that same file and the payment
+      method rendered in the checkout.
+    - The two Spartrak providers that DO reach window.checkoutConfig —
+      Spartrak_Payment and Spartrak_PickupLocation — differ from this one in
+      exactly one respect: they register in etc/frontend/di.xml.
+
+  Magento composes DI per AREA: the area configuration is merged over the
+  global one, and for a repeated type+argument pair the area's value REPLACES
+  the global array rather than deep-merging its items. So the moment any
+  frontend di.xml declared `configProviders` on CompositeConfigProvider, this
+  module's global entry stopped existing in the frontend area — with no error,
+  because nothing is missing from Magento's point of view.
+
+  Registering in the same area as the other contributors puts this item in the
+  same merge and it survives.
+
+  It belongs in `frontend` on its own merits anyway: window.checkoutConfig is a
+  rendered-page concern, which is the reasoning Spartrak_Payment's own
+  etc/frontend/di.xml already records.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Magento\Checkout\Model\CompositeConfigProvider">
+        <arguments>
+            <argument name="configProviders" xsi:type="array">
+                <item name="spartrak_instapay" xsi:type="object">
+                    Spartrak\InstaPay\Model\Ui\ConfigProvider
+                </item>
+            </argument>
+        </arguments>
+    </type>
+</config>

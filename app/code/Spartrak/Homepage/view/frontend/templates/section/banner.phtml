@@ -40,40 +40,36 @@ $isCarousel = $block->isCarousel();
 $hasTitle = $block->getTitle() !== '';
 
 /*
- * THE FRAME'S ASPECT RATIO IS THE FIRST BANNER'S OWN.
+ * THE BOX THE FRAME RESERVES — THE AUTHORED HERO SHAPE, NOT THE FILE'S.
  *
- * The frame is one box shared by every slide, so it can only hold one ratio,
- * and the first slide is the one that decides it: it is what paints above the
- * fold, it is the LCP element, and it is the only slide a shopper who never
- * swipes will ever see. Later slides are `object-fit: cover`-ed into it, which
- * is the only coherent behaviour for a rail of assets that may not share a
- * shape.
+ * These two pairs are the same numbers `.spartrak-home-banner__frame` sets as
+ * its `aspect-ratio` (components/_homepage-sections.less, desktop rule and the
+ * ≤767px block). Read that rule before changing either: it carries the full
+ * history of why the hero is a fixed shape and what the fixed shape costs an
+ * upload that is not that shape.
  *
- * Two properties rather than one because <source media> swaps the FILE on a
- * phone, and the mobile asset is a different crop with a different ratio. The
- * CSS applies the desktop value and the mobile media query applies the other,
- * so each viewport reserves the box for the file it will actually download.
+ * They are stated here as well because width/height on the markup and
+ * aspect-ratio in the stylesheet answer two different questions — what the
+ * browser reserves before the stylesheet arrives, and what it lays out
+ * afterwards — and the whole point of setting them is that the two answers
+ * agree. The frame no longer emits `--spartrak-banner-ratio`: with the ratio
+ * fixed in CSS there is nothing left for this template to tell it.
  *
- * Emitted only when both dimensions were readable. When they were not (an SVG
- * has no raster header) the property is simply absent and the stylesheet's own
- * var() fallback — Figma's hero ratio — reserves the box instead.
+ * WHY NOT THE FILE'S REAL DIMENSIONS, which the block still reads: because the
+ * image is `object-fit: cover`-ed into a box of a different shape, so the
+ * file's own header describes the source artwork, not the space it occupies.
+ * Printing it here would reserve a 1774x887 box for something rendered at
+ * 1440x300 — a guaranteed layout shift, in the one place on the homepage where
+ * CLS is most expensive.
+ *
+ * The mobile pair goes on <source>, which takes width/height of its own. That
+ * is what keeps a phone from reserving the desktop box: the UA uses the
+ * dimensions of the source it actually selected.
  */
-$first = $banners[0] ?? null;
-$ratioVars = '';
-
-if ($first !== null) {
-    if ($first['width'] && $first['height']) {
-        $ratioVars .= sprintf('--spartrak-banner-ratio:%d/%d;', $first['width'], $first['height']);
-    }
-
-    if ($first['mobile_width'] && $first['mobile_height']) {
-        $ratioVars .= sprintf(
-            '--spartrak-banner-ratio-mobile:%d/%d;',
-            $first['mobile_width'],
-            $first['mobile_height']
-        );
-    }
-}
+$boxWidth = 1440;
+$boxHeight = 300;
+$boxWidthMobile = 440;
+$boxHeightMobile = 220;
 ?>
 <section class="spartrak-home-section spartrak-home-banner<?= $isCarousel ? ' spartrak-home-banner--carousel' : '' ?>"
     <?php if ($hasTitle) : ?>aria-labelledby="<?= $block->escapeHtmlAttr($block->getHeadingId()) ?>"<?php endif; ?>>
@@ -81,10 +77,6 @@ if ($first !== null) {
     <?= /* @noEscape */ $block->getHeadHtml() ?>
 
     <div class="spartrak-home-banner__frame"
-        <?php /* Two integer ratios built from getimagesize() output above and
-                 cast through %d — no admin-supplied string reaches this
-                 attribute, so there is nothing here to escape around. */ ?>
-        <?php if ($ratioVars !== '') : ?>style="<?= $block->escapeHtmlAttr($ratioVars) ?>"<?php endif; ?>
         <?php if ($isCarousel) : ?>
             data-mage-init='{"spartrakHomeCarousel":{"mode":"banner"}}'
             role="group"
@@ -105,15 +97,15 @@ if ($first !== null) {
                     <picture class="spartrak-home-banner__picture">
                         <?php if ($banner['mobile_url'] !== $banner['desktop_url']) : ?>
                             <source media="<?= $block->escapeHtmlAttr($banner['media']) ?>"
-                                    srcset="<?= $block->escapeUrl($banner['mobile_url']) ?>">
+                                    srcset="<?= $block->escapeUrl($banner['mobile_url']) ?>"
+                                    width="<?= (int) $boxWidthMobile ?>"
+                                    height="<?= (int) $boxHeightMobile ?>">
                         <?php endif; ?>
                         <img class="spartrak-home-banner__image"
                              src="<?= $block->escapeUrl($banner['desktop_url']) ?>"
                              alt="<?= $block->escapeHtmlAttr($banner['alt']) ?>"
-                             <?php if ($banner['width'] && $banner['height']) : ?>
-                                 width="<?= (int) $banner['width'] ?>"
-                                 height="<?= (int) $banner['height'] ?>"
-                             <?php endif; ?>
+                             width="<?= (int) $boxWidth ?>"
+                             height="<?= (int) $boxHeight ?>"
                              loading="<?= $block->escapeHtmlAttr($loading['loading']) ?>"
                              decoding="<?= $block->escapeHtmlAttr($loading['decoding']) ?>"
                              <?php if ($loading['fetchpriority']) : ?>

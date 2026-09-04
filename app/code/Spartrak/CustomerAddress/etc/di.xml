@@ -9,4 +9,50 @@
         <plugin name="spartrak_allow_additional_phone"
                 type="Spartrak\CustomerAddress\Plugin\AllowAdditionalPhoneOnQuoteAddress"/>
     </type>
+
+    <!--
+      The city has to be on the address BEFORE the repository validates it, or
+      an address book save fails with `"city" is required` from a form that has
+      no city field. The `customer_address_save_before` observer in events.xml
+      runs two lines too late — see the plugin's own header for the exact
+      sequence inside AddressRepository::save().
+
+      GLOBAL for the same reason as the plugin above: the REST endpoint
+      /V1/customers/:id/addresses goes through webapi_rest, where a
+      frontend-scoped plugin would never fire.
+    -->
+    <type name="Magento\Customer\Api\AddressRepositoryInterface">
+        <plugin name="spartrak_fill_city_before_validation"
+                type="Spartrak\CustomerAddress\Plugin\FillCityOnAddressRepositorySave"/>
+    </type>
+
+    <!--
+      `رقم اضافي` is validated as a phone number, optionally.
+
+      Registered on Magento's own address validator composite rather than as a
+      plugin, because `AbstractAddress::validate()` is inherited by BOTH the
+      customer address (validated by AddressRepository::save, so the account
+      dialog, the checkout's address save, the admin form and the REST API are
+      all covered) and the quote address (validated by
+      QuoteValidator::validateBeforeSubmit, so the shipping-information endpoint
+      is too). One registration, every door — see the validator's own header for
+      the full argument, and for what the field was validated against before
+      this existed, which was nothing at all.
+
+      ONE item, not four. Magento_Customer's own di.xml already declares
+      `general`, `country` and `customer` for this argument, and DI merges array
+      arguments item-by-item on the `name` attribute — the same mechanism that
+      lets a dozen modules add commands to `Console\CommandList`. So this
+      appends; re-listing core's three would only mean three more things to keep
+      in step with a future upgrade.
+    -->
+    <type name="Magento\Customer\Model\Address\CompositeValidator">
+        <arguments>
+            <argument name="validators" xsi:type="array">
+                <item name="spartrak_additional_phone" xsi:type="object">
+                    Spartrak\CustomerAddress\Model\Validator\AdditionalPhone
+                </item>
+            </argument>
+        </arguments>
+    </type>
 </config>

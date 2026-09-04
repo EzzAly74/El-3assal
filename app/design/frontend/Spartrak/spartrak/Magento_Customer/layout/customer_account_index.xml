@@ -1,23 +1,42 @@
 <?xml version="1.0"?>
 <!--
-  Wires the CustomerEmail view model into the dashboard's Account Information
-  block. The TEMPLATE override needs no layout entry at all — the file at
-  Magento_Customer/templates/account/dashboard/info.phtml in this theme already
-  shadows core's copy via ordinary theme-fallback path resolution, the same
-  mechanism this theme relies on everywhere else (see e.g. Magento_Search's
-  form.mini.phtml override). This file's only job is the <arguments> injection,
-  which layout XML is the correct place for regardless.
+  "حسابي" — the account information card, read state. Figma 562:10229.
 
-  <referenceBlock>, not a re-declared <block>: this stays a genuine EXTENSION of
-  core's own customer_account_index.xml — the block class, position and
-  cacheable="false" are exactly as core declared them.
+  ===========================================================================
+  WHAT THE PAGE IS, AND WHAT IT IS NOT
+  ===========================================================================
+  Core's dashboard is two boxes: Contact Information and Address Book. Figma
+  draws ONE card holding three values, and gives addresses a page of their own
+  in the rail (562:18126). So the address box is removed here — not disabled,
+  not hidden: the page it duplicated is one click away and is the better
+  version of it, with the same data behind it.
+
+  The block that stays is core's own Dashboard\Info, with core's own name and
+  cacheable flag. Only its template changes.
 -->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <body>
+        <!--
+          The three values the card prints. Injected as an <argument> on a block
+          layout itself creates, which is the supported way in — NOT via
+          `<argument name="data">` in di.xml, which is silently discarded for
+          layout-created blocks (see Spartrak\Checkout\Plugin\Checkout\
+          CartItemViewModels for the trace of that trap).
+
+          The `customer_email` argument this file used to carry is gone: the
+          placeholder-email rule it existed for is now applied inside Profile,
+          which consumes Spartrak_CustomerAuth's CustomerEmail itself. The edit
+          page still injects it directly, because core's own change-email
+          fieldset there needs the raw stored value as well as the verdict on
+          it — see customer_account_edit.xml.
+        -->
         <referenceBlock name="customer_account_dashboard_info">
             <arguments>
-                <argument name="customer_email" xsi:type="object">Spartrak\CustomerAuth\ViewModel\CustomerEmail</argument>
+                <argument name="profile" xsi:type="object">Spartrak\CustomerAccount\ViewModel\Profile</argument>
             </arguments>
         </referenceBlock>
+
+        <referenceBlock name="customer_account_dashboard_address" remove="true"/>
+        <referenceBlock name="customer_account_dashboard_top" remove="true"/>
     </body>
 </page>

@@ -1,0 +1,52 @@
+<?php
+/**
+ * Spartrak — the mobile filter drawer's header (Figma 864:20534).
+ *
+ * A close button on the inline-END edge and "فلترة" in --text/brand on the
+ * inline-START edge, above the filter sidebar.
+ *
+ * ===========================================================================
+ * WHY THIS IS A BLOCK IN sidebar.main AND NOT PART OF A DRAWER TEMPLATE
+ * ===========================================================================
+ * There is no drawer template. On mobile the EXISTING sidebar becomes the
+ * drawer — CSS turns `.sidebar-main` into a fixed panel — so the chrome the
+ * design puts around it has to be inside that same container, as siblings of
+ * Mageplaza's filter block.
+ *
+ * Mounting it as a block `before="-"` in sidebar.main puts it first in the
+ * DOM, which is exactly where the design puts it, with no `order` juggling
+ * and nothing moved by script. Its counterpart, drawer-foot.phtml, mounts
+ * `after="-"` for the same reason.
+ *
+ * Doing it this way rather than injecting the chrome with JS means the drawer
+ * is complete in the server-rendered HTML: it cannot flash half-built, and it
+ * is still correct if the widget never loads.
+ *
+ * DESKTOP: hidden in CSS. The sidebar is a plain column there and needs no
+ * header — Figma's desktop sidebar (488:12197) has none.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ */
+?>
+<div class="spartrak-filter-drawer__head" aria-hidden="true">
+    <?php /*
+      DOM ORDER IS THE LAYOUT. The row is `justify-content: space-between`, so
+      the FIRST child lands at the inline-start edge — the RIGHT in Arabic.
+      Figma 864:20537 puts "فلترة" on the right and the close button on the
+      left, so the TITLE COMES FIRST and the whole row mirrors itself for an
+      LTR store with no second rule.
+
+      `aria-hidden` on the wrapper and no heading semantics: the drawer's
+      accessible name comes from the button that opens it and from the
+      sidebar's own "خيارات التسوق" heading, which is real content. A second
+      announced heading here would be noise.
+    */ ?>
+    <p class="spartrak-filter-drawer__title"><?= $block->escapeHtml(__('Filter')) ?></p>
+
+    <button type="button"
+            class="spartrak-filter-drawer__close"
+            data-filter-drawer-close
+            aria-label="<?= $block->escapeHtmlAttr(__('Close')) ?>">
+        <span class="spartrak-filter-drawer__close-icon" aria-hidden="true"></span>
+    </button>
+</div>

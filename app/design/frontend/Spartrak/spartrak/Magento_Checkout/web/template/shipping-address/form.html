@@ -50,8 +50,16 @@
         <!-- ko template: getTemplate() --><!-- /ko -->
         <!--/ko-->
 
+        <!--
+          `visible: !isFormInline` used to sit on this row, inherited from
+          core's own form. It is gone because the flag is: this form has one
+          rendering now, the pop-up, and Spartrak_Checkout's
+          shipping-address-mixin pins `isFormInline` to false - so the binding
+          could only ever evaluate true. See Magento_Checkout/web/template/
+          shipping.html for the whole argument.
+        -->
         <!-- ko if: (isCustomerLoggedIn) -->
-        <div class="field choice" data-bind="visible: !isFormInline">
+        <div class="field choice">
             <input type="checkbox"
                    class="checkbox"
                    id="spartrak-default-shipping"

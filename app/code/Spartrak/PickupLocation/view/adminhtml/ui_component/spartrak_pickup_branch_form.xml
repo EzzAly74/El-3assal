@@ -14,16 +14,23 @@
             <item name="provider" xsi:type="string">spartrak_pickup_branch_form.spartrak_pickup_branch_form_data_source</item>
         </item>
         <item name="label" xsi:type="string" translate="true">Branch</item>
+        <!--
+          REQUIRED, not cosmetic. Without it the form falls back to
+          templates/form/default, whose loading mask is stamped
+          data-component="<namespace>.areas" - a name only the TABS layout ever
+          creates. Magento_Ui/js/form/form::hideLoader() looks up
+          "<namespace>.<namespace>", finds nothing, and the mask never comes
+          off: the page renders behind a spinner that spins forever.
+          templates/form/collapsible stamps the name hideLoader actually looks
+          for, which is why every standalone CRUD form in core sets it.
+        -->
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
     </argument>
 
     <settings>
         <buttons>
-            <button name="back" class="Magento\Backend\Block\Widget\Button\GenericButton">
-                <label translate="true">Back</label>
-            </button>
-            <button name="save" class="Magento\Backend\Block\Widget\Button\GenericButton">
-                <label translate="true">Save Branch</label>
-            </button>
+            <button name="back" class="Spartrak\PickupLocation\Block\Adminhtml\Button\BackButton"/>
+            <button name="save" class="Spartrak\PickupLocation\Block\Adminhtml\Button\BranchSaveButton"/>
         </buttons>
         <namespace>spartrak_pickup_branch_form</namespace>
         <dataScope>data</dataScope>

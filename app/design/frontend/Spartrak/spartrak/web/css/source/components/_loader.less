@@ -13,9 +13,11 @@
 //       Magento_Checkout::onepage.phtml      (#checkout-loader)
 //       Magento_Theme::html/main_css_preloader.phtml
 //       Magento_Multishipping, Magento_LoginAsCustomerFrontendUi
-//     Markup: .loading-mask > .loader > (img + p). theme-frontend-blank's
-//     _loaders.less already hides the <p>; this file hides the <img> and
-//     draws the ring on .loader's own ::before instead.
+//     Markup: .loading-mask > .loader > (img + p). This file hides BOTH the
+//     <img> and the <p> and draws the ring on .loader's own ::before instead.
+//     (An earlier version of this note said theme-frontend-blank already hid
+//     the <p>. Measured on the live storefront, it does not on this theme —
+//     see the rule below.)
 //
 //  2. A ::before-based mask. Emitted by lib/_loaders.less's .lib-loader()
 //     mixin, whose only frontend consumer is `.load.indicator`. That mixin
@@ -50,25 +52,68 @@
 
 //  Shape 1 — <img>-based overlays -------------------------------------------
 .loading-mask {
-    .loader {
-        // The <img> was the only positioned child, so .loader itself needs to
-        // become the centring context once it is hidden. inset/margin:auto
-        // rather than a translate offset, so nothing depends on direction.
-        position: absolute;
-        inset: 0;
+  .loader {
+    // The <img> was the only positioned child, so .loader itself needs to
+    // become the centring context once it is hidden.
+    //
+    // ------------------------------------------------------------------
+    // A FLEX COLUMN, NOT AN ABSOLUTELY-CENTRED RING
+    // ------------------------------------------------------------------
+    // The ring used to be `position: absolute; inset: 0; margin: auto` on
+    // this element's ::before. That centres it perfectly — and centres it
+    // ON TOP OF whatever is in normal flow, because an absolute box does
+    // not participate in layout.
+    //
+    // On most surfaces nothing else is in flow, so it looked right. On the
+    // checkout it is not: the design's processing modal (Figma 554:11231)
+    // has words under the spinner, so _checkout.less puts the <p> back, and
+    // the ring was then drawn straight through `لحظه من فضلك` — a spinner
+    // with text stacked over it, which is the "content appears above the
+    // loader" that shows up on a narrow screen where the words wrap.
+    //
+    // Centring the CONTENTS instead of the ring fixes both cases at once:
+    // with the <p> hidden the ring is still dead centre, and with it shown
+    // the two stack 16px apart. No direction is named, so RTL is free.
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
 
-        > img {
-            display: none;
-        }
-
-        &:before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            margin: auto;
-            .spartrak-spinner();
-        }
+    > img {
+      display: none;
     }
+
+    // ------------------------------------------------------------------
+    // THE <p> HAS TO BE HIDDEN HERE. BLANK DOES NOT DO IT ON THIS THEME.
+    // ------------------------------------------------------------------
+    // The header of this file claimed theme-frontend-blank's _loaders.less
+    // already hides it. Measured on the live checkout, it does not — the
+    // element computed to `display: block`, in normal flow, still printing
+    // "لحظه من فضلك". Because the ring below is absolutely positioned and
+    // centred with inset/margin:auto, the paragraph kept its place at the
+    // TOP of the mask and the text rendered above the spinner.
+    //
+    // Hidden the accessible way rather than with `display: none`: the
+    // sentence is the only thing that tells a screen-reader user the page
+    // is busy, and core gives it no aria-live partner. Removing it from the
+    // page entirely would trade a visual bug for an accessibility one
+    // (CLAUDE.md §15).
+    > p {
+      .spartrak-visually-hidden();
+    }
+
+    &:before {
+      content: "";
+      // In flow, so the flex column above can place it. `flex: 0 0 auto`
+      // because .spartrak-spinner() states a width and a height and a
+      // flex item must not be allowed to shrink out of them.
+      flex: 0 0 auto;
+      .spartrak-spinner();
+    }
+  }
 }
 
 //  Shape 2 — .lib-loader()'s ::before ---------------------------------------
@@ -77,7 +122,7 @@
 //  restated; the positioning is left to core so the two shapes stay in sync
 //  if core ever changes it.
 .load.indicator {
-    &:before {
-        .spartrak-spinner();
-    }
+  &:before {
+    .spartrak-spinner();
+  }
 }

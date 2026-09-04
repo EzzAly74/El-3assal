@@ -29,6 +29,23 @@
                     </argument>
                 </arguments>
             </block>
+
+            <!--
+              ===================================================================
+              WHERE THE DISPATCHER RECORDS THE DRIVER
+              ===================================================================
+              BUSINESS.md section 12, §4. Renders nothing unless the order is a
+              `موقف` collection, so it is safe to attach unconditionally — the
+              same property the pickup block above relies on.
+
+              AFTER the pickup block, because it answers the next question: that
+              one says where the parcel is going, this one says who is taking it
+              there.
+            -->
+            <block class="Spartrak\PickupLocation\Block\Adminhtml\Order\View\Consignment"
+                   name="spartrak.order.consignment"
+                   after="spartrak.order.pickup"
+                   template="Spartrak_PickupLocation::order/consignment.phtml"/>
         </referenceContainer>
     </body>
 </page>

@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<!--
+  "المنتجات المفضلة" — the wishlist. Figma 817:18852, card 821:17006.
+
+  ===========================================================================
+  WHAT THE PAGE WAS
+  ===========================================================================
+  Measured on the deployed store: the account shell and the rail rendered
+  correctly (this handle does `<update handle="customer_account"/>`, so it
+  inherited them), and inside them sat Porto's `.products-grid.wishlist`
+  lister plus core's `.actions-toolbar` with three untranslated buttons —
+  "Update Wish List", "Share Wish List", "Add All to Cart". None of those three
+  is in Figma, and the item rows were a product grid where the design draws
+  full-width rows.
+
+  ===========================================================================
+  THE CARD IS THE ORDER CARD, BECAUSE IN FIGMA IT IS
+  ===========================================================================
+  821:17006 is an instance of the component named "Card - Order History" — the
+  same one 562:17887 uses. Its Main Container (821:17030) is the same
+  bg/surface-subtle 128px row, its Image Container (821:17036) the same 96x96
+  white tile with the same Small/Darker shadow, its name the same Heading/H4
+  and its price the same brand-coloured Heading/H5.
+
+  So the template below reuses `.spartrak-order-card` rather than defining a
+  second row of its own (CLAUDE.md §2 step 4). Two things this instance does
+  differently, and both are modifiers rather than copies: the card has no head
+  (no order id, no status chip) and its footer holds only buttons, so it needs
+  the `foot` modifier `actions-only` to push them to the reading end as Figma
+  draws them.
+
+  ===========================================================================
+  WHAT IS REMOVED, AND WHAT STAYS REACHABLE
+  ===========================================================================
+  `customer.wishlist.items` and its EIGHT nested column blocks go. They are
+  every one of them `cacheable="false"` and instantiated per row per render to
+  build a table this design does not have; the two facts the design does want
+  come off the parent block's own methods instead. Removing them is the
+  cheaper page as well as the correct one.
+
+  `customer.wishlist.buttons` goes with them. Sharing is a real Magento
+  feature and it is untouched at /wishlist/index/share/ — what goes is a
+  control strip Figma does not draw, exactly as customer_account.xml drops
+  rail links for the same reason. "Update Wish List" managed per-row comment
+  and qty inputs that no longer exist, and "Add All to Cart" is not on the
+  frame either.
+
+  The PAGER stays. Figma draws one card because the mock has one product.
+
+  NOT DECLARED HERE: `product.price.render.default`. Magento_Catalog's base
+  default.xml puts it on every page, which is what makes
+  AbstractBlock::getItemPriceHtml() work here with no layout of our own.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <!--
+          Core's block, core's collection, core's paging, core's
+          `data-mage-init="wishlist"` contract. Only the template changes — see
+          the template header for why the widget's own selectors are kept.
+        -->
+        <referenceBlock name="customer.wishlist" template="Magento_Wishlist::spartrak-view.phtml">
+            <arguments>
+                <argument name="wishlist_item" xsi:type="object">Spartrak\Wishlist\ViewModel\WishlistItem</argument>
+            </arguments>
+        </referenceBlock>
+
+        <referenceBlock name="customer.wishlist.items" remove="true"/>
+        <referenceBlock name="wishlist.rss.link" remove="true"/>
+        <referenceContainer name="customer.wishlist.buttons" remove="true"/>
+    </body>
+</page>

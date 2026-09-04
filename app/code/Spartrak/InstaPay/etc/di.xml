@@ -61,17 +61,8 @@
     </virtualType>
 
     <!--
-      Publishes the merchant's transfer number and masked name into
-      window.checkoutConfig, so the transfer page can render them without a
-      second round trip.
+      NOTE: the checkout ConfigProvider registration MOVED to etc/frontend/di.xml.
+      It was here, in global scope, and was silently never invoked. See that file
+      for the finding.
     -->
-    <type name="Magento\Checkout\Model\CompositeConfigProvider">
-        <arguments>
-            <argument name="configProviders" xsi:type="array">
-                <item name="spartrak_instapay" xsi:type="object">
-                    Spartrak\InstaPay\Model\Ui\ConfigProvider
-                </item>
-            </argument>
-        </arguments>
-    </type>
 </config>

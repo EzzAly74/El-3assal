@@ -1,0 +1,51 @@
+// Spartrak My Account — entry point.
+//
+// Compiled as its own stylesheet and enqueued ONLY on the account section, from
+// Magento_Customer/layout/customer_account.xml. Every account handle inherits
+// that handle (`<update handle="customer_account"/>` in customer_account_index,
+// customer_address_index, sales_order_history, sales_order_view and the
+// wishlist), so one <css> tag covers the whole section and nothing else.
+//
+// WHY IT IS SPLIT OUT: spartrak-components.css is render-blocking on every
+// page. components/_account.less matches nothing outside /customer, /sales/order
+// and /wishlist, so carrying it globally would tax the LCP of the homepage, the
+// PLP and the PDP in order to style pages only signed-in shoppers ever open —
+// and the account section is, by definition, never served from the full-page
+// cache. Same reasoning, and the same trade, as spartrak-cart.less and
+// spartrak-checkout.less; see those files.
+//
+// LOAD ORDER: this file is linked AFTER spartrak-components.css, so on an
+// account page its rules are the later word on equal specificity. That is the
+// intended relationship — and it also puts them after Porto's styles-l.css,
+// which spartrak-components.css itself cannot outrank (see
+// Magento_Theme/web/css/source/_extend.less for that finding).
+//
+// The foundation files below are RE-IMPORTED rather than inherited: LESS mixins
+// and plain LESS variables do not survive a compiled-CSS boundary, exactly as
+// spartrak-components.less documents for the same files. CSS custom properties
+// from spartrak-foundations.css DO carry over and are not repeated.
+
+// @breakpoint-header-collapse — the width at which the rail becomes a tab strip
+// and the two-column grid becomes one. Deliberately the SAME number the header
+// and Porto's own page chrome flip at, so the account section does not collapse
+// at a width of its own.
+@import "source/foundations/_breakpoints.less";
+// The page gutter, taken from the same declaration site the PLP and the cart
+// take it from rather than written down a fourth time.
+@import "source/foundations/_page-metrics.less";
+// .spartrak-icon() — the mask mixin every glyph in this section calls.
+@import "source/foundations/_icons.less";
+// .spartrak-visually-hidden() — used by the mobile tab strip, which hides the
+// rail's heading without removing it from the accessibility tree.
+@import "source/foundations/_a11y.less";
+
+// The pager. Both paged lists in this section — the order list and the
+// wishlist — render Magento\Theme\Block\Html\Pager, the same markup the PLP
+// does, and until this import they matched none of its rules: bare square page
+// boxes and an unlabelled empty box where "next" should be. Figma has ONE
+// pagination component (569:14143) and the account section has no pagination
+// frame of its own, so the same component is used rather than a second copy of
+// it. See components/_pagination.less for the full note.
+@import "source/components/_pagination.less";
+
+@import "source/components/_account.less";

@@ -12,6 +12,47 @@
               module always loads after it.
             -->
             <module name="Magento_Swatches"/>
+            <!--
+              Magento_Eav: this module's two data patches use EavSetup to add
+              the category hero attributes and the five specification filter
+              attributes. Declared so both always run after EAV's own setup.
+            -->
+            <module name="Magento_Eav"/>
+            <!--
+              Magento_Store: AddSpecFilterAttributes resolves which store views
+              are Arabic before writing their attribute labels.
+            -->
+            <module name="Magento_Store"/>
+            <!--
+              ===================================================================
+              Spartrak_Homepage IS DELIBERATELY *NOT* SEQUENCED HERE.
+              ===================================================================
+              Adding it looks right — Block\Category\QuickSearch type-hints that
+              module's ViewModel\CascadeOptions, and Block\Product\RelatedRail
+              has long rendered its section/head.phtml — but it breaks the
+              install outright:
+
+                  Circular sequence reference from 'Spartrak_Homepage'
+                  to 'Spartrak_Catalog'.
+
+              Spartrak_Homepage already sequences AFTER this module, because
+              every one of its product sections renders through
+              Spartrak_Catalog::product/card.phtml. Declaring the reverse closes
+              the loop, and Magento rejects a cyclic module graph.
+
+              Not declaring it is correct rather than merely expedient. `sequence`
+              orders LOAD-TIME MERGES — layout XML, di.xml, config, setup patches.
+              Neither reference needs one: a constructor type-hint is resolved by
+              the autoloader and DI at runtime, and a `Module::template.phtml` id
+              is resolved by the view-file fallback at render time. Neither
+              consults the sequence graph at all.
+
+              What the shared code genuinely is, is a pair of leaf collaborators
+              — one ViewModel and one presentational partial — with no layout, no
+              section and no setup of their own. If either ever grows something
+              that DOES need merge ordering, the fix is to move it into a third
+              module both can sequence after, not to re-add this line.
+            -->
         </sequence>
     </module>
 </config>

@@ -1,0 +1,142 @@
+<?php
+/**
+ * Spartrak — category hero band (Figma 488:12966).
+ *
+ * Full-bleed artwork with the category's headline (488:12970, Display/Large
+ * 40/1.2, -0.5px) and blurb (488:12971, Body/Base 16/1.5) sitting bottom /
+ * inline-start over a scrim (488:12967).
+ *
+ * ===========================================================================
+ * EXACTLY ONE IMAGE IS EVER DOWNLOADED
+ * ===========================================================================
+ * LANGUAGE is already resolved server-side — the store view is known before
+ * the response is written, and the attributes are SCOPE_STORE. VIEWPORT is
+ * resolved by <picture>: the browser evaluates <source media> BEFORE the
+ * preload scanner fetches anything, so a phone never pulls the desktop file
+ * and a desktop never pulls the mobile one. No user-agent sniffing, no CSS
+ * background swap, no JS src rewrite — all three of which fetch both.
+ *
+ * Three real states, all handled:
+ *   both assets   -> <source> for the phone, <img> for everything else
+ *   desktop only  -> that one file everywhere
+ *   mobile only   -> that one file everywhere
+ * The last two are the honest outcome of one upload; the alternative — a
+ * <source> pointing at the same URL as the <img> — is a <picture> that looks
+ * responsive while shipping one crop to both.
+ *
+ * ===========================================================================
+ * THIS IS THE PAGE'S LCP ELEMENT (CLAUDE.md section 12)
+ * ===========================================================================
+ * It is the first and largest paint below the header, so it is eager, it is
+ * fetchpriority="high", and it is the ONLY image on this page allowed either
+ * — the tile rail below it and every product card in the grid are lazy so
+ * nothing competes with it for the connection.
+ *
+ * The box is reserved by `aspect-ratio` (Figma's own 1440:318) rather than by
+ * width/height attributes, because the band is `object-fit: cover` — the
+ * file's intrinsic size never decides its layout, so reading it off disk on
+ * every render would buy nothing. The ratio is a floor, not a cap: a long
+ * blurb grows the band instead of being clipped.
+ *
+ * alt="" is correct and deliberate, not an omission. The heading and the
+ * blurb are real DOM text inside this same band, so the artwork carries no
+ * information a screen reader is missing — CLAUDE.md section 15's rule for a
+ * decorative image.
+ *
+ * @var \Spartrak\Catalog\Block\Category\Hero $block
+ */
+
+if (!$block->canShow()) {
+    return;
+}
+
+$desktopUrl = $block->getDesktopImageUrl();
+$mobileUrl = $block->getMobileImageUrl();
+$primaryUrl = $desktopUrl !== '' ? $desktopUrl : $mobileUrl;
+$hasDistinctMobile = $desktopUrl !== '' && $mobileUrl !== '' && $mobileUrl !== $desktopUrl;
+
+/*
+ * TWO DIFFERENT STRINGS, DELIBERATELY.
+ *
+ * $heading is what the admin typed, and is '' when they typed nothing — the
+ * hero then shows no headline at all rather than stamping the category name
+ * over the artwork.
+ *
+ * $documentTitle is what the page's single <h1> SAYS, which falls back to the
+ * category name so the document is never left without a heading. When there
+ * is no admin headline the <h1> is still emitted, visually hidden.
+ */
+$heading = $block->getHeading();
+$documentTitle = $block->getDocumentTitle();
+$description = $block->getDescription();
+
+/*
+ * Magento's own category output helper — the same call core's
+ * category/description.phtml makes. It runs the CMS template filter over the
+ * stored value (so {{media}}, {{store}} and widget directives resolve) and
+ * applies the platform's own output escaping policy for that attribute. Doing
+ * anything else here would make this one paragraph behave differently from
+ * every other place the platform prints a category description.
+ */
+$outputHelper = $this->helper(\Magento\Catalog\Helper\Output::class);
+?>
+<section class="spartrak-cat-hero<?= $block->hasImage() ? '' : ' spartrak-cat-hero--plain' ?>"
+         style="<?= $block->escapeHtmlAttr($block->getRatioStyle()) ?>">
+
+    <?php if ($primaryUrl !== '') : ?>
+        <picture class="spartrak-cat-hero__picture">
+            <?php if ($hasDistinctMobile) : ?>
+                <source media="<?= $block->escapeHtmlAttr($block->getMobileMedia()) ?>"
+                        srcset="<?= $block->escapeUrl($mobileUrl) ?>">
+            <?php endif; ?>
+            <img class="spartrak-cat-hero__image"
+                 src="<?= $block->escapeUrl($primaryUrl) ?>"
+                 alt=""
+                 loading="eager"
+                 fetchpriority="high"
+                 decoding="async">
+        </picture>
+    <?php endif; ?>
+
+    <?php /*
+      The scrim is a sibling of the picture, not a filter ON it: a gradient
+      overlay composites without touching the image's own decode, and keeping
+      it separate means the copy below is never inside a stacking context that
+      would blur or dim the text along with the artwork.
+    */ ?>
+    <div class="spartrak-cat-hero__scrim">
+        <div class="spartrak-cat-hero__copy">
+            <?php /*
+              THE PAGE'S ONLY <h1>. The layout removes Magento's own
+              page.main.title on this handle — see the layout file — because
+              Figma has no separate page title above the hero and two headings
+              naming the same category is neither the design nor good
+              document structure.
+
+              ALWAYS EMITTED, NOT ALWAYS SEEN. The headline field is optional:
+              when an admin has not set one, nothing should be stamped over
+              the artwork. But this element is the page's only heading, so it
+              cannot simply disappear — a category page with no <h1> is a real
+              defect for search engines and for anyone navigating by headings.
+
+              So when there is no headline the SAME <h1> is emitted carrying
+              the category name and visually hidden. Hidden by clipping, never
+              by `display: none`, which would take it out of the accessibility
+              tree as well and defeat the entire point.
+            */ ?>
+            <h1 class="spartrak-cat-hero__title<?= $heading === '' ? ' spartrak-cat-hero__title--sr' : '' ?>">
+                <?= $block->escapeHtml($heading !== '' ? $heading : $documentTitle) ?>
+            </h1>
+
+            <?php if ($description !== '') : ?>
+                <div class="spartrak-cat-hero__text">
+                    <?= /* @noEscape */ $outputHelper->categoryAttribute(
+                        $block->getCurrentCategory(),
+                        $description,
+                        'description'
+                    ) ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</section>

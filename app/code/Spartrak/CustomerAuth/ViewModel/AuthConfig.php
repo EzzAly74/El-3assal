@@ -107,6 +107,21 @@ class AuthConfig implements ArgumentInterface
         return Purpose::PASSWORD_RESET;
     }
 
+    /**
+     * The purpose the account card's phone dialog verifies against
+     * (Figma 1078:7263).
+     *
+     * Exposed for the same reason the other two are: the value belongs to
+     * Purpose, and a template that wrote the string itself would be a second
+     * place to keep in step with it. The server validates whatever arrives
+     * (Purpose::assertValid), so this is about having one spelling, not about
+     * trusting the client.
+     */
+    public function getPhoneChangePurpose(): string
+    {
+        return Purpose::PHONE_CHANGE;
+    }
+
     private function getStoreId(): int
     {
         return (int) $this->storeManager->getStore()->getId();

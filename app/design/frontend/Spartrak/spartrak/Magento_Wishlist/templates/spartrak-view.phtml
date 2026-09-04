@@ -1,0 +1,307 @@
+<?php
+/**
+ * "المنتجات المفضلة" — the wishlist. Figma 817:18852, card 821:17006.
+ *
+ * ===========================================================================
+ * THE ROW IS THE ORDER CARD, NOT A NEW COMPONENT
+ * ===========================================================================
+ * 821:17006 is an instance of Figma's "Card - Order History" component, the
+ * same one the order-history card (562:17887) is. Its Main Container, its
+ * 96x96 Image Container, its Heading/H4 name and its brand-coloured price are
+ * the same nodes with the same metrics, so this template emits
+ * `.spartrak-order-card` and its existing `__items` / `__item` / `__thumb` /
+ * `__item-content` parts. Two modifiers cover the differences: the card has no
+ * `__head` here, and `__foot--actions-only` puts the buttons at the reading
+ * end because there are no facts to sit opposite them.
+ *
+ * Building a `.spartrak-wishlist-card` instead would have been a second copy
+ * of a component the design does not fork — see the layout file, and
+ * CLAUDE.md §2 step 4.
+ *
+ * ===========================================================================
+ * THE SAVE PATHS ARE MAGENTO'S, DOWN TO THE SELECTORS
+ * ===========================================================================
+ * `data-mage-init` on the form is core's, verbatim, and so are the two
+ * controls' hooks:
+ *
+ *   [data-role=tocart] + data-post   -> mage.wishlist._beforeAddToCart, which
+ *                                       then posts through mage/dataPost
+ *   [data-role=remove] + data-post-remove
+ *                                    -> mage.wishlist's own click handler
+ *
+ * Both attribute values come from `Magento\Wishlist\Block\AbstractBlock`
+ * (getItemAddToCartParams / getItemRemoveParams), i.e. the same signed post
+ * payloads core's own templates emit. So add-to-cart, the minicart update, the
+ * success message and the CSRF key are all the platform's, and this feature
+ * ships no controller and no JavaScript of its own.
+ *
+ * NO `qty` INPUT, and that is safe: `_beforeAddToCart` reads
+ * `[name="qty[<id>]"]`, gets `undefined` when there is none, and `$.extend`
+ * drops undefined values — so the post carries no qty and the server uses the
+ * item's own. Figma draws no quantity control.
+ *
+ * `#form-tmpl` is NOT carried over from core's view.phtml. It is read only by
+ * the gift-registry extension of the widget, via
+ * `[data-wishlist-to-giftregistry]`, which Magento Open Source never renders.
+ *
+ * REMOVAL IS IMMEDIATE, as in core — no confirm dialog, because Figma draws
+ * none and inventing one would be inventing UI (§3). The action is
+ * recoverable: the product is one click from being re-added.
+ *
+ * ===========================================================================
+ * READING ORDER IS DOM ORDER
+ * ===========================================================================
+ * This document is `dir="rtl"`, so the FIRST child of a flex row sits at the
+ * right. Figma's row draws the image at the right and the buttons at the left,
+ * so the image is written first and حذف is written before شراء الآن. That is
+ * what mirrors correctly for the English store view with no second stylesheet
+ * (§16) — the same rule the order-history template documents.
+ *
+ * @var \Magento\Wishlist\Block\Customer\Wishlist $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Wishlist\Helper\Data as WishlistHelper;
+use Spartrak\Wishlist\ViewModel\WishlistItem;
+
+/** @var WishlistItem|null $wishlistItem */
+$wishlistItem = $block->getData('wishlist_item');
+
+// Core's own gate: a store with the wishlist switched off renders nothing at
+// all rather than an empty card for a feature that is not on.
+if (!$this->helper(WishlistHelper::class)->isAllow()) {
+    return;
+}
+
+$items = $block->hasWishlistItems() ? $block->getWishlistItems() : [];
+
+/*
+ * A wiring fault, not an empty wishlist — and the two must not look the same.
+ * `wishlist_item` is supplied by this theme's wishlist_index_index.xml; if it
+ * did not arrive, that layout file was not applied, which also means the four
+ * `remove="true"` directives in it were not applied either. Rendering the empty
+ * state here would tell a shopper with a full wishlist that they have nothing
+ * saved. Throwing gets Magento's error page with a report id instead, and this
+ * branch is unreachable on a correctly wired store. Same argument, at more
+ * length, in Spartrak_CustomerAccount::order/view.phtml.
+ */
+if ($items !== [] && $wishlistItem === null) {
+    throw new LocalizedException(
+        __(
+            'This wishlist is misconfigured: the `wishlist_item` argument did not reach '
+            . '`customer.wishlist`, so this theme\'s Magento_Wishlist/layout/wishlist_index_index.xml '
+            . 'was not applied.'
+        )
+    );
+}
+
+/*
+ * ===========================================================================
+ * THE PAGER, AND THE FOUR THINGS IT SHIPS THAT FIGMA DOES NOT DRAW
+ * ===========================================================================
+ * Configured here rather than from the layout file on purpose: core's
+ * Magento\Wishlist\Block\Customer\Wishlist::_prepareLayout() calls
+ * `->setUseContainer(true)->setShowAmounts(true)` on this exact block, and
+ * _prepareLayout runs while the layout is being generated. A layout `<action>`
+ * would win (actions run after generation) but it would be the ONLY pager on
+ * the site configured that way — the PLP's toolbar.phtml and the order list's
+ * history.phtml both do it here, and one pattern beats a clever one.
+ *
+ * THE FLAGS ARE MAGENTO'S OWN IDIOM FOR A BARE PAGINATION CONTROL, not a local
+ * invention: Catalog\Block\Product\ProductList\Toolbar::getPagerHtml() calls
+ * `setUseContainer(false)->setShowPerPage(false)->setShowAmounts(false)` on its
+ * pager for exactly this reason.
+ *
+ *   AMOUNTS      "%1 Item(s)" — which rendered as "Item(s) 2" in English on
+ *                this store, and is not in Figma's pagination (569:14143)
+ *                in any language. Off.
+ *   PER PAGE     the "عرض [10] لكل صفحة" limiter. Not in 569:14143 either; the
+ *                PLP records the same omission for the same reason.
+ *   CONTAINER    core's own `<div class="pager">` wrapper. This template
+ *                supplies the wrapper (with the component class on it), and
+ *                leaving core's on as well would emit an empty div on a
+ *                single-page wishlist — which is every wishlist under eleven
+ *                items.
+ *   ANCHOR TEXT  without it core marks the prev/next controls `class="action"`,
+ *                which Porto styles as an icon-font glyph with the label
+ *                hidden; with the glyph unavailable that renders as a blank
+ *                box. Setting the text switches core to `class="link"` and
+ *                gives the pill the word Figma draws.
+ */
+$pager = $block->getChildBlock('wishlist_item_pager');
+
+if ($pager) {
+    $pager->setShowAmounts(false)
+        ->setShowPerPage(false)
+        ->setUseContainer(false)
+        ->setAnchorTextForPrevious(__('Previous'))
+        ->setAnchorTextForNext(__('Next'));
+}
+
+$pagerHtml = $block->getChildHtml('wishlist_item_pager');
+?>
+<div class="spartrak-account-card">
+    <div class="spartrak-account-card__header">
+        <div class="spartrak-account-card__heading">
+            <h1 class="spartrak-account-card__title">
+                <?= $escaper->escapeHtml(__('Favourite products')) ?>
+            </h1>
+        </div>
+    </div>
+
+    <div class="spartrak-account-card__body spartrak-account-card__body--tight">
+        <?php /*
+          The form wraps the ROWS, so an empty wishlist renders no form at all
+          rather than an empty one: nothing to submit, no `wishlist` widget to
+          mount, one fewer hidden form-key input on the page.
+        */ ?>
+        <?php if ($items !== []) : ?>
+        <form class="form-wishlist-items spartrak-wishlist"
+              id="wishlist-view-form"
+              action="<?= $escaper->escapeUrl($block->getUrl(
+                  'wishlist/index/update',
+                  ['wishlist_id' => $block->getWishlistInstance()->getId()]
+              )) ?>"
+              method="post"
+              data-mage-init='{"wishlist":{
+                  "addToCartUrl":<?= /* @noEscape */ $block->getItemAddToCartParams('%item%') ?>,
+                  "addAllToCartUrl":<?= /* @noEscape */ $block->getAddAllToCartParams() ?>,
+                  "commentString":""},
+                  "validation": {}}'>
+            <?= $block->getBlockHtml('formkey') ?>
+
+            <ul class="spartrak-wishlist__list">
+                <?php foreach ($items as $item) : ?>
+                    <?php
+                    $product = $item->getProduct();
+
+                    if ($product === null || !$product->getId()) {
+                        // The product was deleted after it was saved. Core's
+                        // collection filters by visibility, not existence, so
+                        // this is reachable — and a row with no name, no price
+                        // and a buy button that 404s is worse than no row.
+                        continue;
+                    }
+
+                    $image = $wishlistItem->getItemImage($item);
+                    ?>
+                    <li class="spartrak-order-card" data-row="product-item">
+                        <div class="spartrak-order-card__items">
+                            <div class="spartrak-order-card__item">
+                                <span class="spartrak-order-card__thumb">
+                                    <?php if ($image !== null) : ?>
+                                        <img src="<?= $escaper->escapeUrl($image->getUrl()) ?>"
+                                             alt=""
+                                             width="<?= $escaper->escapeHtmlAttr($image->getWidth()) ?>"
+                                             height="<?= $escaper->escapeHtmlAttr($image->getHeight()) ?>"
+                                             loading="lazy"
+                                             decoding="async">
+                                    <?php endif; ?>
+                                </span>
+                                <div class="spartrak-order-card__item-content">
+                                    <p class="spartrak-order-card__item-name">
+                                        <a href="<?= $escaper->escapeUrl($block->getProductUrl($item)) ?>">
+                                            <?= $escaper->escapeHtml($product->getName()) ?>
+                                        </a>
+                                    </p>
+                                    <p class="spartrak-order-card__item-price">
+                                        <?php /*
+                                          The platform's pricing pipeline, through
+                                          AbstractBlock::getItemPriceHtml() — so a configurable or
+                                          bundle row prints the price of what was actually saved,
+                                          and the theme's own final_price.phtml override (with its
+                                          "price on request" fallback for a zero price) applies
+                                          here as it does everywhere else.
+                                        */ ?>
+                                        <?= /* @noEscape */ $block->getItemPriceHtml($item) ?>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="spartrak-order-card__foot spartrak-order-card__foot--actions-only">
+                            <div class="spartrak-order-card__actions">
+                                <button type="button"
+                                        class="spartrak-order-card__remove"
+                                        data-role="remove"
+                                        data-post-remove='<?= /* @noEscape */ $block->getItemRemoveParams($item) ?>'>
+                                    <?= $escaper->escapeHtml(__('Delete')) ?>
+                                </button>
+                                <?php if ($wishlistItem->isBuyable($item)) : ?>
+                                    <button type="button"
+                                            class="spartrak-order-card__buy"
+                                            data-role="tocart"
+                                            data-item-id="<?= $escaper->escapeHtmlAttr($item->getId()) ?>"
+                                            data-post='<?= /* @noEscape */ $block->getItemAddToCartParams($item) ?>'>
+                                        <?= $escaper->escapeHtml(__('Buy now')) ?>
+                                    </button>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+
+            <?php if (trim((string) $pagerHtml) !== '') : ?>
+                <?php /*
+                  `spartrak-pagination` is the shared control — the same
+                  component the PLP and the order list use
+                  (components/_pagination.less). Trimmed rather than tested
+                  truthily because a single-page pager emits whitespace,
+                  not nothing, and an empty wrapper would still take the
+                  list's 24px gap.
+                */ ?>
+                <div class="spartrak-wishlist__pager spartrak-pagination">
+                    <?= /* @noEscape */ $pagerHtml ?>
+                </div>
+            <?php endif; ?>
+        </form>
+        <?php else : ?>
+            <?php /*
+              ===================================================================
+              THE EMPTY WISHLIST — Figma 1179:10687, container 1179:10948
+              ===================================================================
+              The storefront's shared empty state, third caller
+              (components/_empty-state.less): `--panel` is this frame's
+              bg/surface-subtle box with its 12/12/26 padding, and the base 16px
+              gap is what 1179:10948 draws — the address book's 26 is the
+              outlier, not this.
+
+              WHAT WAS HERE: core's own sentence, "You have no items in your
+              wish list.", in a bare <p>. No illustration, no way out, and in
+              English on an Arabic store because nothing had ever translated it.
+
+              THE CTA IS THE NAVY ONE, and that is read off the node
+              (1179:11035 → action/primary with action/primary-text), not off
+              its layer name — the cart and the address book both call their
+              quiet bg/field control "Primary Buttons" too. `__action--primary`
+              is the modifier that says so.
+
+              WHERE IT GOES: the storefront root. Figma's `الذهاب للتسوق`
+              names shopping in general, not a category, and this store's
+              landing page is where the collections it mentions are. `getUrl('')`
+              rather than a hardcoded '/' so the store code and the secure base
+              URL are Magento's to decide.
+            */ ?>
+            <div class="spartrak-empty-state spartrak-empty-state--panel">
+                <span class="spartrak-empty-state__art spartrak-empty-state__art--wishlist"
+                      aria-hidden="true"></span>
+                <div class="spartrak-empty-state__copy">
+                    <p class="spartrak-empty-state__title">
+                        <?= $escaper->escapeHtml(__('You have no favourite products!')) ?>
+                    </p>
+                    <p class="spartrak-empty-state__text">
+                        <?= $escaper->escapeHtml(
+                            __('Start now by adding your favourite products, shopping from our own collections!')
+                        ) ?>
+                    </p>
+                    <a class="spartrak-empty-state__action spartrak-empty-state__action--primary"
+                       href="<?= $escaper->escapeUrl($block->getUrl('')) ?>">
+                        <?= $escaper->escapeHtml(__('Go shopping')) ?>
+                    </a>
+                </div>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
