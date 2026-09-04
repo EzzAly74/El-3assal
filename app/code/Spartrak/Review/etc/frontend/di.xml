@@ -29,4 +29,30 @@
                 type="Spartrak\Review\Plugin\Review\PublishReviewToEveryStoreView"
                 sortOrder="10"/>
     </type>
+
+    <!--
+      ===========================================================================
+      THE DIALOG NEVER RENDERS WITHOUT STARS
+      ===========================================================================
+      Magento seeds product ratings and NO `rating_store` rows, and
+      `Block\Form::getRatings()` inner-joins that table (except in single-store
+      mode, which this two-store-view storefront is not). So the dialog rendered
+      with no stars, every review through it carried no rating, and the panel
+      read `0 تقييمات · 3 مراجعات` with nothing anywhere saying why.
+
+      Setup\Patch\Data\PublishProductRatingToStoreViews fixes the data — and only
+      when somebody runs `setup:upgrade`. A deploy that compiles, deploys static
+      content and flushes the cache but skips that command ships the new dialog
+      against the old data, silently. Three reviews were lost to exactly that.
+
+      So the guarantee is moved to the one point that cannot be skipped: the
+      moment the form asks for its ratings. It writes at most once per store
+      view and is a pass-through for ever after. See the plugin for why a write
+      during a page render is the right trade here.
+    -->
+    <type name="Magento\Review\Block\Form">
+        <plugin name="spartrak_review_ensure_rating_is_available"
+                type="Spartrak\Review\Plugin\Review\EnsureRatingIsAvailable"
+                sortOrder="10"/>
+    </type>
 </config>

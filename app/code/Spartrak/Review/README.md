@@ -123,6 +123,24 @@ action.
 It **never takes a rating away**: a store view that already shows one, whichever
 one, is skipped entirely, so a merchant's own configuration is not reversed.
 
+`Plugin\Review\EnsureRatingIsAvailable` is the same guarantee moved somewhere
+that cannot be skipped. The patch only runs on `setup:upgrade`, and a deploy
+that compiles, deploys static content and flushes the cache but skips that
+command ships the new dialog against the old data — silently, because the dialog
+still renders and still accepts a comment. Three reviews were submitted that way
+before it was spotted. The plugin watches `Block\Form::getRatings()`: if it
+comes back empty it publishes a rating and asks again, at most once per store
+view, and is a pass-through for ever after.
+
+**The two counts are meant to diverge.** `تقييمات` is how many people awarded
+stars and `مراجعات` how many wrote something — Figma's own mock shows
+`1,405 تقييمات · 2,404 مراجعات`, i.e. more reviews than ratings. A review
+submitted while the dialog had no stars in it carries no vote and can never
+gain one without somebody inventing a star value for a real customer, which is
+not something this module will do. Such reviews are corrected by hand in
+Marketing → Reviews, or deleted; every review submitted through the working
+dialog carries a rating, because the five radios are `required`.
+
 ### `Plugin\Review\PublishReviewToEveryStoreView` + its backfill
 
 Core publishes a new review to the store view it was written on and no other.

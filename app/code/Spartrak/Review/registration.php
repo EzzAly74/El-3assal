@@ -19,6 +19,9 @@
  *   Plugin\Review\SupplyFieldsFigmaDoesNotCollect
  *                                         nickname + title for a form that
  *                                         Figma does not ask them on
+ *   Plugin\Review\EnsureRatingIsAvailable the dialog never renders without
+ *                                         stars, whether or not anyone ran
+ *                                         setup:upgrade
  *   Plugin\Review\PublishReviewToEveryStoreView
  *                                         a review written in Arabic is visible
  *                                         on the English store view too
