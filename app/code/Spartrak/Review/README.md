@@ -1,6 +1,6 @@
 # Spartrak_Review
 
-The data behind the PDP reviews panel, and the four places Magento's own review
+The data behind the PDP reviews panel, and the six places Magento's own review
 flow does not do what this storefront's design asks for.
 
 The **panel** (`جميع التقييمات`) and the **rating dialog** (`تقييم المنتج`) are
@@ -99,6 +99,53 @@ cache call, because it is also what purges Varnish; the tag, not
 `invalidate('full_page')`, because one shopper's review must not empty the
 cache for 8,908 SKUs.
 
+### `Model\RatingVisibility` + its patch and observer
+
+**The one missing row that broke the whole feature.** Magento seeds three
+product ratings on install and writes **no `rating_store` rows**, while
+`Block\Form::getRatings()` filters with `setStoreFilter($storeId)` — an INNER
+JOIN on that table. So on a fresh install no rating is visible on any
+storefront, and the consequences chain:
+
+1. the rating dialog renders **with no stars** — nothing to draw them for;
+2. every review submitted that way carries no vote in `rating_option_vote`;
+3. so `review_entity_summary.rating_summary` stays null, the product's star
+   meter renders empty, and this module's histogram is all zeroes — a product
+   showing `2 التقييمات` above the price and no ratings at all in the panel.
+
+`RatingVisibility` publishes **one** product rating — the first active one by
+position, because Figma draws one row of five stars — to every store view. It
+is called by `Setup\Patch\Data\PublishProductRatingToStoreViews` on install
+and by `Observer\PublishRatingToNewStoreView` when a store view is created
+later, which is the same hole arriving six months on through an ordinary admin
+action.
+
+It **never takes a rating away**: a store view that already shows one, whichever
+one, is skipped entirely, so a merchant's own configuration is not reversed.
+
+### `Plugin\Review\PublishReviewToEveryStoreView` + its backfill
+
+Core publishes a new review to the store view it was written on and no other.
+This storefront runs one catalogue in Arabic and English, so a review written on
+`/ar/` did not exist on `/en/` — same product, same shopper, two different
+review counts, because every read (core's summary, its rating meter, this
+module's histogram) correctly filters by store view.
+
+The plugin widens a review to every store view. It is registered in
+**`etc/frontend/di.xml`**, and the scoping *is* the rule: the admin's review
+form has its own "Visible In" multiselect, and a moderator who restricts a
+review has made a decision no plugin should silently reverse.
+
+The review's **text is not translated** — machine-translating a shopper's words
+and publishing the result under their name is not something a storefront gets to
+do. What is fixed is visibility. `review_detail.store_id` still records where it
+was written, which is what tells a moderator which language to expect.
+
+`Setup\Patch\Data\PublishExistingReviewsToStoreViews` does the same once for
+reviews already on the catalogue — but only for reviews already visible on at
+least one real store view, because a review with no `review_store` rows may
+have been deliberately taken down.
+
 ---
 
 ## Decisions that differ from Magento's defaults
@@ -116,7 +163,7 @@ cache for 8,908 SKUs.
 
 | | |
 |---|---|
-| **No Figma frame for "no ratings yet"** | The file draws the panel only with data in it. The empty state is built from the panel's own measurements and tokens and introduces no new colour, spacing or shape. Marked as such in `review.phtml` and `_reviews.less`. |
+| **No Figma frame for "no ratings yet"** | **Resolved by decision, 2026-09-04: there is no empty state.** The panel renders the Figma frame in every data state — `0.0 of 5.0`, both counts at zero, five bars at zero width. A bespoke empty state was built first and removed: it was a shape the design does not contain, and it *moved*, because a product's first review swapped one layout for another under the shopper. |
 | **Mobile draws the panel CTA twice** | `1204:27138` and `1204:27152` are identical in every respect — box, fill, label, node structure. Rendered once; the desktop frame is the one that agrees with itself. |
 | **The two frames disagree on the CTA label** | `أترك تقييمك` on desktop, `أترك تعليقك` on mobile. The desktop wording is used at both widths, because the dialog's own primary action is already `اترك تعليقك`. |
 | **A stray 4px dot in the dialog** | `1207:30518`, alone under the heading, named "Rating breakdown" — the name of the two-count row in the *panel*. Residue of a duplicated component; not rendered. |

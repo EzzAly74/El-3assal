@@ -23,6 +23,7 @@ use Spartrak\PickupLocation\Api\Data\ConsignmentInterfaceFactory;
 use Spartrak\PickupLocation\Model\ConsignmentAudit;
 use Spartrak\PickupLocation\Model\LocationCatalog;
 use Spartrak\PickupLocation\Model\OrderPickupSnapshot;
+use Spartrak\PickupLocation\Model\PaymentApproval;
 use Spartrak\PickupLocation\Model\PickupType;
 use Spartrak\PickupLocation\Model\VehiclePhotoStorage;
 use Spartrak\PickupLocation\ViewModel\OrderPickup;
@@ -97,6 +98,7 @@ class Save extends Action implements HttpPostActionInterface
         private readonly OrderPickup $pickup,
         private readonly OrderPickupSnapshot $snapshot,
         private readonly LocationCatalog $locations,
+        private readonly PaymentApproval $paymentApproval,
         private readonly ConsignmentAudit $audit,
         private readonly LoggerInterface $logger
     ) {
@@ -122,6 +124,22 @@ class Save extends Action implements HttpPostActionInterface
             if ($this->pickup->getType($order) !== PickupType::DEPOT) {
                 throw new LocalizedException(
                     __('Driver and vehicle details apply only to orders collected from a station.')
+                );
+            }
+
+            /**
+             * PAYMENT FIRST — §2 puts the consignment one station after payment
+             * acceptance. The panel disables the fieldset before this point,
+             * and a disabled fieldset is a courtesy: anyone can post the form
+             * anyway, so the rule is enforced here as well. Model\PaymentApproval
+             * is the single definition both read.
+             */
+            if (!$this->paymentApproval->isApproved($order)) {
+                throw new LocalizedException(
+                    __(
+                        'Invoice this order first. The driver and vehicle can be recorded once the payment '
+                        . 'is accepted — these details go straight onto the customer\'s order page.'
+                    )
                 );
             }
 

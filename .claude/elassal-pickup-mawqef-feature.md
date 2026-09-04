@@ -85,6 +85,31 @@ and left it in `new`/`pending` — the admin's own status field read "Pending"
 beside fully invoiced items, and the customer's rail stayed at
 `بانتظار الموافقة` for an order somebody had just approved.
 
+> **Built 2026-09-04, and it was only half fixed before.** The customer's rail
+> had stopped lying because it falls back to `state === processing` for station
+> one — but the ORDER never moved: no `spartrak_*` status was ever set until
+> somebody chose one by hand, and the admin's own status field still read
+> "Processing" beside fully invoiced items. `Observer\StampPackedOnPaymentApproval`
+> now stamps `تم التعبئة` on `sales_order_invoice_register`, and never backwards.
+
+> **The station-3 transition was IMPOSSIBLE, and that is now built too.**
+> `تم الاستلام` was assigned to Magento's `complete` state alone, and every
+> invoiced, unshipped order sits in `processing` — so it was not in the admin's
+> dropdown, and Magento's own comment controller silently discards a status that
+> is not assigned to the current state. There was no way to mark an order
+> collected and no error saying why. Each station is now assigned to **every**
+> state it may legitimately stand in, and reaching the last one raises the
+> shipment that takes the order to `complete`, so Axis A finishes too instead of
+> sitting in `processing` for ever.
+
+> **And a station no longer survives only until the next save.** Magento's own
+> state handler stamps a state's DEFAULT status over the order's status whenever
+> it moves the state — so invoicing wiped `تم التعبئة` and shipping wiped
+> `شحنتك في الطريق اليك`, taking the rail and the driver card with them.
+> `Plugin\Sales\KeepFulfilmentStage` restores the station the caller intended.
+> This is the single most important consequence of Axis A and Axis B sharing one
+> database column.
+
 ---
 
 ## 3. Customer journey
@@ -103,6 +128,14 @@ beside fully invoiced items, and the customer's rail stayed at
 ## 4. Admin journey — the dispatch gate
 
 > ### Setting a **depot** order to `شحنتك في الطريق اليك` requires the vehicle and driver details. The status change is refused without them.
+
+> ### And the form itself is not available until the payment is accepted.
+> Built 2026-09-04. It used to be there from the moment the order existed, which
+> let a dispatcher assign a named driver — and publish his phone number on the
+> customer's order page — to an order nobody had been paid for. The test is an
+> invoice, which is what this section already calls payment acceptance. The
+> panel disables the fieldset before then, and the controller refuses the post
+> because a disabled fieldset is a courtesy anyone can post around.
 
 Required at that moment:
 
@@ -288,6 +321,21 @@ coding slip:
    for ever, told the dispatcher to phone the customer, and offered nowhere to
    put what they were told.
 
+8. **The last station was unreachable.** `تم الاستلام` was assigned to
+   Magento's `complete` state only, every invoiced order sits in `processing`,
+   and Magento's comment controller silently discards a status not assigned to
+   the current state. No way to complete an order, and no error.
+9. **A fulfilment station lasted until the next save.** Magento's state handler
+   overwrites the order's status with the new state's default whenever it moves
+   the state — so invoicing wiped `تم التعبئة` and shipping wiped
+   `شحنتك في الطريق اليك`, taking the customer's rail and the driver card's visibility
+   with them.
+10. **The rail read the commercial state before the fulfilment station**, so an
+    order that completed commercially at dispatch told the shopper
+    `تم الاستلام` — that they had collected an order still in a vehicle.
+11. **The consignment form was available before payment**, so a driver's phone
+    number could be published on the order page of an unpaid order.
+
 ### Still outstanding
 
 | Piece | State |
@@ -295,6 +343,8 @@ coding slip:
 | `الي الموقف` admin override + reason + history (§9 Q5) | ✅ built 2026-09-04 |
 | Driver/vehicle swap written to order history (§6) | ✅ built 2026-09-04 |
 | Snapshot rebuilt at order placement so the fault stops recurring | ✅ built 2026-09-04 |
+| Order statuses reachable in every state, both directions (§2) | ✅ built 2026-09-04 |
+| The consignment form gated on payment approval (§4) | ✅ built 2026-09-04 |
 | Any notification at all (§7) | ⬜ business decision — **now the single weakest point in the model** |
 | `سوبر جيت` (§9 Q1) | ⬜ out of scope |
 | A destination on an **admin-created** depot order | ⬜ the admin order-create screen offers the depot carrier but no station picker, so such an order lands with no destination and is repaired by hand on the consignment panel. Acceptable today because admin-raised depot orders are rare; worth a picker if that changes. |

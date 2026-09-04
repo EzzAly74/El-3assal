@@ -48,6 +48,37 @@
 
     <!--
       ===========================================================================
+      THE FULFILMENT STAGE SURVIVES A COMMERCIAL STATE CHANGE
+      ===========================================================================
+      Magento keeps its own summary of the commercial state and this project's
+      fulfilment station in the SAME column — the order's `status` — and
+      ResourceModel\Order\Handler\State::check() overwrites that column with the
+      new state's DEFAULT status every time it decides the state has moved.
+
+      So invoicing an order wiped `تم التعبئة`, and shipping one wiped
+      `شحنتك في الطريق اليك` — taking the customer's rail and the driver card's
+      visibility with it, because both read the status.
+
+      This cannot be an observer: `sales_order_save_before` is dispatched by
+      AbstractModel::beforeSave(), which runs BEFORE the resource model calls
+      that handler, so by the time any observer could look the original status
+      is already gone. A before/after pair on the handler itself is the only
+      position that can record the intent and then restore it — see the plugin
+      for why capturing it BEFORE matters, and why reading `getOrigData()`
+      afterwards is actively wrong.
+
+      GLOBAL, because an invoice or a shipment can be raised by the admin, by
+      the REST API, by a cron or by a payment callback, and the rule holds for
+      all of them.
+    -->
+    <type name="Magento\Sales\Model\ResourceModel\Order\Handler\State">
+        <plugin name="spartrak_pickup_keep_fulfilment_stage"
+                type="Spartrak\PickupLocation\Plugin\Sales\KeepFulfilmentStage"
+                sortOrder="10"/>
+    </type>
+
+    <!--
+      ===========================================================================
       THE CONSIGNMENT — service contract wiring
       ===========================================================================
     -->

@@ -27,28 +27,36 @@ use Spartrak\PickupLocation\Model\PickupType;
  * driver and vehicle details. So the stations are real statuses, created by
  * Spartrak_PickupLocation's AddDeliveryStatuses patch:
  *
- *     spartrak_awaiting_approval   بانتظار الموافقة        state new
- *     spartrak_packed              تم التعبئة              state processing
- *     spartrak_out_for_delivery    شحنتك في الطريق اليك    state processing
- *     spartrak_delivered           تم التوصيل              state complete
+ *     spartrak_awaiting_approval   بانتظار الموافقة        pending_payment, new
+ *     spartrak_packed              تم التعبئة              processing
+ *     spartrak_out_for_delivery    شحنتك في الطريق اليك    processing, complete
+ *     spartrak_delivered           تم التوصيل              complete, processing
  *
  * A status alone is not enough, though. None of the four is a state's DEFAULT
  * status (see DeliveryStatus for why that would be dangerous), so a freshly
  * placed order carries core's `pending`, and an order that a merchant invoices
  * and ships the ordinary Magento way never passes through any of them.
  *
- * Each station therefore has two ways to be reached: the explicit status, or a
- * structural fact that means the same thing.
+ * So there are two sources, and they are strictly RANKED — not interleaved,
+ * which is how they were read at first and which produced a rail that lied:
  *
- *     DELIVERED    status spartrak_delivered        | state complete / closed
- *     IN_TRANSIT   status spartrak_out_for_delivery | a shipment exists
- *     PACKED       status spartrak_packed           | state processing
- *     AWAITING     anything else
+ *   1. a `spartrak_*` status, answered on its own. It is a deliberate human
+ *      statement about where the goods are, which is exactly what this rail
+ *      reports.
+ *   2. failing that, structure: state complete/closed -> collected, a shipment
+ *      exists -> in transit, state processing -> packed, otherwise awaiting.
  *
- * The structural fallbacks are what stop the tracker sticking at station one
- * for a shop that has not adopted the Arabic status vocabulary yet — and
- * `hasShipments()` in particular is honest, because a shipment is created by
- * the same action that hands the parcel over.
+ * The ranking matters because the two now disagree BY DESIGN.
+ * Spartrak_PickupLocation completes an order commercially the moment the goods
+ * are collected, and an admin may raise the shipment at dispatch — either of
+ * which puts an order in state `complete` while the parcel is still in a
+ * vehicle. Reading the state first told that shopper `تم الاستلام`, that they
+ * had collected an order still on its way to them.
+ *
+ * The structural fallback is still what stops the tracker sticking at station
+ * one for a shop that has not adopted the Arabic status vocabulary — and
+ * `hasShipments()` in particular is honest there, because a shipment on such an
+ * order is created by the same action that hands the parcel over.
  *
  * ===========================================================================
  * CANCELLED IS NOT A STEP
@@ -150,24 +158,59 @@ class OrderProgress
         }
 
         $status = (string) $order->getStatus();
+
+        /**
+         * ===================================================================
+         * THE EXPLICIT STATION OUTRANKS EVERY STRUCTURAL FACT
+         * ===================================================================
+         * This used to interleave the two — status OR state on each line — and
+         * that reads as equivalent when it is not. `state === complete` won
+         * over `status === spartrak_out_for_delivery`, because it was tested
+         * first, and the two now genuinely disagree by design:
+         * Spartrak_PickupLocation completes an order commercially the moment
+         * the goods are collected, and an admin may raise the shipment at
+         * dispatch, either of which puts an order in `complete` while the
+         * parcel is still in a vehicle.
+         *
+         * The shopper was then told `تم الاستلام` — you collected this — about
+         * an order still on its way to them. A rail that misdescribes the
+         * thing it tracks is worse than no rail, because it is believed.
+         *
+         * So a `spartrak_*` status is answered on its own, first. It is a
+         * deliberate human statement about where the goods are, which is
+         * exactly what the rail reports; the structure below is only consulted
+         * for an order that carries no such statement at all.
+         */
+        if (DeliveryStatus::isSpartrakStatus($status)) {
+            return match ($status) {
+                DeliveryStatus::DELIVERED => self::STEP_DELIVERED,
+                DeliveryStatus::OUT_FOR_DELIVERY => self::STEP_IN_TRANSIT,
+                DeliveryStatus::PACKED => self::STEP_PACKED,
+                default => self::STEP_AWAITING_APPROVAL,
+            };
+        }
+
+        /**
+         * ===================================================================
+         * THE STRUCTURAL FALLBACK, for an order that never entered the Arabic
+         * vocabulary — one invoiced and shipped the ordinary Magento way, or
+         * built by an integration.
+         * ===================================================================
+         */
         $state = (string) $order->getState();
 
-        if (
-            $status === DeliveryStatus::DELIVERED
-            || $state === Order::STATE_COMPLETE
-            || $state === Order::STATE_CLOSED
-        ) {
+        if ($state === Order::STATE_COMPLETE || $state === Order::STATE_CLOSED) {
             return self::STEP_DELIVERED;
         }
 
         // Asked before the packed test: an order can carry a shipment while its
         // state is still `processing`, and the parcel being in a vehicle is the
         // more specific fact.
-        if ($status === DeliveryStatus::OUT_FOR_DELIVERY || ($order instanceof Order && $order->hasShipments())) {
+        if ($order instanceof Order && $order->hasShipments()) {
             return self::STEP_IN_TRANSIT;
         }
 
-        if ($status === DeliveryStatus::PACKED || $state === Order::STATE_PROCESSING) {
+        if ($state === Order::STATE_PROCESSING) {
             return self::STEP_PACKED;
         }
 

@@ -116,6 +116,123 @@ about the journey, not a place in our network.)
 Selecting nothing means *use the customer's choice*; selecting the customer's
 own station clears the override rather than storing a second copy of it.
 
+## Order statuses — the two axes, and how each one moves the other
+
+§2 of the spec is built on two axes being kept apart:
+
+| | |
+|---|---|
+| **Axis A — commercial state** | is it accepted and paid for? Magento's own `state`, used as-is |
+| **Axis B — fulfilment stage** | where are the goods? the four `spartrak_*` statuses |
+
+Magento stores both in the same column — the order's `status` — which is where
+every defect in this area came from.
+
+### The four stations and the states they may stand in
+
+| status | station | states |
+|---|---|---|
+| `spartrak_awaiting_approval` | `بانتظار الموافقة` | `pending_payment`, `new` |
+| `spartrak_packed` | `تم التعبئة` | `processing` |
+| `spartrak_out_for_delivery` | `شحنتك في الطريق اليك` | `processing`, `complete` |
+| `spartrak_delivered` | `تم التوصيل` / `تم الاستلام` | `complete`, `processing` |
+
+`Model\DeliveryStatus` is the single definition; `Setup\Patch\Data\AddDeliveryStatuses`
+creates the statuses and `ReassignDeliveryStatusStates` re-asserts the
+assignments on installations where the first patch has already run.
+
+**Why more than one state each, and the bug that forced it.** `spartrak_delivered`
+was assigned to `complete` alone. Every invoiced, unshipped order sits in
+`processing` — and Magento builds the status dropdown from
+`getStateStatuses($order->getState())`, while
+`Controller\Adminhtml\Order\AddComment` **silently discards** a posted status
+that is not assigned to the current state (`getOrderStatus()` returns the
+order's existing status instead of raising anything). So the dispatcher was
+offered Processing, Suspected Fraud, Packed and Out for delivery, there was no
+way to mark the order collected, and no error explaining why.
+
+`complete` is on the out-for-delivery row because an admin may raise the
+shipment at dispatch, which flips the state while the goods are still moving.
+
+### Axis B follows Axis A: payment accepted moves the order
+
+`Observer\StampPackedOnPaymentApproval`, on `sales_order_invoice_register`.
+
+§2 says station 0 → station 1 happens on payment acceptance, automatically, and
+§10 lists "approving payment did not move the order" as a corrected defect. Only
+half of it was: the customer's rail was right because `Model\OrderProgress`
+falls back to `state === processing`, while the order itself never moved and the
+admin's own status field still read "Processing" beside fully invoiced items.
+
+It never moves an order backwards — a second invoice on an order already out
+with a driver does not reset the rail to "packed".
+
+### Axis A follows Axis B: collection completes the order
+
+`Observer\CompleteOrderOnCollection`, on `sales_order_save_commit_after`.
+
+Setting `تم الاستلام` moved Axis B and left Axis A where it was. Magento only
+enters `complete` when an order is fully invoiced **and** fully shipped, and
+nothing in this flow ever raised a shipment — so the order stayed `processing`
+for ever, the grid kept saying Processing, the "Ship" button kept sitting there,
+and no report counted the sale as finished.
+
+Reaching the last station now raises the shipment that takes it to `complete`.
+
+**At collection, not at dispatch**, and that is the one channel-sensitive
+decision here: on `استلام من الفرع` the parcel at station 2 is
+`جاهز للاستلام من الفرع` — on a shelf in our own branch, not shipped anywhere.
+Collection is the one event that means the same thing on all three channels.
+
+`_save_commit_after` and not `_save_after`: creating a shipment **writes**, and
+doing that inside the transaction of the save that triggered it is how a nested
+rollback loses both.
+
+### And the stage survives Magento's own transitions
+
+`Plugin\Sales\KeepFulfilmentStage`, a before/after pair on
+`ResourceModel\Order\Handler\State::check()`.
+
+That handler runs on **every** order save, and when it decides the state has
+moved it does this:
+
+```php
+$order->setState(Order::STATE_COMPLETE)
+      ->setStatus($order->getConfig()->getStateDefaultStatus(...));
+```
+
+It overwrites the status with the new state's default. So invoicing an order
+wiped `تم التعبئة` and shipping one wiped `شحنتك في الطريق اليك` — taking the
+customer's rail and the driver card's visibility with them, because both read
+the status.
+
+This **cannot** be an observer: `sales_order_save_before` is dispatched by
+`AbstractModel::beforeSave()`, which runs *before* the resource model calls that
+handler, so by the time any observer could look the original status is already
+gone. The `before` half records the status the caller intended; the `after` half
+restores it if the handler replaced it and the station is legal in the state the
+handler settled on. Capturing the intent beforehand is what makes it safe —
+reading `getOrigData('status')` afterwards gives the *previous* status, so an
+admin deliberately moving an order to `delivered` would have their choice
+reverted.
+
+Only the status is ever restored, never the state, and only one of this module's
+four.
+
+### The consignment form waits for payment
+
+`Model\PaymentApproval` — an invoice exists, which is what §2 calls payment
+acceptance on this store ("an offline invoice is raised: InstaPay approval, or
+an admin invoicing COD").
+
+The form used to be available from the moment the order existed, which let a
+dispatcher assign a named driver — and publish his phone number on the
+customer's order page — to an order nobody had been paid for. The panel now
+disables the fieldset until then (native HTML: the values stay readable, nothing
+can be typed, and a disabled fieldset is not submitted) and
+`Controller\Adminhtml\Consignment\Save` refuses the post, because a disabled
+fieldset is a courtesy and anyone can post the form anyway.
+
 ## The snapshot check at placement
 
 `Observer\CompletePickupSnapshotOnPlacement`, on

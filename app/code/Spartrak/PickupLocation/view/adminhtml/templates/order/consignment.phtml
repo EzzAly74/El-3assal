@@ -34,6 +34,7 @@ $destination = $block->getDestination();
 $missing = $block->getMissingFields();
 $isReady = $block->isReady();
 $isDispatched = $block->isDispatched();
+$isPaymentApproved = $block->isPaymentApproved();
 $customerChoice = $block->getCustomerChoice();
 $isRedirected = $block->isDestinationRedirected();
 $destinationReason = $block->getDestinationReason();
@@ -63,7 +64,38 @@ $selectedDestinationId = $block->getSelectedDestinationId();
               read the same Model\ConsignmentRequirements, so they cannot
               disagree.
             */ ?>
-            <?php if ($isDispatched): ?>
+            <?php /*
+              PAYMENT FIRST, AND IT IS A DIFFERENT KIND OF "NOT YET".
+              -----------------------------------------------------------------
+              §2 puts the consignment one station AFTER payment acceptance, and
+              the form used to be available from the moment the order existed —
+              so a dispatcher could name a driver, and publish his phone number
+              on the customer's order page, for an order nobody had been paid
+              for.
+
+              This is reported before the missing-field checklist because it
+              outranks it: there is no point telling somebody which five fields
+              to fill in on an order that is not going anywhere yet. The
+              fieldset below is `disabled` in this state — native HTML, so the
+              values stay readable, nothing can be typed, and the browser does
+              not submit a disabled fieldset at all. The server refuses it too;
+              see Controller\Adminhtml\Consignment\Save.
+            */ ?>
+            <?php if (!$isPaymentApproved): ?>
+                <div class="message message-warning">
+                    <strong><?= $escaper->escapeHtml(
+                        __('Waiting for payment approval.')
+                    ) ?></strong>
+                    <?= $escaper->escapeHtml(
+                        __(
+                            'Invoice this order first — approve the InstaPay transfer, or invoice it if it is '
+                            . 'cash on delivery. The driver and vehicle can be recorded as soon as the payment '
+                            . 'is accepted, and not before: these details go straight onto the customer\'s '
+                            . 'order page.'
+                        )
+                    ) ?>
+                </div>
+            <?php elseif ($isDispatched): ?>
                 <div class="message message-success">
                     <?= $escaper->escapeHtml(
                         __('This order is out for delivery. The customer can see these details on their order page.')
@@ -131,7 +163,14 @@ $selectedDestinationId = $block->getSelectedDestinationId();
                   enctype="multipart/form-data">
                 <?= $block->getBlockHtml('formkey') ?>
 
-                <fieldset class="admin__fieldset">
+                <?php /*
+                  `disabled` on the FIELDSET, not on each control: one
+                  attribute makes every field inside read-only and stops
+                  the browser submitting any of them, so the dispatcher can
+                  still SEE the destination and whatever has been entered
+                  while payment is pending, and cannot change it.
+                */ ?>
+                <fieldset class="admin__fieldset"<?= $isPaymentApproved ? '' : ' disabled' ?>>
                     <div class="admin__field _required">
                         <label class="admin__field-label" for="spartrak-driver-name">
                             <span><?= $escaper->escapeHtml(__('Driver name')) ?></span>
@@ -407,7 +446,9 @@ $selectedDestinationId = $block->getSelectedDestinationId();
                 </fieldset>
 
                 <div class="admin__field-complex">
-                    <button type="submit" class="action-default primary">
+                    <button type="submit"
+                            class="action-default primary"
+                            <?= $isPaymentApproved ? '' : 'disabled' ?>>
                         <span><?= $escaper->escapeHtml(__('Save driver and vehicle')) ?></span>
                     </button>
                 </div>

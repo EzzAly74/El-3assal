@@ -11,12 +11,22 @@
  *
  *   Model\ResourceModel\RatingHistogram   the distribution no core table holds
  *   ViewModel\ProductReviews              one read, every number derived from it
+ *   Model\RatingVisibility                publishes a product rating to every
+ *                                         store view — without it the rating
+ *                                         dialog has NO STARS, because Magento
+ *                                         seeds ratings and no `rating_store`
+ *                                         rows at all
  *   Plugin\Review\SupplyFieldsFigmaDoesNotCollect
  *                                         nickname + title for a form that
  *                                         Figma does not ask them on
+ *   Plugin\Review\PublishReviewToEveryStoreView
+ *                                         a review written in Arabic is visible
+ *                                         on the English store view too
  *   Plugin\Review\InvalidateProductPageCache
  *                                         so an approved review actually
  *                                         appears on a full-page-cached PDP
+ *   Observer\PublishRatingToNewStoreView  the same rating rule, for a store
+ *                                         view created after install
  *
  * See README.md for the decisions behind each.
  */

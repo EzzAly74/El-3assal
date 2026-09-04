@@ -70,6 +70,21 @@ use Spartrak\Review\Model\ResourceModel\RatingHistogram;
  * unused (section 18).
  *
  * ===========================================================================
+ * THERE IS NO "HAS ANY DATA" QUESTION, AND THAT IS DELIBERATE
+ * ===========================================================================
+ * This class briefly carried `hasRatings()` and `hasFeedback()`, so the panel
+ * could hide itself on a product nobody had reviewed. Both are gone: the panel
+ * renders the Figma frame in every data state, with `0.0 of 5.0`, both counts
+ * at zero and five bars at zero width.
+ *
+ * That is a better answer than a bespoke empty state for two reasons. Figma
+ * draws no empty state, so one would be invented shape (CLAUDE.md section 3);
+ * and swapping one layout for another when a product's first review lands
+ * moves the page under the shopper for no gain. Every getter below is
+ * therefore total — it answers with zero rather than with "nothing to say" —
+ * and the template has no branch in it.
+ *
+ * ===========================================================================
  * NUMBERS ARE FORMATTED HERE, NOT IN THE TEMPLATE
  * ===========================================================================
  * Two different formats, for two different reasons:
@@ -157,19 +172,6 @@ class ProductReviews implements ArgumentInterface
             'catalog/review/active',
             ScopeInterface::SCOPE_STORE
         );
-    }
-
-    /**
-     * Is there anything to show?
-     *
-     * The panel's heading and the CTA are rendered either way — what this gates
-     * is the SUMMARY and the BARS, which describe data that may not exist. A
-     * product nobody has rated gets the invitation to be the first, not five
-     * empty bars and "0.0 of 5.0".
-     */
-    public function hasRatings(): bool
-    {
-        return $this->getTotalVotes() > 0;
     }
 
     /**

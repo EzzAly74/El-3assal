@@ -18,6 +18,7 @@ use Spartrak\PickupLocation\Api\Data\ConsignmentInterface;
 use Spartrak\PickupLocation\Model\ConsignmentRequirements;
 use Spartrak\PickupLocation\Model\DeliveryStatus;
 use Spartrak\PickupLocation\Model\LocationCatalog;
+use Spartrak\PickupLocation\Model\PaymentApproval;
 use Spartrak\PickupLocation\Model\PickupType;
 use Spartrak\PickupLocation\Model\VehiclePhotoStorage;
 use Spartrak\PickupLocation\ViewModel\OrderPickup;
@@ -43,6 +44,7 @@ class Consignment extends AbstractOrder
         private readonly VehiclePhotoStorage $photoStorage,
         private readonly ConsignmentRequirements $requirements,
         private readonly LocationCatalog $locations,
+        private readonly PaymentApproval $paymentApproval,
         array $data = []
     ) {
         parent::__construct($context, $registry, $adminHelper, $data);
@@ -74,15 +76,36 @@ class Consignment extends AbstractOrder
     }
 
     /**
+     * Has the money been accepted?
+     *
+     * §2 puts the consignment one station AFTER payment acceptance, and the
+     * form used to be available from the moment the order existed — which let a
+     * dispatcher name a driver, and publish his phone number on the customer's
+     * order page, for an order nobody had been paid for.
+     *
+     * The rule itself lives in Model\PaymentApproval, because the CONTROLLER
+     * has to enforce it too: a disabled fieldset is a courtesy and anyone can
+     * post the form anyway.
+     */
+    public function isPaymentApproved(): bool
+    {
+        return $this->paymentApproval->isApproved($this->getOrder());
+    }
+
+    /**
      * Is this order dispatchable right now?
      *
      * The same question the gate asks, asked BEFORE the dispatcher acts rather
      * than after — see Model\ConsignmentRequirements for why the two read one
      * list.
+     *
+     * Payment is part of it: a complete consignment on an unpaid order is not
+     * ready to go anywhere, and saying "ready to dispatch" there would be the
+     * panel's own headline contradicting the rule its form enforces.
      */
     public function isReady(): bool
     {
-        return $this->requirements->isSatisfied($this->getConsignment());
+        return $this->isPaymentApproved() && $this->requirements->isSatisfied($this->getConsignment());
     }
 
     /**

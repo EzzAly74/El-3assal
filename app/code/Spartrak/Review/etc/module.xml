@@ -20,6 +20,12 @@
             -->
             <module name="Magento_Customer"/>
             <!--
+              Magento_Store: Observer\PublishRatingToNewStoreView listens on
+              `store_save_after`, and Model\RatingVisibility asks the store
+              manager which store views exist.
+            -->
+            <module name="Magento_Store"/>
+            <!--
               Spartrak_Locale: every count in the panel is formatted through
               Framework\Locale\LocaleFormatter, which THAT module replaces so
               Arabic store views render Latin digits (see its own README). The

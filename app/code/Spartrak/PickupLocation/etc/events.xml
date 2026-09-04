@@ -1,17 +1,21 @@
 <?xml version="1.0"?>
 <!--
-  THE DISPATCH GATE: GLOBAL, NOT adminhtml.
-
-  BUSINESS.md section 12, §4 makes the driver and vehicle details a hard
+  ===========================================================================
+  ALL OF THESE ARE GLOBAL, NOT adminhtml
+  ===========================================================================
+  BUSINESS.md section 12 makes the driver and vehicle details a hard
   precondition of `شحنتك في الطريق اليك`, on the grounds that the customer has
   no other route to them and the vehicle is already on the road.
 
   A rule that strong is declared in the GLOBAL area so it holds on every path
-  that can write an order - the admin's comment form, /rest/V1/orders, a console
-  script, a mass action. Scoping it to adminhtml would cover today's one screen
-  and leave every future integration free to dispatch a shipment with no driver
-  on it.
+  that can write an order — the admin's comment form, /rest/V1/orders, a console
+  script, a mass action. Scoping any of it to adminhtml would cover today's one
+  screen and leave every future integration free to dispatch a shipment with no
+  driver on it, or to invoice an order without moving it.
 
+  ===========================================================================
+  1. THE DISPATCH GATE
+  ===========================================================================
   `sales_order_save_before` rather than a plugin on OrderRepositoryInterface:
   the admin's own status-change controller calls $order->save() directly and
   never touches the repository, so a repository plugin would have been bypassed
@@ -19,7 +23,7 @@
   verified trace through core.
 
   ===========================================================================
-  THE SNAPSHOT CHECK AT PLACEMENT
+  2. THE SNAPSHOT CHECK AT PLACEMENT
   ===========================================================================
   `sales_model_service_quote_submit_before` is the one moment where the quote
   and the order both exist and neither has been written yet — so it is the last
@@ -30,6 +34,32 @@
   It repairs and never refuses; the observer's own header carries the reasoning,
   including why throwing here would make an admin-created depot order
   impossible to raise at all.
+
+  ===========================================================================
+  3. AXIS B FOLLOWS AXIS A: PAYMENT ACCEPTED MOVES THE ORDER
+  ===========================================================================
+  §2's transition table says station 0 -> station 1 happens on payment
+  acceptance, automatically. Nothing implemented it: the customer's rail was
+  right only because it falls back to `state === processing`, while the order
+  itself never moved and the admin's status field still read "Processing" beside
+  fully invoiced items — which §10 lists as a corrected defect and which was in
+  fact only half corrected.
+
+  `sales_order_invoice_register` fires inside Invoice::register() with the order
+  in the payload and before it is saved, so the stamp rides the same write.
+
+  ===========================================================================
+  4. AXIS A FOLLOWS AXIS B: COLLECTION COMPLETES THE ORDER
+  ===========================================================================
+  Setting `تم الاستلام` moves the fulfilment stage and leaves the commercial
+  state where it was, so an order stayed `processing` for ever — the grid said
+  Processing, the "Ship" button stayed, and no report counted the sale as
+  finished. Reaching the last station now raises the shipment that takes the
+  order to `complete`.
+
+  `sales_order_save_commit_after`, not `_save_after`: creating a shipment
+  WRITES, and doing that inside the transaction of the save that triggered it
+  is how a nested rollback loses both.
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
     <event name="sales_order_save_before">
@@ -39,5 +69,13 @@
     <event name="sales_model_service_quote_submit_before">
         <observer name="spartrak_pickup_complete_snapshot_on_placement"
                   instance="Spartrak\PickupLocation\Observer\CompletePickupSnapshotOnPlacement"/>
+    </event>
+    <event name="sales_order_invoice_register">
+        <observer name="spartrak_pickup_stamp_packed_on_payment_approval"
+                  instance="Spartrak\PickupLocation\Observer\StampPackedOnPaymentApproval"/>
+    </event>
+    <event name="sales_order_save_commit_after">
+        <observer name="spartrak_pickup_complete_order_on_collection"
+                  instance="Spartrak\PickupLocation\Observer\CompleteOrderOnCollection"/>
     </event>
 </config>

@@ -130,3 +130,6 @@
 "destination REDIRECTED from %1 (the customer's choice) to %2","destination REDIRECTED from %1 (the customer's choice) to %2"
 "destination recorded as %1 — %2","destination recorded as %1 — %2"
 "destination recorded as %1, which the checkout did not save onto this order","destination recorded as %1, which the checkout did not save onto this order"
+"Waiting for payment approval.","Waiting for payment approval."
+"Invoice this order first — approve the InstaPay transfer, or invoice it if it is cash on delivery. The driver and vehicle can be recorded as soon as the payment is accepted, and not before: these details go straight onto the customer's order page.","Invoice this order first — approve the InstaPay transfer, or invoice it if it is cash on delivery. The driver and vehicle can be recorded as soon as the payment is accepted, and not before: these details go straight onto the customer's order page."
+"Invoice this order first. The driver and vehicle can be recorded once the payment is accepted — these details go straight onto the customer's order page.","Invoice this order first. The driver and vehicle can be recorded once the payment is accepted — these details go straight onto the customer's order page."

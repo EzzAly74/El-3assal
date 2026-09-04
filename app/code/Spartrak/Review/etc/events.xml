@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!--
+  GLOBAL, not adminhtml: a store view can be created by a data patch, a console
+  script or an integration as easily as by the admin form, and a store view
+  whose review dialog has no stars in it is broken however it was made.
+
+  See Observer\PublishRatingToNewStoreView for why a setup patch alone leaves
+  this hole open, and Model\RatingVisibility for the core defect underneath both.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="store_save_after">
+        <observer name="spartrak_review_publish_rating_to_new_store_view"
+                  instance="Spartrak\Review\Observer\PublishRatingToNewStoreView"/>
+    </event>
+</config>

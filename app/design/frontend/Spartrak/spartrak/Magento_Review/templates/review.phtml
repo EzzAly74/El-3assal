@@ -26,6 +26,21 @@
  * PDP whenever a review changes what this panel says.
  *
  * ===========================================================================
+ * THERE IS NO EMPTY STATE. THE PANEL ALWAYS RENDERS, WITH ZEROS.
+ * ===========================================================================
+ * An earlier pass replaced the whole overview with one line of copy —
+ * `لا توجد تقييمات لهذا المنتج حتى الآن` — on a product with nothing to show.
+ * Figma draws no such state, and inventing one had two costs: it was a shape
+ * the design does not contain, and it MOVED, because a product's first review
+ * would swap one layout for another under the shopper.
+ *
+ * The panel is now the Figma frame at every width and in every data state:
+ * the summary box, the average as `0.0 of 5.0`, both counts at zero and five
+ * bars at zero width. Nothing is invented, nothing is hidden, the layout does
+ * not shift when the first review lands, and a shopper reading `0 مراجعات`
+ * beside `أترك تقييمك` is being told something useful.
+ *
+ * ===========================================================================
  * READING ORDER, NOT LEFT AND RIGHT
  * ===========================================================================
  * Every position in the Figma frame is physical, and this storefront renders
@@ -62,101 +77,94 @@ $reviews = $block->getViewModel();
 if (!$reviews instanceof \Spartrak\Review\ViewModel\ProductReviews || !$reviews->isEnabled()) {
     return;
 }
-
-$hasRatings = $reviews->hasRatings();
 ?>
 <section class="spartrak-reviews">
     <h2 class="spartrak-reviews__title"><?= $escaper->escapeHtml(__('All ratings')) ?></h2>
 
-    <?php if ($hasRatings): ?>
-        <div class="spartrak-reviews__overview">
-            <?php /*
-              RATING SUMMARY — 535:10086 desktop, 1204:27101 mobile.
-
-              The 48px star is DECORATIVE and is marked so. It carries no
-              value: the exported node is a whole star at 40% opacity — which
-              resolves to #f8e5a5, the hex this theme already holds as
-              --color-rating-empty from an earlier Figma pass — and it sits
-              above a mock average of 4.5. The numeral below it is what states
-              the rating, and repeating that in an alt text would make a
-              screen reader say it twice.
-            */ ?>
-            <div class="spartrak-reviews__summary">
-                <span class="spartrak-reviews__summary-star" aria-hidden="true"></span>
-
-                <div class="spartrak-reviews__summary-detail">
-                    <p class="spartrak-reviews__average">
-                        <?= $escaper->escapeHtml(
-                            __('%1 of %2', $reviews->getAverageLabel(), $reviews->getScaleLabel())
-                        ) ?>
-                    </p>
-                    <p class="spartrak-reviews__counts">
-                        <span><?= $escaper->escapeHtml(
-                            __('%1 ratings', $reviews->getRatingsCountLabel())
-                        ) ?></span>
-                        <?php /*
-                          The 4px separator dot (535:10095). Drawn in CSS
-                          rather than fetched as the 4px SVG the export offers,
-                          which is the one place this implementation
-                          deliberately does not use the Figma asset file: a
-                          filled circle is EXACTLY representable in CSS, so the
-                          rendered result is identical to the asset down to the
-                          pixel, and an <img> here would cost a request and a
-                          DOM node on the PDP for no visual gain (CLAUDE.md
-                          sections 3 and 13 read together — the technically
-                          superior implementation that preserves both). Its
-                          colour is the asset's own #6d6c79, held as
-                          --color-text-muted.
-                        */ ?>
-                        <span class="spartrak-reviews__counts-sep" aria-hidden="true"></span>
-                        <span><?= $escaper->escapeHtml(
-                            __('%1 reviews', $reviews->getReviewsCountLabel())
-                        ) ?></span>
-                    </p>
-                </div>
-            </div>
-
-            <?php /*
-              RATING BARS — 535:10097 desktop, 1204:27112 mobile.
-
-              A <ul>, because it is five rows of the same kind of fact and
-              nothing more. The list is named for assistive tech and each row's
-              count carries its unit as an accessible label, so the row is
-              announced as "5.0, 843 ratings" rather than as two bare numbers.
-              The track itself is presentational — the bar SHOWS the count that
-              is already printed beside it — so it is not announced twice.
-            */ ?>
-            <ul class="spartrak-reviews__bars" aria-label="<?= $escaper->escapeHtmlAttr(__('Rating distribution')) ?>">
-                <?php foreach ($reviews->getBars() as $bar): ?>
-                    <li class="spartrak-reviews__bar">
-                        <span class="spartrak-reviews__bar-value"><?= $escaper->escapeHtml($bar['valueLabel']) ?></span>
-                        <span class="spartrak-reviews__bar-track" aria-hidden="true">
-                            <span class="spartrak-reviews__bar-fill"
-                                  style="inline-size: <?= $escaper->escapeHtmlAttr((string) $bar['percent']) ?>%"></span>
-                        </span>
-                        <span class="spartrak-reviews__bar-count"
-                              aria-label="<?= $escaper->escapeHtmlAttr(__('%1 ratings', $bar['votesLabel'])) ?>">
-                            <?= $escaper->escapeHtml($bar['votesLabel']) ?>
-                        </span>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
-        </div>
-    <?php else: ?>
+    <div class="spartrak-reviews__overview">
         <?php /*
-          NO FIGMA FRAME EXISTS FOR THIS STATE — recorded rather than passed
-          off as designed. The file draws the panel only with data in it, and
-          8,908 SKUs cannot all have been reviewed, so the state is
-          unavoidable. It is built from the panel's OWN measurements and
-          tokens — the same bordered surface, the same padding, the design's
-          Body/Base type — and introduces no colour, spacing or shape that is
-          not already on this panel. The invitation to be the first to write one
-          is the CTA the design already draws, immediately below.
+          RATING SUMMARY — 535:10086 desktop, 1204:27101 mobile.
+
+          The 48px star is DECORATIVE and is marked so. It carries no value:
+          the exported node is a whole star at 40% opacity — which resolves to
+          #f8e5a5, the hex this theme already holds as --color-rating-empty
+          from an earlier Figma pass — and it sits above a mock average of 4.5.
+          The numeral below it is what states the rating, and repeating that in
+          an alt text would make a screen reader say it twice.
         */ ?>
-        <p class="spartrak-reviews__empty">
-            <?= $escaper->escapeHtml(__('This product has no ratings yet.')) ?>
-        </p>
-    <?php endif; ?>
+        <div class="spartrak-reviews__summary">
+            <span class="spartrak-reviews__summary-star" aria-hidden="true"></span>
+
+            <div class="spartrak-reviews__summary-detail">
+                <p class="spartrak-reviews__average">
+                    <?= $escaper->escapeHtml(
+                        __('%1 of %2', $reviews->getAverageLabel(), $reviews->getScaleLabel())
+                    ) ?>
+                </p>
+                <p class="spartrak-reviews__counts">
+                    <?php /*
+                      TWO DIFFERENT FACTS, and the panel prints both because
+                      Figma prints both: `تقييمات` is how many people awarded
+                      stars, `مراجعات` how many wrote something. A review can
+                      carry no rating whenever the store runs no rating
+                      dimension, so the two counts genuinely diverge — see
+                      Spartrak\Review\Model\ResourceModel\RatingHistogram.
+                    */ ?>
+                    <span><?= $escaper->escapeHtml(
+                        __('%1 ratings', $reviews->getRatingsCountLabel())
+                    ) ?></span>
+                    <?php /*
+                      The 4px separator dot (535:10095). Drawn in CSS rather
+                      than fetched as the 4px SVG the export offers, which is
+                      the one place this implementation deliberately does not
+                      use the Figma asset file: a filled circle is EXACTLY
+                      representable in CSS, so the rendered result is identical
+                      to the asset down to the pixel, and an <img> here would
+                      cost a request and a DOM node on the PDP for no visual
+                      gain (CLAUDE.md sections 3 and 13 read together — the
+                      technically superior implementation that preserves both).
+                      Its colour is the asset's own #6d6c79, held as
+                      --color-text-muted.
+                    */ ?>
+                    <span class="spartrak-reviews__counts-sep" aria-hidden="true"></span>
+                    <span><?= $escaper->escapeHtml(
+                        __('%1 reviews', $reviews->getReviewsCountLabel())
+                    ) ?></span>
+                </p>
+            </div>
+        </div>
+
+        <?php /*
+          RATING BARS — 535:10097 desktop, 1204:27112 mobile.
+
+          A <ul>, because it is five rows of the same kind of fact and nothing
+          more. The list is named for assistive tech and each row's count
+          carries its unit as an accessible label, so the row is announced as
+          "5.0, 843 ratings" rather than as two bare numbers. The track itself
+          is presentational — the bar SHOWS the count that is already printed
+          beside it — so it is not announced twice.
+
+          Five rows always, even at zero: Figma draws five and a product with
+          no 2-star votes still has a 2-star row. ProductReviews::getBars()
+          guarantees the five keys rather than building them from the query
+          result.
+        */ ?>
+        <ul class="spartrak-reviews__bars" aria-label="<?= $escaper->escapeHtmlAttr(__('Rating distribution')) ?>">
+            <?php foreach ($reviews->getBars() as $bar): ?>
+                <li class="spartrak-reviews__bar">
+                    <span class="spartrak-reviews__bar-value"><?= $escaper->escapeHtml($bar['valueLabel']) ?></span>
+                    <span class="spartrak-reviews__bar-track" aria-hidden="true">
+                        <span class="spartrak-reviews__bar-fill"
+                              style="inline-size: <?= $escaper->escapeHtmlAttr((string) $bar['percent']) ?>%"></span>
+                    </span>
+                    <span class="spartrak-reviews__bar-count"
+                          aria-label="<?= $escaper->escapeHtmlAttr(__('%1 ratings', $bar['votesLabel'])) ?>">
+                        <?= $escaper->escapeHtml($bar['votesLabel']) ?>
+                    </span>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
 
     <div class="spartrak-reviews__actions">
         <?php if ($reviews->canWriteReview()): ?>

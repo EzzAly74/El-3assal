@@ -5,11 +5,28 @@
   `before` and not `around`: see the plugin's own header for why the request —
   not the review model — is what it writes to, and why that has to happen
   before Post::execute() reads the post value.
+
+  ===========================================================================
+  AND WHY THE STORE-VIEW PLUGIN IS HERE TOO, NOT IN etc/di.xml
+  ===========================================================================
+  A review written on the Arabic store view was published to that store view
+  alone, so it did not exist on the English one — same catalogue, same product,
+  two different review counts. PublishReviewToEveryStoreView widens it.
+
+  It is scoped to `frontend` deliberately, and the scoping IS the rule: the
+  admin's own review form has a "Visible In" multiselect, and a moderator who
+  restricts a review to one store view has made a decision no plugin should
+  silently reverse. In `adminhtml` this plugin does not exist.
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
     <type name="Magento\Review\Controller\Product\Post">
         <plugin name="spartrak_review_supply_missing_fields"
                 type="Spartrak\Review\Plugin\Review\SupplyFieldsFigmaDoesNotCollect"
+                sortOrder="10"/>
+    </type>
+    <type name="Magento\Review\Model\ResourceModel\Review">
+        <plugin name="spartrak_review_publish_to_every_store_view"
+                type="Spartrak\Review\Plugin\Review\PublishReviewToEveryStoreView"
                 sortOrder="10"/>
     </type>
 </config>

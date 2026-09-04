@@ -90,12 +90,21 @@ class AddDeliveryStatuses implements DataPatchInterface
                 $this->statusResource->save($status);
             }
 
-            // Re-asserted on every apply: an unassigned status is invisible in
-            // the order view's status dropdown, which would make the whole
-            // feature unreachable. `false` for isDefault — see
-            // Model\DeliveryStatus for why none of these may become a state's
-            // default.
-            $status->assignState($definition['state'], false, true);
+            // An unassigned status is invisible in the order view's status
+            // dropdown, which would make the whole feature unreachable.
+            // `false` for isDefault — see Model\DeliveryStatus for why none of
+            // these may become a state's default.
+            //
+            // EVERY state the station may stand in, not one. A fulfilment
+            // station and a commercial state are two different axes (spec §2),
+            // and a station assigned to a single state becomes unreachable the
+            // moment the order is in another one — which is exactly what
+            // happened to `spartrak_delivered`, and what
+            // ReassignDeliveryStatusStates repairs on installations where this
+            // patch has already run.
+            foreach ($definition['states'] as $state) {
+                $status->assignState($state, false, true);
+            }
         }
 
         $this->moduleDataSetup->endSetup();
