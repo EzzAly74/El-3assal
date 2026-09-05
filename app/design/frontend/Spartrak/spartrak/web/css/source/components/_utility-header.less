@@ -32,6 +32,40 @@
 // entirely. See foundations/_tokens.less.
 // ============================================================================
 
+// ===========================================================================
+// THE STICKY HEADER'S LAYER — 50, AND NOT A ROUND BIG NUMBER
+// ===========================================================================
+// Declared here rather than written inline for the same reason
+// components/_modal.less declares @spartrak-modal-z: a z-index is only ever
+// correct RELATIVE to the others in the theme, so the number has to be
+// readable next to them.
+//
+// The scale this theme actually uses, lowest first:
+//
+//     25 / 30  the header's own flyouts — mega-nav, search suggest,
+//              the account menu
+//     40       the support strip's language dropdown
+//   > 50       THIS — above the page and above the strip it slides over
+//     60       toasts (.page.messages, position: fixed at the top: they have
+//              to clear a pinned header, not hide behind it)
+//     90       the mobile drawer
+//    900       the PLP filter drawer
+//    999/1000  the minicart drawer
+//   1099/1100  Spartrak modals
+//
+// A value like 9999 would put the header ABOVE every one of those. The
+// visible consequence is immediate on the surface this was asked for: tapping
+// the burger opens a full-screen drawer at 90, and a 9999 header would float
+// on top of its scrim — the same for the minicart, the address dialog and
+// every toast.
+//
+// Sticky positioning creates a stacking context, so the header's own flyouts
+// (25–30) now resolve INSIDE this layer instead of against the root. That is
+// the correct relationship and not a side effect to work around: they belong
+// to the header, so they travel with it and cannot be separated from it by
+// something painted in between.
+@spartrak-header-sticky-z: 50;
+
 .spartrak-header {
     // Figma node 595:14474: column, align-items center. The nav-row card
     // below the bar is narrower than the viewport and centred, which is what
@@ -816,6 +850,46 @@ button.spartrak-search__submit {
 // foundations/_breakpoints.less for why the old `max-width: 440px` switch left
 // every viewport from 441 to 1439 rendering a 1017px-wide search bar.
 @media (max-width: @breakpoint-header-collapse) {
+    // -----------------------------------------------------------------------
+    // STICKY, ON MOBILE ONLY
+    // -----------------------------------------------------------------------
+    // Search and the cart stay reachable without scrolling back up. Mobile
+    // only: the desktop header is one screen-third away at any scroll depth
+    // and pinning 107px of it buys nothing.
+    //
+    // `position: sticky` rather than a scroll listener that toggles
+    // `position: fixed`. Porto ships exactly such a listener
+    // (Smartwave_Porto/templates/html/head.phtml, gated on the `mobile-sticky`
+    // body class this store already carries) and it does nothing here because
+    // it queries `.page-header`, which this theme does not emit. It is left
+    // alone rather than pointed at `.spartrak-header`: it reads scrollTop on
+    // every scroll event, writes an inline height to stop the page jumping,
+    // and detaches and re-inserts the minicart. Sticky positioning is the
+    // browser's own, runs on the compositor, costs no JavaScript and does not
+    // take the element out of flow, so nothing below it moves when it engages
+    // and there is no placeholder height to maintain (CLAUDE.md sections 4
+    // and 13).
+    //
+    // NOTHING ELSE IS NEEDED TO MAKE IT WORK: verified on the live storefront
+    // that every ancestor up to <html> computes `overflow: visible` with no
+    // transform, filter, contain or perspective — any one of which would
+    // silently turn this back into a static header.
+    //
+    // The top banner and the support strip above it are SIBLINGS, not
+    // children, so they scroll away and only the 160px bar pins. `__bar` is
+    // the header's only visible child at this width and it paints an opaque
+    // bg/surface across the full height, so the content scrolling underneath
+    // cannot show through — no background is restated here.
+    //
+    // No `width: 100%`: <header> is a block-level flex container, so it
+    // already fills the wrapper, and sticky positioning does not take it out
+    // of flow or change its containing block.
+    .spartrak-header {
+        position: sticky;
+        inset-block-start: 0;
+        z-index: @spartrak-header-sticky-z;
+    }
+
     // Mobile Container renders #ffffff, not the desktop #f9f9f9 (measured).
     .spartrak-header__bar {
         background: var(--color-bg-surface);
