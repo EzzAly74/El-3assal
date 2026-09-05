@@ -11,11 +11,24 @@
  * WHAT COMES FROM WHERE (the brief's rule for THIS section, exactly)
  * ===========================================================================
  *   dashboard -> which categories, their order, the section title
- *   Magento   -> each category's name, URL and blurb
- *   theme     -> ALL artwork. The tile photo and the big reveal visual are
- *                static theme assets keyed by the category's url_key. There
- *                is deliberately no image field on the dashboard row and the
- *                category's own Magento image is deliberately not read.
+ *   Magento   -> each category's name, URL, blurb AND artwork. Both the tile
+ *                photo and the big reveal visual come from the category's own
+ *                image (Catalog > Categories > Content), so picking the
+ *                category is the single act that chooses the destination and
+ *                the picture. There is deliberately no image field on the
+ *                dashboard row. See ViewModel\CategoryTiles for the history.
+ *   theme     -> the boxes those images are drawn into, and nothing else.
+ *
+ * ===========================================================================
+ * WHY EVERY <img> HERE CARRIES srcset, sizes AND DIMENSIONS
+ * ===========================================================================
+ * Magento does not resize category images — `Category::getImageUrl()` returns
+ * the raw upload — so this section was serving three 1249x848, 782 KB PNGs
+ * into boxes of 788x535 and 308x206, six times over: 2.3 MB, half the
+ * homepage's entire weight, and 2,532 KiB of Lighthouse's image-delivery
+ * saving. Model\Image\Resizer now derives the sizes actually drawn; the
+ * 788x535 WebP measures 31,766 bytes against the source's 781,589. The
+ * width/height attributes are the same fix seen from the CLS side.
  *
  * ===========================================================================
  * THE REVEAL: WHY IT CANNOT SHIFT LAYOUT OR JANK
@@ -82,12 +95,30 @@ $hasTitle = $block->getTitle() !== '';
         <?php if ($hasVisuals) : ?>
             <div class="spartrak-home-tiles__visuals" aria-hidden="true">
                 <?php foreach ($tiles as $index => $tile) : ?>
-                    <?php if (empty($tile['visual_image'])) : ?>
+                    <?php $visual = $tile['visual']; ?>
+                    <?php if ($visual['url'] === '') : ?>
                         <?php continue; ?>
                     <?php endif; ?>
                     <img class="spartrak-home-tiles__visual"
                          data-visual-index="<?= (int) $index ?>"
-                         src="<?= $block->escapeUrl($tile['visual_image']) ?>"
+                         src="<?= $block->escapeUrl($visual['url']) ?>"
+                         <?php /*
+                           `w` descriptors, not 1x/2x: this box is 788x535 on
+                           desktop and 100vw x 220 on a phone, so the device
+                           pixel ratio alone cannot pick the right file. With
+                           `sizes` below, a 2.6-DPR phone laying the stage out
+                           at ~400 CSS px asks for ~1040 device px and gets the
+                           1200 candidate, while the same phone in a desktop
+                           layout would ask for the 788.
+                         */ ?>
+                         <?php if ($visual['srcset'] !== '') : ?>
+                         srcset="<?= $block->escapeHtmlAttr($visual['srcset']) ?>"
+                         sizes="(max-width: 767px) 100vw, 788px"
+                         <?php endif; ?>
+                         <?php if ($visual['width'] !== null) : ?>
+                         width="<?= (int) $visual['width'] ?>"
+                         height="<?= (int) $visual['height'] ?>"
+                         <?php endif; ?>
                          alt=""
                          <?php /*
                            Only the first visual is eager: it is the one
@@ -117,9 +148,23 @@ $hasTitle = $block->getTitle() !== '';
                     <li class="spartrak-home-tiles__item" data-carousel-slide data-index="<?= (int) $index ?>">
                         <a class="spartrak-home-tiles__card" href="<?= $block->escapeUrl($tile['url']) ?>">
                             <span class="spartrak-home-tiles__card-media">
-                                <?php if (!empty($tile['tile_image'])) : ?>
+                                <?php if ($tile['tile']['url'] !== '') : ?>
+                                    <?php /*
+                                      The card's image box is a fixed 308x206
+                                      at every breakpoint, so `sizes` is a
+                                      constant and the only choice left to the
+                                      browser is the device pixel ratio.
+                                    */ ?>
                                     <img class="spartrak-home-tiles__card-image"
-                                         src="<?= $block->escapeUrl($tile['tile_image']) ?>"
+                                         src="<?= $block->escapeUrl($tile['tile']['url']) ?>"
+                                         <?php if ($tile['tile']['srcset'] !== '') : ?>
+                                         srcset="<?= $block->escapeHtmlAttr($tile['tile']['srcset']) ?>"
+                                         sizes="308px"
+                                         <?php endif; ?>
+                                         <?php if ($tile['tile']['width'] !== null) : ?>
+                                         width="<?= (int) $tile['tile']['width'] ?>"
+                                         height="<?= (int) $tile['tile']['height'] ?>"
+                                         <?php endif; ?>
                                          alt=""
                                          loading="lazy"
                                          decoding="async">

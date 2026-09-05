@@ -31,6 +31,18 @@ use Spartrak\Homepage\ViewModel\CategoryUrl;
  */
 class ProductPromoCarousel extends ProductCarousel
 {
+    /**
+     * Candidate widths for the panel's artwork. The box is capped at 604px
+     * (.spartrak-home-split__image) and goes full-width inside the stacked
+     * mobile panel, so the set spans both; 1208 is the retina end of it.
+     *
+     * @var int[]
+     */
+    private const PROMO_WIDTHS = [400, 604, 1208];
+
+    /** The desktop cap, and therefore what `src` points at. */
+    private const PROMO_DEFAULT_WIDTH = 604;
+
     public function __construct(
         Context $context,
         LocaleContext $localeContext,
@@ -73,25 +85,32 @@ class ProductPromoCarousel extends ProductCarousel
     }
 
     /**
-     * The panel's artwork: the SOURCE CATEGORY'S own image.
+     * The panel's artwork: the SOURCE CATEGORY'S own image, derived at the
+     * sizes the panel draws it.
      *
      * Not an upload on this form any more. The section already names a
      * category, that category already carries an image in Catalog, and asking
      * an editor to upload a second copy of it here made two places to keep one
      * fact - and two places to forget. Choosing the category now chooses the
-     * artwork. See ViewModel\CategoryUrl::getImageUrl() for the full note.
+     * artwork. See ViewModel\CategoryUrl::getImage() for the full note.
      *
-     * No width/height is returned with it. A category image is an arbitrary
-     * upload with no declared size, and reading its header would be a
-     * filesystem stat on every uncached render of the homepage. CLS is handled
-     * instead by an aspect-ratio on .spartrak-home-split__image, which reserves
-     * the box from CSS at zero runtime cost.
+     * It DOES now return width/height, reversing the note that used to stand
+     * here. Two things changed: reading the header is no longer per-render
+     * (Model\Image\Resizer memoises within the request and the homepage is
+     * full-page-cached, so it is once per cache build), and the CSS
+     * aspect-ratio that comment relied on to reserve the box does not exist —
+     * .spartrak-home-split__image is `width: 100%; height: auto` with no ratio
+     * declared, so the panel below it was shifting on every cold load.
+     *
+     * @return array{url: string, srcset: string, width: int|null, height: int|null}
      */
-    public function getPromoImage(): string
+    public function getPromoImage(): array
     {
         $categoryId = $this->getSection()?->getCategoryId();
 
-        return $categoryId === null ? '' : $this->categoryUrl->getImageUrl($categoryId);
+        return $categoryId === null
+            ? ['url' => '', 'srcset' => '', 'width' => null, 'height' => null]
+            : $this->categoryUrl->getImage($categoryId, self::PROMO_WIDTHS, self::PROMO_DEFAULT_WIDTH);
     }
 
     /**
@@ -107,6 +126,6 @@ class ProductPromoCarousel extends ProductCarousel
         return $this->getPromoBadge() !== ''
             || $this->getPromoHeading() !== ''
             || $this->getPromoText() !== ''
-            || $this->getPromoImage() !== '';
+            || $this->getPromoImage()['url'] !== '';
     }
 }

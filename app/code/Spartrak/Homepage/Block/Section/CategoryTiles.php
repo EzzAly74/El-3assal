@@ -70,7 +70,7 @@ class CategoryTiles extends AbstractSection
     public function hasVisuals(): bool
     {
         foreach ($this->getTiles() as $tile) {
-            if (!empty($tile['visual_image'])) {
+            if (($tile['visual']['url'] ?? '') !== '') {
                 return true;
             }
         }

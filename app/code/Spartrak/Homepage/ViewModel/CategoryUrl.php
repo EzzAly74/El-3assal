@@ -11,6 +11,7 @@ use Magento\Catalog\Api\CategoryRepositoryInterface;
 use Magento\Catalog\Api\Data\CategoryInterface;
 use Magento\Catalog\Model\Category;
 use Magento\Framework\View\Element\Block\ArgumentInterface;
+use Spartrak\Homepage\Model\Image\Resizer;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -34,6 +35,7 @@ class CategoryUrl implements ArgumentInterface
 
     public function __construct(
         private readonly CategoryRepositoryInterface $categoryRepository,
+        private readonly Resizer $resizer,
         private readonly LoggerInterface $logger
     ) {
     }
@@ -50,7 +52,8 @@ class CategoryUrl implements ArgumentInterface
     }
 
     /**
-     * The category's own image, as set in Catalog > Categories > Content.
+     * The category's own image, as set in Catalog > Categories > Content,
+     * derived at the sizes the panel actually draws it.
      *
      * ===========================================================================
      * WHY THE PROMO PANEL HAS NO UPLOAD OF ITS OWN
@@ -66,28 +69,59 @@ class CategoryUrl implements ArgumentInterface
      * artwork, and Catalog stays the single source of truth for what a category
      * looks like.
      *
-     * getImageUrl() is Magento's own accessor: it prefixes the store's media
-     * base URL and the catalog/category/ path, so it stays correct behind a CDN
-     * and across store views. Returns '' when the category has no image, and the
-     * panel then renders its copy without artwork rather than a broken <img>.
+     * `Category::getImageUrl()` is Magento's own accessor for it: it prefixes
+     * the store's media base URL and the catalog/category/ path, so this stays
+     * correct behind a CDN and across store views.
+     *
+     * ===========================================================================
+     * WHY THE RAW URL IS NOT WHAT GETS SERVED
+     * ===========================================================================
+     * Magento has no resizer for category images at all — `getImageUrl()`
+     * hands back the untouched upload — so the promo panel was serving a
+     * 1249x848, 782 KB PNG into a box capped at 604px wide. Measured on the
+     * live homepage; the 604-wide WebP derivative is 20,270 bytes.
+     *
+     * The width/height that come back with it are the second half of the fix.
+     * This <img> is `width: 100%; height: auto` with NO CSS aspect-ratio, so
+     * until it loaded the browser reserved zero height for it and the panel
+     * below jumped — a layout shift the template's own comment claimed CSS was
+     * handling and which CSS was not.
+     *
+     * Falls back to the raw URL with null dimensions whenever a derivative
+     * cannot be produced (an SVG upload, a host with no WebP encoder, a
+     * read-only pub/media during a deploy). A heavy image is a performance
+     * defect; a missing one is a broken page.
+     *
+     * @param int[] $widths
+     * @return array{url: string, srcset: string, width: int|null, height: int|null}
      */
-    public function getImageUrl(int $categoryId): string
+    public function getImage(int $categoryId, array $widths, int $defaultWidth): array
     {
+        $empty = ['url' => '', 'srcset' => '', 'width' => null, 'height' => null];
         $category = $this->load($categoryId);
 
         if (!$category instanceof Category) {
-            return '';
+            return $empty;
         }
 
         try {
-            return (string) ($category->getImageUrl() ?: '');
+            $original = (string) ($category->getImageUrl() ?: '');
         } catch (\Exception $exception) {
             $this->logger->warning(
                 'Spartrak_Homepage: no image for category ' . $categoryId . ': ' . $exception->getMessage()
             );
 
-            return '';
+            return $empty;
         }
+
+        if ($original === '' || $defaultWidth < 1) {
+            return ['url' => $original, 'srcset' => '', 'width' => null, 'height' => null];
+        }
+
+        $path = $this->resizer->categoryImagePath((string) $category->getData('image'));
+        $resized = $path === '' ? null : $this->resizer->responsive($path, $widths, $defaultWidth);
+
+        return $resized ?? ['url' => $original, 'srcset' => '', 'width' => null, 'height' => null];
     }
 
     private function load(int $categoryId): ?CategoryInterface

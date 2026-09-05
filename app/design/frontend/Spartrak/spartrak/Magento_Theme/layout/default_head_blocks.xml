@@ -20,17 +20,51 @@
   HTTP/1.1, so it competes for the per-host connection budget rather than
   multiplexing.
 
+  ===========================================================================
+  SECOND PASS, 2026-09-05 (performance audit)
+  ===========================================================================
+  Three more files, each re-verified against the LIVE rendered output of four
+  page types before being listed - homepage, PDP (sp-2218), a CMS/contact page
+  and the cart:
+
+      fancybox/css/jquery.fancybox.css        3,923B   "fancybox"   0 / 0 / 0 / 0
+      Smartwave_Filterproducts owl.carousel  10,285B   "owl-carousel" 0 / 0 / 0 / 0
+      Smartwave_Dailydeals::css/style.css     1,537B   "dailydeal"  0 / 0 / 0 / 0
+
+  fancybox: the previous note kept it because "fancybox" appeared 20x in
+  inline JS config strings. It appears ZERO times now. Its only consumer in
+  this codebase is Porto's Magento_Newsletter/templates/subscribe_popup.phtml,
+  which is gated on `porto_settings/newsletter/enable` and emits nothing on
+  this install - the popup markup is absent from all four pages. Porto's own
+  default_head_blocks.xml already has the matching fancybox <script> line
+  commented out, so the stylesheet was styling a lightbox that cannot open.
+
+  Smartwave_Filterproducts: its default.xml adds a SECOND copy of owl.carousel
+  to every page - Porto's own copy of the same library was already removed
+  above, so this was the duplicate that survived. Nothing in Spartrak
+  references a Filterproducts widget or block, and no `.owl-carousel` element
+  renders anywhere.
+
+  Smartwave_Dailydeals: its default.xml adds this to every page for a Daily
+  Deals surface that does not render on any of them.
+
   DELIBERATELY KEPT (do not add to this list without re-verifying):
-    - fancybox/css/jquery.fancybox.css — "fancybox" appears 20x in the live
-      output, but only inside inline JS config strings, never as markup. It
-      is injected at runtime when a lightbox opens, so a static markup scan
-      cannot prove it dead. Verify by exercising the gallery/popup first.
-    - icon-fonts/css/porto-icons-codes.css — "porto-icon-*" is still live in
-      Porto's compare-products sidebar and on the native minicart trigger.
-      _utility-header.less already masks the minicart glyph with a real SVG
-      (.spartrak-icon), so once the compare block is restyled this file can
-      go too — that is the last thing holding an 18KB icon font on the page.
-    - icon-fonts/css/animation.css — 1.9KB, pairs with the icon font above.
+    - icon-fonts/css/porto-icons-codes.css — 13.1KB. Still genuinely live,
+      and now measured rather than assumed: the PDP renders
+      `porto-icon-right-open` (Porto's prev/next product nav) and
+      `porto-icon-up-dir` / `porto-icon-down-dir` (the qty stepper), and the
+      contact page renders `porto-icon-mail-alt`, `-mobile`, `-phone` and
+      `-skype`. The homepage, category pages and cart render NONE of them.
+
+      It cannot simply be page-scoped: `<remove src>` and `<css src>` are not
+      ordered against each other - Page\Config\Structure::processRemoveAssets()
+      runs array_diff_key() once at the end, so a removal in this file beats a
+      re-add on the PDP handle regardless of merge order. Removing it here
+      would take it off the PDP too. The way out is to replace those seven
+      glyphs with Spartrak SVG icons (the same treatment _utility-header.less
+      already gave the minicart trigger), after which this file and the
+      porto-icons woff2 behind it both go.
+    - icon-fonts/css/animation.css — 1.5KB, pairs with the icon font above.
 -->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <head>
@@ -38,6 +72,9 @@
         <remove src="simple-line-icons/css/simple-line-icons.css"/>
         <remove src="font-awesome/css/font-awesome.min.css"/>
         <remove src="//fonts.googleapis.com/css?family=Shadows+Into+Light"/>
+        <remove src="fancybox/css/jquery.fancybox.css"/>
+        <remove src="Smartwave_Filterproducts::css/owl.carousel/assets/owl.carousel.css"/>
+        <remove src="Smartwave_Dailydeals::css/style.css"/>
 
         <css src="css/spartrak-foundations.css"/>
         <css src="css/spartrak-components.css"/>

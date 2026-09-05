@@ -74,17 +74,33 @@ $ctaUrl = $block->getViewAllUrl();
                     <?php endif; ?>
                 </div>
 
-                <?php if ($image !== '') : ?>
+                <?php if ($image['url'] !== '') : ?>
                     <?php /*
                       The SOURCE CATEGORY'S own image - not an upload on this
-                      form. See the block's getPromoImage(). No width/height
-                      attributes: a category image has no declared size and
-                      stat-ing the file per render would be a filesystem hit on
-                      the busiest page on the site. The box is reserved from CSS
-                      instead, by aspect-ratio, which costs nothing.
+                      form. See the block's getPromoImage().
+
+                      Magento does not resize category images, so this used to
+                      be the raw 1249x848 / 782 KB upload drawn into a box
+                      capped at 604px. Model\Image\Resizer now derives the
+                      widths actually used; the 604-wide WebP is 20,270 bytes.
+
+                      The width/height attributes are new too, and they replace
+                      a CSS aspect-ratio this comment used to claim was
+                      reserving the box. There is no such rule on
+                      .spartrak-home-split__image - it is `width: 100%;
+                      height: auto` - so nothing was reserving anything and the
+                      panel shifted on every cold load.
                     */ ?>
                     <img class="spartrak-home-split__image"
-                         src="<?= $block->escapeUrl($image) ?>"
+                         src="<?= $block->escapeUrl($image['url']) ?>"
+                         <?php if ($image['srcset'] !== '') : ?>
+                         srcset="<?= $block->escapeHtmlAttr($image['srcset']) ?>"
+                         sizes="(max-width: 767px) 90vw, 604px"
+                         <?php endif; ?>
+                         <?php if ($image['width'] !== null) : ?>
+                         width="<?= (int) $image['width'] ?>"
+                         height="<?= (int) $image['height'] ?>"
+                         <?php endif; ?>
                          alt=""
                          <?php /*
                            Decorative: the panel's meaning is carried by the

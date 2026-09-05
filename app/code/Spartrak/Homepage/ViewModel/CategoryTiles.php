@@ -11,6 +11,7 @@ use Magento\Catalog\Model\Category;
 use Magento\Catalog\Model\ResourceModel\Category\CollectionFactory as CategoryCollectionFactory;
 use Magento\Framework\View\Element\Block\ArgumentInterface;
 use Spartrak\Homepage\Model\CategoryItem;
+use Spartrak\Homepage\Model\Image\Resizer;
 use Spartrak\Homepage\Model\Section;
 use Psr\Log\LoggerInterface;
 
@@ -79,8 +80,32 @@ class CategoryTiles implements ArgumentInterface
     /** @var array<int, array<int, array<string, mixed>>> keyed by section id */
     private array $resolved = [];
 
+    /**
+     * Candidate widths for the reveal stage. Its box is 788x535 on desktop
+     * and 100vw x 220 on a phone, so the set has to span both; `sizes` in the
+     * template tells the browser which end of it applies.
+     *
+     * @var int[]
+     */
+    private const VISUAL_WIDTHS = [400, 788, 1200];
+
+    /** The desktop box, and therefore what `src` points at. */
+    private const VISUAL_DEFAULT_WIDTH = 788;
+
+    /**
+     * The rail card's image box is a fixed 308x206 at every breakpoint
+     * (.spartrak-home-tiles__item is `flex: 0 0 324px` with an 8px pad), so
+     * this needs only the 1x and the retina width.
+     *
+     * @var int[]
+     */
+    private const CARD_WIDTHS = [308, 616];
+
+    private const CARD_DEFAULT_WIDTH = 308;
+
     public function __construct(
         private readonly CategoryCollectionFactory $categoryCollectionFactory,
+        private readonly Resizer $resizer,
         private readonly LoggerInterface $logger
     ) {
     }
@@ -98,8 +123,8 @@ class CategoryTiles implements ArgumentInterface
      *     name: string,
      *     url: string,
      *     description: string,
-     *     tile_image: string|null,
-     *     visual_image: string|null
+     *     tile: array{url: string, srcset: string, width: int|null, height: int|null},
+     *     visual: array{url: string, srcset: string, width: int|null, height: int|null}
      * }>
      */
     public function getTiles(Section $section): array
@@ -140,16 +165,16 @@ class CategoryTiles implements ArgumentInterface
 
             // One image serves both slots. The tile crops it to 308x206 and
             // the reveal visual to 788x535, both with object-fit, so a single
-            // upload covers the pair rather than asking for two.
-            $image = $this->categoryImageUrl($category);
-
+            // upload covers the pair rather than asking for two — but each
+            // gets its OWN derivatives, because 308x206 and 788x535 are not
+            // the same download. See artwork() for why that matters.
             $tiles[] = [
                 'id' => $categoryId,
                 'name' => (string) $category->getName(),
                 'url' => (string) $category->getUrl(),
                 'description' => $this->getBlurb($category),
-                'tile_image' => $image,
-                'visual_image' => $image,
+                'tile' => $this->artwork($category, self::CARD_WIDTHS, self::CARD_DEFAULT_WIDTH),
+                'visual' => $this->artwork($category, self::VISUAL_WIDTHS, self::VISUAL_DEFAULT_WIDTH),
             ];
         }
 
@@ -210,37 +235,71 @@ class CategoryTiles implements ArgumentInterface
     }
 
     /**
-     * The category's own image URL, or '' when it has none.
+     * One artwork slot: the URL to draw, the candidates to offer, and the
+     * intrinsic size that keeps it off the CLS ledger.
      *
-     * getImageUrl() is Magento's own accessor: it prefixes the store's media
-     * base URL and the catalog/category/ path, so this stays correct behind a
-     * CDN and across store views without this class knowing about either.
+     * ===========================================================================
+     * WHY THIS IS NOT JUST getImageUrl() ANY MORE
+     * ===========================================================================
+     * It was, and that is what put 2.3 MB of PNG on the homepage. Magento has
+     * no resizer for category images — `Category::getImageUrl()` hands back
+     * the raw upload — so the four categories picked for this section were
+     * being served at 1249x848 and 782 KB EACH into boxes of 308x206 and
+     * 788x535, six <img> elements over three files. Measured on the live site;
+     * Lighthouse attributed 2,532 KiB and ~4,100 ms of LCP saving to exactly
+     * these images.
      *
-     * A category with no image returns '' and the template omits the <img>
-     * rather than rendering a broken one. That is a documented, recoverable
-     * state - an admin fixes it by setting the image on the category - so it
-     * is logged at debug, not as a warning.
+     * Model\Image\Resizer now produces the derivatives. Same source file, same
+     * merchandiser workflow, same single upload serving both slots — the
+     * 788x535 WebP measures 31,766 bytes against the source's 781,589, and the
+     * 308x206 card 6,698.
+     *
+     * ===========================================================================
+     * THE ORIGINAL IS STILL THE FALLBACK, DELIBERATELY
+     * ===========================================================================
+     * A resize can fail for reasons that are nobody's fault: an SVG has no
+     * raster header, a host may have no WebP encoder, pub/media may be
+     * read-only behind a deploy. Every one of those returns null from the
+     * Resizer, and every one of them falls back to the untouched original.
+     * A heavy image is a performance defect; a missing image is a broken page,
+     * and this must never turn the first into the second.
+     *
+     * @param int[] $widths
+     * @return array{url: string, srcset: string, width: int|null, height: int|null}
      */
-    private function categoryImageUrl(Category $category): string
+    private function artwork(Category $category, array $widths, int $defaultWidth): array
     {
+        $empty = ['url' => '', 'srcset' => '', 'width' => null, 'height' => null];
+
         try {
-            $url = (string) ($category->getImageUrl() ?: '');
+            $original = (string) ($category->getImageUrl() ?: '');
         } catch (\Exception $exception) {
             $this->logger->warning(
                 'Spartrak_Homepage: category ' . $category->getId()
                 . ' has an unreadable image: ' . $exception->getMessage()
             );
 
-            return '';
+            return $empty;
         }
 
-        if ($url === '') {
+        if ($original === '') {
+            // A documented, recoverable state — an admin fixes it by setting
+            // the image on the category — so debug, not warning.
             $this->logger->debug(
                 'Spartrak_Homepage: category ' . $category->getId()
                 . ' has no image set, so its tile renders without artwork.'
             );
+
+            return $empty;
         }
 
-        return $url;
+        $path = $this->resizer->categoryImagePath((string) $category->getData('image'));
+        $resized = $path === '' ? null : $this->resizer->responsive($path, $widths, $defaultWidth);
+
+        if ($resized === null) {
+            return ['url' => $original, 'srcset' => '', 'width' => null, 'height' => null];
+        }
+
+        return $resized;
     }
 }
