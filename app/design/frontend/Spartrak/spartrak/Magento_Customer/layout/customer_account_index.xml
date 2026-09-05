@@ -38,5 +38,24 @@
 
         <referenceBlock name="customer_account_dashboard_address" remove="true"/>
         <referenceBlock name="customer_account_dashboard_top" remove="true"/>
+
+        <!--
+          "My Recent Reviews" (Magento_Review's own customer_account_index.xml
+          drops `customer_account_dashboard_info1` into `content`).
+
+          Figma 562:10229 draws ONE card on this page and the account rail
+          Figma specifies has no reviews destination — customer_account.xml
+          already removes `customer-account-navigation-product-reviews-link`
+          for that reason. Leaving the block in place contradicted both: a
+          second, unstyled Porto box under the card, with an inline <script>
+          per review row rewriting its own star width.
+
+          Removed here rather than by turning off `catalog/review/active`,
+          which is the same flag the PDP reviews panel and the rating dialog
+          run on — Spartrak_Review would go dark with it. The customer's
+          review list stays fully functional at /review/customer/; only the
+          duplicate of it on the account card's page goes.
+        -->
+        <referenceBlock name="customer_account_dashboard_info1" remove="true"/>
     </body>
 </page>

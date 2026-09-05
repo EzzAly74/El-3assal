@@ -155,6 +155,21 @@
 
   .sidebar-main {
     grid-column: 1;
+    // ROW 1, STATED. Porto's page layout emits `div.sidebar.main` AFTER
+    // `main` (Magento's own copy of 2columns-left does the same), so in
+    // order-modified document order the card is placed first. Auto-placement
+    // is sparse: once the cursor has passed row 1 for the card, an item that
+    // only names a COLUMN starts looking from the cursor onwards and lands in
+    // row 2 — the rail dropped below the card, at the correct reading edge
+    // but a card's height too low.
+    //
+    // It did not look broken before only because _plp.less's unscoped
+    // `order: 1 / order: 2` pair happened to reverse the placement order for
+    // every `2columns-left` page. That pair belonged to the PLP's filter
+    // sidebar and has been scoped to the catalogue routes it owns, so this
+    // section now says where its own two items go rather than depending on a
+    // side effect of another component's rules.
+    grid-row: 1;
     padding: 0;
     // Porto orders the sidebar with a float and a negative margin; both
     // are meaningless in a grid and one of them shifts the rail 15px.
@@ -168,13 +183,40 @@
     align-self: stretch;
   }
 
+  // -----------------------------------------------------------------------
+  // PORTO'S EXTRA WRAPPER, MADE INVISIBLE TO LAYOUT
+  // -----------------------------------------------------------------------
+  // Porto overrides the `2columns-left` PAGE LAYOUT itself
+  // (Smartwave/porto/Magento_Theme/page_layout/2columns-left.xml) and puts a
+  // `div.sidebar-content` between `.sidebar-main` and the blocks inside it.
+  // Magento's own copy of that layout has no such element, so the rail is one
+  // level deeper here than the markup would suggest.
+  //
+  // That wrapper is what broke the rail's height: `.sidebar-main` is stretched
+  // to the row by `align-self` above, but the wrapper between it and
+  // `.spartrak-account-nav` is auto-height, and a percentage height resolved
+  // against an auto-height parent is auto. So the nav's `block-size: 100%`
+  // silently became "as tall as its own rows" and تسجيل الخروج stopped sitting
+  // at the bottom edge Figma 562:11021 draws it on.
+  //
+  // Passing the height through is enough, and is preferred over
+  // `display: contents` on the wrapper: same layout result, without removing
+  // an element from the accessibility tree to get it.
+  .sidebar-main > .sidebar-content {
+    block-size: 100%;
+  }
+
   .column.main {
     grid-column: 2;
+    grid-row: 1;
     padding-block-start: 0;
     min-inline-size: 0;
 
+    // One column below the breakpoint, and the tab strip is row 1 — the two
+    // rows are named here for the same reason they are named above.
     @media (max-width: @breakpoint-header-collapse) {
       grid-column: 1;
+      grid-row: 2;
     }
   }
 
@@ -237,16 +279,6 @@
     display: none;
   }
 
-  // The rail becomes a tab strip above the content on mobile (689:19897), so
-  // it has to come FIRST in the visual order there. `order` rather than a
-  // second grid row assignment, because the two containers are siblings of
-  // unknown count once a third-party block joins them.
-  @media (max-width: @breakpoint-header-collapse) {
-    .sidebar-main {
-      order: -1;
-    }
-  }
-
   // ---------------------------------------------------------------------
   // THE ORDER PAGE HAS NO RAIL — AND THEREFORE NO TRACK FOR IT
   // ---------------------------------------------------------------------
@@ -268,8 +300,13 @@
       display: none;
     }
 
+    // Row 1 in BOTH ranges. The rail is display:none here, so the mobile
+    // `grid-row: 2` above would otherwise leave an empty first row on a
+    // phone — harmless to look at, but a row that exists for a rail this
+    // page does not have.
     .column.main {
       grid-column: 1;
+      grid-row: 1;
     }
   }
 

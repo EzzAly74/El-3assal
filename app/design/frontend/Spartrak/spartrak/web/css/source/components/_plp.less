@@ -135,40 +135,67 @@
    they would each claim a column, so they are taken out of flow here
    rather than removed.
    ------------------------------------------------------------------- */
-.page-layout-2columns-left .columns {
-  display: flex;
-  align-items: flex-start;
-  gap: 24px;
+/* SCOPED TO THE TWO ROUTES, exactly as section 1 above is.
+
+   `2columns-left` is NOT a catalogue-only page layout. Magento gives it to
+   the whole My Account section, and Paymob's sales_order_view.xml asks for
+   it too, so every selector below that begins at `.page-layout-2columns-left`
+   used to reach /customer/account, /customer/address, /sales/order and the
+   wishlist as well — pages that own their own two-column shell in
+   components/_account.less and have no filters to put in a sidebar.
+
+   The damage was not cosmetic. Section 7's drawer turns `.sidebar-main` into
+   a `position: fixed` scrim that is `visibility: hidden` until a filter
+   button nobody renders on those pages sets `.spartrak-filters-open` — so
+   below 767px the ACCOUNT RAIL WAS INVISIBLE AND UNREACHABLE, which is the
+   missing mobile tab strip. At (0,3,0) it also outranked
+   `.spartrak-account .sidebar-main` (0,2,0) on desktop and forced the 264px
+   rail to Figma's 296px FILTER width.
+
+   Adding the route class makes these (0,4,0) and, more to the point, stops
+   them being a cascade race at all: on an account page they no longer match.
+   Every other `2columns-left` page falls back to Porto's own column
+   handling, which is what CLAUDE.md section 2 says should stand where
+   Spartrak does not override a component. */
+.catalog-category-view,
+.catalogsearch-result-index {
+  &.page-layout-2columns-left .columns {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+  }
+
+  &.page-layout-2columns-left .columns .column.main {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+    padding: 0;
+    order: 2;
+  }
+
+  &.page-layout-2columns-left .columns .sidebar-main {
+    flex: 0 0 296px;
+    width: 296px;
+    max-width: 296px;
+    padding: 0;
+    order: 1;
+  }
+
+  &.page-layout-2columns-left .columns .sidebar-additional {
+    flex: 0 0 296px;
+    width: 296px;
+    padding: 0;
+    order: 3;
+  }
+
+  &.page-layout-2columns-left .columns > .sidebar-overlay,
+  &.page-layout-2columns-left .columns > #ln_overlay {
+    position: absolute;
+  }
 }
 
-.page-layout-2columns-left .columns .column.main {
-  flex: 1 1 0;
-  min-width: 0;
-  width: auto;
-  padding: 0;
-  order: 2;
-}
 .toolbar select {
   border: none !important;
-}
-.page-layout-2columns-left .columns .sidebar-main {
-  flex: 0 0 296px;
-  width: 296px;
-  max-width: 296px;
-  padding: 0;
-  order: 1;
-}
-
-.page-layout-2columns-left .columns .sidebar-additional {
-  flex: 0 0 296px;
-  width: 296px;
-  padding: 0;
-  order: 3;
-}
-
-.page-layout-2columns-left .columns > .sidebar-overlay,
-.page-layout-2columns-left .columns > #ln_overlay {
-  position: absolute;
 }
 
 /* Porto's page layout wraps the sidebar's blocks in .sidebar-content, and
@@ -181,10 +208,13 @@
    stop them being written at all. Figma's sidebar is a plain column, not
    a sticky one, and dropping the script also drops a scroll handler that
    reads offsets on every frame. */
-.page-layout-2columns-left .columns .sidebar-main .sidebar-content,
-.page-layout-2columns-left .columns .sidebar-main .pin-wrapper {
-  display: block;
-  max-width: 100%;
+.catalog-category-view,
+.catalogsearch-result-index {
+  &.page-layout-2columns-left .columns .sidebar-main .sidebar-content,
+  &.page-layout-2columns-left .columns .sidebar-main .pin-wrapper {
+    display: block;
+    max-width: 100%;
+  }
 }
 
 /* -------------------------------------------------------------------
@@ -1154,74 +1184,83 @@
 }
 
 @media (max-width: 767px) {
-  .page-layout-2columns-left .columns {
-    display: block;
-  }
+  /* SCOPED, for the reason section 2 records: this drawer is what made the
+     My Account rail invisible on a phone. It only ever applied to a page
+     that renders a filter button, and only those two routes do. */
+  .catalog-category-view,
+  .catalogsearch-result-index {
+    &.page-layout-2columns-left .columns {
+      display: block;
+    }
 
-  /* ---------------------------------------------------------------
+    /* ---------------------------------------------------------------
        THE PANEL
        .sidebar-main is the full-screen scrim; .sidebar-content inside it
        is the white panel. Two elements because the scrim must cover the
        viewport to catch a dismissing tap, while the panel must scroll
        independently of it.
        --------------------------------------------------------------- */
-  .page-layout-2columns-left .columns .sidebar-main {
-    position: fixed;
-    inset: 0;
-    z-index: 900;
-    width: auto;
-    max-width: none;
-    padding: 0;
-    background: var(--color-scrim);
-    /* Closed by default, and closed is the state with NO class on the
-           root — so a failed script leaves the page usable rather than
-           stuck behind an undismissable overlay. */
-    visibility: hidden;
-    opacity: 0;
-    transition:
-      opacity 0.2s ease,
-      visibility 0s linear 0.2s;
-  }
+    &.page-layout-2columns-left .columns .sidebar-main {
+      position: fixed;
+      inset: 0;
+      z-index: 900;
+      width: auto;
+      max-width: none;
+      padding: 0;
+      background: var(--color-scrim);
+      /* Closed by default, and closed is the state with NO class on the
+         root — so a failed script leaves the page usable rather than
+         stuck behind an undismissable overlay. */
+      visibility: hidden;
+      opacity: 0;
+      transition:
+        opacity 0.2s ease,
+        visibility 0s linear 0.2s;
+    }
 
-  .spartrak-filters-open .page-layout-2columns-left .columns .sidebar-main {
-    visibility: visible;
-    opacity: 1;
-    transition: opacity 0.2s ease;
-  }
+    /* `.spartrak-filters-open` is on the ROOT element, not on <body> (see
+       web/js/spartrak-plp-filter-toggle.js), so it stays an ancestor of the
+       route class rather than joining it. */
+    .spartrak-filters-open &.page-layout-2columns-left .columns .sidebar-main {
+      visibility: visible;
+      opacity: 1;
+      transition: opacity 0.2s ease;
+    }
 
-  /* Figma 864:20532 — the white panel: bg/surface, 16px inline padding,
+    /* Figma 864:20532 — the white panel: bg/surface, 16px inline padding,
        8px at the foot. Full height so the filter list can be long, and its
        own scroll container so the page behind it does not move. */
-  .page-layout-2columns-left .columns .sidebar-main .sidebar-content,
-  .page-layout-2columns-left .columns .sidebar-main .pin-wrapper {
-    display: flex;
-    flex-direction: column;
-    box-sizing: border-box;
-    width: 100%;
-    height: 100%;
-    max-width: none;
-    margin: 0;
-    padding: 8px 16px;
-    background: var(--color-bg-surface);
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    /* Slides up from the bottom edge, and settles when the root class
-           lands. transform composites, so this costs no layout. */
-    transform: translateY(2%);
-    transition: transform 0.2s ease;
-  }
+    &.page-layout-2columns-left .columns .sidebar-main .sidebar-content,
+    &.page-layout-2columns-left .columns .sidebar-main .pin-wrapper {
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      margin: 0;
+      padding: 8px 16px;
+      background: var(--color-bg-surface);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      /* Slides up from the bottom edge, and settles when the root class
+         lands. transform composites, so this costs no layout. */
+      transform: translateY(2%);
+      transition: transform 0.2s ease;
+    }
 
-  .spartrak-filters-open
-    .page-layout-2columns-left
-    .columns
-    .sidebar-main
-    .sidebar-content,
-  .spartrak-filters-open
-    .page-layout-2columns-left
-    .columns
-    .sidebar-main
-    .pin-wrapper {
-    transform: none;
+    .spartrak-filters-open
+      &.page-layout-2columns-left
+      .columns
+      .sidebar-main
+      .sidebar-content,
+    .spartrak-filters-open
+      &.page-layout-2columns-left
+      .columns
+      .sidebar-main
+      .pin-wrapper {
+      transform: none;
+    }
   }
 
   /* ---------------------------------------------------------------
@@ -1421,11 +1460,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .page-layout-2columns-left .columns .sidebar-main,
-  .page-layout-2columns-left .columns .sidebar-main .sidebar-content,
-  .page-layout-2columns-left .columns .sidebar-main .pin-wrapper {
-    transition: none;
-    transform: none;
+  .catalog-category-view,
+  .catalogsearch-result-index {
+    &.page-layout-2columns-left .columns .sidebar-main,
+    &.page-layout-2columns-left .columns .sidebar-main .sidebar-content,
+    &.page-layout-2columns-left .columns .sidebar-main .pin-wrapper {
+      transition: none;
+      transform: none;
+    }
   }
 
   #layered-filter-block {
