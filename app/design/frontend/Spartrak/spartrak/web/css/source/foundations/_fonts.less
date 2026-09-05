@@ -32,9 +32,30 @@
 //
 // unicode-range mirrors the upstream package: Arabic blocks plus Latin, so
 // one family serves both the ar and en stores.
+//
+// CORRECTED 2026-09-05. The upstream list omits several blocks the font
+// actually ships glyphs for, and the omission is not academic: a codepoint
+// outside every declared range makes the browser skip this face entirely and
+// draw the character from the system fallback instead.
+//
+// The most visible casualty was U+2026, the ellipsis. ViewModel\CategoryTiles
+// appends a literal '…' to every truncated tile blurb, so that one character
+// on the homepage was being drawn in a different typeface from the words
+// either side of it. The en/em dashes, curly quotes, bullet, euro and
+// trademark marks were in the same position.
+//
+// Verified against the files themselves rather than the upstream stylesheet:
+// the Regular face maps 409 renderable codepoints, and every range added
+// below is one it genuinely covers. Blocks the font does NOT cover are still
+// left undeclared, so nothing here asks the browser to draw tofu.
+//
+// This costs no extra bytes. The face is already downloaded for the Arabic
+// and Latin text around it; widening the range only lets those glyphs come
+// from the file that is already there.
 
-@spartrak-font-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF,
-    U+FE70-FEFF, U+0020-007F, U+00A0-00FF, U+0100-024F, U+0250-02AF;
+@spartrak-font-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB00-FDFF,
+    U+FE70-FEFF, U+0020-007F, U+00A0-00FF, U+0100-024F, U+0250-02FF,
+    U+03BC, U+2013-2044, U+20AC, U+2122, U+2212;
 
 @font-face {
     font-family: 'thmanyah sans';

@@ -293,8 +293,14 @@ class CategoryTiles implements ArgumentInterface
             return $empty;
         }
 
-        $path = $this->resizer->categoryImagePath((string) $category->getData('image'));
-        $resized = $path === '' ? null : $this->resizer->responsive($path, $widths, $defaultWidth);
+        // The resolved URL, not the raw attribute value. `getImageUrl()`
+        // returns the attribute VERBATIM when it starts with a slash (core
+        // Category.php line 676), so this install's stored
+        // `/media/catalog/category/x.png` cannot be turned back into a media
+        // path by prefixing — only by subtracting the media base. That is what
+        // Resizer::mediaPath() does, and getting it wrong is why the first
+        // version of this shipped and silently changed nothing.
+        $resized = $this->resizer->responsive($original, $widths, $defaultWidth);
 
         if ($resized === null) {
             return ['url' => $original, 'srcset' => '', 'width' => null, 'height' => null];

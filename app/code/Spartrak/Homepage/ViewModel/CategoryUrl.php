@@ -69,9 +69,11 @@ class CategoryUrl implements ArgumentInterface
      * artwork, and Catalog stays the single source of truth for what a category
      * looks like.
      *
-     * `Category::getImageUrl()` is Magento's own accessor for it: it prefixes
-     * the store's media base URL and the catalog/category/ path, so this stays
-     * correct behind a CDN and across store views.
+     * `Category::getImageUrl()` is Magento's own accessor for it, and the only
+     * safe way to address the file: depending on how the backend model stored
+     * the attribute it either builds a media URL or returns a root-relative
+     * path verbatim (core Category.php line 676), and it is the accessor that
+     * knows which. Nothing here reconstructs that path by hand.
      *
      * ===========================================================================
      * WHY THE RAW URL IS NOT WHAT GETS SERVED
@@ -118,8 +120,7 @@ class CategoryUrl implements ArgumentInterface
             return ['url' => $original, 'srcset' => '', 'width' => null, 'height' => null];
         }
 
-        $path = $this->resizer->categoryImagePath((string) $category->getData('image'));
-        $resized = $path === '' ? null : $this->resizer->responsive($path, $widths, $defaultWidth);
+        $resized = $this->resizer->responsive($original, $widths, $defaultWidth);
 
         return $resized ?? ['url' => $original, 'srcset' => '', 'width' => null, 'height' => null];
     }

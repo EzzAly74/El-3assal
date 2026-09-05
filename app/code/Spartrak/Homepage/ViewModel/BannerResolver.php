@@ -9,6 +9,7 @@ namespace Spartrak\Homepage\ViewModel;
 
 use Magento\Framework\View\Element\Block\ArgumentInterface;
 use Spartrak\Homepage\Model\Banner;
+use Spartrak\Homepage\Model\Image\Resizer;
 use Spartrak\Homepage\Model\Image\Storage;
 use Spartrak\Homepage\Model\LocaleContext;
 
@@ -47,9 +48,48 @@ class BannerResolver implements ArgumentInterface
      */
     public const MOBILE_MEDIA_CONDITION = '(max-width: 767px)';
 
+    /**
+     * ===========================================================================
+     * WHY THE HERO NEEDS A CANDIDATE SET AT ALL
+     * ===========================================================================
+     * <picture> already stopped a phone downloading the desktop file, which is
+     * what this class was built to do. What it never addressed is the size of
+     * the file it DOES download, and nothing in Magento resizes an admin
+     * upload that is not a product image. Measured on the live homepage:
+     *
+     *   Group_2_1.webp        5760x1200   204,614 B   drawn into 1440x300
+     *   home_hero_mob.webp    1344x 784   133,508 B   drawn into  440x220
+     *
+     * The desktop file is four times the linear size of its own box. It is
+     * also the LCP element, so those bytes sit on the critical path - the one
+     * place CLAUDE.md section 12 says to spend the least.
+     *
+     * A 1440-wide derivative of it measures 45,226 B. The candidates below let
+     * the browser pick that, or the 2880 retina one, from the real viewport
+     * and device ratio instead of every device taking the largest.
+     *
+     * @var int[]
+     */
+    private const DESKTOP_WIDTHS = [768, 1200, 1440, 1920, 2880];
+
+    /** The authored desktop box, so `src` points at the 1x file. */
+    private const DESKTOP_DEFAULT_WIDTH = 1440;
+
+    /**
+     * The mobile frame is full-bleed, so the widest realistic ask is a ~430pt
+     * phone at 3x. The set stops there because Resizer never enlarges and the
+     * uploads are not wider than this anyway.
+     *
+     * @var int[]
+     */
+    private const MOBILE_WIDTHS = [440, 768, 880, 1100, 1344];
+
+    private const MOBILE_DEFAULT_WIDTH = 880;
+
     public function __construct(
         private readonly LocaleContext $localeContext,
-        private readonly Storage $storage
+        private readonly Storage $storage,
+        private readonly Resizer $resizer
     ) {
     }
 
@@ -57,6 +97,8 @@ class BannerResolver implements ArgumentInterface
      * @return array{
      *     desktop_url: string,
      *     mobile_url: string,
+     *     desktop_srcset: string,
+     *     mobile_srcset: string,
      *     width: int|null,
      *     height: int|null,
      *     mobile_width: int|null,
@@ -104,9 +146,16 @@ class BannerResolver implements ArgumentInterface
             ? $dimensions
             : $this->storage->getDimensions($mobile);
 
+        $desktopUrl = $this->storage->getUrl($desktop);
+        $mobileUrl = $this->storage->getUrl($mobile);
+
         return [
-            'desktop_url' => $this->storage->getUrl($desktop),
-            'mobile_url' => $this->storage->getUrl($mobile),
+            'desktop_url' => $desktopUrl,
+            'mobile_url' => $mobileUrl,
+            'desktop_srcset' => $this->srcset($desktopUrl, self::DESKTOP_WIDTHS, self::DESKTOP_DEFAULT_WIDTH),
+            'mobile_srcset' => $mobile === $desktop
+                ? $this->srcset($desktopUrl, self::DESKTOP_WIDTHS, self::DESKTOP_DEFAULT_WIDTH)
+                : $this->srcset($mobileUrl, self::MOBILE_WIDTHS, self::MOBILE_DEFAULT_WIDTH),
             'width' => $dimensions[0] ?? null,
             'height' => $dimensions[1] ?? null,
             'mobile_width' => $mobileDimensions[0] ?? null,
@@ -115,6 +164,26 @@ class BannerResolver implements ArgumentInterface
             'url' => trim((string) $banner->getData('url')),
             'media' => self::MOBILE_MEDIA_CONDITION,
         ];
+    }
+
+    /**
+     * The `w`-descriptor candidate list for one banner image, or '' when no
+     * derivative could be produced.
+     *
+     * '' is the important case, not an edge case: an SVG upload has no raster
+     * header, a host may lack a WebP encoder, and pub/media can be read-only
+     * mid-deploy. Each returns null from the Resizer, and the template then
+     * omits `srcset` entirely and renders exactly the markup it rendered
+     * before any of this - the original file, at full size. Slower than it
+     * could be, identical to what shipped, and never a missing hero.
+     *
+     * @param int[] $widths
+     */
+    private function srcset(string $url, array $widths, int $defaultWidth): string
+    {
+        $resized = $this->resizer->responsive($url, $widths, $defaultWidth);
+
+        return $resized === null ? '' : $resized['srcset'];
     }
 
     /**

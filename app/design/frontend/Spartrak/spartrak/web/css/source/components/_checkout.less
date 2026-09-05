@@ -968,6 +968,36 @@ button.spartrak-checkout-progress__marker {
 }
 
 .checkout-container {
+  // ===========================================================================
+  // THE ONE LAYOUT SHIFT ON THIS PAGE, AND WHY IT IS RESERVED HERE
+  // ===========================================================================
+  // Measured on the live Arabic checkout (Lighthouse, 2026-09-05): CLS 0.587
+  // from a SINGLE shift, and the element that moved was `footer.page-footer`.
+  //
+  // The mechanism is this container. Core renders it server-side and empty —
+  // `<div id="checkout" data-bind="scope:'checkout'" class="checkout-container">`
+  // in Magento_Checkout/templates/onepage.phtml — and Knockout only fills it
+  // once the checkout bundle has booted, which the same trace timed at past
+  // seven seconds. Until then the grid has no rows, the page is barely taller
+  // than the header, and the footer sits inside the viewport. When the columns
+  // finally render, the footer drops out of view in one jump. That jump IS the
+  // 0.587: a large element, moving a long way, while visible.
+  //
+  // 100vh rather than a pixel figure, deliberately. The number that matters is
+  // "at least a screenful", because a shift is only counted while the element
+  // is IN the viewport — reserve a screen and the footer starts below the fold
+  // and never enters the calculation. A fixed height would be a magic value
+  // that is wrong at every viewport but the one it was measured at.
+  //
+  // It costs nothing once rendered: the same trace measured the finished page
+  // at 2,721px against an 823px viewport, so real content clears this floor by
+  // more than triple and the rule stops applying. It is a floor for the empty
+  // state only.
+  //
+  // This reserves space; it does not make the checkout render sooner. That is
+  // the separate, larger job of cutting the module count this page requires.
+  min-height: 100vh;
+
   display: grid;
   // 816 / 624 of the 1440 frame, as fractions so the columns keep their
   // proportion at every width between the breakpoint and the frame.

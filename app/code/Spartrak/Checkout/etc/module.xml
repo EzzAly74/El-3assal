@@ -42,6 +42,17 @@
                  storefront's address forms share. Same hard requirement as
                  PickupLocation above — DI has to resolve the class. -->
             <module name="Spartrak_CustomerAddress"/>
+            <!-- The three payment integrations whose checkout components
+                 Block\Checkout\StripInactivePaymentComponents removes, and
+                 whose minicart banner view/frontend/layout/default.xml
+                 disables. Layout and jsLayout both merge in module load order,
+                 so ours has to be merged after theirs or there is no node to
+                 act on. Soft dependencies: `sequence` orders modules that are
+                 present and is satisfied by their absence, so disabling any of
+                 them stays a supported thing to do. -->
+            <module name="Magento_Paypal"/>
+            <module name="Magento_PaymentServicesPaypal"/>
+            <module name="PayPal_Braintree"/>
         </sequence>
     </module>
 </config>

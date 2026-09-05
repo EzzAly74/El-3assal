@@ -156,14 +156,23 @@ class Resizer
      * de-duplicated, so a small upload yields one candidate rather than three
      * identical ones.
      *
+     * @param string $imageUrl the URL the caller already resolved, e.g. from
+     *                          `Category::getImageUrl()` — see mediaPath() for
+     *                          why a URL and not a path
      * @param int[] $widths candidate widths, in CSS pixels
      * @param int $defaultWidth the width `src` should point at — the desktop
      *                          layout size, so a browser that ignores srcset
      *                          gets the right file rather than the largest
      * @return array{url: string, srcset: string, width: int, height: int}|null
      */
-    public function responsive(string $mediaRelativePath, array $widths, int $defaultWidth): ?array
+    public function responsive(string $imageUrl, array $widths, int $defaultWidth): ?array
     {
+        $mediaRelativePath = $this->mediaPath($imageUrl);
+
+        if ($mediaRelativePath === '') {
+            return null;
+        }
+
         $default = $this->variant($mediaRelativePath, $defaultWidth, self::UNBOUNDED);
 
         if ($default === null) {
@@ -198,17 +207,76 @@ class Resizer
     }
 
     /**
-     * The media-relative path behind a category's `image` attribute value.
+     * The path under pub/media that a media URL points at.
      *
-     * Mirrors `Magento\Catalog\Model\Category::getImageUrl()`, which prefixes
-     * exactly this path onto the raw attribute value. Kept here so callers
-     * hand this class a path rather than un-picking a URL they just built.
+     * ===========================================================================
+     * WHY A URL IS THE INPUT, AND NOT THE ATTRIBUTE VALUE
+     * ===========================================================================
+     * The first version of this took the raw `image` attribute value and put
+     * `catalog/category/` in front of it, mirroring what
+     * `Magento\Catalog\Model\Category::getImageUrl()` appears to do. It
+     * produced nothing on this storefront, silently, and the reason is in
+     * core at Category.php line 676:
+     *
+     *     $isRelativeUrl = substr($image, 0, 1) === '/';
+     *     if ($isRelativeUrl) { $url = $image; }   // returned VERBATIM
+     *
+     * The category image backend model legitimately stores a ROOT-RELATIVE
+     * path on many installs, and this one is such an install: the attribute
+     * holds `/media/catalog/category/<file>.png`. Prefixing it produced
+     * `catalog/category/media/catalog/category/<file>.png`, which does not
+     * exist, so every resize returned null and every tile fell back to the
+     * untouched 782 KB original. Spartrak\Catalog\ViewModel\CategoryImage had
+     * already recorded this exact trap for the URL it builds; the same trap
+     * caught this class from the other direction.
+     *
+     * So the input is the URL the caller ALREADY resolved. That value is the
+     * one thing guaranteed to address the real file under either storage
+     * shape, and turning it back into a path is a subtraction — strip the
+     * store's own media base — rather than a guess.
+     *
+     * @param string $imageUrl absolute, protocol-relative or root-relative
      */
-    public function categoryImagePath(string $imageAttributeValue): string
+    public function mediaPath(string $imageUrl): string
     {
-        $value = trim($imageAttributeValue);
+        $url = trim($imageUrl);
 
-        return $value === '' ? '' : 'catalog/category/' . ltrim($value, '/');
+        if ($url === '') {
+            return '';
+        }
+
+        // Absolute or protocol-relative: keep the path, drop scheme and host.
+        if (preg_match('#^(?:https?:)?//#i', $url) === 1) {
+            $url = (string) parse_url($url, PHP_URL_PATH);
+        } elseif (($query = strpos($url, '?')) !== false) {
+            $url = substr($url, 0, $query);
+        }
+
+        $path = ltrim(rawurldecode($url), '/');
+
+        /*
+         * The store's own media base, so this holds behind a CDN or a
+         * non-default media directory rather than assuming `media/`. The
+         * literal is the fallback for the root-relative case, where there is
+         * no host to match the configured base URL against.
+         */
+        try {
+            $base = ltrim((string) parse_url(
+                $this->storeManager->getStore()->getBaseUrl(UrlInterface::URL_TYPE_MEDIA),
+                PHP_URL_PATH
+            ), '/');
+        } catch (\Exception $exception) {
+            $base = '';
+        }
+
+        foreach (array_filter([$base, 'media/']) as $prefix) {
+            if (str_starts_with($path, $prefix)) {
+                $path = substr($path, strlen($prefix));
+                break;
+            }
+        }
+
+        return $this->normalise($path);
     }
 
     /**
@@ -272,8 +340,38 @@ class Resizer
                 }
             }
 
+            $base = $this->storeManager->getStore()->getBaseUrl(UrlInterface::URL_TYPE_MEDIA);
+
+            /*
+             * A DERIVATIVE THAT IS NOT SMALLER IS NOT A DERIVATIVE.
+             *
+             * Re-encoding is not monotonically a win. The category PNGs go
+             * from 782 KB to 32 KB because a photograph in PNG is the wrong
+             * container; but the hero is ALREADY a well-tuned WebP, and
+             * re-encoding it at its own width measured 141,316 bytes against
+             * the source's 133,508 — 6% heavier for identical pixels.
+             *
+             * Without this guard the widest candidate in every srcset would
+             * be that inflated file, and a retina phone (which picks the
+             * widest) would come out worse off than before any of this
+             * existed. So the bytes are compared and the smaller file wins.
+             * A fallback advertises the SOURCE's own width, which is what it
+             * genuinely is, so the srcset stays truthful and de-duplication
+             * still collapses it against any other candidate of that width.
+             */
+            $derivativeBytes = (int) @filesize($cacheAbs);
+            $sourceBytes = (int) @filesize($sourceAbs);
+
+            if ($derivativeBytes > 0 && $sourceBytes > 0 && $derivativeBytes >= $sourceBytes) {
+                return [
+                    'url' => $base . $source,
+                    'width' => $sourceWidth,
+                    'height' => $sourceHeight,
+                ];
+            }
+
             return [
-                'url' => $this->storeManager->getStore()->getBaseUrl(UrlInterface::URL_TYPE_MEDIA) . $cacheRelative,
+                'url' => $base . $cacheRelative,
                 'width' => $width,
                 'height' => $height,
             ];

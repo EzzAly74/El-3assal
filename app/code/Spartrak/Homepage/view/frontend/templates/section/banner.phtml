@@ -32,6 +32,19 @@
  * nothing to CLS. When they cannot be read — an SVG, say — the CSS
  * aspect-ratio fallback on .spartrak-home-banner__frame reserves it instead.
  *
+ * ===========================================================================
+ * AND HOW BIG THE ONE IT DOWNLOADS IS
+ * ===========================================================================
+ * <picture> settles WHICH file; it says nothing about its size, and Magento
+ * resizes nothing but product images. So the desktop hero was shipping at
+ * 5760x1200 / 204,614 bytes into a 1440x300 box, as the LCP element. The
+ * `w` descriptors below hand that choice to the browser, which has the two
+ * facts the server does not — viewport width and device pixel ratio. The
+ * 1440-wide derivative measures 45,226 bytes.
+ *
+ * `sizes` is not optional with `w` descriptors: without it the browser
+ * assumes 100vw and over-fetches on any box narrower than the viewport.
+ *
  * @var \Spartrak\Homepage\Block\Section\Banner $block
  */
 
@@ -97,12 +110,39 @@ $boxHeightMobile = 220;
                     <picture class="spartrak-home-banner__picture">
                         <?php if ($banner['mobile_url'] !== $banner['desktop_url']) : ?>
                             <source media="<?= $block->escapeHtmlAttr($banner['media']) ?>"
+                                    <?php /*
+                                      srcset carries the CANDIDATES when the
+                                      resizer produced any, and the single
+                                      original when it did not. <source> has no
+                                      src attribute to fall back to, so the one
+                                      value has to serve both cases.
+                                      sizes is 100vw because the mobile frame is
+                                      full-bleed.
+                                    */ ?>
+                                    <?php if ($banner['mobile_srcset'] !== '') : ?>
+                                    srcset="<?= $block->escapeHtmlAttr($banner['mobile_srcset']) ?>"
+                                    sizes="100vw"
+                                    <?php else : ?>
                                     srcset="<?= $block->escapeUrl($banner['mobile_url']) ?>"
+                                    <?php endif; ?>
                                     width="<?= (int) $boxWidthMobile ?>"
                                     height="<?= (int) $boxHeightMobile ?>">
                         <?php endif; ?>
                         <img class="spartrak-home-banner__image"
                              src="<?= $block->escapeUrl($banner['desktop_url']) ?>"
+                             <?php /*
+                               The desktop frame is full-bleed up to the page
+                               measure, so sizes tracks the viewport and then
+                               pins at 1440 - the same cap
+                               .spartrak-home-banner__frame applies.
+                               src stays the original: it is what a browser
+                               without srcset support fetches, and every such
+                               browser predates <picture> anyway.
+                             */ ?>
+                             <?php if ($banner['desktop_srcset'] !== '') : ?>
+                             srcset="<?= $block->escapeHtmlAttr($banner['desktop_srcset']) ?>"
+                             sizes="(max-width: 1440px) 100vw, 1440px"
+                             <?php endif; ?>
                              alt="<?= $block->escapeHtmlAttr($banner['alt']) ?>"
                              width="<?= (int) $boxWidth ?>"
                              height="<?= (int) $boxHeight ?>"

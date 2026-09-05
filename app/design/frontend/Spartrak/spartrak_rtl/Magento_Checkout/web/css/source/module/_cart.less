@@ -139,11 +139,26 @@
                 &:hover {
                   background-color: #31373d;
                 }
-                &::after {
-                  content: '\e8c4';
-                  font-family: 'porto-icons';
-                  padding-left: 1rem;
-                }
+                // REMOVED: Porto's `content: '\e8c4'` arrow in `porto-icons`.
+                //
+                // Figma draws this CTA at 817:22733 as "48 tall, full width,
+                // action/primary, square" with a centred label and NO icon, and
+                // components/_cart.less implements exactly that. Porto's rule
+                // is (0,5,1) against that rule's (0,4,1), so the arrow won and
+                // painted on top of the Spartrak design.
+                //
+                // It also carried the entire icon font with it. Measured on the
+                // live cart: this ONE pseudo-element was the only painted
+                // porto-icons glyph on the page, and it alone pulled
+                // porto-icons.woff2 — 63,140 bytes — because a font is fetched
+                // as soon as a single rendered box needs one glyph from it.
+                //
+                // Deleted here rather than reset in the Spartrak component,
+                // which would have meant a sixth class purely to out-specify a
+                // rule this theme does not want at all (CLAUDE.md §9: clean
+                // ownership over specificity wars). This file is a Spartrak
+                // copy of Porto's under app/design/frontend/Spartrak — editing
+                // it touches neither vendor/ nor Porto itself.
             }
             .item {
                 margin-bottom: @indent__m;

@@ -19,7 +19,18 @@
  */
 define([
     'jquery',
-    'jquery/ui'
+    /*
+     * The widget factory ALONE, not the jQuery UI aggregate.
+     *
+     * This asked for 'jquery/ui' and used exactly one thing from it:
+     * $.widget. 'jquery/ui' is the whole library — measured on the live
+     * homepage it resolved to 54 modules and 105,103 bytes, including
+     * datepicker, sortable, resizable, draggable, tabs, dialog, spinner,
+     * jquery-color and all seventeen effects, none of which any Spartrak
+     * component calls. 'jquery/ui-modules/widget' declares ["jquery",
+     * "./version"] and nothing else: 2 files, 4,432 bytes.
+     */
+    'jquery/ui-modules/widget'
 ], function ($) {
     'use strict';
 

@@ -59,7 +59,25 @@
     <!-- /ko -->
 
     <!-- ko if: hasResults() -->
-    <ol class="spartrak-pickup__list" role="radiogroup"
+    <!--
+      NO role="radiogroup" HERE, deliberately.
+
+      It used to carry one, and it was the cause of an axe `listitem` failure
+      on the live checkout: an <li> whose parent has a role other than `list`
+      is no longer a list item to a screen reader, so every depot card lost its
+      position-in-set announcement ("2 of 7").
+
+      The role was redundant to begin with. The inputs below all share
+      `name="spartrak_pickup_location"`, and a set of same-named radios IS a
+      radio group natively — the browser gives it arrow-key navigation and
+      roving focus without being told. CLAUDE.md section 15 is explicit that
+      ARIA fills genuine gaps and never substitutes for correct markup; this
+      was ARIA overwriting correct markup with something worse.
+
+      aria-label stays. A list may legitimately carry an accessible name, and
+      "Branches"/"Depots" is what names this one.
+    -->
+    <ol class="spartrak-pickup__list"
         attr="{ 'aria-label': isBranch() ? $t('Branches') : $t('Depots') }">
 
         <!-- ko foreach: { data: isBranch() ? branches : visibleDepots(), as: 'location' } -->

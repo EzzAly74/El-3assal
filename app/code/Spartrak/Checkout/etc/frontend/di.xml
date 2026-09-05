@@ -114,4 +114,31 @@
                 type="Spartrak\Checkout\Plugin\Checkout\CartItemViewModels"/>
     </type>
 
+    <!--
+      ===================================================================
+      PAYMENT COMPONENTS FOR METHODS THAT ARE SWITCHED OFF
+      ===================================================================
+      Magento_Checkout's own extension point, and the reason it is the right
+      one: `layoutProcessors` runs inside Block\Onepage AFTER every module has
+      merged its jsLayout, so the processor sees the finished tree and can
+      remove from it whatever payment configuration does not justify.
+
+      Frontend-only, like everything else in this file. The admin's order
+      -create screen builds its payment form from a different block entirely
+      and must keep every method an agent might take over the phone.
+
+      A processor rather than `componentDisabled` in layout XML on purpose —
+      the class header sets out why an assertion that "PayPal is never on"
+      would become a trap the first time somebody switches PayPal on.
+    -->
+    <type name="Magento\Checkout\Block\Onepage">
+        <arguments>
+            <argument name="layoutProcessors" xsi:type="array">
+                <item name="spartrak_strip_inactive_payment_components" xsi:type="object">
+                    Spartrak\Checkout\Block\Checkout\StripInactivePaymentComponents
+                </item>
+            </argument>
+        </arguments>
+    </type>
+
 </config>

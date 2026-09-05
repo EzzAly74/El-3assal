@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Spartrak checkout — the minicart's PayPal Pay Later banner, switched off.
+ *
+ * ===========================================================================
+ * WHAT THIS ONE COMPONENT COSTS, MEASURED
+ * ===========================================================================
+ * PayPal_Braintree registers `js/messages/mini-cart` against the MINICART, in
+ * its own view/frontend/layout/default.xml. The minicart is in the site
+ * header, so `default` means every page of the storefront — the homepage, every
+ * category, every product, the cart and the checkout.
+ *
+ * It is not one file. The chain measured on the live storefront is:
+ *
+ *     messages/mini-cart  ->  messages/paylater  ->  helper/add-script
+ *                                                        |
+ *                                                        v
+ *                              js.braintreegateway.com/web/3.112.0/js/client.min.js
+ *                              js.braintreegateway.com/web/3.112.0/js/paypal-checkout.min.js
+ *
+ * On the Arabic checkout that last step transferred 29,977 bytes from a THIRD
+ * PARTY ORIGIN — a fresh DNS lookup, TLS handshake and connection, off the
+ * critical path's own host, for 45,963 + 63,713 bytes of script to parse and
+ * compile. The three local files add ~4.4 KB on top, on every page.
+ *
+ * ===========================================================================
+ * WHY IT RENDERS NOTHING
+ * ===========================================================================
+ * The banner advertises PayPal Pay Later ("pay in 4 instalments"). Two things
+ * have to be true for it to appear and neither is:
+ *
+ *   1. Braintree has to be configured. `window.checkoutConfig` reports
+ *      "paymentMethods": [] — no active payment method at all, Braintree
+ *      included.
+ *   2. Pay Later has to be offered in the store's currency. This storefront
+ *      trades in EGP from EG (`base_currency_code: "EGP"`,
+ *      `originCountryCode: "EG"`), and PayPal does not offer Pay Later there.
+ *
+ * ===========================================================================
+ * WHY THIS ONE IS LAYOUT XML AND THE CHECKOUT ONES ARE NOT
+ * ===========================================================================
+ * Block\Checkout\StripInactivePaymentComponents removes the checkout's payment
+ * components by asking payment configuration at render time, so switching a
+ * method on in Admin brings its components straight back. That processor is a
+ * Magento_Checkout extension point and reaches only the checkout's jsLayout —
+ * the minicart is a different block, built by Magento\Checkout\Block\Cart\Sidebar.
+ *
+ * So this one is asserted rather than derived, and the trade-off is worth
+ * stating plainly: if Braintree is ever configured for a market where Pay Later
+ * IS available, PAYMENTS WILL STILL WORK — this removes promotional messaging,
+ * not a payment method. Restoring the banner is deleting this file.
+ *
+ * `componentDisabled` rather than a redeclared node: the renderer drops the
+ * node before instantiating it (Magento_Ui/js/core/renderer/layout.js line 291,
+ * and again in filterDisabledChildren), so RequireJS is never asked for the
+ * module and the chain above never starts. Nothing in vendor/ is touched.
+ */
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="minicart">
+            <arguments>
+                <argument name="jsLayout" xsi:type="array">
+                    <item name="components" xsi:type="array">
+                        <item name="minicart_content" xsi:type="array">
+                            <item name="children" xsi:type="array">
+                                <item name="extra_info" xsi:type="array">
+                                    <item name="children" xsi:type="array">
+                                        <item name="paypal_braintree_message" xsi:type="array">
+                                            <item name="config" xsi:type="array">
+                                                <item name="componentDisabled" xsi:type="boolean">true</item>
+                                            </item>
+                                        </item>
+                                    </item>
+                                </item>
+                            </item>
+                        </item>
+                    </item>
+                </argument>
+            </arguments>
+        </referenceBlock>
+    </body>
+</page>

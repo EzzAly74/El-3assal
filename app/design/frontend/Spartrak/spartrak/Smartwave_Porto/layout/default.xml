@@ -176,6 +176,12 @@
                   desktop 32.9KB, a net saving on the smaller connection.
                 -->
                 <argument name="compact_logo_src" xsi:type="string">images/spartrak-logo-compact.png</argument>
+                <!-- The lossless WebP of the line above, 13,370 B against its
+                     19,768. Declared beside it rather than derived in the
+                     template so the two can only ever be changed together —
+                     a <source> whose URL 404s renders nothing, it does not
+                     fall through to the next candidate. -->
+                <argument name="compact_logo_webp_src" xsi:type="string">images/spartrak-logo-compact.webp</argument>
             </arguments>
         </referenceBlock>
 
