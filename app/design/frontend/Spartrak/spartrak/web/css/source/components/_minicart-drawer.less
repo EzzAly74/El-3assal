@@ -895,6 +895,40 @@ body.spartrak-minicart-open::after {
   pointer-events: none;
 }
 
+// ===========================================================================
+// AND THE HEADER HAS TO JOIN THE DRAWER ABOVE IT
+// ===========================================================================
+// The two rules above read as scrim 999, drawer 1000 — scrim underneath. That
+// is true on desktop and it was FALSE on mobile, where the scrim covered the
+// open drawer and dimmed the whole panel.
+//
+// The drawer is markup inside <header>, and components/_utility-header.less
+// gives that header `position: sticky` with `z-index: @spartrak-header-sticky-z`
+// (50) below 768px, so the shopper keeps search and the cart while scrolling.
+// A positioned element with a z-index CREATES A STACKING CONTEXT, so from that
+// point the drawer's 1000 is only a rank AMONG THE HEADER'S OWN CHILDREN. In
+// the root context the drawer is not at 1000 at all — it is wherever its
+// header is, at 50. The scrim sits on body::after at 999, in that same root
+// context, and 999 beats 50.
+//
+// Hence mobile-only: the desktop header is not positioned, no stacking context
+// is formed, and the drawer's 1000 competes with the scrim directly as written.
+//
+// The fix is to lift the header itself, not the drawer — a child cannot escape
+// its parent's stacking context, so raising the drawer further would change
+// nothing. 1000 rather than 1001 keeps the scale honest: while the drawer is
+// open the header IS the drawer layer, sitting above the scrim at 999 and
+// still below @spartrak-modal-z (1100), so an authentication modal opened from
+// the drawer continues to cover both.
+//
+// Scoped to the open state, so the header returns to 50 the moment the drawer
+// closes and the sticky behaviour is otherwise untouched. No media query is
+// needed: on desktop the header is not positioned, and z-index on a static
+// element has no effect.
+body.spartrak-minicart-open .spartrak-header {
+  z-index: 1000;
+}
+
 @keyframes spartrak-minicart-scrim {
   from {
     opacity: 0;
