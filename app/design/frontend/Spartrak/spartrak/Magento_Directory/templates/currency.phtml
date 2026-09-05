@@ -1,0 +1,72 @@
+<?php
+/**
+ * Copyright © ElAssal for Trading & Supply. All rights reserved.
+ *
+ * Currency switcher — same disclosure conversion as the language switcher.
+ *
+ * ===========================================================================
+ * WHY THIS FILE EXISTS EVEN THOUGH THE CONTROL DOES NOT CURRENTLY RENDER
+ * ===========================================================================
+ * The store trades in EGP alone (`base_currency_code: "EGP"`,
+ * `originCountryCode: "EG"` in window.checkoutConfig), and Porto's template
+ * guards itself on `getCurrencyCount() > 1`, so this markup is not on the
+ * page today — the Lighthouse waterfall shows no currency control.
+ *
+ * It is converted anyway, and that is the point: Porto's copy carries the same
+ * `data-mage-init='{"dropdownDialog": ... }'` as the language switcher. Left
+ * alone, the day somebody enables a second currency in Admin, the entire
+ * jQuery UI dialog tree — 10 modules, 25,915 transferred bytes, 97,819 parsed
+ * — silently comes back to every page, and the regression would look like it
+ * came from the currency setting rather than from a template.
+ *
+ * Converting it now costs one file and makes the removal hold under a
+ * configuration change nobody would think to re-measure. See
+ * Magento_Store/templates/switch/languages.phtml for the full reasoning and
+ * web/js/spartrak-disclosure.js for the light-dismiss behaviour.
+ *
+ * The `porto_settings/header/currency_short` branch is preserved exactly:
+ * unlike the language flags, that one has a visible effect Figma does not
+ * contradict, and it is not this pass's business to change it.
+ *
+ * @var \Magento\Directory\Block\Currency $block
+ */
+?>
+<?php if ($block->getCurrencyCount() > 1) : ?>
+    <?php
+    $currencies = $block->getCurrencies();
+    $currentCurrencyCode = $block->getCurrentCurrencyCode();
+    $id = $block->getIdModifier() ? '-' . $block->getIdModifier() : '';
+    $shortLabel = (bool) $this->helper(\Smartwave\Porto\Helper\Data::class)
+        ->getConfig('porto_settings/header/currency_short');
+    ?>
+    <div class="switcher currency switcher-currency"
+         id="switcher-currency<?= $block->escapeHtmlAttr($id) ?>">
+        <strong class="label switcher-label"><span><?= $block->escapeHtml(__('Currency')) ?></span></strong>
+        <details class="actions dropdown options switcher-options"
+                 data-mage-init='{"spartrakDisclosure":{}}'>
+            <summary class="action toggle switcher-trigger"
+                     id="switcher-currency-trigger<?= $block->escapeHtmlAttr($id) ?>">
+                <strong class="language-<?= $block->escapeHtmlAttr($currentCurrencyCode) ?>">
+                    <span>
+                        <?= $block->escapeHtml($currentCurrencyCode) ?>
+                        <?php if (!$shortLabel && isset($currencies[$currentCurrencyCode])) : ?>
+                            - <?= $block->escapeHtml($currencies[$currentCurrencyCode]) ?>
+                        <?php endif; ?>
+                    </span>
+                </strong>
+            </summary>
+            <ul class="dropdown switcher-dropdown">
+                <?php foreach ($currencies as $_code => $_name) : ?>
+                    <?php if ($_code != $currentCurrencyCode) : ?>
+                        <li class="currency-<?= $block->escapeHtmlAttr($_code) ?> switcher-option">
+                            <?php /* @noEscape: block-built JSON, read back by mage/dataPost with JSON.parse(). */ ?>
+                            <a href="#" data-post='<?= /* @noEscape */ $block->getSwitchCurrencyPostData($_code) ?>'>
+                                <?= $block->escapeHtml($_code) ?> - <?= $block->escapeHtml($_name) ?>
+                            </a>
+                        </li>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </ul>
+        </details>
+    </div>
+<?php endif; ?>

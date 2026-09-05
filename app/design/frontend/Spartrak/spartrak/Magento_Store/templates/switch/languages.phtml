@@ -1,0 +1,106 @@
+<?php
+/**
+ * Copyright © ElAssal for Trading & Supply. All rights reserved.
+ *
+ * Language switcher — Figma node 595:14481 (globe + store name + chevron).
+ *
+ * ===========================================================================
+ * WHY THIS OVERRIDE EXISTS
+ * ===========================================================================
+ * Porto's copy of this template opens the panel with
+ *
+ *     data-mage-init='{"dropdownDialog": ... }'
+ *
+ * and `dropdownDialog` is `mage/dropdown`, whose first dependency is
+ * `jquery-ui-modules/dialog`. Measured on the live Arabic checkout
+ * (Lighthouse, 2026-09-05, incognito) that one attribute pulled TEN modules,
+ * 25,915 transferred bytes and 97,819 parsed bytes of draggable/resizable
+ * modal-dialog machinery — to show a list of two store views. The two flag
+ * PNGs it also requested (`wysiwyg/smartwave/porto/flags/ar.png`, `en.png`,
+ * parser-discovered at 1,143 ms) are proof it renders on checkout, where
+ * Spartrak has otherwise already stripped the header down.
+ *
+ * `<details>`/`<summary>` is the HTML element for a disclosure. It carries the
+ * open/close state, the click and Enter/Space handling, the focusability and
+ * the implicit `aria-expanded` itself, in every browser since 2020, and it
+ * still works with JavaScript off. Only LIGHT DISMISS — close on outside click
+ * or Escape, which `dropdownDialog` did by default — needs script, and
+ * web/js/spartrak-disclosure.js is ~30 lines of dependency-free DOM for it.
+ *
+ * This is also an accessibility fix. Porto's trigger is a bare
+ * `<div class="action toggle">` with no tabindex and no role: the control
+ * could not be reached or operated from the keyboard at all. `<summary>` is
+ * natively focusable and operable (CLAUDE.md section 15).
+ *
+ * ===========================================================================
+ * WHAT IS DELIBERATELY NOT CARRIED OVER
+ * ===========================================================================
+ * THE FLAGS. Porto renders a flag <img> beside the store name in the trigger
+ * and beside every option, gated on `porto_settings/header/language_flag`.
+ * Figma's control is globe + store name + chevron, with no flag, and
+ * components/_support-strip.less already hid them with `.switcher img
+ * { display: none }`. Hidden is not free: both PNGs were still downloaded on
+ * every page. They are not emitted at all now. That LESS rule is kept as a
+ * safety net for any other switcher template Porto may render.
+ *
+ * THE `$is_demo` BRANCH. Porto ships a hardcoded `$is_demo = 0` and a dead
+ * "Add More" French option behind it. Dead code, dropped.
+ *
+ * ===========================================================================
+ * WHY `data-post` AND NOT CORE'S `getViewModel()`
+ * ===========================================================================
+ * Magento 2.4.8's own copy of this template builds a plain `<a href>` from
+ * `$block->getViewModel()->getTargetStoreRedirectUrl($_lang)`. That is the
+ * better markup — but the block instance this template renders for is
+ * declared in Spartrak's Smartwave_Porto/layout/default.xml with NO view model
+ * argument, and calling getViewModel() on it fatals with "Call to a member
+ * function getTargetStoreRedirectUrl() on null" on every page. That exact
+ * failure was shipped and reverted on 2026-08-24; see the note at the head of
+ * components/_support-strip.less. The POST payload is what this block instance
+ * supports, so the POST payload is what stays.
+ *
+ * @var \Magento\Store\Block\Switcher $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+?>
+<?php if (count($block->getStores()) > 1) : ?>
+    <?php $id = $block->getIdModifier() ? '-' . $block->getIdModifier() : ''; ?>
+    <div class="switcher language switcher-language"
+         data-ui-id="language-switcher"
+         id="switcher-language<?= $block->escapeHtmlAttr($id) ?>">
+        <strong class="label switcher-label"><span><?= $block->escapeHtml(__('Language')) ?></span></strong>
+        <?php /*
+          The classes are Porto's and Magento's, unchanged, because
+          components/_support-strip.less and Porto's own stylesheet both hang
+          off them. Only the ELEMENT changes: <div> to <details>, and the
+          trigger <div> to <summary>.
+        */ ?>
+        <details class="actions dropdown options switcher-options"
+                 data-mage-init='{"spartrakDisclosure":{}}'>
+            <summary class="action toggle switcher-trigger"
+                     id="switcher-language-trigger<?= $block->escapeHtmlAttr($id) ?>">
+                <strong class="view-<?= $block->escapeHtmlAttr($block->getCurrentStoreCode()) ?>">
+                    <span><?= $block->escapeHtml($block->getStoreName()) ?></span>
+                </strong>
+            </summary>
+            <ul class="dropdown switcher-dropdown">
+                <?php foreach ($block->getStores() as $_lang) : ?>
+                    <?php if ($_lang->getId() != $block->getCurrentStoreId()) : ?>
+                        <li class="view-<?= $block->escapeHtmlAttr($_lang->getCode()) ?> switcher-option">
+                            <?php /*
+                              @noEscape: getTargetStorePostData() returns a
+                              JSON payload the block itself builds and encodes,
+                              and mage/dataPost reads it back with
+                              JSON.parse(). Escaping it here is what Magento
+                              core does not do either, in this same template.
+                            */ ?>
+                            <a href="#" data-post='<?= /* @noEscape */ $block->getTargetStorePostData($_lang) ?>'>
+                                <?= $block->escapeHtml($_lang->getName()) ?>
+                            </a>
+                        </li>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </ul>
+        </details>
+    </div>
+<?php endif; ?>

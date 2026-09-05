@@ -22,7 +22,12 @@ var config = {
             spartrakQuickSearch: 'js/spartrak-quick-search',
             spartrakToast: 'js/spartrak-toast',
             spartrakCartQty: 'js/spartrak-cart-qty',
-            spartrakReviewDialog: 'js/spartrak-review-dialog'
+            spartrakReviewDialog: 'js/spartrak-review-dialog',
+            // Native <details> disclosure + light dismiss. Replaces Magento's
+            // dropdownDialog on the language and currency switchers, which pulled
+            // the whole jQuery UI dialog tree (10 modules, 97,819 parsed bytes)
+            // to open a two-item list. See js/spartrak-disclosure.js.
+            spartrakDisclosure: 'js/spartrak-disclosure'
         }
     },
     /*

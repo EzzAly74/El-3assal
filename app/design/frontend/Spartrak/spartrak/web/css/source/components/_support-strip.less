@@ -280,13 +280,20 @@
     // in both directions: in RTL the control sits toward the left of the
     // strip's Options cluster, and an inline-start anchor would push the panel
     // off-canvas.
-    // Magento's dropdownDialog widget WRAPS the <ul> in a
-    // `.mage-dropdown-dialog` div and runs with `autoPosition: false`, so
-    // nothing positions that wrapper — it is a plain in-flow block. Both it
-    // and the bare list are pulled out of flow here, so the strip's layout is
-    // identical open or closed no matter which of the two the widget ends up
-    // showing (and it still works if the widget never initialises).
-    .mage-dropdown-dialog,
+    // The panel is out of flow so that opening it changes nothing about the
+    // strip's row.
+    //
+    // QA FIX (2026-08-25) — this rule once set no `position`, so the panel
+    // opened IN FLOW: inside a `flex-wrap: wrap` row that made it a flex item
+    // of its own, wrapping to a new line, growing the strip's height and
+    // shoving every sibling around. That was the "layout not arranged"
+    // symptom, and it is why the `position` here is load-bearing.
+    //
+    // Anchored to .switcher-options (position: relative, above) at the inline
+    // END so the panel hangs under the control and stays inside the viewport
+    // in both directions: in RTL the control sits toward the left of the
+    // strip's Options cluster, and an inline-start anchor would push the panel
+    // off-canvas.
     .switcher-dropdown {
         position: absolute;
         inset-inline-end: 0;
@@ -294,37 +301,50 @@
         z-index: 40;
     }
 
-    // When the wrapper IS present it owns the placement, so the list inside it
-    // must not try to position itself a second time.
-    .mage-dropdown-dialog .switcher-dropdown {
-        position: static;
-        top: auto;
+    // -----------------------------------------------------------------------
+    // HIDING IT IS NOW THE BROWSER'S JOB
+    // -----------------------------------------------------------------------
+    // Two rules that used to live here are gone rather than left "just in
+    // case", because nothing can match them any more:
+    //
+    //     .mage-dropdown-dialog { ... }                     the widget wrapper
+    //     .switcher-dropdown:not(.ui-dialog-content) { display: none; }
+    //
+    // Both existed to work around Magento's `dropdownDialog`: it wrapped the
+    // <ul> in a `.mage-dropdown-dialog` div, and nothing hid the panel until
+    // its JavaScript arrived — so the language panel painted OPEN on every
+    // page load and closed itself a moment later. A shopper saw that every
+    // single time.
+    //
+    // Magento_Store/templates/switch/languages.phtml now renders the control
+    // as <details>/<summary>, so the panel is closed by the user agent from
+    // the first byte of HTML, before any stylesheet or script is involved.
+    // There is no flash to suppress and no wrapper to position, and the
+    // control now works with JavaScript switched off instead of merely
+    // *looking* open. web/js/spartrak-disclosure.js adds only the two things
+    // <details> has no native answer for — close on outside click, and Escape.
+
+    // <summary> defaults to `display: list-item`, which would draw a
+    // disclosure triangle beside Figma's globe. The `display: flex` on
+    // .switcher-trigger above already removes it in Chrome and Firefox;
+    // WebKit needs its own pseudo-element switched off as well.
+    .switcher-trigger {
+        list-style: none;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+
+        &::marker {
+            content: '';
+        }
     }
 
-    // -----------------------------------------------------------------------
-    // AND IT IS NOT ON SCREEN UNTIL THAT WRAPPER EXISTS
-    // -----------------------------------------------------------------------
-    // MEASURED on the live store: the language panel painted open on every
-    // page load and closed itself once the JS arrived.
-    //
-    // Nothing in CSS was hiding it. Magento's own `display: none` for a
-    // switcher panel is written as `.page-header .switcher .options ul.dropdown`
-    // and this panel lives in the support strip, not the page header, so that
-    // rule never matched it. What hides it after init is the `.ui-dialog`
-    // wrapper the widget builds, carrying an inline `display: none`.
-    //
-    // `.ui-dialog-content` is stamped on the list in the same synchronous step
-    // that builds the wrapper, so it is an exact test for "the widget has
-    // taken this over". Same guard as the cart drawer's — see the head of
-    // components/_minicart-drawer.less for the full finding.
-    //
-    // The cost is that with JavaScript disabled the panel is now unreachable
-    // rather than permanently open. That is the correct trade here: opening it
-    // already required a click handler, so it was never operable without JS —
-    // it was only ever *visible* — and a panel hanging open over the page on
-    // every single load is a defect a shopper sees every time.
-    .switcher-dropdown:not(.ui-dialog-content) {
-        display: none;
+    // Chevron down when closed, up when open. Figma draws no open state for
+    // this control, so the feedback is taken from the icon already present
+    // rather than by inventing decoration (CLAUDE.md section 3).
+    .switcher-options[open] > .switcher-trigger:after {
+        transform: rotate(180deg);
     }
 
     .switcher-dropdown {
