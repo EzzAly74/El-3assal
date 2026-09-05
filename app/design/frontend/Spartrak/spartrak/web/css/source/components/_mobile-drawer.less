@@ -334,9 +334,14 @@ body.spartrak-drawer-open {
 .spartrak-mobile-drawer__account-list {
   display: flex;
   flex-direction: column;
-  // Figma's gap is 6, and the dashed rule below sits inside each row's own
-  // border-block-end — so the visual 12px between two labels is 6 + 6 with
-  // the line centred between them, which is how the mock measures.
+  // Node 645:39380 measured row by row: the 48px rows start at y=0 and y=60,
+  // and the divider between them is at y=54. So the rhythm is 6px of row,
+  // the rule, 6px, next row — NOT a 6px gap with the rule flush against the
+  // row above, which is what this drew before and what put every hairline
+  // 6px too high.
+  //
+  // The 6px below the rule is this gap; the 6px above it is the row's own
+  // padding-block-end, below.
   gap: 6px;
   margin: 0;
   padding: 0;
@@ -373,9 +378,12 @@ body.spartrak-drawer-open {
 // `to right` rather than a logical direction: a horizontal dotted rule is
 // identical mirrored, so there is nothing for direction to change — and CSS
 // gradients have no logical keyword to use instead.
-.spartrak-mobile-drawer__account-list
-  li:not(:last-child)
-  .spartrak-mobile-drawer__account-link {
+//
+// On the LI and not the link: the rule belongs to the space BETWEEN two rows,
+// so it cannot live on the bottom edge of a 48px row that Figma ends 6px
+// above it. The padding is that 6px.
+.spartrak-mobile-drawer__account-list li:not(:last-child) {
+  padding-block-end: 6px;
   background-image: repeating-linear-gradient(
     to right,
     var(--color-border-default) 0,
@@ -411,7 +419,11 @@ body.spartrak-drawer-open {
 // near-identical files.
 .spartrak-mobile-drawer__account-icon {
   .spartrak-icon("account-user.svg"; 24px; currentColor);
-  color: var(--color-icon-default);
+  // icon/muted #6d6c79, read off node 645:39380's own variable bindings —
+  // NOT icon/default #1a144f, which is what this painted and what made every
+  // row read as a different colour against its #555463 label. Figma gives the
+  // glyph and the label the same weight here; only تسجيل الخروج diverges.
+  color: var(--color-icon-muted);
 
   &--orders {
     -webkit-mask-image: url("../images/icons/account-orders.svg");

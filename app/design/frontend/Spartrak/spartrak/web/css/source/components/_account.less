@@ -759,33 +759,52 @@
     }
 
     // -------------------------------------------------------------------
-    // ONLY THE MULTI-BUTTON HEADERS STACK
+    // ONLY A ROW OF DECISIONS STACKS
     // -------------------------------------------------------------------
-    // The edit state does (689:33229: heading, then حفظ التغييرات and
-    // الغاء side by side across the full width), and so does the address
-    // book's single navy CTA.
+    // The edit state does: 689:33229 puts حفظ التغييرات and الغاء on
+    // their own line below the heading, and each is EXACTLY half the card —
+    // measured off the render at 184px apiece inside a 384px content box
+    // with the 16px gap between them. That is what `flex: 1 1 0` below is
+    // for, and it is right.
     //
     // The READ state does not. 689:19897 keeps تعديل as the same 78x32
     // chip beside the heading that 562:10229 draws — which is what the
     // blanket `flex-direction: column` here used to override, stretching
     // a 78px chip across a 408px card.
     //
+    // AND NEITHER DOES THE ADDRESS BOOK'S CTA. This block used to stack that
+    // too, on the assumption that a navy button is a row of decisions. Node
+    // 690:39091 says otherwise: اضافة عنوان جديد is a 145x40 button at
+    // x=12 in a 79px header, beside a 231px heading block — the same
+    // side-by-side shape as the read state, just with a primary button in
+    // place of the quiet chip. 145 + 8 + 231 is the 384px content box
+    // exactly, which is why the pair fits without wrapping.
+    //
+    // The two bugs that came from stacking it were one cause. Widened to the
+    // full card it also became a flex item in a COLUMN, where `flex: 1 1 0`
+    // sets the basis on the BLOCK axis — so `block-size: 40px` stopped
+    // applying and the button collapsed to its content height. A 40px
+    // primary CTA rendered as a ~24px navy strip.
+    //
     // Selected by what the header CONTAINS rather than by a page-specific
-    // class, because the distinction being drawn is exactly that: one
-    // quiet chip sits beside the heading, a row of decisions gets its own
-    // line. A new card inherits the right one from its own markup.
-    &__header:has(&__actions),
-    &__header:has(&__cta) {
+    // class, because the distinction being drawn is exactly that: a single
+    // control sits beside the heading, a row of decisions gets its own line.
+    // A new card inherits the right one from its own markup.
+    &__header:has(&__actions) {
       flex-direction: column;
       align-items: stretch;
       gap: 16px;
     }
 
-    &__cta,
+    // `fit-content` rather than 0 for the floor, so a longer label — the
+    // English store view's, or a future one — takes the width it needs
+    // instead of wrapping inside a 40px button. At the Arabic labels Figma
+    // draws, both fit in half and this changes nothing. Full reasoning at
+    // .spartrak-address-form's own pair below, which is where that bug was.
     &__save,
     &__cancel {
       flex: 1 1 0;
-      min-inline-size: 0;
+      min-inline-size: fit-content;
     }
   }
 }
@@ -2805,14 +2824,38 @@
       grid-template-columns: minmax(0, 1fr);
     }
 
+    // Wraps to a second LINE rather than letting a label wrap mid-word. See
+    // the buttons below for when that can happen.
     &__actions {
+      flex-wrap: wrap;
       gap: 16px;
     }
 
+    // NO FIGMA MOBILE FRAME EXISTS FOR THIS DIALOG — 557:5173 is the 800px
+    // desktop one, and its 163px pair is meaningless on a phone. So this is a
+    // documented responsive default, not a measured value.
+    //
+    // `flex: 1 1 0` alone was the default before and it wrapped
+    // "اضف عنوان جديد" onto two lines inside a 48px button: half of the
+    // dialog's inner width is ~150px, the label needs ~118 and the button
+    // spends 48 of it on padding.
+    //
+    // `min-inline-size: fit-content` is what fixes it without giving up the
+    // equal halves the desktop draws:
+    //
+    //   both labels fit in half   →  exactly half each, as designed
+    //   one label needs more      →  it takes its own width, the other takes
+    //                                 the rest — the row still fills, neither
+    //                                 label wraps
+    //   neither pair fits the row →  `flex-wrap` above drops them onto two
+    //                                 full-width lines
+    //
+    // It therefore holds for the English store view too, where "Add a new
+    // address" is longer again, and at any width without a second breakpoint.
     &__save,
     &__cancel {
       flex: 1 1 0;
-      min-inline-size: 0;
+      min-inline-size: fit-content;
     }
   }
 }
