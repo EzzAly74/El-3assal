@@ -96,7 +96,15 @@
         </span>
     </a>
 
-    <?php if ($block->getIsNeedToDisplaySideBar()) : ?>
+    <?php /* The second condition is Spartrak's, set as a layout argument by
+             Spartrak/Checkout/view/frontend/layout/checkout_index_index.xml.
+             It has to live here and not only in jsLayout: mage/apply/main
+             resolves the data-mage-init below at runtime, so the drawer
+             markup alone is enough to pull mage/dropdown and the whole
+             jQuery UI dialog tree even when no component asks for it.
+             Absent the argument this is a plain false, so every other page
+             keeps core's behaviour untouched. */ ?>
+    <?php if ($block->getIsNeedToDisplaySideBar() && !$block->getSpartrakSuppressDrawer()) : ?>
         <div class="block block-minicart empty"
              data-role="dropdownDialog"
              <?php /*

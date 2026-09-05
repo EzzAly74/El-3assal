@@ -47,6 +47,69 @@
     <body>
         <referenceBlock name="spartrak.primary_nav" remove="true"/>
 
+        <!--
+          THE MINICART DRAWER, OFF ON THIS PAGE ONLY.
+
+          The badge stays. The drawer goes, and with it the entire jQuery UI
+          dialog tree: Magento_Checkout/js/view/minicart requires 'mage/dropdown'
+          at define time, mage/dropdown extends $.ui.dialog, and that pulled
+          ~121,584 bytes over 13 requests across three serial waterfall layers on
+          the measured Arabic checkout. The drawer is a second, smaller copy of
+          the order summary already on the page.
+
+          Two things are needed to actually stop it loading, because there are
+          two independent requirers:
+
+            1. the component swap below, which removes the define-time
+               dependency, and
+            2. the guard in Magento_Checkout::cart/minicart.phtml, which stops
+               the drawer's data-mage-init="dropdownDialog" from rendering.
+               mage/apply/main resolves that attribute at runtime, so leaving
+               the markup in place would re-fetch mage/dropdown even with the
+               component gone. `spartrak_suppress_drawer` below is what that
+               guard reads.
+
+          The children are disabled rather than removed so the node names stay
+          visible here: subtotal, promotion and the item renderers only ever
+          paint inside the drawer, and extra_info is where PayPal_Braintree
+          injects its Pay Later banner (already switched off site-wide in this
+          module's default.xml — this disables the whole branch on checkout).
+        -->
+        <referenceBlock name="minicart">
+            <arguments>
+                <argument name="spartrak_suppress_drawer" xsi:type="boolean">true</argument>
+                <argument name="jsLayout" xsi:type="array">
+                    <item name="components" xsi:type="array">
+                        <item name="minicart_content" xsi:type="array">
+                            <item name="component" xsi:type="string">Spartrak_Checkout/js/view/minicart-counter</item>
+                            <item name="children" xsi:type="array">
+                                <item name="subtotal.container" xsi:type="array">
+                                    <item name="config" xsi:type="array">
+                                        <item name="componentDisabled" xsi:type="boolean">true</item>
+                                    </item>
+                                </item>
+                                <item name="extra_info" xsi:type="array">
+                                    <item name="config" xsi:type="array">
+                                        <item name="componentDisabled" xsi:type="boolean">true</item>
+                                    </item>
+                                </item>
+                                <item name="promotion" xsi:type="array">
+                                    <item name="config" xsi:type="array">
+                                        <item name="componentDisabled" xsi:type="boolean">true</item>
+                                    </item>
+                                </item>
+                                <item name="item.renderer" xsi:type="array">
+                                    <item name="config" xsi:type="array">
+                                        <item name="componentDisabled" xsi:type="boolean">true</item>
+                                    </item>
+                                </item>
+                            </item>
+                        </item>
+                    </item>
+                </argument>
+            </arguments>
+        </referenceBlock>
+
         <referenceBlock name="checkout.root">
             <arguments>
                 <argument name="jsLayout" xsi:type="array">
