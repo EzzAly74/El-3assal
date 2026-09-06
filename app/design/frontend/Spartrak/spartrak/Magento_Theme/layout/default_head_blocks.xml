@@ -48,23 +48,50 @@
   Smartwave_Dailydeals: its default.xml adds this to every page for a Daily
   Deals surface that does not render on any of them.
 
-  DELIBERATELY KEPT (do not add to this list without re-verifying):
-    - icon-fonts/css/porto-icons-codes.css — 13.1KB. Still genuinely live,
-      and now measured rather than assumed: the PDP renders
-      `porto-icon-right-open` (Porto's prev/next product nav) and
-      `porto-icon-up-dir` / `porto-icon-down-dir` (the qty stepper), and the
-      contact page renders `porto-icon-mail-alt`, `-mobile`, `-phone` and
-      `-skype`. The homepage, category pages and cart render NONE of them.
+  ===========================================================================
+  THIRD PASS, 2026-09-06 — the porto-icons font, removed outright
+  ===========================================================================
+  The note that used to sit here kept porto-icons-codes.css because the PDP
+  and contact page "render seven porto-icon-* classes". They do carry those
+  classes. Six of the seven turned out not to matter, and the rule that DID
+  matter was not among them.
 
-      It cannot simply be page-scoped: `<remove src>` and `<css src>` are not
-      ordered against each other - Page\Config\Structure::processRemoveAssets()
-      runs array_diff_key() once at the end, so a removal in this file beats a
-      re-add on the PDP handle regardless of merge order. Removing it here
-      would take it off the PDP too. The way out is to replace those seven
-      glyphs with Spartrak SVG icons (the same treatment _utility-header.less
-      already gave the minicart trigger), after which this file and the
-      porto-icons woff2 behind it both go.
-    - icon-fonts/css/animation.css — 1.5KB, pairs with the icon font above.
+  Measured on the live site with getComputedStyle over every element and both
+  pseudo-elements, rather than by reading markup:
+
+      PDP  i.porto-icon-up-dir / -down-dir / em.-right-open   box 0x0, NOT rendered
+      PDP  div.reviews-actions:before                         238x24, RENDERED
+      contact  i.porto-icon-phone / -mobile / -mail-alt / -skype  43x43, RENDERED
+      homepage, cart                                          nothing rendered
+
+  The three PDP classes were already collapsed to zero by this theme's own
+  CSS - and the font downloaded on the PDP regardless, pulled by Porto's
+  five-empty-star review placeholder, which nobody had listed. Checkout does
+  the same through a rule still unnamed. That is the point: a glyph does not
+  have to be one we put there, or one we can name, to cost 63,304 bytes.
+
+  So the fix is not a page scope, it is deletion. web/css/source/_icons.less
+  no longer declares the @font-face at all, which makes `font-family:
+  porto-icons` resolve to no font on every page at once, whatever the
+  selector. The five marks measured as visible are re-drawn as Spartrak SVGs
+  in web/css/source/components/_porto-icon-retirement.less.
+
+      icon-fonts/css/porto-icons-codes.css   13.1KB   removed below
+      icon-fonts/css/animation.css            1.5KB   removed below
+      icon-fonts/font/porto-icons.woff2      63.3KB   no longer referenced
+
+  animation.css goes with it. All 85 lines of it are one `.animate-spin` class
+  and the `spin` keyframes behind it. Its only consumers in this codebase are
+  Porto's Smartwave_Porto/templates/ajaxproducts/*.phtml and fancybox's JS,
+  and both write it as `<i class="ajax-loader large animate-spin">` - i.e. it
+  exists to rotate an icon-FONT glyph, which no longer has a glyph to rotate.
+  `animate-spin` appears zero times in the rendered homepage, PDP, contact and
+  cart, and fancybox's own stylesheet was already removed in the second pass
+  above as "styling a lightbox that cannot open".
+
+  This does NOT touch the Spartrak loader: components/_loader.less owns that,
+  it is pure CSS on Spartrak markup, and it shares no class or keyframe name
+  with this file.
 -->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <head>
@@ -75,6 +102,8 @@
         <remove src="fancybox/css/jquery.fancybox.css"/>
         <remove src="Smartwave_Filterproducts::css/owl.carousel/assets/owl.carousel.css"/>
         <remove src="Smartwave_Dailydeals::css/style.css"/>
+        <remove src="icon-fonts/css/porto-icons-codes.css"/>
+        <remove src="icon-fonts/css/animation.css"/>
 
         <css src="css/spartrak-foundations.css"/>
         <css src="css/spartrak-components.css"/>

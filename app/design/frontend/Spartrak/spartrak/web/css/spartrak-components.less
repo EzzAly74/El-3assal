@@ -37,6 +37,13 @@
 // never outrank a Spartrak component on equal specificity.
 @import "source/components/_porto-chrome.less";
 
+// Retirement of the porto-icons font: re-draws the only glyphs measured as
+// visibly rendering, so the 63,304-byte woff2 and its 13.1KB codes stylesheet
+// can be deleted. Imported directly after _porto-chrome.less because it is
+// the same kind of thing — Porto chrome this theme takes ownership of — and
+// because everything below is free to override it.
+@import "source/components/_porto-icon-retirement.less";
+
 // Breadcrumbs. Page chrome rather than a page component, so it sits with
 // _porto-chrome.less above it: that file owns the container widths this
 // component aligns the crumb band to. Global on every page - see the file for

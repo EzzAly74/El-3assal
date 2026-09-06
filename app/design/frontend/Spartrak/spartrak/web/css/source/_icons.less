@@ -1,57 +1,57 @@
-// Spartrak — the icon @font-face, re-declared for one property.
+// Spartrak — the icon @font-face, deleted.
 //
 // ===========================================================================
-// WHY THIS FILE EXISTS AT ALL
+// WHAT THIS FILE OVERRIDES
 // ===========================================================================
-// Magento's blank theme emits the icon font's @font-face with a hardcoded
-// `@font-display: block` (theme-frontend-blank/web/css/source/_icons.less
-// line 12). `_theme.less` points `@icons__font-name` at `porto-icons`, so the
-// face that inherits that `block` is Porto's 63,301-byte icon font.
+// Magento's blank theme emits the icon font's @font-face here
+// (theme-frontend-blank/web/css/source/_icons.less). `_theme.less` points
+// `@icons__font-name` at `porto-icons`, so the face blank declares is Porto's
+// 63,304-byte icon font. `_sources.less` imports `_icons.less` by bare name,
+// so Magento's LESS theme fallback resolves it to THIS file and blank's copy
+// is never read.
 //
-// `font-display: block` means every glyph drawn from that family stays
-// INVISIBLE for the block period and only then paints. Measured on the live
-// Arabic checkout (Lighthouse, 2026-09-05):
-//
-//   porto-icons.woff2   63,301 B   requested at 25,991 ms, arrived 27,360 ms
-//   — the last node of the page's longest critical chain (27,374 ms), and
-//   the single entry in the font-display insight, worth 1,360 ms of FCP.
-//
-// The font is fetched late because it is discovered late: it is reachable
-// only after the merged stylesheet parses AND an element using the family is
-// laid out. Under `block` the icons that depend on it were therefore blank
-// for the whole time, which is part of why Speed Index came back at 40.8 s
-// against a last-visual-change of 33.6 s.
+// It now declares nothing. Deliberately.
 //
 // ===========================================================================
-// THE TRADE-OFF, STATED
+// WHY DELETING THE FACE IS THE FIX, AND font-display WAS NOT
 // ===========================================================================
-// `swap` paints the fallback immediately and exchanges it for the real glyph
-// on arrival. For an icon font that means a brief moment where the private-use
-// codepoints render as nothing (or a notdef box) instead of as blank space.
-// That is a cosmetic flash during load; `block` is a guaranteed multi-second
-// hole. CLAUDE.md section 4 asks for the measurable win where the alternative
-// costs no required feature, and no feature depends on an icon being absent.
+// This file previously re-declared the face with `font-display: swap`, to
+// stop `block` holding the glyphs invisible for seconds. That was a stopgap
+// and said so. It traded a multi-second hole for a flash and still shipped
+// 63,304 bytes.
 //
-// This is a stopgap, and it is worth naming as one: the real fix is to stop
-// shipping a 63 KB icon font for the handful of glyphs this storefront still
-// draws from it, replacing them with the Spartrak SVGs the design system
-// already uses everywhere else. When that lands, this file and the
-// `porto-icons-codes.css` entry in Magento_Theme/layout/default_head_blocks.xml
-// both go, and so does the font.
+// Measured on the live Arabic checkout (Lighthouse, 2026-09-05):
+//
+//   porto-icons.woff2   63,304 B   requested 15,408 ms, arrived 16,561 ms
+//   — the last node of the page's longest critical chain (16,566 ms).
+//
+// The reason the stopgap could not become the fix is that WHICH rule pulls
+// the font is not knowable by reading the markup. The classes an audit can
+// see — porto-icon-up-dir, -down-dir, -right-open on the PDP — were measured
+// at 0x0 and render nothing. The font arrived anyway, via Porto's five-star
+// review placeholder on `.reviews-actions:before`, which no audit had listed.
+// Checkout does the same thing through a rule we still have not named, and do
+// not need to: with no @font-face, `font-family: porto-icons` resolves to no
+// font on every page at once, whatever the selector.
+//
+// The glyphs that were genuinely visible are re-drawn as Spartrak SVGs in
+// components/_porto-icon-retirement.less, which also carries the measurements
+// above in full. `icon-fonts/css/porto-icons-codes.css` and its companion
+// `animation.css` are dropped in Magento_Theme/layout/default_head_blocks.xml.
 //
 // ===========================================================================
-// WHY AN OVERRIDE AND NOT AN EDIT
+// WHY THE FILE STAYS RATHER THAN BEING DELETED
 // ===========================================================================
-// `_sources.less` imports `_icons.less` by bare name, so Magento's LESS theme
-// fallback resolves it here first and blank's copy is never read. Nothing in
-// vendor/ is touched, Porto is untouched, and reverting is deleting one file.
+// Deleting it would hand the import straight back to blank's copy, and the
+// face would return. An empty override is the mechanism, not an oversight —
+// the same reason the file existed before, for a different declaration.
+//
+// `@icons__font-name` in _theme.less is left pointing at `porto-icons`. It is
+// the name of a family that no longer exists, which is precisely what makes
+// every inherited rule that names it a no-op. Repointing it at a real family
+// would make those rules start rendering whatever that family has at those
+// private-use codepoints.
 
 & when (@media-common = true) {
-    .lib-font-face(
-        @family-name: @icons__font-name,
-        @font-path: @icons__font-path,
-        @font-weight: normal,
-        @font-style: normal,
-        @font-display: swap
-    );
+    // No .lib-font-face() call. See above.
 }

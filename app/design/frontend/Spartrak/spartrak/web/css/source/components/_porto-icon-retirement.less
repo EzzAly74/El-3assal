@@ -1,0 +1,155 @@
+// Spartrak component — the last porto-icons glyphs, re-drawn as Spartrak SVGs
+// so the 63 KB icon font can be deleted outright.
+//
+// ===========================================================================
+// WHY THE PREVIOUS AUDIT WAS MEASURING THE WRONG THING
+// ===========================================================================
+// Magento_Theme/layout/default_head_blocks.xml used to keep
+// porto-icons-codes.css on the grounds that "the PDP renders
+// porto-icon-right-open, -up-dir and -down-dir, and the contact page renders
+// -mail-alt, -mobile, -phone and -skype". Those seven classes really are in
+// the markup. Six of the seven were the wrong thing to count.
+//
+// Measured on the live site (getComputedStyle over every element and both
+// pseudo-elements, 2026-09-06):
+//
+//   PDP   i.porto-icon-up-dir         box 0x0    NOT rendered
+//   PDP   i.porto-icon-down-dir       box 0x0    NOT rendered
+//   PDP   em.porto-icon-right-open    box 0x0    NOT rendered
+//   PDP   div.reviews-actions:before  238x24     RENDERED  <- not in the audit
+//   contact  i.porto-icon-phone       43x43      RENDERED
+//   contact  i.porto-icon-mobile      43x43      RENDERED
+//   contact  i.porto-icon-mail-alt    43x43      RENDERED
+//   contact  i.porto-icon-skype       43x43      RENDERED
+//   contact  a.action.showcart:before            NOT rendered
+//   homepage / cart                   nothing rendered, font never requested
+//
+// The three PDP classes are already dead — this theme's own CSS collapsed
+// them to zero — yet the font still downloaded on the PDP, because of a rule
+// nobody had listed: Porto's five-empty-star review placeholder. The same
+// thing happens on checkout, which that audit never covered and where the
+// font also loads.
+//
+// That is the whole lesson, and it is why the fix is architectural rather
+// than a list: a glyph does not have to be one we put there, or one we can
+// name, to cost 63,304 bytes. Deleting the @font-face in web/css/source/
+// _icons.less is what makes the font unfetchable. This file only makes sure
+// the handful of marks that were genuinely visible still appear.
+//
+// ===========================================================================
+// WHAT THIS FILE IS NOT
+// ===========================================================================
+// It is not a porto-icons compatibility shim. Only the sites measured as
+// RENDERING are re-drawn. Anything else that still names the family resolves
+// to no font and paints nothing, which is the intended outcome for Porto
+// chrome this design does not use — and is confirmed by re-running the same
+// scan after deploy rather than assumed.
+
+// --- Neutralise Porto's icon namespace -----------------------------------
+// Removing porto-icons-codes.css already takes the `content` declaration off
+// every `porto-icon-*` class site-wide. This covers the same ground for any
+// such class whose content comes from Porto's own LESS instead of that
+// stylesheet, and for anything an admin has pasted into a CMS block, so a
+// stray class paints nothing rather than a missing-glyph box.
+//
+// Deliberately narrow — it matches only Porto's icon namespace and cannot
+// reach a Spartrak component. It is FIRST because the restorations below
+// share its specificity (one attribute vs one class) and must win on source
+// order.
+[class^="porto-icon-"]::before,
+[class*=" porto-icon-"]::before {
+    content: none;
+}
+
+// --- PDP: the empty review rating ----------------------------------------
+// Porto paints `content: '\f844'` five times at 14px in @icons__font-name on
+// .reviews-actions:before — five outline stars beside "كن اول من يكتب تعليق"
+// on a product with no reviews yet.
+//
+// Deliberately re-drawn rather than dropped: _pdp.less already rebuilt the
+// POPULATED rating (.rating-summary .rating-result) as star.svg repeated
+// along the x axis, and killed Porto's glyph there with `content: none`. The
+// empty state is the same widget in its zero case, so it gets the same
+// treatment and the same asset — dropping it instead would leave a product
+// with one review showing stars and a product with none showing bare text.
+//
+// 70px is five 14px stars, matching the font-size Porto rendered at, so the
+// row keeps its measured width. The colour moves from Porto's hardcoded
+// #c3c5c9 to the token that already backs the populated widget's empty track.
+.reviews-actions::before {
+    content: '';
+    display: block;
+    flex: 0 0 auto;
+    width: 70px;
+    height: 14px;
+    background-color: var(--color-rating-empty);
+    // Longhand, not the `mask:` shorthand — LESS parses the `/` in
+    // `center / contain` as division and mangles it. Same reason as
+    // foundations/_icons.less, whose mixin this cannot use because that one
+    // is a fixed square and this needs a repeating strip.
+    -webkit-mask-image: url('../images/icons/star.svg');
+    mask-image: url('../images/icons/star.svg');
+    -webkit-mask-repeat: repeat-x;
+    mask-repeat: repeat-x;
+    -webkit-mask-position: left center;
+    mask-position: left center;
+    -webkit-mask-size: 14px 14px;
+    mask-size: 14px 14px;
+}
+
+// --- Contact page: the four detail tiles ----------------------------------
+// CONTENT WARNING, and it is the more important half of this section: the
+// block these sit in is PORTO DEMO DATA, still live on /ar/contact —
+// "0201 203 2032", "porto@gmail.com", "porto@portotemplate.com",
+// "porto_skype", "proto_template". The real details are in the footer
+// (sparetrak@gmail.com, +2012000000001). Replacing that CMS content is a
+// merchant action, not a styling one, so this file only stops the tiles from
+// emptying out when the font goes; it does not endorse what is in them.
+//
+// The 43x43 blue tile is Porto's, on the <i> itself, and is left alone — only
+// the glyph inside it changes. inline-flex re-centres the mark now that it is
+// a box rather than a line of text, and blockifies the ::before so its width
+// and height apply (the same arrangement _homepage-sections.less uses for its
+// nav chevrons). The <i> stays inline-level, so the row's flow is unchanged.
+//
+// currentColor rather than a token: Porto sets the tile's white foreground on
+// the <i>, and inheriting it keeps these correct if that tile is ever
+// restyled or reused on another background.
+.porto-icon-phone,
+.porto-icon-mobile,
+.porto-icon-mail-alt {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+// `porto-icon-mobile` shares phone.svg: the design system has no distinct
+// mobile-handset mark, and the phone is the same idea rather than a different
+// object. Reaching for some other icon because it looked close is the
+// substitution CLAUDE.md section 3 forbids.
+.porto-icon-phone::before,
+.porto-icon-mobile::before {
+    content: '';
+    .spartrak-icon("phone.svg"; 16px; currentColor);
+}
+
+.porto-icon-mail-alt::before {
+    content: '';
+    .spartrak-icon("email.svg"; 16px; currentColor);
+}
+
+// BLOCKED / REQUIRES FIGMA ASSET — porto-icon-skype.
+//
+// There is no Skype mark in the design system and none in Figma, because
+// Figma does not draw this block at all. The options were to invent one, to
+// borrow an unrelated logo (whatsapp.svg is present and would be simply
+// wrong — one company's mark on another company's contact line), or to render
+// nothing. CLAUDE.md section 3 rules out the first two.
+//
+// So the tile collapses. The adjacent text is untouched and still readable,
+// and the row disappears entirely the moment the demo content above is
+// replaced with real details — which is the actual fix, and is flagged rather
+// than papered over. Skype itself was retired by Microsoft in May 2025.
+.porto-icon-skype {
+    display: none;
+}
