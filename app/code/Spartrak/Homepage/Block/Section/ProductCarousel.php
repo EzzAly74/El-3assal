@@ -16,6 +16,7 @@ use Spartrak\Homepage\Model\LocaleContext;
 use Spartrak\Homepage\Model\Product\CategoryProductProvider;
 use Spartrak\Homepage\Model\SectionType;
 use Spartrak\Homepage\ViewModel\CategoryUrl;
+use Spartrak\ProductVideo\Model\Video\DescriptorBuilder;
 
 /**
  * ONE block behind all three category-driven product sections.
@@ -41,6 +42,12 @@ class ProductCarousel extends AbstractSection
         // two separate memos of the same category load.
         protected readonly CategoryUrl $categoryUrl,
         private readonly ImageHelper $imageHelper,
+        // Spartrak_ProductVideo owns what a product video IS - its source, its
+        // playback settings and how to reach it. This rail only lays one out,
+        // so it asks rather than re-deriving; see that class for why the
+        // question is answered in one place for every surface that plays a
+        // video.
+        private readonly DescriptorBuilder $videoDescriptors,
         array $data = []
     ) {
         parent::__construct($context, $localeContext, $data);
@@ -112,14 +119,32 @@ class ProductCarousel extends AbstractSection
     /**
      * The product's own gallery video, when it has one.
      *
-     * Real Magento media-gallery data (media_type `external-video`), loaded
-     * for the whole rail in ONE batched query by the provider — never one
-     * query per card. Returns null when the product has no video, and the
-     * template then shows the product image in the same frame, which is the
-     * honest fallback: no video URL is invented, and no placeholder clip is
-     * substituted.
+     * ===================================================================
+     * THE SAME VIDEOS THE PRODUCT PAGE PLAYS
+     * ===================================================================
+     * Real Magento media-gallery data, loaded for the whole rail in ONE
+     * batched query by the provider — never one query per card. This method
+     * used to read `video_url` off the entry itself and hand the template a
+     * bare URL, which meant the rail could only ever play YouTube and Vimeo:
+     * a product whose video was an uploaded MP4 showed a play button that did
+     * nothing, because js/spartrak-home-video.js refuses any URL it cannot
+     * recognise as a known provider.
      *
-     * @return array{url: string, title: string}|null
+     * It now asks Spartrak_ProductVideo for the same descriptor the PDP player
+     * is built from, so an uploaded file, a CDN URL, a YouTube link and a Vimeo
+     * link all work here exactly as they do on the product page — and a
+     * merchant does not have to know which surface supports which source.
+     *
+     * COSTS NOTHING EXTRA. The descriptor is assembled from columns already on
+     * the entry: Plugin\Catalog\Gallery\JoinVideoSettings joins them into
+     * `createBatchBaseSelect()`, which is the very query the provider already
+     * runs for this rail.
+     *
+     * Returns null when the product has no playable video, and the template
+     * then shows the product image in the same frame — the honest fallback: no
+     * video URL is invented and no placeholder clip is substituted.
+     *
+     * @return array<string, mixed>|null
      */
     public function getVideo(ProductInterface $product): ?array
     {
@@ -134,19 +159,27 @@ class ProductCarousel extends AbstractSection
         }
 
         foreach ($gallery as $entry) {
-            if ((string) $entry->getData('media_type') !== 'external-video') {
+            $descriptor = $this->videoDescriptors->build($entry);
+
+            if ($descriptor === null) {
                 continue;
             }
 
-            $url = trim((string) $entry->getData('video_url'));
-
-            if ($url === '') {
-                continue;
-            }
-
+            // Trimmed to what a CARD renders. `poster` is empty on this load
+            // path anyway (the collection does not decorate entries with
+            // image-role URLs) and the card has the product's own image;
+            // `chapters` are never fetched for a rail, and `featured` only
+            // means anything inside a gallery. Shipping them would be bytes in
+            // twelve `data-video` attributes for keys nothing reads.
             return [
-                'url' => $url,
-                'title' => trim((string) $entry->getData('video_title')),
+                'type' => $descriptor['type'],
+                'id' => $descriptor['id'],
+                'src' => $descriptor['src'],
+                'mime' => $descriptor['mime'],
+                'muted' => $descriptor['muted'],
+                'loop' => $descriptor['loop'],
+                'controls' => $descriptor['controls'],
+                'title' => $descriptor['title'],
             ];
         }
 

@@ -1,0 +1,141 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  SPARTRAK PRODUCT VIDEO — SCHEMA
+  ===========================================================================
+  Two tables, and they are deliberately small:
+
+      spartrak_product_video          per-video settings Magento has nowhere
+                                      to put
+      spartrak_product_video_chapter  chapter markers for a hosted video
+
+  WHY THERE IS NO `product_video` ENTITY TABLE
+  ===========================================================================
+  The obvious schema for this feature is a table with video_id, product_id,
+  source_type, url, title, description, poster, sort_order, is_active,
+  is_featured, store_id and timestamps. Every one of those columns except
+  source_type and is_featured ALREADY EXISTS in Magento, and is already
+  maintained by machinery this module would otherwise have to re-implement:
+
+      product association   catalog_product_entity_media_gallery_value.entity_id
+      sort order            ...media_gallery_value.position   (admin drag-reorder)
+      enabled/disabled      ...media_gallery_value.disabled   (the dialog's checkbox)
+      store visibility      ...media_gallery_value.store_id
+      url / provider        ...media_gallery_value_video.url / .provider
+      title / description   ...media_gallery_value_video.title / .description
+      POSTER                the media gallery ROW ITSELF — the `value` file,
+                            with Magento's whole image-resize, derivative,
+                            placeholder and cache pipeline behind it
+
+  So a video here IS an `external-video` media-gallery entry. Building a
+  parallel entity would have meant a parallel admin UI, a parallel poster
+  uploader, a parallel ordering control, and a second gallery on the PDP —
+  and it would have had to re-solve product duplicate, product import/export,
+  store-scope fallback and cache invalidation, all of which the media gallery
+  already gets right.
+
+  What is left over is exactly what is below. Both tables hang off `value_id`,
+  the media-gallery entry's own primary key, with ON DELETE CASCADE — so
+  deleting a video in the product form takes its settings and its chapters
+  with it and there is no orphan-row sweep to write.
+
+  WHY NOT PUT THIS IN THE EXISTING `metadata` COLUMN
+  ===========================================================================
+  `catalog_product_entity_media_gallery_value_video.metadata` is a free-text
+  column Magento fills with whatever the YouTube/Vimeo API returned. Serialising
+  our settings into it would have avoided both tables — and would have made
+  every one of these values unqueryable, untyped, and liable to be overwritten
+  the next time an admin presses "Get Video Information". It is Magento's
+  column, holding Magento's payload.
+
+  WHY THE FLAGS ARE NULLABLE
+  ===========================================================================
+  A NULL flag means "inherit the store's default" (Stores > Configuration >
+  Spartrak > Product Video). A 0 means "this video overrides the default to
+  off". Those are different states and a NOT NULL DEFAULT 0 column cannot tell
+  them apart — a merchant who turned autoplay on globally would find every
+  previously-saved video silently opting out of it. See Model\Video\Settings,
+  which resolves the pair.
+-->
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+
+    <table name="spartrak_product_video" resource="default" engine="innodb" comment="Spartrak Product Video Settings">
+        <!--
+          PK *and* FK. One settings row per media-gallery entry, enforced by
+          the database rather than by a uniqueness check in PHP.
+        -->
+        <column xsi:type="int" name="value_id" unsigned="true" nullable="false" identity="false"
+                comment="Media gallery entry this row configures"/>
+        <!--
+          Resolved ONCE, when the video is saved — never re-detected on a
+          storefront request. See Model\Video\SourceNormalizer.
+        -->
+        <column xsi:type="varchar" name="source_type" nullable="false" length="16" default="url"
+                comment="youtube | vimeo | file | url - see Model\Source\SourceType"/>
+        <column xsi:type="varchar" name="provider_id" nullable="true" length="64"
+                comment="Normalised provider video id, for youtube/vimeo only"/>
+        <column xsi:type="varchar" name="src_path" nullable="true" length="255"
+                comment="Media-relative path of an uploaded file, for source_type=file only"/>
+        <column xsi:type="varchar" name="mime_type" nullable="true" length="64"
+                comment="Served as the &lt;source type&gt; for file/url sources"/>
+        <column xsi:type="smallint" name="autoplay" unsigned="true" nullable="true"
+                comment="Per-video override; NULL inherits the store default"/>
+        <column xsi:type="smallint" name="is_loop" unsigned="true" nullable="true"
+                comment="Per-video override; NULL inherits the store default"/>
+        <column xsi:type="smallint" name="muted" unsigned="true" nullable="true"
+                comment="Per-video override; NULL inherits the store default"/>
+        <column xsi:type="smallint" name="controls" unsigned="true" nullable="true"
+                comment="Per-video override; NULL inherits the store default"/>
+        <column xsi:type="smallint" name="allow_download" unsigned="true" nullable="true"
+                comment="Per-video override; NULL inherits the store default"/>
+        <column xsi:type="smallint" name="is_featured" unsigned="true" nullable="false" default="0"
+                comment="Opens on this video instead of the base image"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="value_id"/>
+        </constraint>
+        <!--
+          CASCADE: these settings describe a gallery entry and have no meaning
+          without it. Deleting the video in the product form must not leave a
+          row the next INSERT would collide with on its recycled value_id.
+        -->
+        <constraint xsi:type="foreign" referenceId="SPARTRAK_PRD_VIDEO_VALUE_ID_CAT_PRD_ENTT_MDA_GLR_VALUE_ID"
+                    table="spartrak_product_video" column="value_id"
+                    referenceTable="catalog_product_entity_media_gallery" referenceColumn="value_id"
+                    onDelete="CASCADE"/>
+    </table>
+
+    <table name="spartrak_product_video_chapter" resource="default" engine="innodb" comment="Spartrak Product Video Chapters">
+        <column xsi:type="int" name="chapter_id" unsigned="true" nullable="false" identity="true" comment="Chapter ID"/>
+        <column xsi:type="int" name="value_id" unsigned="true" nullable="false" comment="Owning media gallery entry"/>
+        <!--
+          SECONDS, not "mm:ss". The admin types a timecode and
+          Model\Video\ChapterParser converts it once, on save; the storefront
+          hands this number straight to HTMLMediaElement.currentTime, which is
+          a float of seconds. Storing the display format would have meant
+          parsing it again on every render.
+        -->
+        <column xsi:type="int" name="start_seconds" unsigned="true" nullable="false" default="0"
+                comment="Offset from the start of the video, in seconds"/>
+        <column xsi:type="varchar" name="title_en" nullable="true" length="255" comment="Chapter title (English store views)"/>
+        <column xsi:type="varchar" name="title_ar" nullable="true" length="255" comment="Chapter title (Arabic store views)"/>
+        <column xsi:type="int" name="sort_order" nullable="false" default="0" comment="Position within the video"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="chapter_id"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="SPARTRAK_PRD_VIDEO_CHAPTER_VALUE_ID_SPARTRAK_PRD_VIDEO_VALUE_ID"
+                    table="spartrak_product_video_chapter" column="value_id"
+                    referenceTable="spartrak_product_video" referenceColumn="value_id"
+                    onDelete="CASCADE"/>
+        <!--
+          The storefront's ONLY query against this table is "chapters for these
+          videos, in order" — one IN() for the whole product. This index
+          answers it outright and is what keeps the read O(1) in the number of
+          videos rather than O(n).
+        -->
+        <index referenceId="SPARTRAK_PRD_VIDEO_CHAPTER_VALUE_ID_SORT_ORDER" indexType="btree">
+            <column name="value_id"/>
+            <column name="sort_order"/>
+        </index>
+    </table>
+
+</schema>

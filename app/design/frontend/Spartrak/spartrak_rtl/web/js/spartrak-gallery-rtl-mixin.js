@@ -53,6 +53,20 @@
  * mage/gallery/gallery's own bundle and adds no request; mage/gallery/gallery
  * is a PDP-only module and initialises after paint, so this is off the LCP
  * path entirely.
+ *
+ * MOVED 2026-09-06, because that paragraph was aspirational rather than true.
+ * The file had been sitting in the PARENT theme, Spartrak/spartrak, with its
+ * mixin registered in the parent's requirejs-config.js — and spartrak_rtl is a
+ * CHILD of that theme, so the registration was inherited and the ENGLISH
+ * store's gallery was being reversed too. It is now genuinely where this
+ * paragraph says it is, and the English gallery reads left to right again.
+ *
+ * That move also removed a second, quieter defect. Magento_ProductVideo
+ * matched its videos to gallery frames BY ARRAY INDEX
+ * (fotorama-add-video-events.js:484,546) while this mixin reversed the array
+ * underneath it — so on the Arabic store its videos attached to the wrong
+ * frames. Spartrak_ProductVideo, which replaces that frontend, matches by
+ * identity instead and is immune to the reversal by construction.
  */
 define([], function () {
     'use strict';

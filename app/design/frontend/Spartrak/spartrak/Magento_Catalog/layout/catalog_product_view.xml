@@ -29,6 +29,18 @@ Both target containers are declared by Magento core, not by Porto, so neither
 depends on Porto's layout surviving unchanged.
 -->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <!--
+      The product video player's stylesheet, loaded here and nowhere else. It
+      is NOT part of spartrak-components.css on purpose: that bundle is
+      render-blocking on every page, and this file matches nothing outside a
+      product page. Same mechanism as the cart and checkout bundles.
+
+      web/css/spartrak-pdp-video.less records the honest cost: one extra
+      request on every PDP, against the four this module removes from it.
+    -->
+    <head>
+        <css src="css/spartrak-pdp-video.css"/>
+    </head>
     <body>
         <referenceContainer name="product.info.media">
             <block class="Magento\Catalog\Block\Product\View"

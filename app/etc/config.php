@@ -452,6 +452,7 @@ return [
         'Spartrak_CustomerAccount' => 1,
         'Spartrak_Wishlist' => 1,
         'Spartrak_Review' => 1,
-        'Spartrak_Contact' => 1
+        'Spartrak_Contact' => 1,
+        'Spartrak_ProductVideo' => 1
     ]
 ];

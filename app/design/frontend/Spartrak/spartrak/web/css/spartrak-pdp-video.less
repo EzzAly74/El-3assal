@@ -1,0 +1,36 @@
+// Spartrak PDP product video — entry point.
+//
+// Compiled as its own stylesheet and enqueued ONLY on catalog_product_view
+// (see Magento_Catalog/layout/catalog_product_view.xml), rather than being
+// folded into spartrak-components.css.
+//
+// WHY IT IS SPLIT OUT: spartrak-components.css is render-blocking on EVERY
+// page. This component styles a player that appears on product pages, and only
+// on the ones whose product actually has a video — carrying it globally would
+// tax the LCP of the homepage and every category page to style something they
+// can never show. It is the same decision, and the same mechanism, as
+// spartrak-cart.less and spartrak-checkout.less; it is simply a smaller file
+// making the same trade.
+//
+// A NOTE ON THE HONEST COST: this is one extra render-blocking request on
+// every PDP, including PDPs with no video. It is ~2KB uncompiled and under a
+// kilobyte over the wire, against ~11KB of JavaScript in four requests that
+// this module removes from the same page (see the module's frontend layout).
+// Making the stylesheet itself conditional on the product having a video would
+// need a layout processor reading product data, which is a lot of machinery to
+// save a fraction of what has already been given back.
+//
+// LOAD ORDER: linked AFTER spartrak-components.css, so on the PDP its rules
+// are the later word on equal specificity — which is what lets this component
+// sit over _pdp.less's own gallery rules without raising specificity.
+//
+// The foundation files below are re-imported rather than inherited: LESS
+// mixins and plain LESS variables do not survive a compiled-CSS boundary,
+// exactly as spartrak-components.less documents for the same files. CSS custom
+// properties from spartrak-foundations.css DO carry over and are not repeated.
+
+@import "source/foundations/_breakpoints.less";
+// Required before the component: it calls .spartrak-icon() for the play glyph.
+@import "source/foundations/_icons.less";
+
+@import "source/components/_pdp-video.less";

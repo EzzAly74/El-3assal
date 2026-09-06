@@ -1,0 +1,109 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  SIX SWITCHES, AND NOTHING THAT BELONGS IN A STYLESHEET
+  ===========================================================================
+  There is no field here for a colour, a size, a radius, a border or a control
+  position. Those are the Spartrak design system's, they come from Figma, and
+  exposing them would turn this page into a worse CSS editor that a merchant
+  can use to break the design system on a Tuesday afternoon.
+
+  What IS here is the set of decisions a merchant genuinely owns: whether the
+  feature runs at all, and what a video that expresses no opinion of its own
+  should do. Every playback field is a DEFAULT — a per-video setting in the
+  product form overrides it, and a video left on "Use store default" keeps
+  following this value when it changes later.
+
+  showInStore="1" throughout, because the storefront is bilingual and a
+  merchant may reasonably want different behaviour per store view.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <section id="spartrak_product_video" translate="label" type="text" sortOrder="320"
+                 showInDefault="1" showInWebsite="1" showInStore="1">
+            <class>separator-top</class>
+            <label>Product Video</label>
+            <tab>catalog</tab>
+            <resource>Spartrak_ProductVideo::config</resource>
+
+            <group id="general" translate="label" type="text" sortOrder="10"
+                   showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>General</label>
+                <field id="enabled" translate="label comment" type="select" sortOrder="10"
+                       showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Enable Product Video</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment><![CDATA[
+                        Off means the product page renders no video markup, requests no video
+                        JavaScript and loads no video stylesheet at all — not a hidden player.
+                        The videos themselves are untouched and reappear when this is turned
+                        back on.
+                    ]]></comment>
+                </field>
+            </group>
+
+            <group id="playback" translate="label comment" type="text" sortOrder="20"
+                   showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Default Playback</label>
+                <comment><![CDATA[
+                    What a video does when it has been left on <em>Use store default</em> in the
+                    product form. Changing a value here changes every such video at once.
+                ]]></comment>
+
+                <field id="autoplay" translate="label comment" type="select" sortOrder="10"
+                       showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Autoplay</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment><![CDATA[
+                        Only ever applies once a shopper has opened the video — nothing on this
+                        page plays, or downloads, before that. Every browser blocks autoplay with
+                        sound, so this does nothing unless <em>Start muted</em> is also on.
+                    ]]></comment>
+                </field>
+
+                <field id="loop" translate="label" type="select" sortOrder="20"
+                       showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Loop</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+
+                <field id="muted" translate="label comment" type="select" sortOrder="30"
+                       showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Start muted</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment><![CDATA[
+                        Ships on. A shopper who did not ask for sound should not get it, and this
+                        is what makes autoplay work at all.
+                    ]]></comment>
+                </field>
+
+                <field id="controls" translate="label comment" type="select" sortOrder="40"
+                       showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Show player controls</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment><![CDATA[
+                        Turning this off removes the shopper's only way to pause, seek or
+                        control volume with a keyboard. Leave it on unless a specific video
+                        genuinely needs to be decorative.
+                    ]]></comment>
+                </field>
+            </group>
+
+            <group id="storefront" translate="label" type="text" sortOrder="30"
+                   showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Storefront</label>
+                <field id="allow_download" translate="label comment" type="select" sortOrder="10"
+                       showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Allow download</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment><![CDATA[
+                        Adds a download link to uploaded and direct-URL videos. It is a
+                        convenience, not a protection: a file served from the media directory can
+                        always be fetched by anyone who has its URL, with or without this link.
+                        YouTube and Vimeo videos never get one.
+                    ]]></comment>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>

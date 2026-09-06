@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<!--
+  Sequenced after the three modules whose behaviour this one extends or reads.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/module.xsd">
+    <module name="Spartrak_ProductVideo" setup_version="1.0.0">
+        <sequence>
+            <!--
+              Catalog: this module plugs Magento\Catalog\Model\Product\Gallery\
+              {Create,Read}Handler and removes a block from Catalog's own
+              catalog_product_view.xml. Plugins are order-independent, but the
+              layout <remove> is not — it can only take out a node that has
+              already been merged in.
+            -->
+            <module name="Magento_Catalog"/>
+            <!--
+              ProductVideo: a HARD requirement, not a preference. This module
+              stores its rows against `catalog_product_entity_media_gallery_
+              value_video.value_id`, extends that module's admin dialog block,
+              and removes its frontend block. Disabling Magento_ProductVideo
+              would leave every one of those pointing at nothing.
+
+              It is deliberately NOT disabled or replaced: its admin dialog,
+              its media-gallery entry converter, its save/read handlers and its
+              table are all still doing their jobs. Only its FRONTEND block is
+              taken out, and only because this module renders that surface
+              itself at a fraction of the cost. See
+              view/frontend/layout/catalog_product_view.xml.
+            -->
+            <module name="Magento_ProductVideo"/>
+            <!--
+              Locale: Model\Video\ChapterParser type-hints
+              Spartrak\Locale\Model\StoreLanguage to pick a chapter's _ar or
+              _en title, so DI has to be able to resolve that class.
+            -->
+            <module name="Spartrak_Locale"/>
+        </sequence>
+    </module>
+</config>

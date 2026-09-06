@@ -83,9 +83,22 @@ if ($hasAnyVideo) {
             $video = $block->getVideo($product);
             ?>
             <li class="spartrak-home-showcase__item" data-carousel-slide>
+                <?php /*
+                  ONE ATTRIBUTE, NOT A URL. The card used to carry
+                  `data-video-url` and the widget guessed the provider from it,
+                  which is why anything that was not YouTube or Vimeo silently
+                  did nothing. It now carries the descriptor the server already
+                  resolved - source type, provider id or file URL, and the
+                  playback flags - so the widget CHOOSES a player instead of
+                  parsing a string to guess one.
+
+                  A provider video's `id` is a validated id and never a URL; the
+                  embed address is composed in JS from a hardcoded prefix. See
+                  Spartrak\ProductVideo\Model\Video\SourceNormalizer.
+                */ ?>
                 <div class="spartrak-home-showcase__media"
                     <?php if ($video) : ?>
-                        data-video-url="<?= $block->escapeHtmlAttr($video['url']) ?>"
+                        data-video="<?= $block->escapeHtmlAttr(json_encode($video)) ?>"
                     <?php endif; ?>>
 
                     <?php if ($media) : ?>

@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!--
+  ADMIN AREA ONLY. This event fires while the product form's media gallery is
+  being laid out, which happens nowhere else. A global observer would be loaded
+  into every storefront request for a block those requests never build.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="catalog_product_gallery_prepare_layout">
+        <observer name="spartrak_product_video_gallery_template"
+                  instance="Spartrak\ProductVideo\Observer\ChangeGalleryTemplate"/>
+    </event>
+</config>

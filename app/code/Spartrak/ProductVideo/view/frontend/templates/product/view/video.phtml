@@ -1,0 +1,42 @@
+<?php
+/**
+ * Spartrak Product Video — the PDP payload.
+ *
+ * ===========================================================================
+ * THIS TEMPLATE RENDERS NOTHING A SHOPPER CAN SEE
+ * ===========================================================================
+ * It emits one empty <div> carrying one `data-mage-init`. Everything visible —
+ * the play button, the player, the chapter rail — is created by
+ * js/spartrak-pdp-video.js, and only over the gallery frame a shopper actually
+ * opens.
+ *
+ * There is no poster <img> here, because the poster is already on the page:
+ * a video IS a media gallery entry, so Fotorama is rendering its frame and its
+ * thumbnail as part of the gallery. Rendering a second copy would have been a
+ * second download of the same image.
+ *
+ * A PRODUCT WITH NO VIDEO RENDERS ABSOLUTELY NOTHING — not this div, not the
+ * init, and therefore not one byte of the video module. That is the whole
+ * point of the `hasVideos()` guard, and it is why this feature is free on the
+ * 8,900 products that do not use it.
+ *
+ * ===========================================================================
+ * ESCAPING
+ * ===========================================================================
+ * The config is JSON-encoded in the block and escaped as an attribute here.
+ * Titles, chapter labels and URLs are all merchant input; provider ids were
+ * validated to a strict character class on save, and the player builds embed
+ * URLs from a hardcoded prefix — so no admin-supplied string reaches an iframe
+ * `src`. See Spartrak\ProductVideo\Model\Video\SourceNormalizer.
+ *
+ * @var \Spartrak\ProductVideo\Block\Product\View\Video $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+if (!$block->hasVideos()) {
+    return;
+}
+?>
+<div class="spartrak-pdp-video"
+     data-spartrak-pdp-video
+     data-mage-init="<?= $escaper->escapeHtmlAttr($block->getWidgetConfigJson()) ?>"></div>

@@ -1,0 +1,255 @@
+// ===========================================================================
+// PDP PRODUCT VIDEO
+// ===========================================================================
+// The player layer over Fotorama's stage, plus the chapter rail.
+//
+// FIGMA HAS NO PDP VIDEO FRAME. The PDP frames in the file draw a gallery of
+// images; no video state was ever designed for it. So rather than inventing a
+// look, this component borrows the one Figma DID specify for a product video
+// control on this project — the showcase's play button, node 595:14836: a 48px
+// circle in white at 20% with a 10px backdrop blur, holding a 20px glyph, over
+// a bottom-anchored dark gradient (595:14833, transparent to black at 80%,
+// blurred 6px, 20px padding).
+//
+// Those values are read from components/_homepage-sections.less rather than
+// re-eyeballed, and they are the only visual decisions here that were not
+// already tokens. Flagged so a designer can replace this with a real PDP frame
+// rather than discovering it was quietly authored by a developer.
+//
+// ===========================================================================
+// PAGE-SCOPED, NOT IN THE GLOBAL BUNDLE
+// ===========================================================================
+// This file is its own entry point (web/css/spartrak-pdp-video.less) and is
+// enqueued only on `catalog_product_view` — the same mechanism, and the same
+// reasoning, as spartrak-cart.css and spartrak-checkout.css. Adding ~2KB to
+// spartrak-components.css would have put it in the render-blocking critical
+// path of the homepage and every category page, which never show a video.
+//
+// ===========================================================================
+// RTL
+// ===========================================================================
+// Logical properties throughout. There is no [dir="rtl"] block in this file
+// and there should not need to be: nothing here is a mirrored glyph or a
+// rotation, which are the only two things logical properties cannot express.
+
+// ---------------------------------------------------------------------------
+// The layer
+// ---------------------------------------------------------------------------
+// Created by js/spartrak-pdp-video.js inside `.fotorama__stage`, so it is
+// positioned against the stage rather than against a frame — Fotorama recycles
+// frame elements and would discard anything living inside one.
+.spartrak-pdp-video__layer {
+  position: absolute;
+  inset: 0;
+  // Above Fotorama's own frames, below the theme's media overlay
+  // (`.spartrak-pdp__media-overlay`, z-index 3 in _pdp.less), so the share,
+  // zoom and wishlist buttons stay reachable while a video is showing.
+  z-index: 2;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  // The layer itself must not eat the gallery's gestures: Fotorama's swipe and
+  // drag happen on the stage underneath. Only the real controls take pointer
+  // events back.
+  pointer-events: none;
+
+  > * {
+    pointer-events: auto;
+  }
+}
+
+// Once a player is mounted it fills the stage, so the layer stops being a
+// centring box and becomes a frame.
+.spartrak-pdp-video__layer--playing {
+  display: block;
+  background-color: var(--color-bg-inverse);
+}
+
+// ---------------------------------------------------------------------------
+// The play button (Figma 595:14836)
+// ---------------------------------------------------------------------------
+.spartrak-pdp-video__play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  // The showcase control's fill, at the showcase control's blur. Larger here
+  // because this one sits alone in the middle of an 816px stage rather than in
+  // a row of three at the foot of a card.
+  background-color: rgba(255, 255, 255, 0.2);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+
+  &::before {
+    content: "";
+    .spartrak-icon("video-play.svg"; 28px; var(--color-text-inverse));
+  }
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.32);
+    transform: scale(1.04);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The player
+// ---------------------------------------------------------------------------
+.spartrak-pdp-video__player {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  // `contain`, not `cover`: a video has its own aspect ratio and cropping it
+  // to the gallery's would cut the subject out of a product demonstration.
+  object-fit: contain;
+  background-color: var(--color-bg-inverse);
+}
+
+// ---------------------------------------------------------------------------
+// Chapters
+// ---------------------------------------------------------------------------
+// A scrolling row under the player. Buttons, not links: they seek the player
+// they sit under, they do not navigate — so they are keyboard-operable and
+// announced correctly without any ARIA.
+.spartrak-pdp-video__chapters {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline: 0;
+  z-index: 1;
+
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 16px;
+  list-style: none;
+
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+
+  // The gradient keeps the labels legible over whatever frame the video
+  // happens to be paused on — the showcase overlay's treatment (595:14833),
+  // reused rather than re-invented.
+  background-image: linear-gradient(to top, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0));
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.spartrak-pdp-video__chapter {
+  flex: 0 0 auto;
+  max-width: 220px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background-color: rgba(255, 255, 255, 0.16);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  color: var(--color-text-inverse);
+  font-size: var(--text-12);
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.28);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Download
+// ---------------------------------------------------------------------------
+// Deliberately plain. It is an occasional utility, not a call to action, and
+// giving it the weight of one would put a second competing button on a product
+// page whose actual job is add-to-cart.
+.spartrak-pdp-video__download {
+  position: absolute;
+  inset-block-start: 12px;
+  inset-inline-start: 12px;
+  z-index: 1;
+
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  background-color: rgba(255, 255, 255, 0.16);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  color: var(--color-text-inverse);
+  font-size: var(--text-12);
+  font-weight: 500;
+  line-height: 1.3;
+  text-decoration: none;
+
+  // Porto ships a global `a:visited` and a global `a:hover` that repaint every
+  // link on the site. Both are pinned here with this component's own token —
+  // the same fix, for the same reason, as every other Spartrak link control.
+  &:visited {
+    color: var(--color-text-inverse);
+  }
+
+  &:hover,
+  &:focus,
+  &:active {
+    background-color: rgba(255, 255, 255, 0.28);
+    color: var(--color-text-inverse);
+    text-decoration: none;
+  }
+}
+
+// The <a> inside <video>, shown only by a browser that cannot play the
+// element at all. Not styled as a control because it is a last resort, and a
+// browser this old is not getting the rest of this design either.
+.spartrak-pdp-video__fallback {
+  display: block;
+  padding: 16px;
+  color: var(--color-text-inverse);
+}
+
+// ---------------------------------------------------------------------------
+// Mobile
+// ---------------------------------------------------------------------------
+@media (max-width: @breakpoint-header-collapse) {
+  .spartrak-pdp-video__play {
+    width: 48px;
+    height: 48px;
+
+    &::before {
+      .spartrak-icon("video-play.svg"; 20px; var(--color-text-inverse));
+    }
+  }
+
+  .spartrak-pdp-video__chapters {
+    padding: 8px 12px;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Reduced motion
+// ---------------------------------------------------------------------------
+// The hover growth is the only motion this component owns. Playback itself is
+// the shopper's own request and is not touched — silently refusing to play a
+// video someone pressed play on would be a worse answer than the animation.
+@media (prefers-reduced-motion: reduce) {
+  .spartrak-pdp-video__play,
+  .spartrak-pdp-video__chapter,
+  .spartrak-pdp-video__download {
+    transition: none;
+  }
+
+  .spartrak-pdp-video__play:hover {
+    transform: none;
+  }
+}

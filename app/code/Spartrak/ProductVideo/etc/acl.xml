@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<!--
+  ONE RESOURCE, and it guards the store configuration only.
+
+  The upload controller deliberately guards on Magento_Catalog::products
+  instead — see its docblock. A role that can edit products can already
+  replace their images; a separate permission for attaching a video to the same
+  product would produce a role that can use half of one fieldset.
+
+  Turning product video on or off for a store view, and setting the playback
+  defaults every video inherits, is a different decision made by a different
+  person. That is what this resource is for.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
+    <acl>
+        <resources>
+            <resource id="Magento_Backend::admin">
+                <resource id="Magento_Backend::stores">
+                    <resource id="Magento_Backend::stores_settings">
+                        <resource id="Magento_Config::config">
+                            <resource id="Spartrak_ProductVideo::config" title="Spartrak Product Video" sortOrder="70"/>
+                        </resource>
+                    </resource>
+                </resource>
+            </resource>
+        </resources>
+    </acl>
+</config>

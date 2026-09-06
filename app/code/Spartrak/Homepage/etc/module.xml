@@ -18,6 +18,13 @@
     -->
     <module name="Spartrak_Homepage">
         <sequence>
+            <!--
+              ProductVideo: Block\Section\ProductCarousel type-hints
+              Spartrak\ProductVideo\Model\Video\DescriptorBuilder to resolve a
+              product's gallery video, so DI has to be able to construct that
+              class. A hard requirement, not an ordering preference.
+            -->
+            <module name="Spartrak_ProductVideo"/>
             <module name="Magento_Cms"/>
             <module name="Magento_Catalog"/>
             <module name="Magento_CatalogInventory"/>

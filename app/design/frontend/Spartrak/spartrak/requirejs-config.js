@@ -23,6 +23,7 @@ var config = {
             spartrakToast: 'js/spartrak-toast',
             spartrakCartQty: 'js/spartrak-cart-qty',
             spartrakReviewDialog: 'js/spartrak-review-dialog',
+            spartrakPdpVideo: 'js/spartrak-pdp-video',
             // The shared native <dialog> driver — the contact panel and the
             // signed-out panel. See js/spartrak-dialog.js for why it is not
             // folded into spartrakReviewDialog above (that one owns a form and
@@ -77,9 +78,6 @@ var config = {
              */
             'Magento_Customer/js/model/authentication-popup': {
                 'js/spartrak-auth-popup-mixin': true
-            },
-            'mage/gallery/gallery': {
-                'js/spartrak-gallery-rtl-mixin': true
             }
         }
     }

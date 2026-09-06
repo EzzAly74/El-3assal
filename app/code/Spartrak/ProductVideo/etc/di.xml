@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<!--
+  GLOBAL scope, and only because these have to work in BOTH areas. A product is
+  saved from the admin form, from `bin/magento`, from an import and over the
+  REST API; it is loaded on the storefront, in the admin, and by every one of
+  those same paths. Declaring any of them per-area would mean video settings
+  that persist when a merchant presses Save and silently vanish when the same
+  product is saved by an importer.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <!--
+      THE READ SIDE, AND IT COSTS NOTHING.
+
+      `createBatchBaseSelect()` is the one query the media gallery is built
+      from, and both the PDP's single-product load and the homepage rails'
+      collection load go through it. Joining here means the settings arrive
+      with the gallery on every path, with no extra round trip on any of them.
+
+      Same seam, same reason, as Magento_ProductVideo's own
+      ExternalVideoResourceBackend — the two join different tables and do not
+      interact.
+    -->
+    <type name="Magento\Catalog\Model\ResourceModel\Product\Gallery">
+        <plugin name="spartrak_product_video_join"
+                type="Spartrak\ProductVideo\Plugin\Catalog\Gallery\JoinVideoSettings"/>
+    </type>
+
+    <!--
+      CHAPTERS, the one query this module adds — and only for a product that
+      has a native video to hang them on. See the plugin for the three
+      conditions that skip it.
+
+      sortOrder 20 puts it after Magento_ProductVideo's own read plugin (which
+      declares none, so it defaults to 0), because it reads `media_type` and
+      the joined source type off rows those handlers assemble.
+    -->
+    <type name="Magento\Catalog\Model\Product\Gallery\ReadHandler">
+        <plugin name="spartrak_product_video_chapters"
+                type="Spartrak\ProductVideo\Plugin\Catalog\Gallery\LoadVideoChapters"
+                sortOrder="20"/>
+    </type>
+
+    <!--
+      THE WRITE SIDE. Magento\Catalog\Model\Product\Gallery\CreateHandler is
+      where a media entry gets its value_id, which is what these rows are keyed
+      on — so this cannot run any earlier.
+    -->
+    <type name="Magento\Catalog\Model\Product\Gallery\CreateHandler">
+        <plugin name="spartrak_product_video_save"
+                type="Spartrak\ProductVideo\Plugin\Catalog\Gallery\SaveVideoSettings"
+                sortOrder="20"/>
+    </type>
+
+</config>

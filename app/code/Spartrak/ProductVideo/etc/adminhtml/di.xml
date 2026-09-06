@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<!--
+  ADMIN ONLY. Neither of these exists on a storefront request: the dialog block
+  is built by the product form, and the uploader is reachable from one admin
+  controller.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <!--
+      THE VIDEO DIALOG.
+
+      A preference, because the block is instantiated by
+      Magento_ProductVideo's own ui_component/product_form.xml — a file this
+      module would otherwise have to fork wholesale just to change one class
+      name. The target IS a subclass of the class it replaces and adds only
+      fields, so every caller keeps the API it had.
+
+      Scoped to adminhtml so the class is never even loaded on the storefront.
+    -->
+    <preference for="Magento\ProductVideo\Block\Adminhtml\Product\Edit\NewVideo"
+                type="Spartrak\ProductVideo\Block\Adminhtml\Product\Edit\NewVideo"/>
+
+    <!--
+      THE UPLOADER'S POLICY.
+
+      Kept here rather than in PHP because it is policy a developer may want to
+      change without touching code, and because the extension list, the MIME
+      list and the size cap have to be kept in step with one another.
+
+      TWO FORMATS, NOT A LONG LIST. MP4 (H.264) and WebM (VP9) are what every
+      browser this storefront supports can play natively. MOV, AVI, MKV and
+      friends would upload happily and then fail to play for most shoppers,
+      which is a worse outcome than being told at upload time — and accepting
+      them would imply a transcoding pipeline this module deliberately does not
+      have.
+
+      THE MIME LIST IS CHECKED AGAINST THE FILE'S REAL BYTES, not its name. An
+      extension is a claim; `checkMimeType()` reads the magic.
+
+      100 MB. Above that a merchant should be putting the file on a CDN and
+      pasting the URL — which this module supports — rather than serving tens
+      of megabytes of video off the same origin that has to answer product
+      pages. It is also a ceiling on what a compromised admin account can push
+      onto the disk.
+    -->
+    <type name="Spartrak\ProductVideo\Model\Video\Uploader">
+        <arguments>
+            <argument name="allowedExtensions" xsi:type="array">
+                <item name="mp4" xsi:type="string">mp4</item>
+                <item name="webm" xsi:type="string">webm</item>
+            </argument>
+            <argument name="allowedMimeTypes" xsi:type="array">
+                <item name="mp4" xsi:type="string">video/mp4</item>
+                <item name="webm" xsi:type="string">video/webm</item>
+            </argument>
+            <argument name="maxFileSizeBytes" xsi:type="number">104857600</argument>
+        </arguments>
+    </type>
+
+</config>

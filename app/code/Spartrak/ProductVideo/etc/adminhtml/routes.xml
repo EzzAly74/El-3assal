@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!--
+  One route, one controller: the video dialog's upload endpoint. There is no
+  admin grid and no admin page — a video is managed inside the product form,
+  which is where it belongs.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:App/etc/routes.xsd">
+    <router id="admin">
+        <route id="spartrak_product_video" frontName="spartrak_product_video">
+            <module name="Spartrak_ProductVideo"/>
+        </route>
+    </router>
+</config>

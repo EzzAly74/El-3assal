@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<!--
+  Shipped defaults. Chosen so that installing this module changes nothing a
+  shopper can see until a merchant actually adds a video, and so that the first
+  video they add behaves the way a video should on a commerce page.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <spartrak_product_video>
+            <general>
+                <!-- On, but inert: a product with no video renders nothing regardless. -->
+                <enabled>1</enabled>
+            </general>
+            <playback>
+                <!--
+                  OFF. A video that starts by itself takes bandwidth and attention a
+                  shopper did not offer, and on a product page the image is usually
+                  what they came for. A merchant who wants it can turn it on, per
+                  store or per video.
+                -->
+                <autoplay>0</autoplay>
+                <loop>0</loop>
+                <!--
+                  ON, and this one is not really a preference. Browsers refuse to
+                  autoplay audible media, so muted is what makes the switch above
+                  mean anything — and a product page that suddenly makes noise is a
+                  page shoppers close.
+                -->
+                <muted>1</muted>
+                <!--
+                  ON. The controls are the keyboard route to pause, seek and volume;
+                  without them the player is unusable without a mouse (CLAUDE.md
+                  section 15).
+                -->
+                <controls>1</controls>
+            </playback>
+            <storefront>
+                <!-- Off: a demo video is marketing, not a deliverable. -->
+                <allow_download>0</allow_download>
+            </storefront>
+        </spartrak_product_video>
+    </default>
+</config>

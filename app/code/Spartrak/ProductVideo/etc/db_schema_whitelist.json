@@ -1,0 +1,38 @@
+{
+    "spartrak_product_video": {
+        "column": {
+            "value_id": true,
+            "source_type": true,
+            "provider_id": true,
+            "src_path": true,
+            "mime_type": true,
+            "autoplay": true,
+            "is_loop": true,
+            "muted": true,
+            "controls": true,
+            "allow_download": true,
+            "is_featured": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "SPARTRAK_PRD_VIDEO_VALUE_ID_CAT_PRD_ENTT_MDA_GLR_VALUE_ID": true
+        }
+    },
+    "spartrak_product_video_chapter": {
+        "column": {
+            "chapter_id": true,
+            "value_id": true,
+            "start_seconds": true,
+            "title_en": true,
+            "title_ar": true,
+            "sort_order": true
+        },
+        "index": {
+            "SPARTRAK_PRD_VIDEO_CHAPTER_VALUE_ID_SORT_ORDER": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "SPARTRAK_PRD_VIDEO_CHAPTER_VALUE_ID_SPARTRAK_PRD_VIDEO_VALUE_ID": true
+        }
+    }
+}

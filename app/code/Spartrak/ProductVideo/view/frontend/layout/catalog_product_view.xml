@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  THE SINGLE BIGGEST PERFORMANCE CHANGE IN THIS MODULE IS THE <remove> BELOW
+  ===========================================================================
+  Magento_ProductVideo adds `product.info.media.video` to every product page,
+  unconditionally. Its template is one x-magento-init that requires
+  `Magento_ProductVideo/js/fotorama-add-video-events`, which depends on
+  `load-player`, which depends on `vimeoWrapper`, which pulls in the entire
+  Vimeo Player SDK.
+
+  MEASURED on this store, on a product with NO videos at all
+  (/ar/sp-9055.html, which renders the placeholder image):
+
+      fotorama-add-video-events.min.js   3.5 KB transfer   12.7 KB parsed
+      vimeo/player.min.js                5.8 KB            19.4 KB
+      vimeo/vimeo-wrapper.min.js         0.4 KB             0.1 KB
+      load-player.min.js                 1.6 KB             4.6 KB
+      ..................................................................
+      4 requests                        11.3 KB            36.8 KB
+
+  Four requests and 36.8 KB of parsed JavaScript, on every product page, for a
+  feature the page is not using. Taking it out is worth more than anything this
+  module adds, and it is why a product with no video is now CHEAPER than it was
+  before this module existed.
+
+  Nothing is lost. Magento_ProductVideo stays enabled and keeps doing the four
+  jobs this module depends on — its admin dialog, its media-gallery entry
+  converter, its save/read handlers and its table. Only the storefront player
+  is replaced, by `spartrak.pdp.video` below, which ships nothing at all unless
+  the product actually has a video.
+
+  ===========================================================================
+  WHY THE BLOCK GOES IN product.info.media
+  ===========================================================================
+  Same container as the gallery it drives, so the template renders as a sibling
+  of `[data-gallery-role=gallery-placeholder]` and the widget can find it
+  without reaching across the page. That is where the theme's own
+  `spartrak.pdp.head` overlay already lives.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="product.info.media.video" remove="true"/>
+
+        <referenceContainer name="product.info.media">
+            <block class="Spartrak\ProductVideo\Block\Product\View\Video"
+                   name="spartrak.pdp.video"
+                   after="product.info.media.image"
+                   template="Spartrak_ProductVideo::product/view/video.phtml"/>
+        </referenceContainer>
+    </body>
+</page>
