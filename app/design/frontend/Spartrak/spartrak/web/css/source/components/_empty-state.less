@@ -155,10 +155,19 @@
         background-color: var(--color-bg-surface-subtle);
     }
 
-    &:focus-visible {
-        outline: 2px solid var(--color-action-primary);
-        outline-offset: 2px;
-    }
+    // NO :focus-visible RULE HERE, DELIBERATELY. Magento_Theme's own
+    // _extend.less declares one baseline for every focusable element —
+    // `a, button, input, select, textarea, summary, [tabindex]` at
+    // `2px solid var(--color-border-focus)`, offset 2 — and this control was
+    // restating it verbatim: same width, same offset, and
+    // --color-action-primary and --color-border-focus are the same navy.
+    //
+    // A duplicate at higher specificity is not free. It put a third rule into
+    // the cascade for one property, so the DevTools view of a focused control
+    // showed two struck-out outline declarations above the winning one, and
+    // any future change to the focus treatment would have had to be made here
+    // as well or silently not apply. One baseline, one place (CLAUDE.md §9).
+
 }
 
 @media (prefers-reduced-motion: reduce) {
