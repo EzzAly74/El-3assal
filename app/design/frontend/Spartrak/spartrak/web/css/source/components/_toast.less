@@ -192,6 +192,43 @@
     }
 }
 
+// ===========================================================================
+// CORE'S OWN MESSAGE ICON — AN EMPTY BOX, AND WHY
+// ===========================================================================
+// MEASURED on the live storefront: a small square outline with a mark in it
+// sat at the toast's inline-end corner, next to the close control. It was NOT
+// the close control — hiding that button left the box behind, and hiding the
+// whole toast removed it.
+//
+// It is Magento/Porto's own message icon. Core draws one per message type:
+//
+//     .message.success > :first-child::before {
+//         content: '\e...'; font-family: porto-icons; font-size: 24px; ...
+//     }
+//
+// and this theme RETIRED that webfont — components/_porto-icon-retirement.less
+// deletes the 63KB woff2 after re-drawing the handful of glyphs that were
+// measured as visibly rendering. This one was not among them, so the character
+// has no font to render in and the browser draws TOFU: the empty box with the
+// missing-glyph mark.
+//
+// It is suppressed rather than re-drawn because the design already has an icon
+// for this component and draws it properly — the 50px disc above, with a real
+// exported asset. Core's glyph is a second, duplicate icon that could never
+// have rendered.
+//
+// `content: none` and not `display: none`: nothing is generated at all, so the
+// 24px line-height and the -12px margin core also sets on it cannot affect the
+// content column's rhythm either.
+//
+// (0,4,0) against core's (0,2,0). There is precedent in the compiled bundle for
+// exactly this suppression — `.cart-summary .message > :first-child::before`
+// already does it for the cart's own summary block, which is where someone hit
+// this first.
+.page.messages .message > *:first-child::before {
+    content: none;
+}
+
 // --- The structured message parts ------------------------------------------
 // Emitted only by a complex-message renderer this theme overrides; see the
 // header note. `span` and `a`, with `class` and `href`, are what Magento's own
