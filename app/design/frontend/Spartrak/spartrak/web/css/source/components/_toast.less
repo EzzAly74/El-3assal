@@ -374,6 +374,18 @@
         .spartrak-icon('close.svg'; 16px; var(--color-text-primary));
     }
 
+    // Core's `button:focus, button:active { background: #e2e2e2; border: 1px
+    // solid #e4e3e5 }` is (0,1,1) and outranks this rule's own (0,1,0) reset,
+    // so a focused or pressed close control would grow a grey plate and a
+    // hairline box. Restated at (0,2,0) — the same finding as the empty
+    // state's action control, recorded in full in
+    // components/_empty-state.less.
+    &:focus,
+    &:active {
+        border: 0;
+        background-color: transparent;
+    }
+
     &:focus-visible {
         outline: 2px solid var(--color-border-focus);
         outline-offset: 2px;

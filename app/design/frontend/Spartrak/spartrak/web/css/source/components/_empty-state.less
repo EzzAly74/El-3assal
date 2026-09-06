@@ -117,17 +117,40 @@
     cursor: pointer;
     transition: background-color .15s ease;
 
-    // Porto's global `a:hover { color: #044776; text-decoration: underline }`
-    // is (0,1,1) and would otherwise beat this component's own (0,1,0) colour
-    // on the anchor form of this control. Restated at (0,2,0).
+    // ===================================================================
+    // THE STATE BLOCK ALSO OWNS THE FILL AND THE BORDER — A MEASURED BUG
+    // ===================================================================
+    // Two global rules outrank this component on (0,1,1), and BOTH have to be
+    // answered here rather than in the base rule above, which is only (0,1,0):
+    //
+    //   a:hover              Porto, `color: #044776; text-decoration: underline`
+    //   button:focus,
+    //   button:active        core, `background: #e2e2e2; border: 1px solid #e4e3e5`
+    //
+    // The colour half was already handled. The BACKGROUND and BORDER half was
+    // not, and it is why the signed-out dialog's primary button rendered as a
+    // grey box with a hairline border instead of the navy fill: `<dialog>`'s
+    // showModal() FOCUSES the first control in the panel, so that button is
+    // `:focus` from the instant it appears and never leaves the state.
+    //
+    // It went unseen until now because every previous caller of this component
+    // is an `<a>` — the cart's, the wishlist's, the 404's — and `button:focus`
+    // does not match an anchor. The signed-out dialog is the first `<button>`,
+    // and the first that is auto-focused.
+    //
+    // Restated at (0,2,0), which beats both.
     &:hover,
     &:focus,
     &:active,
     &:visited {
+        background-color: var(--color-bg-field);
+        border: 0;
         color: var(--color-text-primary);
         text-decoration: none;
     }
 
+    // AFTER the block above, so hovering a focused control still shows the
+    // hover fill rather than the resting one — same specificity, later wins.
     &:hover {
         background-color: var(--color-bg-surface-subtle);
     }
@@ -212,13 +235,15 @@
     background-color: var(--color-action-primary);
     color: var(--color-action-primary-text);
 
-    // Same specificity argument as the base control's own hover block: Porto's
-    // global `a:hover` colour is (0,1,1) and would otherwise win on the anchor
-    // form of this button.
+    // Same specificity argument as the base control's own state block, and the
+    // same two global rules — see it for the full note. The navy fill has to be
+    // restated for `:focus` and `:active` or core's `button:focus` (0,1,1)
+    // paints this control grey the moment a dialog auto-focuses it.
     &:hover,
     &:focus,
     &:active,
     &:visited {
+        background-color: var(--color-action-primary);
         color: var(--color-action-primary-text);
     }
 

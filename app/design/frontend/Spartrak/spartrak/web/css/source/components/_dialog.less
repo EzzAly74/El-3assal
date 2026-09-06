@@ -218,6 +218,18 @@
         background: var(--color-bg-field);
     }
 
+    // Core styles the bare element at `button:focus, button:active
+    // { background: #e2e2e2; border: 1px solid #e4e3e5 }` — (0,1,1), which
+    // outranks this rule's own (0,1,0) reset and would put a grey plate and a
+    // hairline box around the glyph the moment the control is focused or
+    // pressed. Restated at (0,2,0). Same finding as the empty state's action
+    // control; see components/_empty-state.less for the full note.
+    &:focus,
+    &:active {
+        border: 0;
+        background: none;
+    }
+
     &:focus-visible {
         outline: 2px solid var(--color-border-focus);
         outline-offset: 2px;
