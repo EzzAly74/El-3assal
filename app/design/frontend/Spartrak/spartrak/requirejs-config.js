@@ -23,6 +23,11 @@ var config = {
             spartrakToast: 'js/spartrak-toast',
             spartrakCartQty: 'js/spartrak-cart-qty',
             spartrakReviewDialog: 'js/spartrak-review-dialog',
+            // The shared native <dialog> driver — the contact panel and the
+            // signed-out panel. See js/spartrak-dialog.js for why it is not
+            // folded into spartrakReviewDialog above (that one owns a form and
+            // its validation; this one owns a fragment entry point).
+            spartrakDialog: 'js/spartrak-dialog',
             // Native <details> disclosure + light dismiss. Replaces Magento's
             // dropdownDialog on the language and currency switchers, which pulled
             // the whole jQuery UI dialog tree (10 modules, 97,819 parsed bytes)

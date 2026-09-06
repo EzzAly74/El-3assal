@@ -68,6 +68,12 @@
 // "Nothing here yet" — one component, shared by the cart drawer and the cart
 // page. Imported before both so either can add its own placement on top.
 @import "source/components/_empty-state.less";
+// The shared Spartrak <dialog> — the contact panel and the signed-out panel.
+// AFTER _empty-state.less because the signed-out panel composes that component
+// inside its own frame, and this file is the later word on how the frame sizes
+// it. It brings its own element, so it never meets _modal.less above, which
+// claims core's `.modal-popup` classes.
+@import "source/components/_dialog.less";
 @import "source/components/_footer.less";
 @import "source/components/_homepage-sections.less";
 @import "source/components/_product-card.less";

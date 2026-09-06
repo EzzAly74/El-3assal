@@ -1,0 +1,146 @@
+<?php
+/**
+ * Spartrak — the "Contact us" dialog.
+ *
+ * FIGMA SSOT: 1179:24007, a 560x672 panel that REPLACES Magento's contact form
+ * page. It carries no form at all: four ways to reach a person, the address
+ * with a directions link, and the opening hours.
+ *
+ * The page it replaces is intercepted server-side by
+ * Spartrak\Contact\Observer\RedirectContactPageToDialog, so /contact/ and
+ * /contact/index/index/ both land back where the shopper was with this open.
+ * Every link to those URLs in the header and the footer stays a REAL link and
+ * is upgraded into a trigger by js/spartrak-dialog.js — see that file for what
+ * happens with JavaScript off.
+ *
+ * ===========================================================================
+ * EVERY VALUE HERE IS ADMIN CONTENT
+ * ===========================================================================
+ * Stores > Configuration > General > Contact Details, per store view. Nothing
+ * below is a literal except the two pieces of CHROME the design writes — the
+ * title and the lede — which are __() strings and therefore still translatable
+ * per store view without a deploy, the same split the header's utility strip
+ * already uses.
+ *
+ * The row LABELS are __() strings and the row VALUES come from configuration.
+ * That is the split CLAUDE.md §7 asks for: "WhatsApp" is what the design calls
+ * that row in each language, and the number is the merchant's.
+ *
+ * A row whose value is unset does not render — see
+ * Spartrak\Contact\ViewModel\ContactDetails, which omits it rather than
+ * returning an empty string, so a labelled card with nothing under it is not
+ * possible.
+ *
+ * ===========================================================================
+ * THE BLOCK IS CACHEABLE
+ * ===========================================================================
+ * Every value is store-scoped configuration and full-page cache is already
+ * keyed by store. Nothing customer-specific passes through here, and there is
+ * no form and therefore no form key to go stale.
+ *
+ * ===========================================================================
+ * WHERE THIS DIVERGES FROM FIGMA, and why
+ * ===========================================================================
+ *  a. THE VALUES ARE LINKS. Figma draws them as plain text. A contact panel
+ *     whose phone number cannot be dialled from the phone it is being read on
+ *     has missed its own point. The anchors inherit the value's exact colour,
+ *     size and weight and carry no underline, so at rest the design is
+ *     unchanged; see components/_dialog.less.
+ *
+ *  b. THE SHOWROOM ROW'S SEPARATOR is a real "·" character inside an
+ *     aria-hidden span, not generated content, so that a screen reader reads
+ *     two phone numbers and not "middot" between them.
+ *
+ *  c. A PHONE NUMBER DOES NOT WRAP. `--unbreakable` comes straight from the
+ *     ViewModel's own flag on the value; see it for the 375px measurement
+ *     behind it. The email deliberately does not carry it.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+/** @var \Spartrak\Contact\ViewModel\ContactDetails|null $details */
+$details = $block->getData('contact_details');
+
+// A store that has cleared every field gets no dialog at all rather than an
+// empty panel with a title and a close button.
+if ($details === null || !$details->hasContent()) {
+    return;
+}
+
+$channels = $details->getChannels();
+$address = $details->getAddress();
+$directionsUrl = $details->getDirectionsUrl();
+$hours = $details->getHours();
+$titleId = 'spartrak-contact-dialog-title';
+?>
+<dialog id="spartrak-contact-dialog"
+        class="spartrak-dialog"
+        aria-labelledby="<?= $escaper->escapeHtmlAttr($titleId) ?>"
+        data-mage-init='<?= $escaper->escapeHtmlAttr(json_encode(['spartrakDialog' => ['id' => 'contact']])) ?>'>
+    <div class="spartrak-dialog__panel">
+        <?php /* Title first, close second: the row is `space-between`, so in an
+                 RTL store view the first child lands at the inline start — the
+                 right — which is where Figma draws the title. The design file's
+                 own child order is the reverse of this because it is written in
+                 LTR x-order; see support-strip.phtml for the same note. */ ?>
+        <div class="spartrak-dialog__header">
+            <h2 class="spartrak-dialog__title" id="<?= $escaper->escapeHtmlAttr($titleId) ?>">
+                <?= $escaper->escapeHtml(__('Contact us')) ?>
+            </h2>
+            <button type="button"
+                    class="spartrak-dialog__close"
+                    data-spartrak-dialog-close
+                    aria-label="<?= $escaper->escapeHtmlAttr(__('Close')) ?>"></button>
+        </div>
+
+        <p class="spartrak-dialog__lede">
+            <?= $escaper->escapeHtml(__('Our team is ready to help you find the right part.')) ?>
+        </p>
+
+        <?php if ($channels !== []) : ?>
+            <div class="spartrak-dialog__group">
+                <?php foreach ($channels as $channel) : ?>
+                    <div class="spartrak-dialog__card">
+                        <p class="spartrak-dialog__card-label"><?= $escaper->escapeHtml($channel['label']) ?></p>
+                        <p class="spartrak-dialog__card-value">
+                            <?php foreach ($channel['values'] as $index => $value) : ?>
+                                <?php if ($index > 0) : ?>
+                                    <?php /* Two spaces either side, which is Figma's own string
+                                             (I1179:24007;1098:25428 reads "…5960  ·  +20…"), and
+                                             non-breaking so the separator cannot start a line. */ ?>
+                                    <span class="spartrak-dialog__card-separator" aria-hidden="true">&nbsp;&nbsp;·&nbsp;&nbsp;</span>
+                                <?php endif; ?>
+                                <a class="spartrak-dialog__card-link<?= $value['unbreakable'] ? ' spartrak-dialog__card-link--unbreakable' : '' ?>"
+                                   href="<?= $escaper->escapeUrl($value['href']) ?>"><?= $escaper->escapeHtml($value['text']) ?></a>
+                            <?php endforeach; ?>
+                        </p>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($address !== '') : ?>
+            <div class="spartrak-dialog__card">
+                <p class="spartrak-dialog__card-label"><?= $escaper->escapeHtml(__('Address')) ?></p>
+                <p class="spartrak-dialog__card-value"><?= $escaper->escapeHtml($address) ?></p>
+                <?php if ($directionsUrl !== '') : ?>
+                    <?php /* A map link leaves the store, so it opens in a new tab
+                             — and `rel` is not optional on a target="_blank" link
+                             whose destination an admin can change. */ ?>
+                    <a class="spartrak-dialog__card-action"
+                       href="<?= $escaper->escapeUrl($directionsUrl) ?>"
+                       target="_blank"
+                       rel="noopener noreferrer"><?= $escaper->escapeHtml(__('Directions')) ?></a>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($hours !== '') : ?>
+            <div class="spartrak-dialog__card">
+                <p class="spartrak-dialog__card-label"><?= $escaper->escapeHtml(__('Opening hours')) ?></p>
+                <p class="spartrak-dialog__card-value"><?= $escaper->escapeHtml($hours) ?></p>
+            </div>
+        <?php endif; ?>
+    </div>
+</dialog>

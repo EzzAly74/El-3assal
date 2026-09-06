@@ -27,4 +27,19 @@
         <observer name="spartrak_redirect_native_forgotpassword_to_modal"
                   instance="Spartrak\CustomerAuth\Observer\RedirectNativeAuthPageToModal"/>
     </event>
+
+    <!--
+      The signed-out confirmation, Figma 1280:27572.
+
+      A SEPARATE observer class from the three above, not a fourth entry in
+      their map. They redirect to the REFERRER and open a step of the auth
+      modal; this one redirects to the HOME PAGE and opens a different dialog
+      entirely — see RedirectLogoutSuccessToDialog for why the referrer is the
+      wrong destination after signing out. Sharing a class would have meant a
+      branch inside it for every one of those differences.
+    -->
+    <event name="controller_action_predispatch_customer_account_logoutsuccess">
+        <observer name="spartrak_redirect_logout_success_to_dialog"
+                  instance="Spartrak\CustomerAuth\Observer\RedirectLogoutSuccessToDialog"/>
+    </event>
 </config>

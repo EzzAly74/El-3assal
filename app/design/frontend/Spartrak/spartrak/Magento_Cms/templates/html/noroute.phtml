@@ -1,0 +1,72 @@
+<?php
+/**
+ * Spartrak — the 404 page's content.
+ *
+ * FIGMA SSOT: 1280:10788, inside the "Not Found" artboard 1280:10693.
+ *
+ * ===========================================================================
+ * IT IS THE SHARED EMPTY STATE
+ * ===========================================================================
+ * Figma composes this page out of exactly the block the cart, the wishlist and
+ * the signed-out dialog are built from — illustration, title, one explaining
+ * sentence, one way out — at the larger of that component's two type steps.
+ * So there is no page-specific markup here beyond the words and the
+ * illustration: components/_empty-state.less owns the block and `--panel --lg`
+ * picks the variant, which is the fourth caller of that component and the
+ * reason it was built as one (CLAUDE.md §9).
+ *
+ * ===========================================================================
+ * FIGMA COPY TYPOS, corrected — listed so the correction is reviewable
+ * ===========================================================================
+ * The Arabic in 1280:10792 reads "الصفحه غير موجودة!" (الصفحه for الصفحة) and
+ * 1280:10793 ends "من جديدز" (a stray ز on جديد). Both are authoring slips
+ * rather than wording, and both are corrected in this theme's i18n/ar_EG.csv —
+ * the same treatment, and the same reason, as the auth modal's own list of
+ * four (see login-modal.phtml note e).
+ *
+ * ===========================================================================
+ * WHERE THE BUTTON GOES
+ * ===========================================================================
+ * The store home page. Figma labels it "الذهاب للتسوق" — go and shop — and
+ * gives no destination. The home page is the only one that is guaranteed to
+ * exist and to be the right answer for every shopper who reaches a 404,
+ * whatever they were looking for; a category would be a guess about that.
+ *
+ * NOT `getContinueShoppingUrl()`, which the empty-cart page uses: that reads
+ * the last category the shopper browsed, and someone who arrived here from an
+ * external dead link has no such history to read.
+ *
+ * ===========================================================================
+ * PERFORMANCE
+ * ===========================================================================
+ * The LCP element on this page is the 240px illustration, and it is the only
+ * asset the page adds. It is a CSS background rather than an <img>, matching
+ * every other caller of this component: the image is decorative — the title
+ * beside it says everything it says — so it stays out of the accessibility
+ * tree, and its URL is built by LESS at compile time rather than by a template
+ * at render time. It is NOT lazy-loaded and NOT deferred: it is above the fold
+ * on every viewport, and background images carry no `loading` attribute to get
+ * wrong.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+?>
+<div class="spartrak-empty-state spartrak-empty-state--panel spartrak-empty-state--lg">
+    <span class="spartrak-empty-state__art spartrak-empty-state__art--noroute" aria-hidden="true"></span>
+
+    <div class="spartrak-empty-state__copy">
+        <strong class="spartrak-empty-state__title">
+            <?= $escaper->escapeHtml(__('Page not found!')) ?>
+        </strong>
+
+        <p class="spartrak-empty-state__text">
+            <?= $escaper->escapeHtml(__('Check the address you typed and try again.')) ?>
+        </p>
+
+        <a class="spartrak-empty-state__action spartrak-empty-state__action--primary"
+           href="<?= $escaper->escapeUrl($block->getBaseUrl()) ?>">
+            <?= $escaper->escapeHtml(__('Go shopping')) ?>
+        </a>
+    </div>
+</div>

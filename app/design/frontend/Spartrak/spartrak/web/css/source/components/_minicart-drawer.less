@@ -876,57 +876,116 @@
 // ===========================================================================
 // THE PAGE BEHIND, AND THE WAY IN
 // ===========================================================================
-// `dropdownDialog` puts a class on <body> for exactly this purpose (its
-// `bodyClass` option, set in Magento_Checkout::cart/minicart.phtml). So the
-// scrim and the scroll lock cost no JavaScript of ours at all.
+// `dropdownDialog` puts a class on <body> while it is open (its `bodyClass`
+// option, set in Magento_Checkout::cart/minicart.phtml) and a class on the
+// wrapper it appends into (its `parentClass` option, the same `active` core
+// already used). Between them the scroll lock and the scrim cost no JavaScript
+// of ours at all.
 body.spartrak-minicart-open {
   overflow: hidden;
 }
 
-body.spartrak-minicart-open::after {
+// ===========================================================================
+// THE SCRIM LIVES WITH THE DRAWER, NOT ON <body> — A MEASURED BUG
+// ===========================================================================
+// It used to be `body.spartrak-minicart-open::after` at z-index 999, one below
+// the panel's 1000, both read as though they were in the root stacking
+// context. MEASURED on the live storefront at 1920x950, by making the scrim
+// opaque and screenshotting: everything dimmed EXCEPT the header's search row
+// and the mega-nav beneath it, which painted over it in full colour. The
+// shopper got a drawer over an undimmed, fully clickable header.
+//
+// The cause was the rule that used to sit directly below this one, lifting
+// `.spartrak-header` to z-index 1000 while the drawer is open. It carried the
+// note "no media query is needed: on desktop the header is not positioned, and
+// z-index on a static element has no effect". The header IS `position: static`
+// on desktop — that part was checked and is true — but the conclusion does not
+// follow, and this is why:
+//
+//     .page-wrapper computes to `display: flex; flex-direction: column`
+//     (Porto's sticky-footer column), so .spartrak-header is a FLEX ITEM.
+//
+// CSS Flexible Box Layout §4.3 says z-index applies to flex items and that a
+// flex item with a z-index other than `auto` CREATES A STACKING CONTEXT even
+// though it is not positioned. So the header was a stacking context at 1000 in
+// the root context, and body::after at 999 could never reach over it.
+// Confirmed by overriding that one declaration to `auto` on the live page: the
+// header dimmed with everything else.
+//
+// The fix is not to renumber. Any scrim anchored somewhere else in the tree can
+// be separated from the drawer again by the next element that forms a stacking
+// context between them — this is the second time that has happened to this
+// component (components/_modal.less records the first, when the drawer itself
+// covered a confirmation dialog).
+//
+// So the scrim moves INTO the drawer's own parent, as a pseudo-element of the
+// wrapper the panel already lives in. `.minicart-wrapper` is
+// `position: relative` with `z-index: auto`, which is NOT a stacking context,
+// so its two children resolve against whatever context the wrapper itself sits
+// in — together, and in this order, always:
+//
+//     scrim   999  ::before on the wrapper
+//     panel  1000  .block-minicart
+//
+// Whatever contains them contains both. There is no longer a number for a
+// third element to land between.
+//
+// AND THE SCRIM NOW BLOCKS CLICKS, which is the second half of the same bug.
+// It used to declare `pointer-events: none` so that core's own
+// click-outside-to-close handler could see the event — with the consequence
+// that dismissing the drawer also ACTIVATED whatever was under the pointer, so
+// a shopper closing it over a product tile was navigated to that product.
+// Being a child of `.minicart-wrapper` is what makes blocking safe: core's
+// test is `!$(event.target).closest('.ui-dialog').length`, and the wrapper is
+// an ANCESTOR of that `.ui-dialog`, never a descendant — so a click on the
+// scrim still reads as outside and still closes, and now closes ONLY.
+.minicart-wrapper.spartrak-minicart.active::before {
+  // (0,3,0). Porto declares `.minicart-wrapper::before { content: ""; display:
+  // table }` as a clearfix at (0,1,0); this outranks it while the drawer is
+  // open and leaves it alone the rest of the time.
   content: "";
   position: fixed;
   inset: 0;
   z-index: 999;
+  display: block;
+  // UNCHANGED from the rule this replaces, deliberately. This is a heavier
+  // scrim than `--color-scrim` (alpha.ink-20, #0c0a2033), which the review
+  // dialog and the mega-nav flyout use — 0.45 against 0.20. Swapping in the
+  // token here would have lightened this drawer's overlay by more than half
+  // while fixing a stacking bug, and one change at a time is how a visual
+  // regression stays findable. Whether the two should converge is a design
+  // question for the drawer's own Figma node (818:7775), not something to
+  // settle in passing.
   background-color: rgba(12, 10, 32, 0.45);
   animation: spartrak-minicart-scrim 0.2s ease both;
-  // The scrim is decoration; the click-outside-to-close is core's own
-  // document handler, which needs the event to reach the page beneath.
-  pointer-events: none;
 }
 
 // ===========================================================================
-// AND THE HEADER HAS TO JOIN THE DRAWER ABOVE IT
+// ON MOBILE, THE HEADER STILL HAS TO JOIN THE DRAWER
 // ===========================================================================
-// The two rules above read as scrim 999, drawer 1000 — scrim underneath. That
-// is true on desktop and it was FALSE on mobile, where the scrim covered the
-// open drawer and dimmed the whole panel.
+// Below 768px components/_utility-header.less gives the header
+// `position: sticky` with `z-index: @spartrak-header-sticky-z` (50), so the
+// shopper keeps search and the cart while scrolling. That IS a stacking
+// context, and the drawer is markup inside it — so the drawer's 1000 is only a
+// rank among the header's own children, and in the root context the whole
+// drawer layer sits at 50, underneath any page content ranked above it.
 //
-// The drawer is markup inside <header>, and components/_utility-header.less
-// gives that header `position: sticky` with `z-index: @spartrak-header-sticky-z`
-// (50) below 768px, so the shopper keeps search and the cart while scrolling.
-// A positioned element with a z-index CREATES A STACKING CONTEXT, so from that
-// point the drawer's 1000 is only a rank AMONG THE HEADER'S OWN CHILDREN. In
-// the root context the drawer is not at 1000 at all — it is wherever its
-// header is, at 50. The scrim sits on body::after at 999, in that same root
-// context, and 999 beats 50.
+// A child cannot escape its parent's stacking context, so the header is what
+// has to rise. 1000 rather than 1001 keeps the scale honest: while the drawer
+// is open the header IS the drawer layer, and it stays below
+// @spartrak-modal-z (1100), so an authentication modal opened from the drawer
+// continues to cover both. The scrim rides along inside it and dims the
+// header's own content, which is what the design shows.
 //
-// Hence mobile-only: the desktop header is not positioned, no stacking context
-// is formed, and the drawer's 1000 competes with the scrim directly as written.
-//
-// The fix is to lift the header itself, not the drawer — a child cannot escape
-// its parent's stacking context, so raising the drawer further would change
-// nothing. 1000 rather than 1001 keeps the scale honest: while the drawer is
-// open the header IS the drawer layer, sitting above the scrim at 999 and
-// still below @spartrak-modal-z (1100), so an authentication modal opened from
-// the drawer continues to cover both.
-//
-// Scoped to the open state, so the header returns to 50 the moment the drawer
-// closes and the sticky behaviour is otherwise untouched. No media query is
-// needed: on desktop the header is not positioned, and z-index on a static
-// element has no effect.
-body.spartrak-minicart-open .spartrak-header {
-  z-index: 1000;
+// THE MEDIA QUERY IS THE FIX ABOVE. This rule is correct here and was actively
+// wrong on desktop, for the flex-item reason recorded above; scoping it to the
+// width where the header is actually sticky is what makes its own comment true.
+// Still scoped to the open state, so the header returns to 50 the moment the
+// drawer closes.
+@media (max-width: @breakpoint-header-collapse) {
+  body.spartrak-minicart-open .spartrak-header {
+    z-index: 1000;
+  }
 }
 
 @keyframes spartrak-minicart-scrim {
@@ -1062,7 +1121,7 @@ body.spartrak-minicart-open .spartrak-header {
 
 @media (prefers-reduced-motion: reduce) {
   .minicart-wrapper.spartrak-minicart .block-minicart,
-  body.spartrak-minicart-open::after {
+  .minicart-wrapper.spartrak-minicart.active::before {
     animation: none;
   }
 

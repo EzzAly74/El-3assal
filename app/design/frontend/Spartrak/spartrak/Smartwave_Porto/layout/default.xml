@@ -206,6 +206,24 @@
 
         <referenceContainer name="footer-container">
             <block class="Smartwave\Porto\Block\Template" name="footer_block" template="html/footer.phtml">
+                <!--
+                  The hotline in the "Contact Us" column and the phone/email in
+                  the bottom bar. They were three __() literals in the template
+                  — and two of the three were placeholders that reached
+                  production (+2012000000001 and a gmail address). They now come
+                  from the same store-scoped configuration the contact dialog
+                  reads, so there is ONE place a merchant changes a number and
+                  no way for the footer and the dialog to disagree
+                  (CLAUDE.md §9).
+
+                  Same ViewModel instance shape as the dialog's own argument in
+                  Magento_Theme/layout/default.xml. The block stays cacheable:
+                  everything it exposes is store-scoped config, and FPC is
+                  already keyed by store.
+                -->
+                <arguments>
+                    <argument name="contact_details" xsi:type="object">Spartrak\Contact\ViewModel\ContactDetails</argument>
+                </arguments>
                 <block class="Magento\Store\Block\Switcher" name="footer.store_switcher" template="switch/stores.phtml"/>
                 <!-- Footer logo is larger than the header's per Figma node 693:45786 (113x125) -->
                 <block class="Magento\Theme\Block\Html\Header\Logo" name="spartrak.footer_logo">

@@ -226,3 +226,83 @@
         background-color: var(--color-action-primary-hover);
     }
 }
+
+.spartrak-empty-state__art--noroute {
+    // 1280:22195 — the 404 page.
+    background-image: url('../images/illustrations/noroute.svg');
+}
+
+.spartrak-empty-state__art--signed-out {
+    // 1280:27624 — the signed-out dialog.
+    background-image: url('../images/illustrations/signed-out.svg');
+}
+
+// ===========================================================================
+// THE LARGE VARIANT — 1280:10788 (404) and 1280:27623 (signed out)
+// ===========================================================================
+// Two surfaces state the same three parts one step louder than the cart does,
+// and they state it identically, node for node:
+//
+//   art     240 square, against the base component's 176
+//   title   size/2xl 24px bold, against the base component's size/lg 18px
+//
+// Everything else — the 8px copy gap, the 290px measure, the 40px control, the
+// 16px stack gap — is unchanged, which is why this is a modifier and not a
+// third component (CLAUDE.md section 9). Both callers also take
+// `--panel` for the quieter fill and the 12/12/26 padding those two frames
+// share with the wishlist's.
+//
+// The 404 is a PAGE and the signed-out state is a DIALOG, so neither can
+// simply inherit the other's placement; only the type scale is shared, and
+// that is all this modifier claims.
+// `aspect-ratio` rather than a second explicit height, and this is the phone
+// case rather than a refinement: 240 plus the dialog's own padding is wider
+// than a 320px viewport, and the base rule's `max-width: 100%` would have
+// narrowed the box while leaving the height at 240 — a squashed illustration
+// instead of a smaller one. A square that shrinks keeps `background-size:
+// contain` drawing the artwork at its own proportions at every width.
+.spartrak-empty-state--lg .spartrak-empty-state__art {
+    width: 240px;
+    height: auto;
+    aspect-ratio: 1;
+}
+
+.spartrak-empty-state--lg .spartrak-empty-state__title {
+    font-size: var(--text-24);
+}
+
+// ===========================================================================
+// THE 404 PAGE'S FRAME — 1280:10693
+// ===========================================================================
+// The one caller whose empty state IS the whole page, so the page's own box
+// has to be cut for it. Kept in this file rather than given a stylesheet of
+// its own because that is all there is to the page: three rules and no
+// component.
+//
+// Figma draws the grey block reaching to 48px from each edge of the 1440
+// frame, i.e. the same full-bleed gutter every other page in this design uses
+// — taken from foundations/_page-metrics.less rather than written again, and
+// applied the same way components/_account.less applies it.
+//
+// The body class is added by Magento_Cms/layout/cms_noroute_index.xml.
+//
+// NO MINIMUM HEIGHT. Figma's block is 819px tall, but that number is the
+// artboard filling the space between its header and its footer, not a
+// measurement of this component — the cart page's own empty state comes from
+// an artboard that does exactly the same thing and is built content-sized
+// here for that reason. Forcing 819px would put a scrollbar on a 404 at every
+// laptop height, and inventing a viewport fraction instead would be a magic
+// value (CLAUDE.md §9).
+.spartrak-noroute {
+    .page-main {
+        padding-inline: @plp-gutter;
+        padding-block: 48px;
+        // Magento centres .page-main at 1140. The design is full bleed.
+        max-inline-size: none;
+
+        @media (max-width: @breakpoint-header-collapse) {
+            padding-inline: @plp-gutter-mobile;
+            padding-block: 16px;
+        }
+    }
+}

@@ -110,9 +110,15 @@
              <?php /*
                `bodyClass` is the widget's OWN option for this: it puts a class
                on <body> while the dropdown is open and takes it off on close.
-               components/_minicart-drawer.less hangs the page scrim and the
-               scroll lock off that class, so the drawer's overlay costs no
-               JavaScript of ours at all — see that file's closing section.
+               components/_minicart-drawer.less hangs the page SCROLL LOCK off
+               that class, so it costs no JavaScript of ours at all.
+
+               The page SCRIM used to hang off it too. It now hangs off
+               `parentClass` instead — the `active` class the same widget puts
+               on this wrapper — because a scrim anchored to <body> is in a
+               different stacking context from the drawer and was measurably
+               separated from it by the header. See that file's
+               "THE SCRIM LIVES WITH THE DRAWER" section for the finding.
 
                Everything else here is unchanged core configuration.
              */ ?>

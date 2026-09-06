@@ -93,6 +93,49 @@
                    template="Magento_Theme::html/toast-init.phtml"/>
         </referenceContainer>
 
+        <!--
+          ===================================================================
+          THE TWO SHARED DIALOGS
+          ===================================================================
+          Both are native <dialog> elements, so they live in the browser's top
+          layer once opened and their position in the DOM has no bearing on
+          what they cover. `before.body.end` is therefore the cheapest place
+          for them: nothing above has to reflow around markup that is
+          `display: none` until it is asked for, and neither is inside the
+          header, so neither can be trapped in the header's stacking context
+          the way the minicart drawer is (components/_minicart-drawer.less
+          records that at length).
+
+          BOTH ARE GLOBAL, and both are cheap enough to be:
+            - one shared JS module between them (js/spartrak-dialog.js), so
+              the second costs no request and no extra parse;
+            - their illustrations are CSS backgrounds inside a subtree that is
+              display:none until opened, so no image is fetched on a page
+              where nobody opens them;
+            - every value in the contact panel is store-scoped configuration,
+              so both blocks stay cacheable and neither forks the FPC.
+
+          Global rather than per-handle is a decision, not a default. The
+          contact dialog is reachable from the header strip and the footer,
+          i.e. every page. The signed-out dialog's redirect targets the store
+          HOME page, and which layout handle that page uses is a merchant
+          setting — gating its markup on `cms_index_index` would silently
+          produce no confirmation at all the day the home page is pointed at a
+          category. See each template's docblock.
+        -->
+        <referenceContainer name="before.body.end">
+            <block class="Magento\Framework\View\Element\Template"
+                   name="spartrak.contact_dialog"
+                   template="Magento_Theme::html/contact-dialog.phtml">
+                <arguments>
+                    <argument name="contact_details" xsi:type="object">Spartrak\Contact\ViewModel\ContactDetails</argument>
+                </arguments>
+            </block>
+            <block class="Magento\Framework\View\Element\Template"
+                   name="spartrak.signed_out_dialog"
+                   template="Magento_Theme::html/signed-out-dialog.phtml"/>
+        </referenceContainer>
+
         <!-- NOTE: <remove name="..."/> is head-asset syntax only; body blocks
              must be removed with remove="true" on a reference. -->
         <referenceBlock name="mageplaza.top.search" remove="true"/>

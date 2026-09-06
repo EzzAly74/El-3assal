@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<!--
+  Shipped defaults for the contact dialog.
+
+  These are not placeholders and they are not sample data: they are ElAssal's
+  own published contact details, exactly as Figma 1179:24007 lists them, so the
+  dialog is correct on a fresh install with zero admin setup. The same
+  reasoning the header's utility strip records
+  (Magento_Theme::html/support-strip.phtml) applies here — a panel whose whole
+  purpose is to tell a shopper how to reach the merchant must never render
+  empty because a config row was not created.
+
+  Every value stays admin-editable per store view; see etc/adminhtml/system.xml.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <spartrak_contact>
+            <details>
+                <whatsapp>+20 122 314 9614</whatsapp>
+                <hotline>12384</hotline>
+                <!--
+                  Two lines in one field, comma separated. The dialog prints
+                  them on one row joined by the separator Figma draws, and each
+                  one is dialable on its own — see ViewModel\ContactDetails.
+                -->
+                <showroom_phones>+20 2 2575 5960, +20 2 2576 1246</showroom_phones>
+                <email>omar@elassalparts.com</email>
+                <address>٢٥ شارع عرابي، الأزبكية، وسط البلد، القاهرة</address>
+                <hours>الاثنين–الجمعة ٩ ص – ٥ م · السبت ١٠ ص – ٤ م</hours>
+                <!--
+                  Empty by default. The "الاتجاهات" line only renders when the
+                  merchant has supplied a real map URL — inventing one for a
+                  street address would be guessing at a destination the shopper
+                  is about to drive to.
+                -->
+                <directions_url/>
+            </details>
+        </spartrak_contact>
+    </default>
+</config>

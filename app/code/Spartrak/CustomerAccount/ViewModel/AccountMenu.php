@@ -59,14 +59,20 @@ class AccountMenu implements ArgumentInterface
      * strip, so the account menu points at the same place rather than
      * inventing a help page.
      *
-     * @var array<int, array{route: string, label: string, modifier: string}>
+     * `dialog`, where present, names a Spartrak dialog that should open IN
+     * PLACE of following the route. The url is still emitted and is still
+     * real — js/spartrak-dialog.js upgrades the click, and the route itself
+     * redirects to the same dialog server-side — so this is an enhancement
+     * and never the only way through.
+     *
+     * @var array<int, array{route: string, label: string, modifier: string, dialog?: string}>
      */
     private const LINKS = [
         ['route' => 'customer/account',    'label' => 'My account',       'modifier' => 'user'],
         ['route' => 'sales/order/history', 'label' => 'My orders',        'modifier' => 'orders'],
         ['route' => 'customer/address',    'label' => 'My addresses',     'modifier' => 'addresses'],
         ['route' => 'wishlist',            'label' => 'My wishlist',      'modifier' => 'wishlist'],
-        ['route' => 'contact',             'label' => 'Help and support', 'modifier' => 'support'],
+        ['route' => 'contact',             'label' => 'Help and support', 'modifier' => 'support', 'dialog' => 'contact'],
     ];
 
     private const LOGOUT_ROUTE = 'customer/account/logout';
@@ -77,7 +83,11 @@ class AccountMenu implements ArgumentInterface
     }
 
     /**
-     * @return array<int, array{url: string, label: \Magento\Framework\Phrase, modifier: string}>
+     * `dialog` is always present and is an empty string for a row that is a
+     * plain destination, so a template can emit the attribute unconditionally
+     * from one expression instead of testing for the key.
+     *
+     * @return array<int, array{url: string, label: \Magento\Framework\Phrase, modifier: string, dialog: string}>
      */
     public function getLinks(): array
     {
@@ -88,6 +98,7 @@ class AccountMenu implements ArgumentInterface
                 'url' => $this->url->getUrl($link['route']),
                 'label' => __($link['label']),
                 'modifier' => $link['modifier'],
+                'dialog' => $link['dialog'] ?? '',
             ];
         }
 

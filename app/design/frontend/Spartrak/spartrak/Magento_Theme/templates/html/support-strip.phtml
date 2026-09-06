@@ -115,7 +115,18 @@ $languageSwitcher = $block->getChildHtml('store_language');
                      (node 724:25805) drops this item entirely; hidden by CSS
                      rather than by a viewport check in PHP, because this block
                      is full-page-cached and cannot branch on device. */ ?>
-            <a class="spartrak-support-strip__item spartrak-support-strip__item--contact" href="<?= $block->escapeUrl($contactUsUrl) ?>">
+            <?php /* PROGRESSIVE ENHANCEMENT, NOT A REPLACEMENT. The href stays
+                     the real /contact/ URL — it is what a shopper without
+                     JavaScript follows, and what a middle-click or a "copy link"
+                     yields — while js/spartrak-dialog.js upgrades the click into
+                     opening the contact dialog in place. The route itself is
+                     intercepted server-side by
+                     Spartrak\Contact\Observer\RedirectContactPageToDialog, so
+                     even the un-upgraded path ends at the dialog rather than at
+                     Magento's contact form. */ ?>
+            <a class="spartrak-support-strip__item spartrak-support-strip__item--contact"
+               href="<?= $block->escapeUrl($contactUsUrl) ?>"
+               data-spartrak-dialog-open="contact">
                 <span><?= $block->escapeHtml(__('Contact us')) ?></span>
             </a>
         </div>

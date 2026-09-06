@@ -1,0 +1,402 @@
+// ===========================================================================
+// DIALOG — the shared Spartrak modal panel
+// ===========================================================================
+// FIGMA SSOT: two nodes that draw the SAME shell, measurement for
+// measurement —
+//
+//   contact       1179:24007  560 x 672
+//   signed out    1280:27572  560 x 574
+//
+// so the shell is a component and each panel's contents are its own section
+// below (CLAUDE.md §9 — one implementation, not two near-copies).
+//
+// Shell, read off both nodes:
+//   width          560
+//   fill           bg/surface
+//   border         1px  border/subtle  #f3f3f4
+//   radius         16
+//   effect         the raw drop shadow now carried as --shadow-dialog; see
+//                  foundations/_shadows.less for how its 32px blur was
+//                  measured rather than taken from the reference code
+//   padding        24 top, 28 inline, 28 bottom
+//   gap            18
+//
+// A NATIVE <dialog>. See js/spartrak-dialog.js for the full argument; in
+// short the browser owns the top layer, the ::backdrop, Escape, focus
+// containment and inertness, and Magento_Ui/js/modal would reproduce all of
+// it in JavaScript.
+//
+// This file does NOT restyle core's `.modal-popup` — components/_modal.less
+// owns those, for the platform's own confirmations and forms. The two never
+// meet: this component brings its own element.
+//
+// ---------------------------------------------------------------------------
+// MOBILE
+// ---------------------------------------------------------------------------
+// There is no mobile frame for either node in the design file. Rather than
+// invent one, the phone layout follows the convention this theme has already
+// set for a centred dialog (components/_reviews.less): the same panel, capped
+// to the viewport less a margin, centred at every size — never a bottom sheet.
+// The auth modal states the same rule in its own words.
+
+// The panel measure, and the room left around it on a small screen. 16 either
+// side matches the auth modal's own mobile margin.
+@spartrak-dialog-width: 560px;
+@spartrak-dialog-gutter: 16px;
+
+.spartrak-dialog {
+    position: fixed;
+    inset: 0;
+    // `margin: auto` against `inset: 0` on an auto-sized box is what centres it
+    // on BOTH axes at any height — the same reasoning recorded on
+    // components/_login-modal.less, where a margin-based offset broke once the
+    // mobile keyboard shrank the visual viewport.
+    margin: auto;
+    inline-size: @spartrak-dialog-width;
+    max-inline-size: calc(100% - (@spartrak-dialog-gutter * 2));
+    // A dialog taller than the viewport scrolls itself rather than being
+    // clipped at both ends.
+    max-block-size: calc(100% - 48px);
+    overflow: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+
+    // The UA stylesheet's own `dialog:not([open]) { display: none }` is what
+    // browsers that implement <dialog> rely on. Stated explicitly so that a
+    // browser that does NOT implement it renders nothing either, instead of
+    // dropping the whole panel inline at the end of the page.
+    &:not([open]) {
+        display: none;
+    }
+}
+
+// bg/scrim, the same token the review dialog and the mega-nav flyout use, with
+// the design system's own "OVerlay/Popup" background blur at the 6px this
+// theme already writes it at. It degrades to a plain scrim where
+// backdrop-filter is unsupported, which is the correct fallback rather than
+// something to feature-query around.
+.spartrak-dialog::backdrop {
+    background-color: var(--color-scrim);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+}
+
+// The page behind a modal must not scroll. <dialog> puts the panel in the top
+// layer and makes the rest of the document inert, but it does NOT lock the
+// scroll — so the class the widget sets does, on <html>, which is what
+// actually stops a mobile Safari page moving under an overlay.
+.spartrak-dialog-open {
+    overflow: hidden;
+}
+
+// ---------------------------------------------------------------------------
+// The panel
+// ---------------------------------------------------------------------------
+// THE <dialog> ELEMENT ITSELF IS A TRANSPARENT SHELL and every visual belongs
+// to this child. That is not tidiness: the dismiss-on-scrim-click test in the
+// widget is `event.target === dialog`, and it is only sound while the dialog
+// element has no paintable area of its own for a click to land on.
+//
+// Figma's `items-end` with children that are all full width; `stretch` says
+// the same thing without every child having to opt back out of it.
+.spartrak-dialog__panel {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 18px;
+    padding: 24px 28px 28px;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-16);
+    background: var(--color-bg-surface);
+    box-shadow: var(--shadow-dialog);
+    text-align: start;
+}
+
+// ---------------------------------------------------------------------------
+// Header — I1179:24007;1098:25415
+// ---------------------------------------------------------------------------
+// Title at the inline start, close at the inline end. In the frame those are
+// x=406 and x=0 respectively — right and left — which is that pair read in
+// Arabic, and logical properties put them the same way round in English.
+.spartrak-dialog__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+// Heading/H3 — size/xl 20px bold, lh 1.3, text/primary.
+.spartrak-dialog__title {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-family: var(--font-arabic);
+    font-size: var(--text-20);
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+// I1179:24007;1098:25416 — a bare 14px glyph, no disc behind it.
+//
+// The 32px box is NOT decoration and is not in the design either: a 14px hit
+// target fails WCAG 2.5.8 outright, and it is the one control that dismisses
+// this dialog for a pointer user. The BUTTON is 32 square and transparent; the
+// GLYPH inside it is Figma's 14. Nothing visible is added.
+//
+// The glyph is this theme's existing close.svg, painted with the colour Figma
+// binds here — the same asset and the same finding as the review dialog's
+// close control, which records why a second near-identical export is not
+// shipped for it.
+.spartrak-dialog__close {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 32px;
+    block-size: 32px;
+    // The 32px box is pulled back to the 14px glyph's own bounds on every side,
+    // so it adds hit area OUTWARD and changes no measurement of the design:
+    //
+    //   inline  -9   the glyph stays on the panel's padding edge rather than
+    //                being pushed 9px inward by the box around it
+    //   block   -9   the header row's height stays the TITLE's 26px, not the
+    //                button's 32. MEASURED: without it the panel came out 679
+    //                tall against Figma's 672, and the header row 32 against
+    //                the design's 26 — the whole difference was this one box.
+    //
+    // Overlapping the row's neighbours by 3px costs nothing: the gap below the
+    // header is 18px and the panel's own top padding is 24.
+    margin-block: -9px;
+    margin-inline-end: -9px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: none;
+    cursor: pointer;
+    transition: background-color .15s ease;
+
+    &::after {
+        content: '';
+        .spartrak-icon('close.svg'; 14px; var(--color-text-primary));
+    }
+
+    &:hover {
+        background: var(--color-bg-field);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
+    }
+}
+
+// Body/Small — size/md 14px regular, lh 1.5, text/secondary
+// (I1179:24007;1098:25418).
+.spartrak-dialog__lede {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+// ---------------------------------------------------------------------------
+// Card list — I1179:24007;1098:25419
+// ---------------------------------------------------------------------------
+// The four channel rows sit in their own 10px-gapped group, while the address
+// and the hours are siblings of that group and take the shell's own 18px. That
+// is the design's grouping, not an accident of nesting: the four ways to reach
+// a person read as one set, and the two facts about the shop do not.
+.spartrak-dialog__group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+// I1179:24007;1098:25420 and its three siblings, plus the address and hours
+// boxes — one class, because all six are byte-identical in the design.
+.spartrak-dialog__card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px;
+    border-radius: var(--radius-10);
+    background: var(--color-bg-surface-subtle);
+}
+
+// Label/Large — size/md 14px medium, lh 1.3, text/muted.
+.spartrak-dialog__card-label {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+// Body/Base Medium — size/base 16px medium, lh 1.5, text/primary.
+//
+// `overflow-wrap: anywhere` is for one real value: an email address is a single
+// unbreakable token, and omar@elassalparts.com at 16px does not fit a 320px
+// phone once the dialog's and the card's padding are taken off it. Without it
+// the card overflows rather than wrapping.
+.spartrak-dialog__card-value {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-family: var(--font-arabic);
+    font-size: var(--text-16);
+    font-weight: 500;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+// ===========================================================================
+// THE VALUES ARE LINKS, AND THEY LOOK EXACTLY LIKE THE TEXT FIGMA DRAWS
+// ===========================================================================
+// Figma renders every value as plain text. They are rendered here as `tel:`,
+// `mailto:` and `wa.me` anchors, because a contact panel whose phone number
+// cannot be dialled from the phone it is being read on has missed its own
+// point — and because the alternative is a shopper copying a number by hand.
+//
+// The DESIGN is not changed by that: the anchor inherits the value's colour,
+// weight and size and carries no underline, so at rest it is the same pixels.
+// Only hover and focus — states the design does not draw for this text because
+// in the design it is not interactive — say that it is.
+//
+// Porto repaints every visited link at (0,1,1), which is why `:visited` is
+// pinned here alongside the rest rather than left to inherit.
+.spartrak-dialog__card-link {
+    color: inherit;
+    text-decoration: none;
+
+    &:hover,
+    &:focus,
+    &:active,
+    &:visited {
+        color: inherit;
+    }
+
+    &:hover {
+        text-decoration: underline;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
+    }
+}
+
+// A telephone number is one token to a reader even though it is written with
+// spaces in it. MEASURED at 375px: the showroom row broke between
+// "+20 2 2576" and "1246", leaving two half-numbers on two lines. The flag
+// comes from the ViewModel, which is the only place that knows which values
+// are numbers — the email is deliberately NOT marked, because it is a single
+// unbreakable token that must be allowed to break or it overflows the card.
+.spartrak-dialog__card-link--unbreakable {
+    white-space: nowrap;
+}
+
+// The showroom row prints two numbers on one line. Figma separates them with a
+// middot flanked by two spaces; it is emitted as a real character in an
+// aria-hidden span rather than as generated content so that it cannot be read
+// out between the two numbers.
+.spartrak-dialog__card-separator {
+    color: var(--color-text-muted);
+}
+
+// I1179:24007;1098:25435 — "Directions", Body/Small Medium on text/link.
+// A third line inside the address card, not a control beside it.
+.spartrak-dialog__card-action {
+    align-self: flex-start;
+    color: var(--color-text-link);
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 500;
+    line-height: 1.5;
+    text-decoration: none;
+
+    &:visited {
+        color: var(--color-text-link);
+    }
+
+    &:hover {
+        color: var(--color-text-link);
+        text-decoration: underline;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
+    }
+}
+
+// ===========================================================================
+// THE SIGNED-OUT PANEL — 1280:27572
+// ===========================================================================
+// Its whole content is one bordered frame wrapping the shared empty state
+// (components/_empty-state.less), so this section is the frame and nothing
+// else. The illustration, the 24px title, the 290px line and the navy control
+// are all that component's, taken with `--panel --lg`.
+//
+// FIGMA DRAWS THIS FRAME TWICE. `Main Content Area` (1280:27621) and
+// `Account Content` (1280:27622) are nested, and both carry a 1px
+// border/default on all four edges; the inner one fills the outer one, so the
+// two borders are coincident and the design RENDERS one hairline. Emitting
+// both would paint a 2px line the design does not show, so one element carries
+// it — this is a reproduction of what the frame looks like, not of how it was
+// assembled. The 12px block padding is the inner frame's, and it is what puts
+// the white margin above and below the grey block.
+.spartrak-dialog__frame {
+    display: flex;
+    flex-direction: column;
+    // Figma fixes the frame at 520 tall and centres the empty state in it. A
+    // minimum rather than a height, so that a longer translation grows the box
+    // instead of overflowing it, and so the phone case below can drop it.
+    min-block-size: 520px;
+    padding-block: 12px;
+    border: 1px solid var(--color-border-default);
+    background: var(--color-bg-surface);
+}
+
+// The empty state fills the frame, which is what makes `justify-content:
+// center` on it centre against the 520 rather than against its own content.
+.spartrak-dialog__frame > .spartrak-empty-state {
+    flex: 1 1 auto;
+}
+
+// 1280:27629 — this control is 274 wide, where the shared component's is
+// content-width with a 120 floor and the 404's takes exactly that floor. Read
+// off the node rather than assumed from the sibling: the same layer name
+// ("Primary Buttons") covers three different widths across this design file.
+//
+// `max-inline-size` so it can never be wider than a phone panel it is sitting
+// inside; at that point it simply fills the line, which is the right answer for
+// a lone primary action.
+.spartrak-dialog__frame .spartrak-empty-state__action {
+    inline-size: 274px;
+    max-inline-size: 100%;
+}
+
+@media (max-width: @breakpoint-mobile) {
+    // 28px of inline padding is 16% of a 343px panel. Figma has no phone frame
+    // for this component; the number is reduced to the 16 the auth modal uses
+    // at this width so that the cards inside keep their own 16 and the content
+    // measure does not collapse.
+    .spartrak-dialog__panel {
+        padding: 20px 16px 24px;
+    }
+
+    // The 520 is a desktop proportion. On a phone it is most of the viewport
+    // before the panel's own padding, and the empty state is already centred
+    // in whatever height it gets, so the floor is simply dropped.
+    .spartrak-dialog__frame {
+        min-block-size: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spartrak-dialog__close {
+        transition: none;
+    }
+}

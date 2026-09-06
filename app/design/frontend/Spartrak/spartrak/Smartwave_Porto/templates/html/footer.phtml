@@ -87,12 +87,23 @@
  *    is a content decision, not an orthographic slip, so it is reproduced
  *    exactly as drawn and raised for review.
  *  - The bottom-bar phone (+2012000000001, thirteen digits) and email
- *    (sparetrak@gmail.com) both look like placeholders. Reproduced as
- *    translatable literals, same mechanism as the hotline, so either can be
- *    corrected per store view without a deploy.
+ *    (sparetrak@gmail.com) were both placeholders, and they reached
+ *    production. RESOLVED 2026-09-06: the hotline, the bottom-bar phone and
+ *    the bottom-bar email all now come from Spartrak_Contact's store-scoped
+ *    configuration, which is the SAME source the contact dialog reads
+ *    (Magento_Theme::html/contact-dialog.phtml). Three translatable literals
+ *    became one admin screen, and there is no longer a way for the footer and
+ *    the dialog to print different numbers (CLAUDE.md §9).
+ *
+ *    A row whose value is unset does not render at all, rather than rendering
+ *    an icon beside an empty string.
  *
  * @var \Smartwave\Porto\Block\Template $block
+ * @var \Spartrak\Contact\ViewModel\ContactDetails|null $contactDetails
  */
+
+/** Supplied as a layout argument on footer_block; see the layout for why. */
+$contactDetails = $block->getData('contact_details');
 
 /** Resolve a CMS page / category url key to an absolute storefront URL. */
 $href = static function (string $identifier) use ($block): string {
@@ -135,7 +146,10 @@ $columns = [
             ['label' => __('Return policy'), 'url' => $href('return-policy')],
             ['label' => __('Shipping policy'), 'url' => $href('shipping-policy')],
             ['label' => __('FAQ'), 'url' => $href('faq')],
-            ['label' => __('Call us'), 'url' => $href('contact')],
+            // The only link column entry that opens a dialog instead of
+            // navigating. `dialog` is read at render below; every other item
+            // omits it and renders as a plain link.
+            ['label' => __('Call us'), 'url' => $href('contact'), 'dialog' => 'contact'],
         ],
     ],
     [
@@ -169,13 +183,23 @@ $social = [
     ['key' => 'facebook', 'label' => __('Facebook'), 'icon' => 'facebook.svg'],
 ];
 
-/** Figma's mixed-type hotline row: muted label + bold ink number, 8px apart. */
-$hotlineItem = static function () use ($block): string {
-    $number = (string) __('12384');
+/**
+ * Figma's mixed-type hotline row: muted label + bold ink number, 8px apart.
+ *
+ * Returns an empty string when no hotline is configured, so the caller's
+ * `if` covers both "the column does not have one" and "this store has not set
+ * one" without a second test.
+ */
+$hotlineItem = static function () use ($block, $contactDetails): string {
+    $number = $contactDetails !== null ? $contactDetails->getHotline() : '';
+
+    if ($number === '') {
+        return '';
+    }
 
     return '<li class="spartrak-footer__item">'
         . '<a class="spartrak-footer__link spartrak-footer__hotline" '
-        . 'href="tel:' . $block->escapeHtmlAttr($number) . '">'
+        . 'href="' . $block->escapeHtmlAttr($contactDetails->getTelHref($number)) . '">'
         . '<span class="spartrak-footer__hotline-label">' . $block->escapeHtml(__('Hotline')) . '</span>'
         // Latin digits inside an Arabic run: isolate as LTR or the bidi
         // algorithm reorders them. Same fix as the support strip's own.
@@ -185,17 +209,24 @@ $hotlineItem = static function () use ($block): string {
 };
 
 /**
- * One contact item in the bottom bar: 20x20 icon then text, 8px apart. The
- * value is a translatable literal so it is correctable per store view.
+ * One contact item in the bottom bar: 20x20 icon then text, 8px apart.
+ *
+ * The href is passed in rather than built from a scheme and the printed value:
+ * a phone number is printed with the spaces a human reads it by, and a `tel:`
+ * URI may not contain them. The ViewModel builds the dialable form.
  */
 $contactItem = static function (
     string $icon,
     string $value,
-    string $scheme,
+    string $href,
     string $label
 ) use ($block): string {
+    if ($value === '') {
+        return '';
+    }
+
     return '<a class="spartrak-footer__contact-item" '
-        . 'href="' . $block->escapeHtmlAttr($scheme . $value) . '" '
+        . 'href="' . $block->escapeHtmlAttr($href) . '" '
         . 'aria-label="' . $block->escapeHtmlAttr($label) . '">'
         . '<img class="spartrak-footer__contact-icon" '
         . 'src="' . $block->escapeUrl($block->getViewFileUrl('images/icons/' . $icon)) . '" '
@@ -204,8 +235,8 @@ $contactItem = static function (
         . '</a>';
 };
 
-$phone = (string) __('+2012000000001');
-$email = (string) __('sparetrak@gmail.com');
+$phone = $contactDetails !== null ? $contactDetails->getPrimaryPhone() : '';
+$email = $contactDetails !== null ? $contactDetails->getEmail() : '';
 ?>
 <footer class="spartrak-footer" role="contentinfo">
     <div class="spartrak-footer__links-area">
@@ -263,7 +294,9 @@ $email = (string) __('sparetrak@gmail.com');
                         <?php endif; ?>
                         <?php foreach ($column['items'] as $item): ?>
                             <li class="spartrak-footer__item">
-                                <a class="spartrak-footer__link" href="<?= $block->escapeUrl($item['url']) ?>">
+                                <a class="spartrak-footer__link"
+                                   href="<?= $block->escapeUrl($item['url']) ?>"
+                                   <?php if (isset($item['dialog'])): ?>data-spartrak-dialog-open="<?= $block->escapeHtmlAttr($item['dialog']) ?>"<?php endif; ?>>
                                     <?= $block->escapeHtml($item['label']) ?>
                                 </a>
                             </li>
@@ -283,8 +316,13 @@ $email = (string) __('sparetrak@gmail.com');
                      against the node's own 1440 PNG export. Same reversal rule as
                      everywhere else in this template. */ ?>
             <div class="spartrak-footer__contact">
-                <?= /* @noEscape */ $contactItem('email.svg', $email, 'mailto:', (string) __('Email us')) ?>
-                <?= /* @noEscape */ $contactItem('phone.svg', $phone, 'tel:', (string) __('Call us')) ?>
+                <?= /* @noEscape */ $contactItem('email.svg', $email, 'mailto:' . $email, (string) __('Email us')) ?>
+                <?= /* @noEscape */ $contactItem(
+                    'phone.svg',
+                    $phone,
+                    $contactDetails !== null ? $contactDetails->getTelHref($phone) : '',
+                    (string) __('Call us')
+                ) ?>
             </div>
 
             <p class="spartrak-footer__copyright">

@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/module.xsd">
+    <module name="Spartrak_Contact" setup_version="1.0.0">
+        <sequence>
+            <!--
+              Magento_Contact declares the `contact` frontend route whose GET
+              page this module intercepts, so it must be loaded first for the
+              controller_action_predispatch_contact_index_index event to exist
+              to observe.
+            -->
+            <module name="Magento_Contact"/>
+        </sequence>
+    </module>
+</config>

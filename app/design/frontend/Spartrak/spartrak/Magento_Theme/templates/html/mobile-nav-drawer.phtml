@@ -246,7 +246,8 @@ foreach ($l1Nodes as $l1) {
                         <?php foreach ($drawerAccountLinks as $link) : ?>
                             <li>
                                 <a class="spartrak-mobile-drawer__account-link"
-                                   href="<?= $block->escapeUrl($link['url']) ?>">
+                                   href="<?= $block->escapeUrl($link['url']) ?>"
+                                   <?php if ($link['dialog'] !== ''): ?>data-spartrak-dialog-open="<?= $block->escapeHtmlAttr($link['dialog']) ?>"<?php endif; ?>>
                                     <span class="spartrak-mobile-drawer__account-icon spartrak-mobile-drawer__account-icon--<?= $block->escapeHtmlAttr($link['modifier']) ?>"
                                           aria-hidden="true"></span>
                                     <span class="spartrak-mobile-drawer__account-label"><?= $block->escapeHtml($link['label']) ?></span>

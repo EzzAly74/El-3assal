@@ -52,4 +52,34 @@
     // and 3 is what is used here. The same halving is recorded in this file's
     // header for the Container effect, and it caught us once already.
     --shadow-medium-darker: 0 1px 3px rgba(0, 0, 0, 0.15);
+
+    // ------------------------------------------------------------------
+    // FIGMA DIALOG PASS (2026-09-06)
+    // ------------------------------------------------------------------
+    // The elevation the two Figma modal shells carry — the contact panel
+    // (1179:24007) and the signed-out panel (1280:27572). Both draw the SAME
+    // raw drop shadow, and it is a genuinely heavier step than
+    // --shadow-container above: 0.18 alpha against 0.05, and four times the
+    // blur. It lifts a 16px-radius panel off a page that is NOT dimmed to
+    // black behind it.
+    //
+    // WHY THE RADIUS IS 32 AND NOT THE 16 THE REFERENCE CODE PRINTED.
+    // get_variable_defs returns no effect variable for either node — the
+    // shadow is a raw effect, not a named one — so the usual cross-check this
+    // file relies on was not available, and get_design_context reported
+    // `drop-shadow(0px 12px 16px rgba(0,0,0,0.18))`, i.e. Tailwind's own
+    // halved blur (see this file's header).
+    //
+    // MEASURED INSTEAD, off Figma's own render bounds. get_screenshot returns
+    // a node padded by exactly the extent its effects paint into:
+    //
+    //   1280:27572  node 560x574  ->  render 624x638
+    //   1179:24007  node 560x672  ->  render 624x736
+    //
+    // 64px wider is 32 either side, which IS the blur radius. 64px taller
+    // splits 20/44 around a y-offset of 12 — (32-12) above, (32+12) below.
+    // Both agree, and only radius 32 satisfies them; radius 16 would have
+    // rendered 592x606. This is also the third independent confirmation of
+    // the halving noted at the top of this file.
+    --shadow-dialog: 0 12px 32px rgba(0, 0, 0, 0.18);
 }

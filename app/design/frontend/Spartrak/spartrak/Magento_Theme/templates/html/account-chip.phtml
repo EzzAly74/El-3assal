@@ -188,7 +188,12 @@ $isLoggedIn = $customerState !== null && $customerState->isLoggedIn();
         <ul class="spartrak-header__account-links">
             <?php foreach ($accountLinks as $link) : ?>
                 <li>
-                    <a class="spartrak-header__account-link" href="<?= $block->escapeUrl($link['url']) ?>">
+                    <?php /* `dialog` is '' for every row but "Help and support", and an
+                             empty data attribute matches no trigger selector, so this
+                             needs no branch. See js/spartrak-dialog.js. */ ?>
+                    <a class="spartrak-header__account-link"
+                       href="<?= $block->escapeUrl($link['url']) ?>"
+                       <?php if ($link['dialog'] !== ''): ?>data-spartrak-dialog-open="<?= $block->escapeHtmlAttr($link['dialog']) ?>"<?php endif; ?>>
                         <span class="spartrak-header__account-link-label"><?= $block->escapeHtml($link['label']) ?></span>
                         <span class="spartrak-header__account-link-icon spartrak-header__account-link-icon--<?= $block->escapeHtmlAttr($link['modifier']) ?>" aria-hidden="true"></span>
                     </a>

@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!--
+  Frontend-only. Nothing in the admin area routes through `contact_index_index`,
+  and putting this file under etc/frontend/ guarantees that structurally rather
+  than with a check inside the observer.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <!--
+      Registered against the one full action name rather than the broad
+      `controller_action_predispatch_contact` event: the broader handle also
+      fires for `contact/index/post`, which must keep working, so observing it
+      would mean adding a check inside the observer for something the
+      registration can state precisely.
+    -->
+    <event name="controller_action_predispatch_contact_index_index">
+        <observer name="spartrak_redirect_contact_page_to_dialog"
+                  instance="Spartrak\Contact\Observer\RedirectContactPageToDialog"/>
+    </event>
+</config>

@@ -1,0 +1,80 @@
+<?php
+/**
+ * Spartrak — the "signed out" dialog.
+ *
+ * FIGMA SSOT: 1280:27572, a 560x574 panel that REPLACES Magento's
+ * /customer/account/logoutSuccess/ page. That page is intercepted server-side
+ * by Spartrak\CustomerAuth\Observer\RedirectLogoutSuccessToDialog, which sends
+ * the shopper to the store home page with `#dialog=signed-out` — see that
+ * class for why a fragment and not a query parameter, and
+ * js/spartrak-dialog.js for what reads it.
+ *
+ * ===========================================================================
+ * IT IS THE SHARED EMPTY STATE INSIDE THE SHARED DIALOG
+ * ===========================================================================
+ * Figma composes this panel out of the same illustration / title / sentence /
+ * one-way-out block the cart, the wishlist and the 404 all use — at the larger
+ * of that component's two type steps. So there is no markup here that is
+ * specific to signing out beyond the words and the illustration:
+ * components/_empty-state.less owns the block, `--panel --lg` picks the
+ * variant, and components/_dialog.less owns the frame around it.
+ *
+ * ===========================================================================
+ * NO CLOSE BUTTON, DELIBERATELY
+ * ===========================================================================
+ * Figma draws none, and unlike the auth modal — which kept one because its
+ * only control was a form submit (see login-modal.phtml note d) — this panel
+ * already has a visible, focusable, labelled dismiss control: the primary
+ * button. It is a `<button>` and not a link to the home page because the
+ * shopper is already ON the home page; navigating there again would reload the
+ * page to arrive where they are.
+ *
+ * Escape and a scrim click also dismiss, both free from `<dialog>`.
+ *
+ * ===========================================================================
+ * COST
+ * ===========================================================================
+ * This block renders on every page, because the redirect target is the store
+ * home page and which layout handle that page uses is a merchant setting, not
+ * a constant — gating the markup on `cms_index_index` would silently produce
+ * no confirmation at all the day someone points the home page at a category.
+ *
+ * It is ~600 bytes of markup, no extra request and no extra JS module (it
+ * shares one with the contact dialog). The 240px illustration is a CSS
+ * background inside a subtree that is `display: none` until the dialog opens,
+ * so the file is not fetched on a page where nobody signs out.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+$titleId = 'spartrak-signed-out-dialog-title';
+?>
+<dialog id="spartrak-signed-out-dialog"
+        class="spartrak-dialog"
+        aria-labelledby="<?= $escaper->escapeHtmlAttr($titleId) ?>"
+        data-mage-init='<?= $escaper->escapeHtmlAttr(json_encode(['spartrakDialog' => ['id' => 'signed-out']])) ?>'>
+    <div class="spartrak-dialog__panel">
+        <div class="spartrak-dialog__frame">
+            <div class="spartrak-empty-state spartrak-empty-state--panel spartrak-empty-state--lg">
+                <span class="spartrak-empty-state__art spartrak-empty-state__art--signed-out" aria-hidden="true"></span>
+
+                <div class="spartrak-empty-state__copy">
+                    <strong class="spartrak-empty-state__title" id="<?= $escaper->escapeHtmlAttr($titleId) ?>">
+                        <?= $escaper->escapeHtml(__('You have signed out successfully')) ?>
+                    </strong>
+
+                    <p class="spartrak-empty-state__text">
+                        <?= $escaper->escapeHtml(__('See you soon! You can come back any time to carry on shopping.')) ?>
+                    </p>
+
+                    <button type="button"
+                            class="spartrak-empty-state__action spartrak-empty-state__action--primary"
+                            data-spartrak-dialog-close>
+                        <?= $escaper->escapeHtml(__('Continue shopping')) ?>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</dialog>

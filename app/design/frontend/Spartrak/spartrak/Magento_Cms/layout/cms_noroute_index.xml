@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<!--
+  Spartrak — the 404 page. FIGMA SSOT: 1280:10693 ("Not Found"), whose content
+  area is 1280:10788.
+
+  ===========================================================================
+  WHAT THIS PAGE LOOKED LIKE BEFORE
+  ===========================================================================
+  MEASURED on the live store, by requesting a URL that does not exist: the
+  response was a correct `404 Not Found`, and the content column was EMPTY —
+  header, footer, and nothing at all in between. Core's own
+  `cms_noroute_index.xml` declares `<body/>` and contributes no content, and
+  the `no-route` CMS page that would otherwise fill it does not exist in this
+  installation (the page title was still the store default, and none of the
+  `cms_page_view` markup was present).
+
+  So this is not a restyle of an existing page. It is the first thing this
+  route has ever rendered.
+
+  ===========================================================================
+  WHY THIS HANDLE
+  ===========================================================================
+  `cms_noroute_index` is the full-action-name handle, which
+  Magento\Framework\View\Result\Page adds to every page it builds — so it
+  applies whether or not a merchant later creates a `no-route` CMS page and
+  moves the route onto the `cms_page_view` handles as well. Targeting it is
+  what keeps this design on the 404 in both cases.
+
+  If such a CMS page IS created later, its content renders in `content`
+  alongside this block rather than instead of it. That is the correct
+  precedence — the merchant's own words are additional to the design, not a
+  replacement for it — but it is worth knowing before someone creates one.
+
+  The 404 STATUS CODE is untouched: it is set by
+  Magento\Cms\Controller\Noroute\Index on the result object, not in layout.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" layout="1column" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <!--
+          The page had the store's default title, which reads as though the
+          shopper found what they were looking for. A 404 needs to say so in
+          the tab and in the history entry.
+        -->
+        <title>Page not found</title>
+        <!--
+          Nothing should index a 404, and Magento does not add this itself for
+          this route.
+        -->
+        <meta name="robots" content="NOINDEX,NOFOLLOW"/>
+    </head>
+    <body>
+        <!--
+          Additive: Magento\Framework\View\Page\Config\Reader\Body routes a
+          `class` attribute through addBodyClass(), so this joins the classes
+          the page already carries rather than replacing them.
+
+          It exists so the stylesheet can re-cut `.page-main` to Figma's
+          48px gutter for this page only — the same per-page pattern
+          components/_account.less and components/_plp.less already use, and
+          the reason foundations/_page-metrics.less holds the number.
+        -->
+        <attribute name="class" value="spartrak-noroute"/>
+
+        <referenceContainer name="content">
+            <block class="Magento\Framework\View\Element\Template"
+                   name="spartrak.noroute"
+                   template="Magento_Cms::html/noroute.phtml"/>
+        </referenceContainer>
+    </body>
+</page>

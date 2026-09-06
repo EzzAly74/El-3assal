@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <!--
+          Filed under the native General tab, immediately alongside "Store
+          Information" and Magento's own "Contacts" section: an admin looking
+          for the store's phone number will look there, and this is the same
+          kind of thing.
+
+          showInStore="1" throughout — the storefront is bilingual, and the
+          Arabic and English store views need different address and opening-hours
+          strings even though they share the same phone numbers.
+        -->
+        <section id="spartrak_contact" translate="label" type="text" sortOrder="120" showInDefault="1" showInWebsite="1" showInStore="1">
+            <class>separator-top</class>
+            <label>Contact Details</label>
+            <tab>general</tab>
+            <resource>Spartrak_Contact::config</resource>
+            <group id="details" translate="label comment" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Contact Dialog</label>
+                <comment><![CDATA[These values fill the "Contact us" dialog that opens from the header and the footer. Leave a field empty to drop its row from the dialog entirely.]]></comment>
+
+                <field id="whatsapp" translate="label comment" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>WhatsApp Number</label>
+                    <comment>Shown as written. The row links to wa.me using the digits only.</comment>
+                </field>
+
+                <field id="hotline" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Hotline</label>
+                    <comment>The short national number, e.g. 12384.</comment>
+                </field>
+
+                <field id="showroom_phones" translate="label comment" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Showroom Phone Numbers</label>
+                    <comment>Comma separated. Each number is printed on the same row and is separately dialable.</comment>
+                </field>
+
+                <field id="email" translate="label comment" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Email Address</label>
+                    <validate>validate-email</validate>
+                </field>
+
+                <field id="address" translate="label comment" type="textarea" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Address</label>
+                    <comment>One line per store view, in that store view's own language.</comment>
+                </field>
+
+                <field id="directions_url" translate="label comment" type="text" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Directions Link</label>
+                    <comment>A map URL for the "Directions" link under the address. Leave empty to hide that link.</comment>
+                </field>
+
+                <field id="hours" translate="label comment" type="textarea" sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Opening Hours</label>
+                    <comment>Free text, e.g. Mon–Fri 9am – 5pm · Sat 10am – 4pm.</comment>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>
