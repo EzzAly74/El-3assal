@@ -82,4 +82,22 @@
     // rendered 592x606. This is also the third independent confirmation of
     // the halving noted at the top of this file.
     --shadow-dialog: 0 12px 32px rgba(0, 0, 0, 0.18);
+
+    // ------------------------------------------------------------------
+    // FIGMA TOAST PASS (2026-09-06)
+    // ------------------------------------------------------------------
+    // The alert/toast elevation, from both variants (1286:29513, 1286:29589),
+    // which draw the same raw drop shadow. A toast floats over live page
+    // content that is NOT dimmed behind it, so it is the heaviest step in
+    // this file: 0.25 alpha.
+    //
+    // RADIUS 16, NOT THE 8 THE REFERENCE CODE PRINTED — the same halving this
+    // file's header records, and measured the same way as --shadow-dialog:
+    //
+    //   1286:29513  node 434x120  ->  render 466x152
+    //
+    // 32px wider is 16 either side, which IS the blur radius. 32px taller
+    // splits 10/22 around a y-offset of 6 - (16-6) above, (16+6) below. Only
+    // radius 16 satisfies both; radius 8 would have rendered 450x136.
+    --shadow-toast: 0 6px 16px rgba(0, 0, 0, 0.25);
 }

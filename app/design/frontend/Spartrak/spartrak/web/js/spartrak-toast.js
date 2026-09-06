@@ -24,6 +24,8 @@
  *   - a toast lives for `lifetime` ms (3s) and then fades out;
  *   - HOVER OR FOCUS PAUSES the countdown and restarts it on leave, so a
  *     message can never expire while it is being read;
+ *   - a toast carrying an action link lives twice as long, because a control
+ *     nobody has time to reach is not a control;
  *   - a close button dismisses immediately, and the whole toast is clickable
  *     for the same purpose;
  *   - the node is removed only after the exit transition, so the stack does
@@ -39,6 +41,21 @@ define(['jquery', 'jquery-ui-modules/widget'], function ($) {
         options: {
             // How long a toast stays on screen. One number, one place.
             lifetime: 3000,
+            /**
+             * ...except for a toast that carries an ACTION.
+             *
+             * Figma's success alert (1286:29513) ends in a "View cart" link.
+             * Three seconds is enough to READ a confirmation and nowhere near
+             * enough to notice a control, decide, and reach it — so a toast
+             * whose message came from a structured renderer and therefore has
+             * something to click gets twice as long. Hovering or focusing
+             * still pauses the countdown either way.
+             *
+             * Not applied to every toast: a plain confirmation that lingers is
+             * just something else covering the page.
+             */
+            actionLifetime: 6000,
+            actionSelector: '.spartrak-toast__action',
             // Must stay >= the CSS exit transition, or the node would be
             // removed mid-fade and the toast would vanish abruptly.
             exitDuration: 260,
@@ -129,7 +146,9 @@ define(['jquery', 'jquery-ui-modules/widget'], function ($) {
 
             node._spartrakTimer = window.setTimeout(
                 this._dismiss.bind(this, node),
-                this.options.lifetime
+                node.querySelector(this.options.actionSelector)
+                    ? this.options.actionLifetime
+                    : this.options.lifetime
             );
         },
 

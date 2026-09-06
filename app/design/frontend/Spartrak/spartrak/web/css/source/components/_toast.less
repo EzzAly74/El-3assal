@@ -1,16 +1,74 @@
 // ===========================================================================
 // Spartrak — page messages as toasts
 // ===========================================================================
+// FIGMA SSOT: "Alert - Dark", two variants that differ only in colour and
+// glyph —
+//
+//   success  1286:29513   434 x 120   bg blue/0,   bar bg/brand,        green seal-check
+//   error    1286:29589   434 x  82   bg white,    bar text/price-sale, red X
+//
 // Magento's page-level message area becomes a fixed, self-dismissing stack in
-// the top inline-end corner. Applied PROJECT-WIDE: the widget is bound on
-// <body> in Magento_Theme/layout/default.xml, so every page that renders
-// `page.messages` — cart, checkout, account, catalogue, homepage — gets the
-// same treatment from one definition.
+// the top inline-end corner. Applied PROJECT-WIDE: the widget is bound from
+// Magento_Theme/layout/default.xml, so every page that renders `page.messages`
+// — cart, checkout, account, catalogue, homepage — gets the same treatment
+// from one definition.
 //
 // Scoped to `.page.messages` deliberately. Magento also renders message blocks
 // INSIDE components (checkout's own error areas, form validation summaries),
 // and those must stay in the flow next to the thing they describe. Only the
 // page-level container is lifted out.
+//
+// ===========================================================================
+// THE MARKUP IS MAGENTO'S, AND IT IS NOT REPLACED
+// ===========================================================================
+// Core emits, on BOTH its message paths (server-rendered and the Knockout /
+// customer-data one):
+//
+//     .message.message-success  >  div  >  <the message text, as HTML>
+//
+// One div, no title, no icon, no action. Every part of the design that core
+// does not emit is built here rather than by forking core's templates:
+//
+//   the 6px accent bar   ::before, absolutely positioned
+//   the 50px icon disc   ::after with `order: -1`, so it is the first flex
+//                        item without existing in the DOM at all
+//   the close control    the ONE thing that has to be a real element (it is
+//                        focusable and needs an accessible name), injected by
+//                        js/spartrak-toast.js
+//
+// Two pseudo-elements and no extra nodes. See that file for why the whole
+// pipeline is observed rather than rewritten.
+//
+// ===========================================================================
+// TITLE / BODY / ACTION
+// ===========================================================================
+// Figma's alert has three text parts. A Magento message is ONE string, so the
+// design's full form can only exist where the message is built structurally —
+// which core supports through its complex-message renderers. Add-to-cart is
+// one, and this theme overrides its template to emit the three parts:
+// Magento_Checkout/templates/messages/addCartSuccessMessage.phtml.
+//
+// EVERY OTHER MESSAGE IS A PLAIN STRING and renders as the title alone, on the
+// same shell. That is the design degrading, not a different component: the
+// rules below style the content column so that a bare text run IS the title.
+//
+// ===========================================================================
+// FONTS
+// ===========================================================================
+// Figma binds the title and body to "Inter Tight". That is the design file's
+// Latin placeholder type — this storefront is Arabic-first and every other
+// component in this theme, including the alert's OWN action label, binds
+// `font/family/arabic`. The Arabic face is used for all three, or the toast
+// would be the one component on the site rendering Arabic in a Latin fallback.
+
+// Figma's frame: 16 + 50 icon + 16 + 296 content + 24 + 16 close + 16 = 434.
+@toast-width: 434px;
+@toast-pad: 16px;
+// The disc, and the two gaps the design uses inside one row (16 between the
+// icon and the copy, 24 between the copy and the close).
+@toast-icon-size: 50px;
+@toast-gap: 16px;
+@toast-close-gap: 24px;
 
 .page.messages {
     position: fixed;
@@ -19,9 +77,9 @@
     z-index: 60;
     inset-block-start: 24px;
     inset-inline-end: 24px;
+    inline-size: min(@toast-width, calc(100% - 32px));
     // The container must not swallow clicks across the whole viewport — only
     // the toasts themselves are interactive.
-    inline-size: min(380px, calc(100% - 32px));
     pointer-events: none;
 
     // The wrapper Magento emits twice (cookie messages + live messages).
@@ -39,24 +97,27 @@
 }
 
 // --- One toast -------------------------------------------------------------
+// NO RADIUS AND NO BORDER: neither Figma variant has either. The previous
+// build gave this a 12px radius and a hairline border, which is why the live
+// toast read as a generic card.
 .page.messages .message {
     position: relative;
     display: flex;
     align-items: flex-start;
-    gap: 12px;
+    gap: @toast-gap;
     margin: 0;
-    padding: 16px 16px 16px 48px;
-    border: 1px solid var(--color-border-default);
-    border-radius: var(--radius-12);
-    background-color: var(--color-bg-surface);
-    box-shadow: 0 4px 16px rgba(13, 10, 33, .12);
+    // The accent bar overlays the padding rather than displacing it — it is
+    // absolutely positioned in Figma too (x=0, over the frame's own 16).
+    padding: @toast-pad;
+    border: 0;
+    border-radius: 0;
+    background-color: var(--color-bg-brand-subtle);
+    box-shadow: var(--shadow-toast);
     pointer-events: auto;
     cursor: pointer;
 
-    font-size: var(--text-14);
-    font-weight: 500;
-    line-height: 1.5;
     color: var(--color-text-primary);
+    font-family: var(--font-arabic);
 
     // Entry/exit are opacity + transform only, so a toast appearing can never
     // reflow the page underneath it.
@@ -74,54 +135,211 @@
         transform: translateY(-8px);
     }
 
-    // The status stripe down the inline-start edge carries the type.
+    // --- the 6px accent bar, 1286:29588 / 1286:29599 ---------------------
+    // Full height in both variants (Figma draws it at each frame's own
+    // height), and at the READING START — Figma's x=0 in an LTR-composed
+    // frame, which `inset-inline-start` puts on the right in Arabic, the same
+    // side the icon is on.
     &::before {
         content: '';
         position: absolute;
         inset-block: 0;
         inset-inline-start: 0;
-        inline-size: 4px;
-        border-start-start-radius: var(--radius-12);
-        border-end-start-radius: var(--radius-12);
-        background-color: var(--color-text-muted);
+        inline-size: 6px;
+        background-color: var(--color-action-primary);
     }
 
-    // Magento wraps the text in a bare <div>; give it the room.
+    // --- the 50px icon disc, 1286:29515 / 1286:29591 ---------------------
+    // `order: -1` makes a pseudo-element the FIRST flex item, so the design's
+    // leading icon costs no DOM node. `content: none` by default: only the two
+    // types Figma actually draws get a glyph — see the note under the type
+    // colours below.
+    &::after {
+        content: none;
+        order: -1;
+        flex: 0 0 auto;
+        inline-size: @toast-icon-size;
+        block-size: @toast-icon-size;
+        border-radius: var(--radius-pill);
+        background-repeat: no-repeat;
+        background-position: center;
+    }
+
+    // The content column. `> div` is core's own wrapper on both message
+    // pipelines; it is given the design's column here rather than replaced.
+    //
+    // Its own type IS the title's (16/600), so a message that is a plain
+    // string — which is every message except add-to-cart — renders as a title
+    // with no further markup.
     > div {
         flex: 1 1 auto;
         min-width: 0;
+        display: flex;
+        flex-direction: column;
+        // Figma 1286:29517 — 6 between the copy block and the action.
+        gap: 6px;
+        font-size: var(--text-16);
+        font-weight: 600;
+        line-height: 1.5;
     }
 
-    a {
+    // Core's own inline links inside a message body (the stock add-to-cart
+    // string embeds one). Kept legible rather than restyled: this theme's
+    // override of that message replaces it with a real action control below.
+    > div a:not([class]) {
         color: var(--color-action-primary);
         text-decoration: underline;
     }
 }
 
-// Type colours, from the real feedback tokens.
-.page.messages .message-success::before { background-color: var(--color-feedback-success); }
-.page.messages .message-error::before,
-.page.messages .message-warning::before { background-color: var(--color-feedback-danger); }
-.page.messages .message-notice::before,
-.page.messages .message-info::before { background-color: var(--color-action-primary); }
+// --- The structured message parts ------------------------------------------
+// Emitted only by a complex-message renderer this theme overrides; see the
+// header note. `span` and `a`, with `class` and `href`, are what Magento's own
+// JS escaper allows through on the Knockout path (Magento_Security/js/escaper:
+// generallyAllowedAttributes), which is why the structure uses those and not
+// divs or data attributes.
+.spartrak-toast__text {
+    display: flex;
+    flex-direction: column;
+    // Figma 1286:29518.
+    gap: 4px;
+}
 
-// --- Close control ---------------------------------------------------------
+// Body / Medium / Semibold — 16/600, lh 1.5, neutral/1000. Inherited from the
+// column above, so this element only has to be a block.
+.spartrak-toast__title {
+    display: block;
+}
+
+// Body/Small/Regular — 14/400, lh 1.5, neutral/1000.
+.spartrak-toast__body {
+    display: block;
+    font-size: var(--text-14);
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+// Label/Base on action/primary — 12/500, lh 1.3, in a 32px-tall control
+// (1286:29541). `align-self: flex-start` so the hit area is the label's width
+// and not the whole column's.
+.spartrak-toast__action {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    block-size: 32px;
+    color: var(--color-action-primary);
+    font-size: var(--text-12);
+    font-weight: 500;
+    line-height: 1.3;
+    text-decoration: none;
+
+    // Porto repaints every visited link at (0,1,1); pinned here for the same
+    // reason every other Spartrak link component pins it.
+    &:visited {
+        color: var(--color-action-primary);
+    }
+
+    &:hover {
+        color: var(--color-action-primary);
+        text-decoration: underline;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
+    }
+}
+
+// ===========================================================================
+// THE TWO VARIANTS FIGMA DRAWS, AND THE TYPES IT DOES NOT
+// ===========================================================================
+// Magento emits five message types; the design states two. The mapping:
+//
+//   success            -> the success variant, exactly as drawn
+//   error, warning     -> the error variant, exactly as drawn
+//   notice, info       -> the shell above (blue/0 + navy bar) WITH NO ICON
+//
+// The third row is the design DEGRADING, not a third variant invented here: it
+// reuses the success variant's own container and bar, and simply omits the
+// glyph rather than picking some other icon to stand in for one the design
+// file does not contain (CLAUDE.md §3). A notice is also the rarest of the
+// five on this storefront.
+//
+// The GLYPHS are the exact Figma exports and are `background-image`, not the
+// theme's usual mask: both carry their own colour baked in (#049228, #D54033)
+// and sit on a tinted disc, so there is nothing here for a mask to tint.
+.page.messages .message-success {
+    &::before {
+        // bg/brand — navy, NOT green. Read off the node (1286:29588); the bar
+        // and the glyph are deliberately different colours in this design.
+        background-color: var(--color-action-primary);
+    }
+
+    &::after {
+        content: '';
+        background-color: var(--color-bg-success-halo);
+        background-image: url('../images/icons/feedback-success.svg');
+        // Figma 1286:29516 — 18px inside the 50px disc.
+        background-size: 18px 18px;
+    }
+}
+
+.page.messages .message-error,
+.page.messages .message-warning {
+    background-color: var(--color-bg-surface);
+
+    &::before {
+        background-color: var(--color-feedback-danger);
+    }
+
+    &::after {
+        content: '';
+        background-color: var(--color-bg-danger-halo);
+        background-image: url('../images/icons/feedback-error.svg');
+        // Figma 1286:29592 — 22px, four larger than the success glyph.
+        background-size: 22px 22px;
+    }
+}
+
+// --- Close control, 1286:29522 ---------------------------------------------
+// A real element, injected by the widget, because it is focusable and needs an
+// accessible name — the one part of the design that cannot be a pseudo.
+//
+// Figma's glyph is 16px. The BUTTON is 24 square so the target is not a 16px
+// speck (WCAG 2.5.8), pulled back by its own margin on both axes so it adds
+// hit area outward and moves nothing: the same treatment, and the same reason,
+// as the dialog's close control.
+//
+// The glyph is this theme's existing close.svg, painted with the colour Figma
+// binds here — see components/_reviews.less for why a second near-identical
+// export is not shipped for it.
 .spartrak-toast__close {
     flex: 0 0 auto;
-    inline-size: 20px;
-    block-size: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 24px;
+    block-size: 24px;
+    // The single `gap` on the row is 16; Figma puts 24 between the copy and
+    // this control. The extra 8 lives here rather than turning one row into
+    // two nested ones.
+    margin-inline-start: (@toast-close-gap - @toast-gap);
+    margin-block: -4px;
+    margin-inline-end: -4px;
     padding: 0;
     border: 0;
+    border-radius: var(--radius-pill);
     background-color: transparent;
     cursor: pointer;
 
     &::before {
         content: '';
-        .spartrak-icon('close.svg'; 12px; var(--color-text-muted));
+        .spartrak-icon('close.svg'; 16px; var(--color-text-primary));
     }
 
-    &:hover::before {
-        background-color: var(--color-text-primary);
+    &:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
     }
 }
 
@@ -130,6 +348,20 @@
         inset-block-start: 12px;
         inset-inline: 12px;
         inline-size: auto;
+    }
+
+    // Figma has no phone frame for this component. The 50px disc plus its 16px
+    // gap is 66px of a 351px-wide toast — a fifth of the line — before the
+    // copy starts, and the copy is the message. The disc is reduced rather
+    // than dropped so the type of the message is still readable at a glance;
+    // the glyph inside it keeps its own size, which is the design's.
+    .page.messages .message::after {
+        inline-size: 40px;
+        block-size: 40px;
+    }
+
+    .page.messages .message {
+        gap: 12px;
     }
 }
 

@@ -1,0 +1,67 @@
+<?php
+/**
+ * Spartrak — the add-to-cart success message, as the THREE parts Figma's
+ * alert draws.
+ *
+ * FIGMA SSOT: 1286:29513 ("Alert - Dark", success). It states a title, a
+ * supporting line and an action:
+ *
+ *     Pistol 120mm Added to Cart
+ *     View your cart and checkout now!
+ *     [ View cart ]
+ *
+ * ===========================================================================
+ * WHY THIS FILE IS WHERE THE STRUCTURE COMES FROM
+ * ===========================================================================
+ * A Magento message is ONE string. Core emits `.message > div > <text>` on
+ * both of its message pipelines, so a stylesheet alone cannot split a
+ * sentence into a title, a body and a control — there is nothing in the markup
+ * to address.
+ *
+ * Core does support structured messages, through complex-message renderers,
+ * and add-to-cart is one of them: `Magento\Checkout\Controller\Cart\Add` calls
+ * `addComplexSuccessMessage('addCartSuccessMessage', [...])`, and
+ * Magento_Checkout's own frontend di.xml points that code at THIS template
+ * through BlockRenderer. Overriding the template is therefore the platform's
+ * own extension point for exactly this — no plugin, no observer, no fork of a
+ * controller, and the message keeps flowing through the same session and the
+ * same message manager it always did.
+ *
+ * The stock template this replaces reads:
+ *
+ *     You added %1 to your <a href="%2">shopping cart</a>.
+ *
+ * — one sentence with a link buried in the middle of it, in English on an
+ * Arabic storefront because it was never translated. The three strings below
+ * are new source strings and are translated in this theme's i18n/ar_EG.csv.
+ *
+ * ===========================================================================
+ * THE MARKUP IS CONSTRAINED BY MAGENTO'S OWN JS ESCAPER
+ * ===========================================================================
+ * On the Knockout path this HTML is passed through
+ * `Magento_Theme/js/view/messages::prepareMessageForHtml`, which runs
+ * Magento_Security/js/escaper with `allowedTags: ['div','span','b','strong',
+ * 'i','em','u','a']`. Attributes are filtered separately, and `class` and
+ * `href` are both in that escaper's `generallyAllowedAttributes`.
+ *
+ * So: spans and one anchor, carrying classes and an href, and nothing else.
+ * No <p>, no <button>, no data-* attributes — any of those would survive the
+ * server-rendered path and be silently stripped on the AJAX one, which is the
+ * worst kind of difference to debug.
+ *
+ * ===========================================================================
+ * ESCAPING
+ * ===========================================================================
+ * The product name is merchant data and goes through escapeHtml; the cart URL
+ * through escapeUrl. The surrounding markup is a literal in this file, which
+ * is why it is written out rather than passed through escapeHtml with an
+ * allow-list — nothing dynamic is interpolated into it.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+$productName = (string) $block->getData('product_name');
+$cartUrl = (string) $block->getData('cart_url');
+?>
+<span class="spartrak-toast__text"><span class="spartrak-toast__title"><?= $escaper->escapeHtml(__('%1 added to your cart', $productName)) ?></span><span class="spartrak-toast__body"><?= $escaper->escapeHtml(__('View your cart and checkout now!')) ?></span></span><a class="spartrak-toast__action" href="<?= $escaper->escapeUrl($cartUrl) ?>"><?= $escaper->escapeHtml(__('View cart')) ?></a>

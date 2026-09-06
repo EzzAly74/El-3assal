@@ -1,0 +1,21 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="X / CLose" filter="url(#filter0_i_0_47)">
+<path id="Vector" d="M16.5 5.5L5.5 16.5" stroke="#D54033" stroke-width="1.375" stroke-linecap="round" stroke-linejoin="round"/>
+<g id="Vector_2">
+<path d="M5.5 5.5L16.5 16.5Z" fill="#D54033"/>
+<path d="M5.5 5.5L16.5 16.5" stroke="#D54033" stroke-width="1.375" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</g>
+<defs>
+<filter id="filter0_i_0_47" x="0" y="0" width="22.9167" height="23.8333" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dx="0.916667" dy="1.83333"/>
+<feGaussianBlur stdDeviation="1.83333"/>
+<feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+<feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.5 0"/>
+<feBlend mode="normal" in2="shape" result="effect1_innerShadow_0_47"/>
+</filter>
+</defs>
+</svg>

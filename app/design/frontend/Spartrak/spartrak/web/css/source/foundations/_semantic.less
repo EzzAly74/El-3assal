@@ -199,4 +199,14 @@
   // gradient stop, which is precisely the sort of value this layer exists to
   // keep out of components.
   --color-bg-success-wash: var(--primitive-green-wash);
+
+  // FIGMA TOAST PASS (2026-09-06)
+  //
+  // The disc a feedback ICON sits on — Figma's "Icon Container" frame in both
+  // alert variants (1286:29515 success, 1286:29591 error). A role of its own
+  // and not an alias of the washes above it: those are opaque button fills,
+  // these are 20% alphas that have to work over two different toast
+  // backgrounds. See the primitives for the full note.
+  --color-bg-success-halo: var(--primitive-alpha-success-20);
+  --color-bg-danger-halo: var(--primitive-alpha-danger-20);
 }

@@ -51,6 +51,23 @@
   --primitive-alpha-ink-20: #0c0a2033;
   --primitive-alpha-white-10: #ffffff1a;
 
+  // FIGMA TOAST PASS (2026-09-06). The 50px disc behind the icon in each
+  // alert (success 1286:29515, error 1286:29591) is its feedback colour at
+  // 20% — Figma writes them literally as rgba(4,146,40,0.2) and
+  // rgba(213,64,51,0.2), which are exactly --primitive-success and
+  // --primitive-danger below at 0x33.
+  //
+  // ADDED ON DEMAND, per this section's own rule, and as ALPHA rather than
+  // as flattened opaque values: the same disc sits on blue/0 in the success
+  // alert and on white in the error one, so a flattened pair would be wrong
+  // on one of the two.
+  //
+  // NOT the same thing as --primitive-green-wash / --primitive-red-0 further
+  // down, which are opaque washes for button fills. Different job, and a
+  // palette change could reasonably move one without the other.
+  --primitive-alpha-success-20: #04922833;
+  --primitive-alpha-danger-20: #d5403333;
+
   // FIGMA HEADER PASS (2026-08-25). Read off the header frames' own
   // variable bindings via get_variable_defs on node 595:14465 (desktop,
   // 1440) and 724:25796 (mobile, 440) — not guessed.

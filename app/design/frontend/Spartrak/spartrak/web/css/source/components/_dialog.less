@@ -43,6 +43,40 @@
 // side matches the auth modal's own mobile margin.
 @spartrak-dialog-width: 560px;
 @spartrak-dialog-gutter: 16px;
+// Figma fixes the signed-out panel's inner frame at 520 tall (1280:27620).
+@spartrak-dialog-frame-height: 520px;
+// The shortest viewport that can hold this panel without the dialog scrolling
+// inside itself: the frame, plus the panel's own 24/28 padding and its 1px
+// borders, plus the 48px of viewport the dialog reserves around itself
+// (`max-block-size` below). Below this the frame's floor is dropped rather
+// than a scrollbar appearing inside a 574px dialog.
+@spartrak-dialog-frame-floor-vh: (@spartrak-dialog-frame-height + 24px + 28px + 2px + 48px);
+
+// ===========================================================================
+// BORDER-BOX, AND WHY IT IS DECLARED HERE
+// ===========================================================================
+// MEASURED on the live storefront: the signed-out panel rendered 600px tall
+// against Figma's 574, and its frame 546 against Figma's 520. Both boxes
+// computed `box-sizing: content-box`, so the frame's 12px block padding and
+// its 1px borders were being ADDED to a `min-block-size` that Figma states as
+// the total.
+//
+// This theme has NO global border-box reset. It scopes one per component
+// instead — `.spartrak-home *`, `.spartrak-card *`, `.spartrak-reviews *` and
+// two others all declare their own, which is the pattern the review dialog
+// (components/_reviews.less) already sets for a dialog. This component was
+// written without one, which is the whole of the 26px.
+//
+// Declared over the whole subtree rather than on the two boxes that showed
+// the symptom: every measurement in this file is read off Figma as a TOTAL,
+// and the next padded box added here would otherwise reintroduce the same bug
+// silently.
+.spartrak-dialog,
+.spartrak-dialog *,
+.spartrak-dialog *::before,
+.spartrak-dialog *::after {
+    box-sizing: border-box;
+}
 
 .spartrak-dialog {
     position: fixed;
@@ -350,13 +384,29 @@
 .spartrak-dialog__frame {
     display: flex;
     flex-direction: column;
-    // Figma fixes the frame at 520 tall and centres the empty state in it. A
-    // minimum rather than a height, so that a longer translation grows the box
-    // instead of overflowing it, and so the phone case below can drop it.
-    min-block-size: 520px;
     padding-block: 12px;
     border: 1px solid var(--color-border-default);
     background: var(--color-bg-surface);
+}
+
+// Figma fixes the frame at 520 tall and centres the empty state in it. A
+// MINIMUM rather than a height, so a longer translation grows the box instead
+// of overflowing it.
+//
+// GUARDED BY VIEWPORT HEIGHT, not by width, and that is the correction. It was
+// a flat 520 with the floor dropped below the 440px WIDTH breakpoint — but the
+// thing 520 does not fit in is a SHORT viewport, not a narrow one. MEASURED at
+// 1280x455: the panel was 600 tall against a 407px cap, so the dialog grew its
+// own scrollbar and the primary button sat below the fold — on a desktop
+// browser, at a perfectly ordinary window height, where the width breakpoint
+// never applied.
+//
+// Above the floor the design's 520 stands; below it the frame shrinks to its
+// content (~441px), which fits any viewport that can show the panel at all.
+@media (min-height: @spartrak-dialog-frame-floor-vh) {
+    .spartrak-dialog__frame {
+        min-block-size: @spartrak-dialog-frame-height;
+    }
 }
 
 // The empty state fills the frame, which is what makes `justify-content:
@@ -387,12 +437,11 @@
         padding: 20px 16px 24px;
     }
 
-    // The 520 is a desktop proportion. On a phone it is most of the viewport
-    // before the panel's own padding, and the empty state is already centred
-    // in whatever height it gets, so the floor is simply dropped.
-    .spartrak-dialog__frame {
-        min-block-size: 0;
-    }
+    // NOTE: the frame's 520px floor is NOT reset here any more. It is applied
+    // by a min-height query instead — a phone in portrait is TALL, so dropping
+    // the floor by width took the design's proportion away from exactly the
+    // viewport that had room for it, while leaving a short desktop window
+    // scrolling. See that query above.
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -53,7 +53,18 @@ $titleId = 'spartrak-signed-out-dialog-title';
 <dialog id="spartrak-signed-out-dialog"
         class="spartrak-dialog"
         aria-labelledby="<?= $escaper->escapeHtmlAttr($titleId) ?>"
-        data-mage-init='<?= $escaper->escapeHtmlAttr(json_encode(['spartrakDialog' => ['id' => 'signed-out']])) ?>'>
+        <?php /* SELF-CLOSING AFTER 3 SECONDS. This panel announces something
+                 that has already happened and asks for nothing, so it gets out
+                 of the shopper's way on its own rather than making them clear
+                 it before they can carry on. The contact dialog passes no
+                 `autoDismiss` — it is a reference someone opened to read.
+
+                 The timer pauses while the pointer is on the panel and is
+                 cancelled outright by any key or press, so it can never expire
+                 mid-read or mid-action (WCAG 2.2.1). See js/spartrak-dialog.js. */ ?>
+        data-mage-init='<?= $escaper->escapeHtmlAttr(json_encode([
+            'spartrakDialog' => ['id' => 'signed-out', 'autoDismiss' => 3000],
+        ])) ?>'>
     <div class="spartrak-dialog__panel">
         <div class="spartrak-dialog__frame">
             <div class="spartrak-empty-state spartrak-empty-state--panel spartrak-empty-state--lg">
