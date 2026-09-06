@@ -7,7 +7,7 @@
         "magento/module-customer": "*",
         "magento/module-sales": "*"
     },
-    "comment-require": "Spartrak_Shipping and Spartrak_PickupLocation are also required at runtime, and are declared in etc/module.xml. They are NOT listed above because neither ships a composer.json in this checkout - they are app/code modules registered by registration.php - so naming them here would be an unresolvable package requirement rather than a real one. Load order is what actually matters and module.xml is where Magento reads it.",
+    "comment-require": "Spartrak_Shipping, Spartrak_PickupLocation and Spartrak_CustomerAuth are also required at runtime, and are declared in etc/module.xml. They are NOT listed above because none of them ships a composer.json in this checkout - they are app/code modules registered by registration.php - so naming them here would be an unresolvable package requirement rather than a real one. Load order is what actually matters and module.xml is where Magento reads it.",
     "autoload": {
         "files": [
             "registration.php"

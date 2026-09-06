@@ -42,15 +42,32 @@ use Magento\Framework\View\Element\Block\ArgumentInterface;
 class PostLoginDestinations implements ArgumentInterface
 {
     /**
-     * The only destination in use today: a guest bounced off /checkout by
-     * Spartrak\Checkout\Plugin\PromptLoginForGuest, who should land back there
-     * once signed in rather than on the cart they came from.
+     * A guest bounced off /checkout by Spartrak\Checkout\Plugin\PromptLoginForGuest,
+     * who should land back there once signed in rather than on the cart they
+     * came from.
      */
     public const CHECKOUT = 'checkout';
+
+    /**
+     * A shopper who asked to track an order — from the header's utility strip,
+     * from the footer's customer-service column, or by reaching any
+     * Magento\Sales\Controller\OrderInterface route directly — and turned out
+     * not to be signed in. Bounced by
+     * Spartrak\CustomerAccount\Plugin\Sales\PromptSignInForGuest.
+     *
+     * The destination is the order LIST, not the order the shopper was reaching
+     * for, even when the intercepted route named one. That is the allowlist
+     * doing its job rather than a shortcoming: reconstructing the original
+     * request would mean carrying a URL through the fragment, which is exactly
+     * the open redirect this class exists to prevent. The list is one click from
+     * every order the shopper owns, so the intent survives the trip.
+     */
+    public const ORDERS = 'orders';
 
     /** key => route path */
     private const ROUTES = [
         self::CHECKOUT => 'checkout',
+        self::ORDERS => 'sales/order/history',
     ];
 
     public function __construct(

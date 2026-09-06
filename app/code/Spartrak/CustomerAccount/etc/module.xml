@@ -17,6 +17,14 @@
             <module name="Magento_Sales"/>
             <module name="Magento_Wishlist"/>
             <!--
+              CustomerAuth: Plugin\Sales\PromptSignInForGuest builds its redirect
+              fragment from PostLoginDestinations::ORDERS, so that class has to be
+              loadable before this module's plugin is. A hard requirement, not a
+              soft ordering preference — the constant is referenced at class-
+              compile time.
+            -->
+            <module name="Spartrak_CustomerAuth"/>
+            <!--
               Not for its links — for its LAYOUT ACTION. Magento_OrderCancellationUi
               re-templates `sales.order.history` with an <action method="setTemplate">,
               and actions run in merged-document order. Sequencing after it is

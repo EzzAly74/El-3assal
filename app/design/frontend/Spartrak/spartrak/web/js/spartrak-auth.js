@@ -199,9 +199,63 @@ define([
             this.open('login');
         },
 
+        /**
+         * A trigger may carry three optional attributes:
+         *
+         *   data-auth-step   which step to open on. Defaults to 'login'.
+         *   data-auth-next   a destination KEY from options.destinations, so a
+         *                    successful sign-in lands there instead of reloading
+         *                    in place. Never a URL - see PostLoginDestinations.
+         *   data-auth-guest  "only intercept a GUEST". See below.
+         *
+         * ===================================================================
+         * data-auth-guest: A LINK THAT IS A LINK ONCE YOU ARE SIGNED IN
+         * ===================================================================
+         * The header's and footer's "track your order" links point at
+         * sales/order/history, which is the right destination for a signed-in
+         * shopper and a locked door for everyone else. Marked `data-auth-guest`,
+         * the click is intercepted ONLY while this widget can positively see
+         * that the visitor is a guest; a signed-in shopper's click is not
+         * touched at all and the anchor navigates natively.
+         *
+         * POSITIVELY is the operative word, and it is why this reads the same
+         * two fields spartrak-utility-header.js reads rather than just testing
+         * for a name. `customerData.get('customer')()` returns `{}` before the
+         * section has been fetched, so "no firstname" means EITHER guest OR not
+         * known yet, and `data_id` is what separates them. Unknown falls through
+         * to navigating, which hands the decision to the server - where
+         * Spartrak\CustomerAccount\Plugin\Sales\PromptSignInForGuest reads the
+         * real session and bounces a real guest back here with
+         * `#auth=login&next=orders`.
+         *
+         * So the server is the authority and this is only ever an optimisation:
+         * it saves a guest a full round trip to be told to sign in, and it can
+         * never wrongly deny a signed-in shopper their orders. That ordering
+         * matters on a storefront with an HTTP cache in front of Magento - the
+         * same reason the account chip stopped trusting a server-rendered
+         * verdict about login state (see account-chip.phtml).
+         */
         _onOpenTriggerClick: function (event) {
+            var trigger = $(event.currentTarget);
+
+            if (trigger.is('[data-auth-guest]') && !this._isKnownGuest()) {
+                return;
+            }
+
             event.preventDefault();
-            this.open($(event.currentTarget).data('authStep') || 'login');
+            this.open(trigger.data('authStep') || 'login', trigger.data('authNext'));
+        },
+
+        /**
+         * True only when the customer section has been fetched AND says nobody
+         * is signed in. Unknown returns false — see _onOpenTriggerClick.
+         *
+         * @return {Boolean}
+         */
+        _isKnownGuest: function () {
+            var customer = customerData.get('customer')();
+
+            return Boolean(customer && customer.data_id && !customer.firstname);
         },
 
         /**

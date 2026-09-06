@@ -72,7 +72,29 @@
  * @var \Magento\Framework\View\Element\Template $block
  */
 $contactUsUrl = $block->getUrl('contact/index/index');
-$trackOrderUrl = $block->getUrl('sales/guest/form');
+/**
+ * "تتبع طلبك" goes to the shopper's OWN order list, never to Magento's guest
+ * lookup form.
+ *
+ * It used to point at sales/guest/form — the "Orders and Returns" screen that
+ * asks for an order id, a billing surname and an email before it will show
+ * anything. A signed-in shopper was being asked to re-key facts the store
+ * already holds about them, on an untranslated core form, to reach a page they
+ * were already entitled to.
+ *
+ * ONE URL FOR EVERYONE, because this block is full-page cached and there is a
+ * further HTTP cache in front of Magento (see account-chip.phtml): an href
+ * chosen from PHP session state would be served to the wrong visitor. The route
+ * itself resolves the two cases at request time instead —
+ * Spartrak\CustomerAccount\Plugin\Sales\PromptSignInForGuest sends a guest back
+ * with the sign-in modal open and `next=orders`, so signing in completes the
+ * journey rather than ending it.
+ *
+ * `data-auth-guest` on the anchor lets js/spartrak-auth.js skip that round trip
+ * when it can already see the visitor is a guest. It is an optimisation over a
+ * correct server behaviour, not the behaviour itself.
+ */
+$trackOrderUrl = $block->getUrl('sales/order/history');
 $languageSwitcher = $block->getChildHtml('store_language');
 ?>
 <div class="spartrak-support-strip" role="complementary" aria-label="<?= $block->escapeHtmlAttr(__('Store information')) ?>">
@@ -102,7 +124,11 @@ $languageSwitcher = $block->getChildHtml('store_language');
             <?php /* Node 595:14486 — icon leads the label (Figma x: label 0,
                      icon 56 in LTR order, so the icon trails there and leads
                      once reversed for RTL). */ ?>
-            <a class="spartrak-support-strip__item" href="<?= $block->escapeUrl($trackOrderUrl) ?>">
+            <a class="spartrak-support-strip__item"
+               href="<?= $block->escapeUrl($trackOrderUrl) ?>"
+               data-auth-open
+               data-auth-guest
+               data-auth-next="orders">
                 <span class="spartrak-support-strip__icon--track" aria-hidden="true"></span>
                 <span><?= $block->escapeHtml(__('Track your order')) ?></span>
             </a>

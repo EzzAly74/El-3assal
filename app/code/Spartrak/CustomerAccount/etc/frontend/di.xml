@@ -23,4 +23,23 @@
         <plugin name="spartrak_show_empty_address_book"
                 type="Spartrak\CustomerAccount\Plugin\Customer\ShowEmptyAddressBook"/>
     </type>
+
+    <!--
+      THE ONE PLUGIN HERE BOUND TO AN INTERFACE RATHER THAN A CLASS, and
+      deliberately so. Magento\Sales\Controller\OrderInterface is @api and names
+      exactly the ten frontend controllers that serve one customer's OWN orders;
+      every guest-facing equivalent is a Magento\Sales\Controller\Guest\* class
+      that does not implement it. Binding to the interface therefore guards the
+      whole area — history, view, reorder, the print actions — without naming a
+      single class we would have to keep in step with Magento_Sales, and without
+      any possibility of catching the guest order lookup by accident.
+
+      Magento_Customer binds the same shape of plugin to its own
+      Magento\Customer\Controller\AccountInterface. No module in 2.4.8 does it
+      for this one, which is the gap the plugin documents.
+    -->
+    <type name="Magento\Sales\Controller\OrderInterface">
+        <plugin name="spartrak_prompt_sign_in_for_guest"
+                type="Spartrak\CustomerAccount\Plugin\Sales\PromptSignInForGuest"/>
+    </type>
 </config>

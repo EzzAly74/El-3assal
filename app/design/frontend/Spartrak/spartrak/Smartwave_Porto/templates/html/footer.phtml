@@ -142,7 +142,17 @@ $columns = [
     [
         'title' => __('Customer Service'),
         'items' => [
-            ['label' => __('Track your order'), 'url' => $block->getUrl('sales/guest/form')],
+            // The shopper's OWN order list, not Magento's guest lookup form —
+            // same change and same reasoning as the header's utility strip, and
+            // deliberately the same destination so the two never disagree. The
+            // route resolves guest-vs-signed-in at REQUEST time
+            // (Spartrak\CustomerAccount\Plugin\Sales\PromptSignInForGuest),
+            // which is what lets one cached href serve both.
+            //
+            // `auth` is read at render below, alongside `dialog`: it marks a
+            // link that opens the sign-in modal INSTEAD of navigating, but only
+            // for a visitor js/spartrak-auth.js can see is a guest.
+            ['label' => __('Track your order'), 'url' => $block->getUrl('sales/order/history'), 'auth' => 'orders'],
             ['label' => __('Return policy'), 'url' => $href('return-policy')],
             ['label' => __('Shipping policy'), 'url' => $href('shipping-policy')],
             ['label' => __('FAQ'), 'url' => $href('faq')],
@@ -296,7 +306,8 @@ $email = $contactDetails !== null ? $contactDetails->getEmail() : '';
                             <li class="spartrak-footer__item">
                                 <a class="spartrak-footer__link"
                                    href="<?= $block->escapeUrl($item['url']) ?>"
-                                   <?php if (isset($item['dialog'])): ?>data-spartrak-dialog-open="<?= $block->escapeHtmlAttr($item['dialog']) ?>"<?php endif; ?>>
+                                   <?php if (isset($item['dialog'])): ?>data-spartrak-dialog-open="<?= $block->escapeHtmlAttr($item['dialog']) ?>"<?php endif; ?>
+                                   <?php if (isset($item['auth'])): ?>data-auth-open data-auth-guest data-auth-next="<?= $block->escapeHtmlAttr($item['auth']) ?>"<?php endif; ?>>
                                     <?= $block->escapeHtml($item['label']) ?>
                                 </a>
                             </li>

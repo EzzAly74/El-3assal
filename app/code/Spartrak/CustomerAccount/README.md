@@ -27,6 +27,7 @@ Figma (file `6FRlQfPIncVUvNiJLn2kbT`):
 | `ViewModel\AddressBook` | The whole address book as one list, default first, with the card's title, address line and action URLs. |
 | `ViewModel\OrderView` | Every fact the order-history card and the order page share — status, estimated arrival, payment title, destination, item rows and images, money. |
 | `Model\OrderProgress` | Magento's eight order states mapped onto the four stations Figma draws, plus the completion ratio the rail is filled with. |
+| `Plugin\Sales\PromptSignInForGuest` | The sign-in gate on `Magento\Sales\Controller\OrderInterface`, which 2.4.8 ships without one. A signed-out visitor to any of the ten own-orders routes is sent back with the auth modal open and `next=orders` instead of being served an empty order list. |
 | `Controller\Address\SetDefault` | "تعيين كافتراضي" on an address card — a POST, because it changes state. |
 | `view/frontend/web/js/email-change.js` | Reveals the current-password confirmation when the email on the account card is actually changed. |
 
