@@ -194,6 +194,23 @@
   transform: scaleX(-1);
 }
 
+// ---------------------------------------------------------------------------
+// ONE LINK, TWO LABELS
+// ---------------------------------------------------------------------------
+// Figma writes this control out at two lengths: "مشاهدة الكل" on desktop
+// (595:15072) and "الكل" on mobile (647:57916 / 647:57342 / 647:57309). The
+// template emits both and this picks one, because the section block is
+// full-page cached and cannot branch on device — see its note for why that
+// rules out the alternatives.
+//
+// `display: none` and not a clip: the hidden label must be out of the
+// accessibility tree as well as off the screen, or a screen reader would read
+// "مشاهدة الكل الكل". The link's accessible name comes from its aria-label
+// and is unaffected by which span is showing.
+.spartrak-home-section__view-all-text--short {
+  display: none;
+}
+
 // --- Carousel prev/next in the header (Figma 595:15118) --------------------
 .spartrak-home-section__nav {
   display: flex;
@@ -782,7 +799,57 @@
   // starts and ends exactly under the content it tracks.
   width: 100%;
   max-width: ~"calc(100% - (@{home-gutter} * 2))";
-  margin-inline: auto;
+}
+
+// ===========================================================================
+// THE BLUEPRINT PLATE UNDER THE RAIL THAT FOLLOWS THE TILES (Figma 595:15116)
+// ===========================================================================
+// Figma hangs a second copy of the tiles' own blueprint photograph behind the
+// product rail directly beneath the tiles section — node 595:15116, a child of
+// "Flash Deals Section" (595:15115), the rail titled "الأكثر مبيعا". It is the
+// SAME file the stage above uses, at `object-fit: cover` and **opacity 0.10**,
+// so it reads as a watermark rather than as artwork. (Figma also lays a
+// gradient over it, `rgba(102,102,102,0)` to `rgba(4,71,118,0)` — both stops
+// fully transparent, i.e. a no-op, so it is not reproduced.)
+//
+// ADJACENCY, NOT AN ID. The design's statement is "the blueprint band carries
+// on from the tiles into the section under it", and `+` says exactly that. The
+// alternative was to name a section — but which sections exist, and in what
+// order, is dashboard data (see Spartrak_Homepage's README), so a rule keyed on
+// "the second product carousel" would silently move to the wrong section the
+// first time an admin reorders the page. This one follows the tiles wherever
+// the tiles go, and costs no markup, no PHP and no schema.
+//
+// ZERO NEW BYTES. `tiles-backdrop.webp` is already fetched for the stage above
+// on this same page, so this is a cache hit — the only reason it is affordable
+// to paint a 938px photograph at 10% opacity purely for texture (CLAUDE.md
+// section 13). It is a `::before` rather than an <img> for the same reason the
+// stage's is: decoration with no content value, no DOM node, no alt-text
+// decision, and `pointer-events: none` so it can never intercept a card.
+//
+// DELIBERATE DEVIATION, stated rather than hidden (CLAUDE.md section 3). Figma
+// insets the plate 228px from the section's top and lets it overflow the
+// bottom, i.e. it starts a third of the way down a 662px frame. That 228 is an
+// offset inside a fixed-height design frame; this section's height is driven by
+// its content and is not 662, so carrying the number over would place the plate
+// somewhere the design never specified, and carrying the RATIO over would be
+// inventing one. It covers the section instead. At 10% opacity the difference
+// is the header gaining the same watermark the cards below it have.
+.spartrak-home-tiles + .spartrak-home-rail {
+  position: relative;
+  isolation: isolate;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image: url("../images/homepage/tiles-backdrop.webp");
+    background-size: cover;
+    background-position: center;
+    opacity: 0.1;
+    pointer-events: none;
+  }
 }
 
 // ===========================================================================
@@ -1068,8 +1135,7 @@
 .spartrak-home-tiles__nav {
   position: absolute;
   inset-block-start: -87px;
-  inset-inline-start: 50%;
-  transform: translateX(-50%);
+  inset-inline-start: 0;
   display: flex;
   gap: 12px;
   z-index: 3;
@@ -1331,6 +1397,50 @@
     font-size: var(--text-14);
   }
 
+  .spartrak-home-section__view-all-text {
+    display: none;
+  }
+
+  .spartrak-home-section__view-all-text--short {
+    display: inline;
+  }
+
+  // Figma 647:57914 — the chip shrinks with the label: a 20px circle holding a
+  // 13.333px glyph, against 24/16 on desktop.
+  .spartrak-home-section__view-all-arrow {
+    width: 20px;
+    height: 20px;
+
+    &::before {
+      .spartrak-icon("home-view-all-arrow.svg"; 13.333px; var(--color-action-primary));
+    }
+  }
+
+  // =========================================================================
+  // NO PREV/NEXT ARROWS ON A PHONE
+  // =========================================================================
+  // Every mobile section header in Figma that has a destination shows the
+  // "الكل" link and NOTHING else — the tiles (647:57305), the brand rail
+  // (647:57273) and both product rails (647:57338, 647:57912) all drop the
+  // arrows the desktop headers carry.
+  //
+  // It is also the right call on its own merits, which is why it is applied to
+  // every section rather than to the four the design happens to draw: the
+  // rails are `overflow-x: auto` with scroll-snap, so a phone already has the
+  // native gesture (the banner's own arrows were hidden for exactly this
+  // reason). Two 40px targets that duplicate a swipe are two targets' worth of
+  // header width spent on nothing.
+  //
+  // KNOWN DIVERGENCE, deliberate: the video showcase's mobile frame
+  // (647:57771) DOES keep its arrows. It is the one mobile header in the file
+  // that does, it has no "الكل" link to put there instead, and it reads as the
+  // desktop header carried over rather than a decision. Hiding it with the
+  // rest was asked for explicitly; flagged here so it is a choice on the
+  // record and not a miss.
+  .spartrak-home-section__nav {
+    display: none;
+  }
+
   .spartrak-home-banner__frame {
     // Figma's mobile frame (647:57253) runs the hero the full 440 width
     // with NO side gutter, unlike the 24px desktop inset. On a phone the
@@ -1400,13 +1510,43 @@
     font-size: var(--text-32);
   }
 
-  .spartrak-home-tiles__rail-wrap {
+   // =========================================================================
+  // THE STAGE'S MEASURE IS A DESKTOP MEASURE
+  // =========================================================================
+  // MEASURED on the live phone layout (390px viewport): `__inner` was 294px
+  // wide, inset 48px each side — it still carried the DESKTOP gutter, because
+  // its `max-width: calc(100% - (48px * 2))` had no mobile counterpart. Every
+  // absolutely-positioned child anchors to it, so the eyebrow, the headline
+  // and the rail were all squeezed into 294 of the available 390, and the
+  // 324px card could not even fit its own box.
+  //
+  // Figma's mobile frame (647:57295) insets this content by 16 and runs the
+  // card rail edge to edge beneath it.
+  .spartrak-home-tiles__inner {
+    max-width: ~"calc(100% - (@{home-gutter-mobile} * 2))";
+  }
+
+
+.spartrak-home-tiles__rail-wrap {
     position: relative;
     inset: auto;
-    width: 100%;
-    max-width: 100%;
+    // ESCAPES THE MEASURE. Figma 647:57311 puts the card list at x=-294 in a
+    // 440 frame: the previous card is cut off by the SCREEN edge, not parked
+    // inside a margin. Reproducing that means releasing the inner's inset here
+    // and letting the rail's own padding be the only gutter — the same
+    // mechanism, and the same reasoning, as the showcase track below.
+    //
+    // A NEGATIVE MARGIN, not `100vw`. `__inner` is `calc(100% - 32px)` centred
+    // in the stage, so pulling 16px back on each side lands exactly on the
+    // stage's own edges. `100vw` would have been 15px too wide wherever a
+    // classic scrollbar is present — and this page has already paid once for a
+    // stray 5000px of horizontal scroll (see the containing-block note above).
+    width: auto;
+    max-width: none;
+    margin-inline: -@home-gutter-mobile;
     margin-block-start: 16px;
   }
+
 
   .spartrak-home-tiles__rail {
     padding-inline: @home-gutter-mobile;
@@ -1422,6 +1562,13 @@
 
   .spartrak-home-tiles__nav {
     display: none;
+  }
+
+  // Figma's mobile rail (647:57337) has no blueprint plate behind it — the
+  // texture is a desktop-only flourish there. Dropping it also drops a
+  // full-bleed photographic paint from the phone's scroll path.
+  .spartrak-home-tiles + .spartrak-home-rail::before {
+    content: none;
   }
 
   .spartrak-home-tiles__eyebrow {

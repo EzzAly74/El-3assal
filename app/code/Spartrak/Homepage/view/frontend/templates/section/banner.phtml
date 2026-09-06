@@ -91,7 +91,18 @@ $boxHeightMobile = 220;
 
     <div class="spartrak-home-banner__frame"
         <?php if ($isCarousel) : ?>
-            data-mage-init='{"spartrakHomeCarousel":{"mode":"banner"}}'
+            <?php /* AUTOPLAY, 5s. Figma draws five pagination dots on the hero
+                     (595:14562 / mobile 647:57264) and no pause control, so the
+                     interval is a product choice rather than a measured value:
+                     5s is long enough to read a banner's headline and short
+                     enough that a shopper sees a second offer before scrolling
+                     past. The widget refuses to start it under
+                     prefers-reduced-motion, pauses it while the hero is off
+                     screen or the tab is in the background, and stops it for
+                     good on any deliberate interaction — see
+                     js/spartrak-home-carousel.js::_setupAutoplay, including its
+                     note on what this does and does not owe WCAG 2.2.2. */ ?>
+            data-mage-init='{"spartrakHomeCarousel":{"mode":"banner","autoplay":5000}}'
             role="group"
             aria-roledescription="<?= $block->escapeHtmlAttr(__('Carousel')) ?>"
         <?php endif; ?>>

@@ -49,7 +49,11 @@ define(['jquery', 'jquery-ui-modules/widget'], function ($) {
             // 'banner' pages a full slide at a time; 'rail' pages by roughly a
             // viewport of cards, which is what feels right on a rail whose
             // items are much narrower than the container.
-            mode: 'rail'
+            mode: 'rail',
+
+            // Milliseconds between automatic advances. 0 disables it, which is
+            // the default: only the hero opts in. See _setupAutoplay.
+            autoplay: 0
         },
 
         _create: function () {
@@ -89,6 +93,191 @@ define(['jquery', 'jquery-ui-modules/widget'], function ($) {
             this._on($(window), { resize: this._queueUpdate });
 
             this._update();
+            this._setupAutoplay();
+        },
+
+        /**
+         * ===================================================================
+         * AUTOPLAY - THE HERO ONLY, AND STILL THE BROWSER DOING THE SCROLLING
+         * ===================================================================
+         * `_advance` calls the same native scrollTo() the dots already call,
+         * with `behavior: 'smooth'`. Nothing here animates anything frame by
+         * frame: the browser owns the easing, on the compositor, and it is the
+         * identical motion a shopper gets from pressing an arrow. That is what
+         * makes it smooth, and it is why this costs one timer and no rAF loop
+         * (CLAUDE.md section 13).
+         *
+         * FOUR THINGS STOP THE CLOCK, each avoiding a real cost:
+         *
+         *   prefers-reduced-motion  never starts at all. An auto-advancing
+         *                           carousel is the canonical thing that
+         *                           setting exists to stop (CLAUDE.md 15).
+         *   pointer / focus inside  pauses. A shopper reading a slide, or
+         *                           tabbing through its link, does not get it
+         *                           pulled out from under them.
+         *   tab hidden              pauses, via `visibilitychange`. A timer
+         *                           firing scrollTo() in a background tab is
+         *                           pure battery.
+         *   hero scrolled off       pauses, via IntersectionObserver. The hero
+         *                           sits at the top of a long page, so for most
+         *                           of a session it is not on screen at all.
+         *
+         * ANY DELIBERATE INTERACTION STOPS IT FOR GOOD - an arrow, a dot, or a
+         * drag. Once a shopper has chosen a slide, moving them off it is the
+         * carousel arguing with them.
+         *
+         * WCAG 2.2.2, honestly. The criterion asks for a mechanism to pause
+         * content that moves for more than five seconds. The mechanism here is
+         * the visible pagination dots: pressing one halts the rotation
+         * permanently, as does hovering or tabbing in. A dedicated pause button
+         * would be the textbook answer, and Figma's hero (595:14562) does not
+         * draw one - so this is the strongest conformance available without
+         * inventing a control the design has no place for, and it is recorded
+         * here as a known gap rather than treated as solved.
+         */
+        _setupAutoplay: function () {
+            var interval = parseInt(this.options.autoplay, 10) || 0,
+                self = this,
+                reduced = window.matchMedia
+                    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            if (interval <= 0 || reduced) {
+                return;
+            }
+
+            this.autoplayInterval = interval;
+            this.autoplayTimer = null;
+            this.autoplayStopped = false;
+            // Two independent reasons to be paused - a pointer resting on the
+            // hero and the tab being in the background - so they are COUNTED
+            // rather than toggled. A single boolean would let whichever
+            // resumed second restart the clock while the other still held it.
+            this.autoplayHolds = 0;
+
+            this._on(this.element, {
+                mouseenter: this._holdAutoplay,
+                mouseleave: this._releaseAutoplay,
+                focusin: this._holdAutoplay,
+                focusout: this._releaseAutoplay
+            });
+
+            // Capture phase, so a press on an arrow or a dot registers as
+            // intent even though those handlers live on the same element.
+            this.element[0].addEventListener('pointerdown', function () {
+                self._stopAutoplay();
+            }, true);
+
+            this._onVisibility = function () {
+                if (document.hidden) {
+                    self._holdAutoplay();
+                } else {
+                    self._releaseAutoplay();
+                }
+            };
+            document.addEventListener('visibilitychange', this._onVisibility);
+
+            if (window.IntersectionObserver) {
+                // Starts HELD, because the observer's first callback always
+                // fires and is what releases it when the hero is already on
+                // screen. Starting unheld would double-count that release.
+                this.autoplayHolds = 1;
+                this.autoplayObserver = new window.IntersectionObserver(function (entries) {
+                    if (entries[entries.length - 1].isIntersecting) {
+                        self._releaseAutoplay();
+                    } else {
+                        self._holdAutoplay();
+                    }
+                }, { threshold: 0.25 });
+                this.autoplayObserver.observe(this.element[0]);
+
+                return;
+            }
+
+            this._resumeAutoplay();
+        },
+
+        _holdAutoplay: function () {
+            if (this.autoplayStopped || !this.autoplayInterval) {
+                return;
+            }
+
+            this.autoplayHolds += 1;
+            this._clearAutoplayTimer();
+        },
+
+        _releaseAutoplay: function () {
+            if (this.autoplayStopped || !this.autoplayInterval) {
+                return;
+            }
+
+            this.autoplayHolds = Math.max(0, this.autoplayHolds - 1);
+
+            if (this.autoplayHolds === 0) {
+                this._resumeAutoplay();
+            }
+        },
+
+        _resumeAutoplay: function () {
+            var self = this;
+
+            this._clearAutoplayTimer();
+            this.autoplayTimer = window.setInterval(function () {
+                self._advance();
+            }, this.autoplayInterval);
+        },
+
+        /**
+         * Permanent. There is no path back to autoplay in this widget's life.
+         */
+        _stopAutoplay: function () {
+            this.autoplayStopped = true;
+            this._clearAutoplayTimer();
+        },
+
+        _clearAutoplayTimer: function () {
+            if (this.autoplayTimer) {
+                window.clearInterval(this.autoplayTimer);
+                this.autoplayTimer = null;
+            }
+        },
+
+        /**
+         * One slide forward, wrapping to the first at the end.
+         *
+         * The wrap is a scrollTo(0) rather than a clone-based infinite loop:
+         * cloning slides would duplicate every hero <picture> in the DOM and in
+         * the accessibility tree to buy a seam a shopper sees once per rotation.
+         */
+        _advance: function () {
+            var el = this.trackEl,
+                maxScroll = el.scrollWidth - el.clientWidth;
+
+            if (Math.abs(el.scrollLeft) >= maxScroll - 1) {
+                el.scrollTo({ left: 0, behavior: 'smooth' });
+
+                return;
+            }
+
+            this._scrollBy(this._step());
+        },
+
+        /**
+         * jQuery UI calls this on teardown. `_on` bindings and the observer's
+         * own subscription go with the widget; the document-level listener and
+         * the interval do not, so they are released by hand.
+         */
+        _destroy: function () {
+            this._clearAutoplayTimer();
+
+            if (this.autoplayObserver) {
+                this.autoplayObserver.disconnect();
+                this.autoplayObserver = null;
+            }
+
+            if (this._onVisibility) {
+                document.removeEventListener('visibilitychange', this._onVisibility);
+                this._onVisibility = null;
+            }
         },
 
         /**

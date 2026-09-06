@@ -67,9 +67,33 @@ $showsNav = $block->showsCarouselNav();
             <?php endif; ?>
 
             <?php if ($viewAllUrl !== '') : ?>
-                <a class="spartrak-home-section__view-all" href="<?= $block->escapeUrl($viewAllUrl) ?>">
+                <?php /*
+                  TWO LABELS, ONE LINK. Figma writes this control out twice:
+                  "مشاهدة الكل" on desktop (595:15072, 18px) and just "الكل" on
+                  mobile (647:57916 / 647:57342 / 647:57309, 14px). Both are
+                  emitted and CSS picks one per viewport.
+
+                  WHY NOT ONE STRING TRIMMED IN CSS, OR SWAPPED IN JS. This
+                  block is full-page cached and cannot branch on device (the
+                  same constraint the utility strip records), so the choice has
+                  to be a stylesheet's. Two <span>s cost ~30 bytes of HTML and
+                  no request, no script and no second cache entry; a JS swap
+                  would cost a script on the critical path to change four words
+                  (CLAUDE.md section 13).
+
+                  THE ACCESSIBLE NAME STAYS THE LONG ONE, in both viewports, so
+                  a screen-reader user is never handed a link called only "All"
+                  with no idea all of WHAT. WCAG 2.5.3 (Label in Name) is
+                  satisfied because the visible mobile label is a substring of
+                  it — "الكل" is inside "مشاهدة الكل", and "All" inside
+                  "View all".
+                */ ?>
+                <a class="spartrak-home-section__view-all"
+                   href="<?= $block->escapeUrl($viewAllUrl) ?>"
+                   aria-label="<?= $block->escapeHtmlAttr(__('View all')) ?>">
                     <span class="spartrak-home-section__view-all-arrow" aria-hidden="true"></span>
                     <span class="spartrak-home-section__view-all-text"><?= $block->escapeHtml(__('View all')) ?></span>
+                    <span class="spartrak-home-section__view-all-text spartrak-home-section__view-all-text--short"><?= $block->escapeHtml(__('All')) ?></span>
                 </a>
             <?php endif; ?>
         </div>
