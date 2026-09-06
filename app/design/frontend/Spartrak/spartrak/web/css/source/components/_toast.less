@@ -242,10 +242,25 @@
     gap: 4px;
 }
 
-// Body / Medium / Semibold — 16/600, lh 1.5, neutral/1000. Inherited from the
-// column above, so this element only has to be a block.
+// Body / Medium / Semibold — 16/600, lh 1.5, neutral/1000. The type is
+// inherited from the column above; this element only has to define its box.
+//
+// CLAMPED TO ONE LINE. Figma draws the title on a single line (1286:29519), and
+// the value that fills it is a PRODUCT NAME — "مسمار ذراع بيل جوندير MAXIFORCE"
+// is already two lines at this width, and the catalogue has longer. Left to
+// wrap, one long name pushes the body copy and the action down and the toast
+// grows past the design's 120px into something that covers the header.
+//
+// Same four-declaration idiom the product card uses for its own name
+// (components/_product-card.less), so there is one way this is done in the
+// theme rather than two.
 .spartrak-toast__title {
-    display: block;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 // Body/Small/Regular — 14/400, lh 1.5, neutral/1000.
