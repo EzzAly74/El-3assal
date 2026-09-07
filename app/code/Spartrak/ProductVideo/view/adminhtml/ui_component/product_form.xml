@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ===========================================================================
+  PRODUCT VIDEOS — INLINE ON THE PRODUCT FORM
+  ===========================================================================
+  One collapsible fieldset, one row per video, everything on the page. No
+  modal: a merchant adds a video, points at it, sets how it plays and saves the
+  product, without a dialog opening at any point.
+
+  Magento's own "Add Video" popup is not used and not extended. It stays where
+  core put it — this module simply stops being part of it.
+
+  ===========================================================================
+  THE ROWS STILL BECOME MEDIA GALLERY ENTRIES
+  ===========================================================================
+  What is posted here is translated into `media_gallery` rows on save by
+  Plugin\Catalog\Gallery\BuildVideoEntries, before Magento's own gallery
+  handler runs. That is what keeps the storefront promise: a video is a gallery
+  entry, so it appears among the product's gallery thumbnails, in the merchant's
+  chosen order, with its poster already resized by Magento's image pipeline.
+
+  So this fieldset is a different WAY IN to the same data — not a second store
+  of it. The video will also appear in the Images And Videos gallery above,
+  which is where its position relative to the product photos is set.
+
+  ===========================================================================
+  TWO UPLOAD ENDPOINTS, AND ONLY ONE OF THEM IS OURS
+  ===========================================================================
+  The POSTER posts to Magento's own `catalog/product_gallery/upload`. That is
+  deliberate: it stages the file exactly where the media gallery expects to
+  find it, so the poster is moved, resized, cached and cleaned up by Magento's
+  machinery rather than by ours, and no second copy of any of that exists.
+
+  The VIDEO FILE posts to this module's own endpoint, because Magento has no
+  concept of a non-image media upload and its own uploader would try to make a
+  thumbnail of an MP4.
+-->
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+
+    <fieldset name="spartrak_videos_fieldset" sortOrder="23">
+        <settings>
+            <label translate="true">Product Videos</label>
+            <collapsible>true</collapsible>
+            <opened>false</opened>
+        </settings>
+
+        <dynamicRows name="spartrak_videos">
+            <settings>
+                <addButtonLabel translate="true">Add Video</addButtonLabel>
+                <componentType>dynamicRows</componentType>
+                <!--
+                  Drag handles off. A video's position among the product's media
+                  is set in the Images And Videos gallery above, where it can be
+                  ordered against the photographs it sits between. Offering a
+                  second, partial ordering control here would let the two
+                  disagree.
+                -->
+                <dndConfig>
+                    <param name="enabled" xsi:type="boolean">false</param>
+                </dndConfig>
+                <deleteProperty>removed</deleteProperty>
+                <deleteValue>1</deleteValue>
+            </settings>
+
+            <container name="record">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="componentType" xsi:type="string">container</item>
+                        <item name="isTemplate" xsi:type="boolean">true</item>
+                        <item name="is_collection" xsi:type="boolean">true</item>
+                        <item name="component" xsi:type="string">Magento_Ui/js/dynamic-rows/record</item>
+                        <item name="dataScope" xsi:type="string"/>
+                    </item>
+                </argument>
+
+                <!--
+                  The media gallery entry this row already became. Empty on a
+                  row the merchant has just added; filled once saved, and it is
+                  what makes the next save an UPDATE rather than a second video.
+                -->
+                <field name="value_id" formElement="hidden">
+                    <settings>
+                        <dataType>number</dataType>
+                    </settings>
+                </field>
+
+                <field name="source" formElement="select" sortOrder="10">
+                    <settings>
+                        <dataType>text</dataType>
+                        <label translate="true">Video Source</label>
+                        <dataScope>source</dataScope>
+                        <!--
+                          Shows one field and hides the other. `${ $.parentName }`
+                          resolves to this ROW, so each row switches on its own
+                          answer rather than on the first row's.
+                        -->
+                        <switcherConfig>
+                            <rules>
+                                <rule name="0">
+                                    <value>url</value>
+                                    <actions>
+                                        <action name="0">
+                                            <target>${ $.parentName }.video_url</target>
+                                            <callback>show</callback>
+                                        </action>
+                                        <action name="1">
+                                            <target>${ $.parentName }.video_file</target>
+                                            <callback>hide</callback>
+                                        </action>
+                                    </actions>
+                                </rule>
+                                <rule name="1">
+                                    <value>upload</value>
+                                    <actions>
+                                        <action name="0">
+                                            <target>${ $.parentName }.video_url</target>
+                                            <callback>hide</callback>
+                                        </action>
+                                        <action name="1">
+                                            <target>${ $.parentName }.video_file</target>
+                                            <callback>show</callback>
+                                        </action>
+                                    </actions>
+                                </rule>
+                            </rules>
+                            <enabled>true</enabled>
+                        </switcherConfig>
+                    </settings>
+                    <formElements>
+                        <select>
+                            <settings>
+                                <options class="Spartrak\ProductVideo\Model\Source\VideoSourceOptions"/>
+                            </settings>
+                        </select>
+                    </formElements>
+                </field>
+
+                <field name="video_url" formElement="input" sortOrder="20">
+                    <settings>
+                        <dataType>text</dataType>
+                        <label translate="true">Video URL</label>
+                        <dataScope>video_url</dataScope>
+                        <notice translate="true">A YouTube or Vimeo link, or a direct link to an MP4 or WebM file.</notice>
+                    </settings>
+                </field>
+
+                <field name="video_file" formElement="fileUploader" sortOrder="30">
+                    <settings>
+                        <componentType>fileUploader</componentType>
+                        <label translate="true">Video File</label>
+                        <dataScope>video_file</dataScope>
+                        <notice translate="true">MP4 or WebM, up to 100 MB. Larger files belong on a CDN.</notice>
+                    </settings>
+                    <formElements>
+                        <fileUploader>
+                            <settings>
+                                <allowedExtensions>mp4 webm</allowedExtensions>
+                                <maxFileSize>104857600</maxFileSize>
+                                <uploaderConfig>
+                                    <param xsi:type="url" name="url" path="spartrak_product_video/video/upload"/>
+                                </uploaderConfig>
+                            </settings>
+                        </fileUploader>
+                    </formElements>
+                </field>
+
+                <field name="poster" formElement="fileUploader" sortOrder="40">
+                    <settings>
+                        <componentType>fileUploader</componentType>
+                        <label translate="true">Preview Image</label>
+                        <dataScope>poster</dataScope>
+                        <notice translate="true">The still shown before the video is played. It is also this video's gallery thumbnail.</notice>
+                        <validation>
+                            <rule name="required-entry" xsi:type="boolean">true</rule>
+                        </validation>
+                    </settings>
+                    <formElements>
+                        <fileUploader>
+                            <settings>
+                                <allowedExtensions>jpg jpeg png gif webp</allowedExtensions>
+                                <maxFileSize>4194304</maxFileSize>
+                                <uploaderConfig>
+                                    <param xsi:type="url" name="url" path="catalog/product_gallery/upload"/>
+                                </uploaderConfig>
+                            </settings>
+                        </fileUploader>
+                    </formElements>
+                </field>
+
+                <field name="title" formElement="input" sortOrder="50">
+                    <settings>
+                        <dataType>text</dataType>
+                        <label translate="true">Title</label>
+                        <dataScope>title</dataScope>
+                        <validation>
+                            <rule name="required-entry" xsi:type="boolean">true</rule>
+                        </validation>
+                    </settings>
+                </field>
+
+                <field name="description" formElement="textarea" sortOrder="60">
+                    <settings>
+                        <dataType>text</dataType>
+                        <label translate="true">Description</label>
+                        <dataScope>description</dataScope>
+                    </settings>
+                </field>
+
+                <field name="autoplay" formElement="select" sortOrder="70">
+                    <settings>
+                        <dataType>text</dataType>
+                        <label translate="true">Autoplay</label>
+                        <dataScope>autoplay</dataScope>
+                    </settings>
+                    <formElements>
+                        <select>
+                            <settings>
+                                <options class="Spartrak\ProductVideo\Model\Source\InheritOptions"/>
+                            </settings>
+                        </select>
+                    </formElements>
+                </field>
+
+                <field name="loop" formElement="select" sortOrder="80">
+                    <settings>
+                        <dataType>text</dataType>
+                        <label translate="true">Loop</label>
+                        <dataScope>loop</dataScope>
+                    </settings>
+                    <formElements>
+                        <select>
+                            <settings>
+                                <options class="Spartrak\ProductVideo\Model\Source\InheritOptions"/>
+                            </settings>
+                        </select>
+                    </formElements>
+                </field>
+
+                <field name="muted" formElement="select" sortOrder="90">
+                    <settings>
+                        <dataType>text</dataType>
+                        <label translate="true">Start muted</label>
+                        <dataScope>muted</dataScope>
+                    </settings>
+                    <formElements>
+                        <select>
+                            <settings>
+                                <options class="Spartrak\ProductVideo\Model\Source\InheritOptions"/>
+                            </settings>
+                        </select>
+                    </formElements>
+                </field>
+
+                <field name="controls" formElement="select" sortOrder="100">
+                    <settings>
+                        <dataType>text</dataType>
+                        <label translate="true">Show player controls</label>
+                        <dataScope>controls</dataScope>
+                    </settings>
+                    <formElements>
+                        <select>
+                            <settings>
+                                <options class="Spartrak\ProductVideo\Model\Source\InheritOptions"/>
+                            </settings>
+                        </select>
+                    </formElements>
+                </field>
+
+                <field name="allow_download" formElement="select" sortOrder="110">
+                    <settings>
+                        <dataType>text</dataType>
+                        <label translate="true">Allow download</label>
+                        <dataScope>allow_download</dataScope>
+                    </settings>
+                    <formElements>
+                        <select>
+                            <settings>
+                                <options class="Spartrak\ProductVideo\Model\Source\InheritOptions"/>
+                            </settings>
+                        </select>
+                    </formElements>
+                </field>
+
+                <field name="is_featured" formElement="select" sortOrder="120">
+                    <settings>
+                        <dataType>text</dataType>
+                        <label translate="true">Open on this video</label>
+                        <dataScope>is_featured</dataScope>
+                        <notice translate="true">Shows this video first instead of the main product image. If more than one is marked, the earliest in the gallery order wins.</notice>
+                    </settings>
+                    <formElements>
+                        <select>
+                            <settings>
+                                <options class="Magento\Config\Model\Config\Source\Yesno"/>
+                            </settings>
+                        </select>
+                    </formElements>
+                </field>
+
+                <field name="disabled" formElement="select" sortOrder="130">
+                    <settings>
+                        <dataType>text</dataType>
+                        <label translate="true">Hide from Product Page</label>
+                        <dataScope>disabled</dataScope>
+                    </settings>
+                    <formElements>
+                        <select>
+                            <settings>
+                                <options class="Magento\Config\Model\Config\Source\Yesno"/>
+                            </settings>
+                        </select>
+                    </formElements>
+                </field>
+
+                <field name="chapters_ar" formElement="textarea" sortOrder="140">
+                    <settings>
+                        <dataType>text</dataType>
+                        <label translate="true">Chapters (Arabic)</label>
+                        <dataScope>chapters_ar</dataScope>
+                        <notice translate="true">One chapter per line, as "1:24 Fitting the pump" - a timecode, a space, then the title. Chapters apply to uploaded and direct-URL videos only; YouTube and Vimeo carry their own. Keep the two languages in the same order - line 3 here is line 3 there.</notice>
+                    </settings>
+                </field>
+
+                <field name="chapters_en" formElement="textarea" sortOrder="150">
+                    <settings>
+                        <dataType>text</dataType>
+                        <label translate="true">Chapters (English)</label>
+                        <dataScope>chapters_en</dataScope>
+                    </settings>
+                </field>
+            </container>
+        </dynamicRows>
+    </fieldset>
+</form>

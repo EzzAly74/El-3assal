@@ -86,22 +86,45 @@ player is replaced.
 
 ## Admin
 
-Everything is in the product form's **Images And Videos** fieldset, in Magento's
-own *Add Video* dialog. There is no separate grid and no second page.
+**A fieldset on the product form. No modal.**
 
-`Block\Adminhtml\Product\Edit\NewVideo` subclasses Magento's dialog block and
-appends fields; the dialog's own generic serialise/populate loops carry them
-both ways with no forked JavaScript. The one exception is the file picker — a
-file input cannot be serialised — which is handled by a ~60-line mixin.
+*Product Videos* sits under Images And Videos as a collapsible fieldset of rows.
+Each row is one video: source (URL or upload), the URL or the file, a preview
+image, title, description, the five playback overrides, featured, hidden, and
+chapters. Add, edit and delete all happen on the page — Magento's *Add Video*
+popup is not used, not extended and not opened.
 
-Two files here are forks, and both are the seam Magento itself uses:
+Structure is declared in `view/adminhtml/ui_component/product_form.xml`;
+`Ui/DataProvider/Product/Form/Modifier/Videos` only supplies the data. Building
+form structure in PHP is how a form becomes unreadable.
 
-* `view/adminhtml/templates/helper/gallery.phtml` — Magento_ProductVideo's own
-  copy of Magento_Catalog's template, plus nine hidden inputs. The item template
-  hardcodes its field list, so a field it does not know about is dropped before
-  the form posts. Its header records exactly what was added and how to re-merge.
-* `Observer\ChangeGalleryTemplate` — one line, mirroring
-  `Magento\ProductVideo\Observer\ChangeTemplateObserver`.
+### But a video is still a gallery entry
+
+`Plugin\Catalog\Gallery\BuildVideoEntries` runs *before* Magento's gallery
+handler and translates the posted rows into `media_gallery` entries — exactly
+the shape the modal would have produced. Everything downstream is then core's,
+unmodified: the move out of tmp, the `value_id`, the video table, cache
+invalidation, product duplicate, import/export.
+
+That is what keeps the storefront promise. A video appears among the product's
+gallery thumbnails, ordered against the photographs, with its poster resized by
+Magento's own image pipeline — none of which this module re-implements.
+
+It **merges** into `media_gallery.images` rather than replacing it; overwriting
+would delete every product photo the first time anyone touched a video. Rows
+are matched by `value_id`, and the split of ownership is deliberate:
+
+| Owned by the gallery above | Owned by this fieldset |
+|---|---|
+| position (drag to reorder against the photos) | everything else about the video |
+
+### Two upload endpoints, and only one is ours
+
+The **poster** posts to Magento's own `catalog/product_gallery/upload`, so it is
+staged where the media gallery expects it and is moved, resized, cached and
+cleaned up by Magento. The **video file** posts to this module's endpoint,
+because Magento has no concept of a non-image media upload and its own uploader
+would try to thumbnail an MP4.
 
 **Chapters** are one textarea per language, in YouTube's own convention
 (`1:24 Fitting the pump`). `Model\Video\ChapterParser` converts them to seconds

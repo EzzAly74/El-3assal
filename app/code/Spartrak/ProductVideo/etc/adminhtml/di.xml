@@ -1,24 +1,32 @@
 <?xml version="1.0"?>
 <!--
-  ADMIN ONLY. Neither of these exists on a storefront request: the dialog block
-  is built by the product form, and the uploader is reachable from one admin
-  controller.
+  ADMIN ONLY. Neither of these exists on a storefront request: the form
+  modifier runs while the product form is being built, and the uploader is
+  reachable from one admin controller.
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
 
     <!--
-      THE VIDEO DIALOG.
+      THE PRODUCT VIDEOS FIELDSET'S DATA.
 
-      A preference, because the block is instantiated by
-      Magento_ProductVideo's own ui_component/product_form.xml — a file this
-      module would otherwise have to fork wholesale just to change one class
-      name. The target IS a subclass of the class it replaces and adds only
-      fields, so every caller keeps the API it had.
+      Only `modifyData()` does anything — the fieldset and its fields are
+      declared in view/adminhtml/ui_component/product_form.xml, where they can
+      be read, diffed and overridden. Building form structure in PHP is how a
+      form becomes unreadable.
 
-      Scoped to adminhtml so the class is never even loaded on the storefront.
+      sortOrder 200 puts it after Magento's own modifiers, which is what has
+      already put the media gallery on the product by the time this reads it.
     -->
-    <preference for="Magento\ProductVideo\Block\Adminhtml\Product\Edit\NewVideo"
-                type="Spartrak\ProductVideo\Block\Adminhtml\Product\Edit\NewVideo"/>
+    <virtualType name="Magento\Catalog\Ui\DataProvider\Product\Form\Modifier\Pool">
+        <arguments>
+            <argument name="modifiers" xsi:type="array">
+                <item name="spartrak_product_videos" xsi:type="array">
+                    <item name="class" xsi:type="string">Spartrak\ProductVideo\Ui\DataProvider\Product\Form\Modifier\Videos</item>
+                    <item name="sortOrder" xsi:type="number">200</item>
+                </item>
+            </argument>
+        </arguments>
+    </virtualType>
 
     <!--
       THE UPLOADER'S POLICY.
@@ -37,11 +45,13 @@
       THE MIME LIST IS CHECKED AGAINST THE FILE'S REAL BYTES, not its name. An
       extension is a claim; `checkMimeType()` reads the magic.
 
-      100 MB. Above that a merchant should be putting the file on a CDN and
-      pasting the URL — which this module supports — rather than serving tens
-      of megabytes of video off the same origin that has to answer product
-      pages. It is also a ceiling on what a compromised admin account can push
-      onto the disk.
+      100 MB, and the same number is written into the fieldset's own
+      maxFileSize so the browser refuses an oversized file before spending a
+      minute uploading it. Above that a merchant should be putting the file on
+      a CDN and pasting the URL — which this module supports — rather than
+      serving tens of megabytes of video off the same origin that has to answer
+      product pages. It is also a ceiling on what a compromised admin account
+      can push onto the disk.
     -->
     <type name="Spartrak\ProductVideo\Model\Video\Uploader">
         <arguments>

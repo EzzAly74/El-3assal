@@ -16,8 +16,7 @@ use Spartrak\ProductVideo\Model\ResourceModel\VideoSettings;
 use Spartrak\ProductVideo\Model\Source\SourceType;
 use Spartrak\ProductVideo\Model\Video\ChapterParser;
 use Spartrak\ProductVideo\Model\Video\SourceNormalizer;
-use Spartrak\ProductVideo\Model\Video\Storage;
-use Spartrak\ProductVideo\Model\Video\Uploader;
+
 
 /**
  * Persists this module's per-video settings and chapters when a product saves.
@@ -31,12 +30,12 @@ use Spartrak\ProductVideo\Model\Video\Uploader;
  * columns that module has nowhere to put. Two plugins on one seam, each
  * owning its own table, both inside the product save transaction.
  *
- * The extra fields arrive here for free. Magento's video dialog serialises its
- * whole form into the gallery item (new-video-dialog.js:600,
- * `form.serializeArray()`), and AbstractHandler::getMediaEntriesDataCollection()
- * hands those rows straight to the save plugins. So adding a field to the
- * dialog's form block is the entire admin-side wiring — there is no forked
- * copy of that 1,295-line widget anywhere in this module.
+ * The extra fields arrive on the same rows. They are put there by
+ * Plugin\Catalog\Gallery\BuildVideoEntries, which translates the product
+ * form's inline Product Videos fieldset into gallery entries a moment earlier
+ * in the same save — so by the time this runs, a video looks exactly like one
+ * Magento's own modal would have produced, and this only has to write the
+ * columns Magento has nowhere to put.
  *
  * ===========================================================================
  * WHAT IT COSTS
@@ -61,8 +60,7 @@ class SaveVideoSettings
         private readonly VideoSettings $settingsResource,
         private readonly VideoChapter $chapterResource,
         private readonly SourceNormalizer $normalizer,
-        private readonly ChapterParser $chapterParser,
-        private readonly Uploader $uploader
+        private readonly ChapterParser $chapterParser
     ) {
     }
 
@@ -99,9 +97,12 @@ class SaveVideoSettings
                 continue;
             }
 
+            // The path is already final: Plugin\Catalog\Gallery\BuildVideoEntries
+            // promoted the file out of the staging directory before this row
+            // was built, because the row's video_url had to be its final URL.
             $source = $this->normalizer->normalize(
                 (string) ($entry['video_url'] ?? ''),
-                $this->resolveUploadedPath((string) ($entry['spartrak_video_path'] ?? ''))
+                (string) ($entry['spartrak_video_path'] ?? '')
             );
 
             $settingRows[$valueId] = $source + [
@@ -124,32 +125,6 @@ class SaveVideoSettings
         }
 
         return $result;
-    }
-
-    /**
-     * Promotes a freshly staged upload, or passes an already-final path
-     * through untouched.
-     *
-     * The dialog's upload button parks the file under
-     * `spartrak/product-video/tmp/` and puts that path in a hidden field. On
-     * the save that follows, the file moves to its permanent home. On EVERY
-     * LATER save of the same product the stored path is already permanent, and
-     * moving it again would be moving a file that is not there — hence the
-     * prefix test rather than an unconditional move.
-     *
-     * @throws LocalizedException
-     */
-    private function resolveUploadedPath(string $path): string
-    {
-        $path = trim($path);
-
-        if ($path === '' || !str_starts_with($path, Storage::BASE_TMP_PATH . '/')) {
-            return $path;
-        }
-
-        $fileName = substr($path, strlen(Storage::BASE_TMP_PATH) + 1);
-
-        return $this->uploader->moveFileFromTmp($fileName);
     }
 
     /**

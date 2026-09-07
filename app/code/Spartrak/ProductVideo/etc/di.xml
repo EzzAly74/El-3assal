@@ -30,10 +30,6 @@
       CHAPTERS, the one query this module adds — and only for a product that
       has a native video to hang them on. See the plugin for the three
       conditions that skip it.
-
-      sortOrder 20 puts it after Magento_ProductVideo's own read plugin (which
-      declares none, so it defaults to 0), because it reads `media_type` and
-      the joined source type off rows those handlers assemble.
     -->
     <type name="Magento\Catalog\Model\Product\Gallery\ReadHandler">
         <plugin name="spartrak_product_video_chapters"
@@ -42,11 +38,23 @@
     </type>
 
     <!--
-      THE WRITE SIDE. Magento\Catalog\Model\Product\Gallery\CreateHandler is
-      where a media entry gets its value_id, which is what these rows are keyed
-      on — so this cannot run any earlier.
+      THE WRITE SIDE, IN TWO HALVES ON ONE SEAM.
+
+      BuildVideoEntries runs BEFORE the gallery handler and translates the
+      product form's inline Product Videos rows into media gallery entries —
+      which is what lets the admin be a fieldset instead of Magento's modal
+      while a video still ends up a real gallery entry. sortOrder -10 puts it
+      ahead of Magento_ProductVideo's own before-plugin (which declares none,
+      so it defaults to 0), so the rows this adds are visible to it rather than
+      arriving after it has finished looking.
+
+      SaveVideoSettings runs AFTER, once core has given every row its value_id
+      — which is the key its tables are hung on, so it cannot run any earlier.
     -->
     <type name="Magento\Catalog\Model\Product\Gallery\CreateHandler">
+        <plugin name="spartrak_product_video_build"
+                type="Spartrak\ProductVideo\Plugin\Catalog\Gallery\BuildVideoEntries"
+                sortOrder="-10"/>
         <plugin name="spartrak_product_video_save"
                 type="Spartrak\ProductVideo\Plugin\Catalog\Gallery\SaveVideoSettings"
                 sortOrder="20"/>
