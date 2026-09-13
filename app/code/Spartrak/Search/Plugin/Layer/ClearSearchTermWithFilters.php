@@ -37,9 +37,14 @@ use Magento\Search\Model\QueryFactory;
  * CONSEQUENCE, STATED PLAINLY: a search-results page with no term is not a page
  * Magento can render — its controller redirects instead. So these links now
  * land on the storefront root, via Spartrak_Search's own ResetEmptySearch
- * plugin. That plugin is REQUIRED for this to work: without it core bounces the
- * termless request back to the referring (still filtered) results page and the
- * click appears to do nothing.
+ * plugin. That plugin is REQUIRED, and its absence is not a soft failure: core
+ * bounces the termless request back at its referer, and because
+ * Mageplaza_AjaxLayer pushState's the link URL BEFORE fetching it, that referer
+ * is the termless URL itself. The request redirects to itself until the browser
+ * stops with ERR_TOO_MANY_REDIRECTS. The full mechanism is written out in
+ * Plugin/Controller/Result/ResetEmptySearch.php. Deploys carrying this module must
+ * run setup:di:compile; a cache flush alone does not generate the interceptor
+ * that controller needs, because nothing plugged it before.
  *
  * ===========================================================================
  * WHY AN `after` PLUGIN, AND WHY sortOrder MUST BEAT MAGEPLAZA'S

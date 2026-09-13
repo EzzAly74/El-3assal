@@ -8,18 +8,19 @@ declare(strict_types=1);
 namespace Spartrak\Search\Plugin\Controller\Result;
 
 use Magento\CatalogSearch\Controller\Result\Index;
+use Magento\Framework\App\Request\Http;
+use Magento\Framework\App\Response\RedirectInterface;
 use Magento\Framework\Controller\ResultFactory;
 use Magento\Framework\Controller\ResultInterface;
-use Magento\Framework\App\Response\RedirectInterface;
 use Magento\Framework\UrlInterface;
 use Magento\Search\Model\QueryFactory;
 use Magento\Store\Model\StoreManagerInterface;
 
 /**
- * Clears the search when the box is submitted empty from the results page.
+ * Answers a termless search request instead of bouncing it back at its own referer.
  *
  * ===========================================================================
- * THE BUG
+ * THE ORIGINAL BUG
  * ===========================================================================
  * On a results page, clearing the input and pressing "بحث" left the previous
  * term in place: same URL, same heading, same products, term still in the box.
@@ -41,6 +42,51 @@ use Magento\Store\Model\StoreManagerInterface;
  * cached. Nothing is cached; the request is simply bounced.
  *
  * ===========================================================================
+ * THE SECOND BUG, AND WHY THIS PLUGIN IS NOT OPTIONAL
+ * ===========================================================================
+ * Since Plugin\Layer\ClearSearchTermWithFilters, "إزالة" and "مسح الكل" drop
+ * the term as well, so both now point at a TERMLESS results URL and land in
+ * core's else-branch above. Mageplaza_AjaxLayer then turns that click into:
+ *
+ *     window.history.pushState({url: submitUrl}, '', submitUrl);   // FIRST
+ *     storage.get(submitUrl)                                       // then XHR
+ *
+ * (app/code/Mageplaza/AjaxLayer/view/frontend/web/js/action/submit-filter.js).
+ * pushState runs BEFORE the request and rewrites document.URL, so the XHR that
+ * follows carries the termless URL as its OWN Referer. Core then redirects it
+ * to the referer — itself — and the browser gives up at the redirect limit:
+ *
+ *     GET /ar/catalogsearch/result/index/  net::ERR_TOO_MANY_REDIRECTS
+ *
+ * The extension's .fail() handler answers that with window.location.reload(),
+ * which reloads the pushState'd URL and reproduces the same loop as a visible
+ * navigation. That is the error page the merchant reported.
+ *
+ * A referer-driven redirect on a URL that is a NAVIGATION TARGET is a loop
+ * waiting to happen, and this plugin is what stops it: the one case where the
+ * referer is itself a results page is exactly the case it declines to pass on.
+ * Without it compiled in, clearing a filter is a hard site error, so
+ * `setup:di:compile` is a required step of any deploy that carries this module.
+ *
+ * ===========================================================================
+ * WHY XHR GETS JSON AND A NAVIGATION GETS A 302
+ * ===========================================================================
+ * Both are the same answer — "there is nothing to show here, go to the
+ * storefront root" — in the two encodings the two callers understand.
+ *
+ * A 302 is useless to the AJAX layer: XMLHttpRequest follows redirects itself,
+ * so the extension would receive the destination's HTML and try to read
+ * `response.products` off a full document. Mageplaza publishes the answer for
+ * exactly this, in submit-filter.js:
+ *
+ *     if (response.backUrl) { window.location = response.backUrl; return; }
+ *
+ * so an XHR is answered with {"backUrl": ...} and the extension performs the
+ * navigation itself. This is the extension's own contract, not a workaround
+ * layered on top of it, which is why nothing under app/code/Mageplaza is
+ * touched (CLAUDE.md section 2 — third-party code is not ours to edit).
+ *
+ * ===========================================================================
  * WHY THE FIX IS SCOPED TO THAT ONE CASE
  * ===========================================================================
  * Core's behaviour is RIGHT everywhere else. Clearing the box on a product
@@ -54,11 +100,10 @@ use Magento\Store\Model\StoreManagerInterface;
  * WHY A PLUGIN, AND WHY `around`
  * ===========================================================================
  * The decision lives inline in execute(); there is no event, no layout hook and
- * no protected seam to override, and `$allowedMimeTypes`-style DI is not on
- * offer either. execute() is public, so it is interceptable, and `around` is
- * the only plugin type that can decline the original call — a `before` plugin
- * could not stop core from setting the bad redirect, and an `after` plugin
- * would run once it already had.
+ * no protected seam to override. execute() is public, so it is interceptable,
+ * and `around` is the only plugin type that can decline the original call — a
+ * `before` plugin could not stop core from setting the bad redirect, and an
+ * `after` plugin would run once it already had.
  *
  * A preference would mean copying core's whole execute() — every future fix to
  * the cacheable/non-cacheable result paths frozen at 2.4.8 — to change one
@@ -78,23 +123,32 @@ class ResetEmptySearch
     private const SEARCH_RESULT_ROUTE = 'catalogsearch/result';
 
     /**
+     * The key Mageplaza_AjaxLayer reads to perform a real navigation.
+     *
+     * @see app/code/Mageplaza/AjaxLayer/view/frontend/web/js/action/submit-filter.js
+     */
+    private const AJAX_REDIRECT_KEY = 'backUrl';
+
+    /**
      * @param QueryFactory $queryFactory
      * @param RedirectInterface $redirect
      * @param UrlInterface $url
      * @param StoreManagerInterface $storeManager
      * @param ResultFactory $resultFactory
+     * @param Http $request
      */
     public function __construct(
         private readonly QueryFactory $queryFactory,
         private readonly RedirectInterface $redirect,
         private readonly UrlInterface $url,
         private readonly StoreManagerInterface $storeManager,
-        private readonly ResultFactory $resultFactory
+        private readonly ResultFactory $resultFactory,
+        private readonly Http $request
     ) {
     }
 
     /**
-     * Send an empty search submitted FROM the results page back to the storefront root.
+     * Send a termless search that came FROM the results page to the storefront root.
      *
      * @param Index $subject
      * @param callable $proceed
@@ -114,10 +168,19 @@ class ResetEmptySearch
             return $proceed();
         }
 
-        $redirect = $this->resultFactory->create(ResultFactory::TYPE_REDIRECT);
-        $redirect->setUrl($this->storeManager->getStore()->getBaseUrl());
+        $destination = $this->storeManager->getStore()->getBaseUrl();
 
-        return $redirect;
+        if ($this->request->isXmlHttpRequest()) {
+            // The AJAX layered navigation. A 302 here would be followed by
+            // XMLHttpRequest itself and hand the extension a page of HTML it
+            // cannot read — or, when the referer is the pushState'd termless
+            // URL, followed round and round until the browser gives up.
+            return $this->resultFactory->create(ResultFactory::TYPE_JSON)
+                ->setData([self::AJAX_REDIRECT_KEY => $destination]);
+        }
+
+        return $this->resultFactory->create(ResultFactory::TYPE_REDIRECT)
+            ->setUrl($destination);
     }
 
     /**
