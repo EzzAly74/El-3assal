@@ -27,5 +27,21 @@
                    name="spartrak.nav_loader"
                    template="Magento_Theme::html/nav-loader.phtml"/>
         </referenceContainer>
+
+        <!--
+          Porto's `Magento_Catalog::category/config.phtml`, which its own
+          Magento_CatalogSearch/layout/catalogsearch_result_index.xml declares
+          on this handle exactly as it does on the category one.
+
+          Dead on both, and its sticky-toolbar half threw
+          "Cannot read properties of undefined (reading 'top')" on every scroll
+          frame below 992px. The full reasoning — both halves, why the selector
+          cannot match Spartrak's markup, and why Porto's file is neither edited
+          nor copied — is written out once in this theme's
+          Magento_Catalog/layout/catalog_category_view.xml. A block added on a
+          handle can only be removed on a handle that is also loaded, which is
+          why the removal is repeated here rather than shared.
+        -->
+        <referenceBlock name="catalog_view_config" remove="true"/>
     </body>
 </page>

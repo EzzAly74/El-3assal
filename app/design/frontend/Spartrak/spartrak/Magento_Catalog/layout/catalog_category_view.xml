@@ -76,6 +76,82 @@ WHAT IS REMOVED, AND WHY EACH ONE
                              handle. A block added on a handle can only be
                              removed on a handle that is also loaded.
 
+  catalog_view_config        Porto's `Magento_Catalog::category/config.phtml`,
+                             declared by Smartwave/porto for this handle and
+                             for catalogsearch_result_index. Both halves of it
+                             are DEAD on a Spartrak page, and one of them
+                             throws:
+
+                             (a) Sticky mobile toolbar. It targets
+                                 `#layer-product-list .search.results >
+                                 .toolbar.toolbar-products`, but Spartrak's own
+                                 list.phtml wraps the toolbar in
+                                 `.spartrak-plp__toolbar` (a 16px margin and
+                                 nothing else), so that direct-child selector
+                                 matches NOTHING. Its outer guard only asks
+                                 whether any `.toolbar` exists, which is true,
+                                 so the handler still ran: it inserted no
+                                 placeholder, then read `.offset().top` off an
+                                 empty jQuery set — undefined — and threw
+                                 "Cannot read properties of undefined (reading
+                                 'top')" on EVERY scroll frame below 992px.
+
+                             (b) Filter popup events, bound to `.sidebar-toggle`
+                                 and creating `.sidebar-overlay`. Nothing on a
+                                 Spartrak page carries `.sidebar-toggle`: the
+                                 mobile filter drawer ships on the button
+                                 itself as `spartrakPlpFilterToggle` (see the
+                                 note at the end of this comment), so those
+                                 handlers never fire and that overlay is never
+                                 created.
+
+                             Removing the block is the Spartrak-layer fix, and
+                             the same call this theme already recorded for
+                             Porto's OTHER sticky script — see the
+                             `sidebar-sticky` note in
+                             web/css/source/components/_plp.less: "Figma's
+                             sidebar is a plain column, not a sticky one, and
+                             dropping the script also drops a scroll handler
+                             that reads offsets on every frame." Identical
+                             reasoning here, and it costs one fewer scroll
+                             listener on the two heaviest routes (CLAUDE.md
+                             sections 4 and 13).
+
+                             Porto's file is NOT edited and NOT copied into
+                             this theme: under section 2 Spartrak owns this
+                             toolbar, so Porto's treatment of it simply should
+                             not run — it is not ours to customise, and there
+                             is nothing in it worth inheriting.
+
+  sale.reorder.sidebar       Core's "Recently Ordered" / "Last Ordered Items"
+                             box (Magento\Sales\Block\Reorder\Sidebar), which
+                             Magento_Sales/view/frontend/layout/default.xml
+                             drops into `sidebar.additional` on EVERY route
+                             that has that container. Figma 488:10810 draws one
+                             sidebar on this page — the filter column — and no
+                             second one, so the box is not part of the design.
+
+                             It is invisible to guests, which is why it is easy
+                             to miss: that block's _toHtml() returns '' unless a
+                             customer is logged in, so an anonymous page never
+                             renders it and `.sidebar-additional` collapses to
+                             nothing. Signed in, it prints a full reorder form
+                             into the category page.
+
+                             Removing the BLOCK, not the container: PayPal and
+                             Wishlist also declare into `sidebar.additional`,
+                             and an empty container renders nothing anyway, so
+                             taking the container out would over-reach.
+
+                             Reorder itself is untouched and stays exactly where
+                             the design does put it — the account area — and
+                             this is the same call, by the same mechanism, that
+                             this theme already makes in
+                             Magento_Customer/layout/customer_account.xml and
+                             that core itself makes for checkout in
+                             Magento_Sales/view/frontend/layout/
+                             checkout_index_index.xml.
+
 `category.cms` is deliberately LEFT ALONE. It renders whatever CMS block an
 admin picked in "Add CMS Block" on the category — genuinely separate content
 that this page does not otherwise show, and nothing in Figma contradicts it.
@@ -208,5 +284,7 @@ module name. Do not add it back here.
         <referenceBlock name="category.description.default" remove="true"/>
         <referenceBlock name="category_desc_main_column" remove="true"/>
         <referenceBlock name="category_banner" remove="true"/>
+        <referenceBlock name="catalog_view_config" remove="true"/>
+        <referenceBlock name="sale.reorder.sidebar" remove="true"/>
     </body>
 </page>
