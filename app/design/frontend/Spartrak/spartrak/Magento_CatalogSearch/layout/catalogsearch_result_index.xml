@@ -43,5 +43,24 @@
           why the removal is repeated here rather than shared.
         -->
         <referenceBlock name="catalog_view_config" remove="true"/>
+
+        <!--
+          Core's "Recently Ordered" box (Magento\Sales\Block\Reorder\Sidebar),
+          which Magento_Sales/view/frontend/layout/default.xml drops into
+          `sidebar.additional` on every route that has that container — this one
+          included, since search shares the category page's
+          page-layout-2columns-left shell.
+
+          Invisible to guests (that block's _toHtml() returns '' unless the
+          customer is authenticated), so it only shows once signed in. Figma
+          draws one sidebar on this page, the filter column, and no second one.
+
+          Full reasoning — including why the BLOCK goes and not the container —
+          is written out once in this theme's
+          Magento_Catalog/layout/catalog_category_view.xml. Repeated here
+          because a block declared on the `default` handle has to be removed on
+          each handle that renders it.
+        -->
+        <referenceBlock name="sale.reorder.sidebar" remove="true"/>
     </body>
 </page>
