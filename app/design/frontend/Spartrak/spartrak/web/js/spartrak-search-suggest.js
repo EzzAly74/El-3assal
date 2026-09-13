@@ -86,6 +86,28 @@ define([
             this.input = this.element;
             this.panel = $(this.options.panelSelector);
 
+            /**
+             * THE SUBMIT GATE — deliberately wired BEFORE the bail-out below.
+             *
+             * Whether the query is long enough to run is a property of the
+             * FORM, not of the suggestions panel: if the panel or the endpoint
+             * is missing this widget stops doing suggestion work, but the
+             * button must still refuse a query the server would only bounce.
+             *
+             * Found by attribute, like core's own quickSearch does, so the
+             * button keeps no class dependency (see the note in
+             * Magento_Search/templates/form.mini.phtml).
+             *
+             * With the real `disabled` property set, the browser also refuses
+             * implicit submission, so Enter is gated by the same rule as the
+             * click without a keydown handler of its own. If this script never
+             * runs the button simply stays enabled and the server validates as
+             * it always did — the gate degrades to core behaviour.
+             */
+            this.submit = this.input.closest('form').find('button[type="submit"]');
+            this._on({ input: this._syncSubmitState });
+            this._syncSubmitState();
+
             if (!this.panel.length || !this.options.url) {
                 return;
             }
@@ -163,6 +185,23 @@ define([
          */
         _query: function () {
             return $.trim(String(this.input.val() || ''));
+        },
+
+        /**
+         * Enable the submit button only for a query the store would accept.
+         *
+         * `minLength` is Magento's own catalog/search/min_query_length, handed
+         * in by the template, so the button agrees with the endpoint and with
+         * the results controller rather than inventing a rule of its own.
+         *
+         * @private
+         */
+        _syncSubmitState: function () {
+            if (!this.submit || !this.submit.length) {
+                return;
+            }
+
+            this.submit.prop('disabled', this._query().length < this.options.minLength);
         },
 
         /**

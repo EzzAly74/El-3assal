@@ -621,25 +621,12 @@
     display: none;
   }
 
-  .spartrak-home-banner__frame {
-    // Figma's mobile frame (647:57253) runs the hero the full 440 width
-    // with NO side gutter, unlike the 24px desktop inset. On a phone the
-    // artwork needs every pixel it can get.
-    margin-inline: 0;
-    max-width: none;
-    // The mobile <source> is a DIFFERENT file with its own shape, so the
-    // desktop ratio cannot govern here — it gets its own, and for the same
-    // reason: 440x220 is the shape mobile hero artwork is authored at.
-    // See the desktop rule above for the full history and for what the
-    // fixed ratio costs an off-shape upload.
-    aspect-ratio: 440 / 220;
-  }
-
-  // Full-width edge-to-edge arrows would eat a third of a phone screen.
-  // The rail is swipeable, which is the native affordance on touch.
-  .spartrak-home-banner__arrow {
-    display: none;
-  }
+  // The HERO BANNER's two mobile rules used to sit here and never applied
+  // once. This file is pulled in by the @import at the TOP of
+  // _homepage-sections.less, so everything here compiles BEFORE that file's
+  // banner rules, and at equal specificity the later rule wins. They now live
+  // beside the rules they override, in _homepage-sections.less. Do not move
+  // banner breakpoints back into this file.
 
   .spartrak-home-rail__panel {
     max-width: 100%;

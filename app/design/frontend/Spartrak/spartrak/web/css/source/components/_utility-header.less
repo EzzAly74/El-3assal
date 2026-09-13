@@ -289,9 +289,27 @@ button.spartrak-search__submit {
     color: var(--color-action-primary-text);
     cursor: pointer;
 
-    &:hover,
+    &:hover:not(:disabled),
     &:focus-visible {
         background: var(--color-action-primary-hover);
+    }
+
+    // DISABLED — while the query is shorter than the store's own
+    // `catalog/search/min_query_length`. The widget sets the real `disabled`
+    // property (see web/js/spartrak-search-suggest.js), which also makes the
+    // browser refuse implicit submission, so Enter is gated by the same rule
+    // as the click with no extra key handling.
+    //
+    // Figma draws node 595:14521 in one state only, so there is no disabled
+    // hero button to copy. Nothing is invented here either: this is the
+    // design's OWN disabled-CTA pair, already tokenised and already used by
+    // the checkout CTA (components/_checkout.less), and this button is the
+    // same action/primary control. Section 3 is satisfied by reusing the
+    // system's token rather than eyeballing a new colour.
+    &:disabled {
+        background: var(--color-action-primary-disabled);
+        color: var(--color-action-primary-disabled-text);
+        cursor: not-allowed;
     }
 
     // Node 693:45431 — the loupe INSIDE the navy button. Figma's export is

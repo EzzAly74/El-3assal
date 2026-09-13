@@ -335,6 +335,47 @@
   }
 }
 
+// ---------------------------------------------------------------------------
+// BANNER — MOBILE (Figma 647:57253). MUST STAY BELOW THE RULES IT OVERRIDES.
+// ---------------------------------------------------------------------------
+// These declarations used to live in _section-rail.less, inside its own
+// `@media (max-width: @breakpoint-header-collapse)` block, and they NEVER
+// APPLIED. That file is pulled in by the @import at the top of this one, so
+// every rule in it compiles BEFORE the banner rules above — and between two
+// selectors of equal specificity (0,1,0) the later one wins, media query or
+// not. A media query raises no precedence of its own.
+//
+// Two visible symptoms, both reported from the phone:
+//   - the hero kept the desktop 1440/300 box, squashing a 2:1 mobile asset
+//     into a 4.8:1 letterbox;
+//   - the prev/next arrows stayed on screen, because the base
+//     `.spartrak-home-banner__arrow` rule above outranked the `display: none`.
+//
+// The banner is a component of THIS file, so its breakpoint belongs here,
+// after the rules it modifies. Not one declaration changed — only its position
+// in the cascade. The alternative, out-specifying from the other file, is the
+// specificity war CLAUDE.md section 9 forbids.
+@media (max-width: @breakpoint-header-collapse) {
+  .spartrak-home-banner__frame {
+    // Figma's mobile frame runs the hero the full 440 width with NO side
+    // gutter, unlike the 24px desktop inset. On a phone the artwork needs
+    // every pixel it can get.
+    margin-inline: 0;
+    // The mobile <source> is a DIFFERENT file with its own shape, so the
+    // desktop ratio cannot govern here: 440x220 is the shape mobile hero
+    // artwork is authored at. See the desktop rule above for the full history
+    // and for what a fixed ratio costs an off-shape upload.
+    aspect-ratio: 440 / 220;
+  }
+
+  // Edge-to-edge arrows would eat a third of a phone screen, and the track is
+  // scroll-snapped, so swiping is the native affordance on touch. The dots
+  // stay — they are the only position indicator left.
+  .spartrak-home-banner__arrow {
+    display: none;
+  }
+}
+
 // --- Pagination dots (Figma 595:14568) -------------------------------------
 // A white pill overhanging the bottom edge by 14px; each dot is a 3px-wide
 // bar that GROWS from 8px to 12px tall when active.
