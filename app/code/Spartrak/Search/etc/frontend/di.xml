@@ -68,4 +68,17 @@
                 type="Spartrak\Search\Plugin\Controller\Result\ResetEmptySearch"
                 sortOrder="10"/>
     </type>
+
+    <!--
+      A brand link names its brand twice — `q` for the label and the attribute
+      for the option id — so the layered nav drew a chip whose "إزالة" could
+      only ever swap an exact brand listing for a fuzzy one. Three controls
+      read this one list (the chips, "مسح الكل" and the mobile filter badge)
+      and all three must agree, which is why the model is plugged rather than
+      the block. The full measurement and reasoning are in the plugin class.
+    -->
+    <type name="Magento\Catalog\Model\Layer\State">
+        <plugin name="spartrak_search_hide_filters_restating_query"
+                type="Spartrak\Search\Plugin\Layer\HideFiltersRestatingQuery"/>
+    </type>
 </config>
