@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Spartrak\Search\Plugin\Controller\Result;
 
-use Magento\CatalogSearch\Controller\Result\Index;
+use Magento\Framework\App\ActionInterface;
 use Magento\Framework\App\Request\Http;
 use Magento\Framework\App\Response\RedirectInterface;
 use Magento\Framework\Controller\ResultFactory;
@@ -25,8 +25,9 @@ use Magento\Store\Model\StoreManagerInterface;
  * On a results page, clearing the input and pressing "بحث" left the previous
  * term in place: same URL, same heading, same products, term still in the box.
  *
- * It is core's own last branch of
- * Magento\CatalogSearch\Controller\Result\Index::execute() (2.4.8):
+ * It is the last branch of the search results controller, identical in core
+ * (Magento\CatalogSearch\Controller\Result\Index, 2.4.8) and in the module
+ * that replaces it here:
  *
  *     if ($queryText != '') {
  *         ...
@@ -42,19 +43,19 @@ use Magento\Store\Model\StoreManagerInterface;
  * cached. Nothing is cached; the request is simply bounced.
  *
  * ===========================================================================
- * THE SECOND BUG, AND WHY THIS PLUGIN IS NOT OPTIONAL
+ * THE REDIRECT LOOP THIS ALSO FIXES
  * ===========================================================================
  * Since Plugin\Layer\ClearSearchTermWithFilters, "إزالة" and "مسح الكل" drop
- * the term as well, so both now point at a TERMLESS results URL and land in
- * core's else-branch above. Mageplaza_AjaxLayer then turns that click into:
+ * the term as well, so both point at a TERMLESS results URL and land in that
+ * else-branch. Mageplaza_AjaxLayer then turns the click into:
  *
  *     window.history.pushState({url: submitUrl}, '', submitUrl);   // FIRST
  *     storage.get(submitUrl)                                       // then XHR
  *
  * (app/code/Mageplaza/AjaxLayer/view/frontend/web/js/action/submit-filter.js).
  * pushState runs BEFORE the request and rewrites document.URL, so the XHR that
- * follows carries the termless URL as its OWN Referer. Core then redirects it
- * to the referer — itself — and the browser gives up at the redirect limit:
+ * follows carries the termless URL as its OWN Referer. The controller redirects
+ * it to the referer — itself — and the browser gives up at the redirect limit:
  *
  *     GET /ar/catalogsearch/result/index/  net::ERR_TOO_MANY_REDIRECTS
  *
@@ -63,10 +64,33 @@ use Magento\Store\Model\StoreManagerInterface;
  * navigation. That is the error page the merchant reported.
  *
  * A referer-driven redirect on a URL that is a NAVIGATION TARGET is a loop
- * waiting to happen, and this plugin is what stops it: the one case where the
- * referer is itself a results page is exactly the case it declines to pass on.
- * Without it compiled in, clearing a filter is a hard site error, so
- * `setup:di:compile` is a required step of any deploy that carries this module.
+ * waiting to happen, and the one case where the referer is itself a results
+ * page is exactly the case this plugin declines to pass on.
+ *
+ * ===========================================================================
+ * WHY TWO TYPES ARE REGISTERED IN di.xml, AND WHY THE HINT IS ActionInterface
+ * ===========================================================================
+ * `catalogsearch/result/index` is NOT served by core's controller on this
+ * install. Mageplaza_AjaxLayer/etc/frontend/di.xml declares
+ *
+ *     <preference for="Magento\CatalogSearch\Controller\Result\Index"
+ *                 type="Mageplaza\AjaxLayer\Controller\Search\Result\Index"/>
+ *
+ * and that class extends Magento\Framework\App\Action\Action — NOT the core
+ * controller. Magento inherits plugins down a class hierarchy, but there is no
+ * hierarchy here, so a plugin registered only on the core type is configured
+ * onto a class the frontend never instantiates and silently does nothing. It
+ * cannot be compiled into existence; it is on the wrong class.
+ *
+ * (Smartwave/porto declares the same preference in its GLOBAL etc/di.xml.
+ * Mageplaza's is area-specific, and an area preference wins on the frontend.)
+ *
+ * Both types are therefore registered, so the behaviour is the storefront's
+ * and not a particular extension's: whichever controller is in force — with
+ * Mageplaza enabled, disabled, or removed — this runs. That is also why the
+ * subject is hinted as ActionInterface, the one type both controllers share
+ * (Action extends AbstractAction implements ActionInterface); a concrete hint
+ * would fatal the moment the other controller is the one in force.
  *
  * ===========================================================================
  * WHY XHR GETS JSON AND A NAVIGATION GETS A 302
@@ -82,19 +106,22 @@ use Magento\Store\Model\StoreManagerInterface;
  *     if (response.backUrl) { window.location = response.backUrl; return; }
  *
  * so an XHR is answered with {"backUrl": ...} and the extension performs the
- * navigation itself. This is the extension's own contract, not a workaround
- * layered on top of it, which is why nothing under app/code/Mageplaza is
- * touched (CLAUDE.md section 2 — third-party code is not ours to edit).
+ * navigation itself. This mirrors what its controller already does on the
+ * non-empty branch, which serves JSON to `isAjax()` and HTML otherwise — the
+ * empty branch simply never got the same treatment. It is the extension's own
+ * contract, not a workaround layered on top of it, which is why nothing under
+ * app/code/Mageplaza is touched (CLAUDE.md section 2 — third-party code is not
+ * ours to edit).
  *
  * ===========================================================================
  * WHY THE FIX IS SCOPED TO THAT ONE CASE
  * ===========================================================================
- * Core's behaviour is RIGHT everywhere else. Clearing the box on a product
- * page and submitting should return you to that product page, and it does.
- * The loop exists only when the referer is itself a search-results page, so
- * that is the only case this declines, and it declines it in core's own terms:
- * the store base URL is exactly what getRedirectUrl() itself falls back to when
- * there is no referer at all. No new destination is invented.
+ * The controller's behaviour is RIGHT everywhere else. Clearing the box on a
+ * product page and submitting should return you to that product page, and it
+ * does. The loop exists only when the referer is itself a search-results page,
+ * so that is the only case this declines, and it declines it in core's own
+ * terms: the store base URL is exactly what getRedirectUrl() itself falls back
+ * to when there is no referer at all. No new destination is invented.
  *
  * ===========================================================================
  * WHY A PLUGIN, AND WHY `around`
@@ -102,17 +129,17 @@ use Magento\Store\Model\StoreManagerInterface;
  * The decision lives inline in execute(); there is no event, no layout hook and
  * no protected seam to override. execute() is public, so it is interceptable,
  * and `around` is the only plugin type that can decline the original call — a
- * `before` plugin could not stop core from setting the bad redirect, and an
- * `after` plugin would run once it already had.
+ * `before` plugin could not stop the controller setting the bad redirect, and
+ * an `after` plugin would run once it already had.
  *
- * A preference would mean copying core's whole execute() — every future fix to
- * the cacheable/non-cacheable result paths frozen at 2.4.8 — to change one
- * branch. This touches none of it: a non-empty query never reaches our code.
+ * A preference would mean copying a whole execute() — and there are two of them
+ * in play, one of which is a third-party class already holding the preference
+ * slot. This touches neither: a non-empty query never reaches our code.
  *
  * Returning a Result rather than calling setRedirect() on the response is the
- * 2.4.8-native form; Action::dispatch() returns `$result ?: $this->_response`,
- * so a ResultInterface handed back from execute() is what FrontController
- * renders.
+ * 2.4.8-native form; Action::dispatch() ends `return $result ?: $this->_response`
+ * (vendor/magento/framework/App/Action/Action.php:115), so a ResultInterface
+ * handed back from execute() is what FrontController renders.
  */
 class ResetEmptySearch
 {
@@ -150,31 +177,34 @@ class ResetEmptySearch
     /**
      * Send a termless search that came FROM the results page to the storefront root.
      *
-     * @param Index $subject
+     * @param ActionInterface $subject the search results controller in force — see the class note
      * @param callable $proceed
      * @return ResultInterface|null
      */
-    public function aroundExecute(Index $subject, callable $proceed)
+    public function aroundExecute(ActionInterface $subject, callable $proceed)
     {
-        // The same memoised Query instance core is about to read, so the
-        // emptiness test here and core's cannot drift apart (trimming, the
+        // The same memoised Query instance the controller is about to read, so
+        // the emptiness test here and its own cannot drift apart (trimming, the
         // `?q[]=` array guard and max-length truncation all already applied).
         if ($this->queryFactory->get()->getQueryText() !== '') {
             return $proceed();
         }
 
         if (!$this->isRefererSearchResults()) {
-            // No loop to break — core's "back to where you came from" stands.
+            // No loop to break — "back to where you came from" stands.
             return $proceed();
         }
 
         $destination = $this->storeManager->getStore()->getBaseUrl();
 
-        if ($this->request->isXmlHttpRequest()) {
-            // The AJAX layered navigation. A 302 here would be followed by
-            // XMLHttpRequest itself and hand the extension a page of HTML it
-            // cannot read — or, when the referer is the pushState'd termless
-            // URL, followed round and round until the browser gives up.
+        // isAjax() rather than isXmlHttpRequest(): it is the same gate the
+        // Mageplaza controller uses on its own non-empty branch, so both
+        // branches agree on what an AJAX request is.
+        if ($this->request->isAjax()) {
+            // A 302 here would be followed by XMLHttpRequest itself and hand
+            // the extension a page of HTML it cannot read — or, when the
+            // referer is the pushState'd termless URL, followed round and
+            // round until the browser gives up.
             return $this->resultFactory->create(ResultFactory::TYPE_JSON)
                 ->setData([self::AJAX_REDIRECT_KEY => $destination]);
         }

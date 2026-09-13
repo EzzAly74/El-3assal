@@ -19,16 +19,52 @@
     </type>
 
     <!--
-      Frontend-only for the same reason as the crumb above: the results
-      controller exists on the storefront alone, so neither the admin nor the
-      API areas pay to have this interceptor generated.
+      THE SEARCH RESULTS CONTROLLER — REGISTERED TWICE, ON PURPOSE.
+
+      `catalogsearch/result/index` is not served by core's controller on this
+      install. Mageplaza_AjaxLayer/etc/frontend/di.xml holds the preference:
+
+          <preference for="Magento\CatalogSearch\Controller\Result\Index"
+                      type="Mageplaza\AjaxLayer\Controller\Search\Result\Index"/>
+
+      and that class extends Magento\Framework\App\Action\Action, NOT the core
+      controller. Magento inherits plugins down a class hierarchy, but there is
+      no hierarchy between those two, so a plugin registered on the core type
+      alone is attached to a class the storefront never instantiates. It does
+      not fail, it does not warn, and no amount of setup:di:compile brings it
+      to life — it is simply on the wrong class. That cost this project two
+      deploys; the symptom was the results page still bouncing an empty query
+      back onto the previous term while every other plugin in this file worked.
+
+      (Smartwave/porto declares the same preference in its GLOBAL etc/di.xml.
+      Mageplaza's is area-specific and an area preference wins on the frontend,
+      so Mageplaza's is the class actually in force today.)
+
+      BOTH are registered so this is the storefront's behaviour rather than one
+      extension's: whichever of the two is in force, the plugin is on it. A
+      DISABLED Mageplaza_AjaxLayer needs no change here — its class still
+      exists on disk, so the registration compiles, and core's controller takes
+      over. Only physically REMOVING that module would require dropping the
+      second block, since setup:di:compile reflects every type it is given. The
+      plugin hints ActionInterface — the one type both controllers share — so
+      that either one can be the subject.
+
+      Frontend-only, like the crumb above: the results controller exists on the
+      storefront alone, so neither the admin nor the API areas pay to have this
+      interceptor generated.
 
       See the plugin class for why an empty query bounced back onto the previous
-      search term, and why the fix is scoped to a referer that is itself a
-      results page.
+      search term, why the AJAX layer turned that bounce into
+      ERR_TOO_MANY_REDIRECTS, and why an XHR is answered with JSON.
     -->
     <type name="Magento\CatalogSearch\Controller\Result\Index">
         <plugin name="spartrak_search_reset_empty_search"
+                type="Spartrak\Search\Plugin\Controller\Result\ResetEmptySearch"
+                sortOrder="10"/>
+    </type>
+
+    <type name="Mageplaza\AjaxLayer\Controller\Search\Result\Index">
+        <plugin name="spartrak_search_reset_empty_search_ajaxlayer"
                 type="Spartrak\Search\Plugin\Controller\Result\ResetEmptySearch"
                 sortOrder="10"/>
     </type>

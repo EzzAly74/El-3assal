@@ -42,9 +42,11 @@ use Magento\Search\Model\QueryFactory;
  * Mageplaza_AjaxLayer pushState's the link URL BEFORE fetching it, that referer
  * is the termless URL itself. The request redirects to itself until the browser
  * stops with ERR_TOO_MANY_REDIRECTS. The full mechanism is written out in
- * Plugin/Controller/Result/ResetEmptySearch.php. Deploys carrying this module must
- * run setup:di:compile; a cache flush alone does not generate the interceptor
- * that controller needs, because nothing plugged it before.
+ * Plugin/Controller/Result/ResetEmptySearch.php, along with the reason that
+ * plugin sat inert through two deploys: Mageplaza_AjaxLayer holds a preference
+ * for the results controller, pointing at a class that does NOT extend core's,
+ * so a plugin registered on core's type alone was attached to a class the
+ * storefront never instantiates. Both types are registered now.
  *
  * ===========================================================================
  * WHY AN `after` PLUGIN, AND WHY sortOrder MUST BEAT MAGEPLAZA'S

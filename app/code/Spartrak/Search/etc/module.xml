@@ -17,6 +17,14 @@
               Plugin/Block/Html/RemoveSearchCrumb.php.
             -->
             <module name="Magento_Theme"/>
+            <!--
+              Mageplaza_AjaxLayer holds the frontend preference for the search
+              results controller, and etc/frontend/di.xml registers a plugin on
+              its replacement class as well as on core's. Sequencing it first
+              keeps that merge order explicit; a missing module here is simply
+              skipped, so this does not make the extension mandatory.
+            -->
+            <module name="Mageplaza_AjaxLayer"/>
         </sequence>
     </module>
 </config>
