@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<!--
+  Sequence, not a hard dependency list: every module below declares the
+  allowed-extension lists or the image adapter that this module widens, so
+  their DI must be merged BEFORE ours for our <item name="webp"> entries to
+  land on top of theirs.
+
+  Magento_Catalog                    - product gallery upload controller and
+                                       the CategoryImageUpload virtualType.
+  Magento_Cms                        - Wysiwyg\Images\Storage, the allow-list
+                                       behind the description editor's media
+                                       browser (extensions AND mime types).
+  Magento_MediaStorage               - the Uploader the two above drive, and
+                                       the Validator\Image this module plugs.
+  Magento_MediaGalleryIntegration    - indexes an upload into media_gallery_asset.
+  Magento_MediaGallerySynchronization - CLI/cron sync of media files into the grid.
+  Magento_MediaGalleryRenditions     - generates the scaled copies inserted
+                                       into WYSIWYG content.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/module.xsd">
+    <module name="Spartrak_MediaWebp">
+        <sequence>
+            <module name="Magento_Catalog"/>
+            <module name="Magento_Cms"/>
+            <module name="Magento_MediaStorage"/>
+            <module name="Magento_MediaGalleryIntegration"/>
+            <module name="Magento_MediaGallerySynchronization"/>
+            <module name="Magento_MediaGalleryRenditions"/>
+        </sequence>
+    </module>
+</config>

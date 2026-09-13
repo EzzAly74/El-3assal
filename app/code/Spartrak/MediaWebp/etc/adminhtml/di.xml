@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<!--
+  Copyright © ElAssal for Trading & Supply. All rights reserved.
+
+  WebP enablement, part 2 of 2 - the admin-only product gallery upload endpoint.
+
+  Scoped to adminhtml because the controller it replaces only exists there;
+  keeping it out of etc/di.xml keeps the frontend DI graph (and its compiled
+  cache) free of a class the storefront can never instantiate.
+
+  The list below is the single source of truth for what the product gallery
+  accepts server-side. Its client-side twin lives in
+  view/adminhtml/web/js/base-image-uploader-file-types-mixin.js - the core
+  widget hard-codes its own copy and exposes no option, so the two lists have
+  to be kept in step by hand. Change one, change the other.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <preference for="Magento\Catalog\Controller\Adminhtml\Product\Gallery\Upload"
+                type="Spartrak\MediaWebp\Controller\Adminhtml\Product\Gallery\Upload"/>
+
+    <type name="Spartrak\MediaWebp\Controller\Adminhtml\Product\Gallery\Upload">
+        <arguments>
+            <argument name="allowedMimeTypes" xsi:type="array">
+                <item name="jpg" xsi:type="string">image/jpg</item>
+                <item name="jpeg" xsi:type="string">image/jpeg</item>
+                <item name="gif" xsi:type="string">image/gif</item>
+                <item name="png" xsi:type="string">image/png</item>
+                <item name="webp" xsi:type="string">image/webp</item>
+            </argument>
+        </arguments>
+    </type>
+</config>

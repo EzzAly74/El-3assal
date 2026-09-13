@@ -403,6 +403,7 @@ return [
         'Spartrak_Review' => 1,
         'Spartrak_Search' => 1,
         'Spartrak_CustomerAccount' => 1,
-        'Spartrak_Wishlist' => 1
+        'Spartrak_Wishlist' => 1,
+        'Spartrak_MediaWebp' => 1
     ]
 ];
