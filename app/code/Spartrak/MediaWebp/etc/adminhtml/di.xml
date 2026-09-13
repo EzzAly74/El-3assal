@@ -9,9 +9,9 @@
   cache) free of a class the storefront can never instantiate.
 
   The list below is the single source of truth for what the product gallery
-  accepts server-side. Its client-side twin lives in
-  view/adminhtml/web/js/base-image-uploader-file-types-mixin.js - the core
-  widget hard-codes its own copy and exposes no option, so the two lists have
+  accepts server-side. Its client-side twin is the `extensions`/`fileTypes`
+  list in view/adminhtml/web/js/additional-file-types.js - core's uploader
+  widgets hard-code their own gates and expose no option, so the two sides have
   to be kept in step by hand. Change one, change the other.
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">

@@ -1,30 +1,21 @@
 /**
  * Copyright © ElAssal for Trading & Supply. All rights reserved.
  *
- * Widens the product gallery uploader's client-side file-type restriction.
+ * Widens the PRODUCT GALLERY uploader's client-side file-type restriction.
  *
- * Magento_Catalog/catalog/base-image-uploader builds its Uppy instance inside
- * _create() with `restrictions.allowedFileTypes` written inline, keeps the
- * instance in a local variable, and exposes neither as a widget option - so
- * there is no seam to configure and no handle to call uppy.setOptions() on
- * afterwards. The alternative to the wrapper below is forking the whole 257-line
- * core widget, which would silently freeze every future core fix to it.
+ * Magento_Catalog/catalog/base-image-uploader gates uploads through Uppy's own
+ * `restrictions.allowedFileTypes`, written inline as
+ * ['.gif', '.jpeg', '.jpg', '.png']. Adding to that list is all this mixin does.
  *
- * So: swap the Uppy constructor for the duration of the original _create(), let
- * it build its options object, merge our types into it, and put the constructor
- * back. _create() is synchronous, the swap is undone in a finally block, and
- * nothing outside this call window ever sees the wrapper.
- *
- * Server-side counterpart: Spartrak_MediaWebp etc/adminhtml/di.xml. The two
- * lists are independent by core's design - keep them in step.
+ * See Spartrak_MediaWebp/js/additional-file-types for why the Uppy constructor
+ * is the seam, and for the server-side counterpart.
  */
 define([
     'jquery',
+    'Spartrak_MediaWebp/js/additional-file-types',
     'jquery/uppy-core'
-], function ($) {
+], function ($, additionalFileTypes) {
     'use strict';
-
-    var ADDITIONAL_FILE_TYPES = ['.webp'];
 
     /**
      * Merge the extra types into an Uppy options object, in place.
@@ -32,7 +23,7 @@ define([
      * @param {Object} options
      * @return {Object}
      */
-    function withAdditionalFileTypes(options) {
+    function addFileTypes(options) {
         var allowed = options && options.restrictions && options.restrictions.allowedFileTypes;
 
         if (!Array.isArray(allowed)) {
@@ -40,7 +31,7 @@ define([
         }
 
         options.restrictions.allowedFileTypes = allowed.concat(
-            ADDITIONAL_FILE_TYPES.filter(function (fileType) {
+            additionalFileTypes.fileTypes.filter(function (fileType) {
                 return allowed.indexOf(fileType) === -1;
             })
         );
@@ -53,26 +44,11 @@ define([
 
             /** @inheritdoc */
             _create: function () {
-                var uppyNamespace = window.Uppy,
-                    OriginalUppy;
+                var widget = this;
 
-                if (!uppyNamespace || typeof uppyNamespace.Uppy !== 'function') {
-                    this._super();
-
-                    return;
-                }
-
-                OriginalUppy = uppyNamespace.Uppy;
-
-                uppyNamespace.Uppy = function (options) {
-                    return new OriginalUppy(withAdditionalFileTypes(options));
-                };
-
-                try {
-                    this._super();
-                } finally {
-                    uppyNamespace.Uppy = OriginalUppy;
-                }
+                additionalFileTypes.whileDecoratingUppyOptions(addFileTypes, function () {
+                    widget._super();
+                });
             }
         });
 

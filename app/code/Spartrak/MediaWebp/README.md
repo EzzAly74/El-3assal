@@ -22,7 +22,8 @@ leaves the upload broken:
 | --- | --- | --- |
 | GD2 image processing (decode, resize, encode) | `Image/Adapter/Gd2.php` | `preference` — WebP branch added to `open`/`resize`/`save`/`getImage`, every other format delegated to core untouched |
 | Product gallery upload — server | `Controller/Adminhtml/Product/Gallery/Upload.php` | `preference` — same `execute()` as core, allowed types moved into DI |
-| Product gallery upload — browser | `view/adminhtml/web/js/base-image-uploader-file-types-mixin.js` | RequireJS mixin on the core widget's Uppy restrictions |
+| Product gallery upload — browser | `js/base-image-uploader-file-types-mixin.js` | RequireJS mixin widening the core widget's Uppy `restrictions.allowedFileTypes` |
+| Media browser / description upload — browser | `js/media-uploader-file-types-mixin.js` | RequireJS mixin; this widget ignores Uppy restrictions and gates on its own hard-coded `allowedExt`, raising *"Disallowed file type."* client-side |
 | Description / WYSIWYG media browser (upload, listing, thumbnails) | `etc/di.xml` | `Magento\Cms\Model\Wysiwyg\Images\Storage` `allowed` + `image_allowed` |
 | Category image upload | `etc/di.xml` | `Magento\Catalog\CategoryImageUpload` virtual type |
 | Media Gallery grid indexing | `etc/di.xml` | `SaveImageInformation` (on upload) and `FetchMediaStorageFileBatches` (on `media-gallery:sync`) |
@@ -31,6 +32,21 @@ leaves the upload broken:
 
 Nothing in `vendor/` or Magento core is modified, and no core list is
 redeclared — every DI array here adds one `webp` item and inherits the rest.
+
+## The two client-side gates
+
+The admin has **two** independent hard-coded image-type lists in JavaScript, and
+they are not the same file or even the same mechanism. Both must be widened, or
+WebP is rejected in the browser before any server config is read:
+
+| Widget | Where it appears | Gate |
+| --- | --- | --- |
+| `Magento_Catalog/catalog/base-image-uploader` | Product form → Images And Videos | Uppy `restrictions.allowedFileTypes` |
+| `Magento_Backend/js/media-uploader` | Media browser → Upload Images (WYSIWYG description, admin media browser) | its own `allowedExt` local, checked in `onBeforeFileAdded` |
+
+Neither exposes a widget option, so both are reached through the one seam they
+share: the options object passed to `new Uppy.Uppy(...)` during `_create()`.
+`js/additional-file-types.js` holds that mechanism and the format list.
 
 ## Requirements
 
@@ -50,6 +66,11 @@ method copied wholesale, for a surface the admin dashboard does not use:
   together to be of any use.
 - **CSV product import** — `Magento\CatalogImportExport` runs its own uploader
   with its own allow-list.
+- **Attribute swatch images** — `Magento\Swatches\Controller\Adminhtml\Iframe\Show`
+  calls `setAllowedExtensions(['jpg','jpeg','gif','png'])` inline (Stores >
+  Attributes, not the product form).
+- **Legacy image-attribute upload** — `Magento\Catalog\Model\ResourceModel\Product\Attribute\Backend\Image`
+  does the same on direct `$_FILES` product saves; the admin form does not use it.
 - **WebP watermark assets** — `Magento\Config\Model\Config\Backend\Image` keeps a
   separate allow-list, so a WebP watermark cannot be uploaded to begin with.
   A WebP *product* image watermarked with a JPEG/PNG works normally.
