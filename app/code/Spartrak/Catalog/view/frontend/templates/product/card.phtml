@@ -83,7 +83,13 @@
  * "(54 SOLD)", not "(54 reviews)". Magento has no sold-quantity figure on a
  * product; it lives in the Reports aggregates. Rather than print a review
  * count under a "sold" label, this renders the real review count with the
- * real "(%1 reviews)" string (already translated in the theme's ar_EG.csv).
+ * real "(%1 reviews)" string. That string's Arabic entry was ADDED on the
+ * 2026-09-13 pass: the theme's ar_EG.csv only carried "%1 reviews" without the
+ * parentheses — the PDP's key, not this one — so the card's count would have
+ * rendered untranslated English on the Arabic store. It never showed before,
+ * which is why the gap went unnoticed. The parentheses stay inside the
+ * translatable phrase deliberately, so a translator controls where they sit in
+ * an RTL line rather than having them concatenated around it.
  * A sold-qty attribute + cron aggregate is backend work — see list.phtml.
  *
  * Price still renders through Magento's standard price-render pipeline
@@ -160,7 +166,17 @@ try {
 // which is exactly what the star mask below wants.
 $ratingPercent = (int) $product->getRatingSummary();
 $reviewsCount = (int) $product->getReviewsCount();
-$ratingValue = $ratingPercent > 0 ? number_format($ratingPercent / 20, 1) : '';
+
+// Figma 569:13720 is [5x20 stars][value][count] — THREE children, on every
+// instance of the component; there is no variant of it that drops the two
+// figures. They used to be gated behind "has reviews", which on a catalogue
+// with no approved reviews yet meant no card anywhere ever showed either one.
+//
+// number_format() unconditionally, so an unreviewed product reads a truthful
+// "0.0" rather than a blank: rating_summary is a real 0-100 percent from
+// Magento_Review, 0 included, so this is the product's actual figure and not a
+// placeholder standing in for one (CLAUDE.md section 5).
+$ratingValue = number_format($ratingPercent / 20, 1);
 
 // The star row renders on EVERY card, rated or not. Figma's own PLP frames
 // show it that way: all five stars sit in the component's empty state
@@ -300,12 +316,8 @@ if ($wishlistProductId > 0) {
                           style="--spartrak-rating-fill: <?= (int) $ratingPercent ?>%"
                           role="img"
                           aria-label="<?= $block->escapeHtmlAttr($ratingLabel) ?>"></span>
-                    <?php if ($hasRating) : ?>
-                        <span class="spartrak-card__rating-value"><?= $block->escapeHtml($ratingValue) ?></span>
-                        <?php if ($reviewsCount > 0) : ?>
-                            <span class="spartrak-card__rating-count" dir="auto"><?= $block->escapeHtml(__('(%1 reviews)', $reviewsCount)) ?></span>
-                        <?php endif; ?>
-                    <?php endif; ?>
+                    <span class="spartrak-card__rating-value"><?= $block->escapeHtml($ratingValue) ?></span>
+                    <span class="spartrak-card__rating-count" dir="auto"><?= $block->escapeHtml(__('(%1 reviews)', $reviewsCount)) ?></span>
                 </div>
                 <div class="spartrak-card__price"><?= /* @noEscape */ $priceHtml ?></div>
             </div>
@@ -362,12 +374,8 @@ if ($wishlistProductId > 0) {
                           style="--spartrak-rating-fill: <?= (int) $ratingPercent ?>%"
                           role="img"
                           aria-label="<?= $block->escapeHtmlAttr($ratingLabel) ?>"></span>
-                    <?php if ($hasRating) : ?>
-                        <span class="spartrak-card__rating-value"><?= $block->escapeHtml($ratingValue) ?></span>
-                        <?php if ($reviewsCount > 0) : ?>
-                            <span class="spartrak-card__rating-count" dir="auto"><?= $block->escapeHtml(__('(%1 reviews)', $reviewsCount)) ?></span>
-                        <?php endif; ?>
-                    <?php endif; ?>
+                    <span class="spartrak-card__rating-value"><?= $block->escapeHtml($ratingValue) ?></span>
+                    <span class="spartrak-card__rating-count" dir="auto"><?= $block->escapeHtml(__('(%1 reviews)', $reviewsCount)) ?></span>
                 </div>
             </div>
             <div class="spartrak-card__price-row">

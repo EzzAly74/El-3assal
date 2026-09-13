@@ -17,4 +17,19 @@
                 type="Spartrak\Search\Plugin\Block\Html\RemoveSearchCrumb"
                 sortOrder="10"/>
     </type>
+
+    <!--
+      Frontend-only for the same reason as the crumb above: the results
+      controller exists on the storefront alone, so neither the admin nor the
+      API areas pay to have this interceptor generated.
+
+      See the plugin class for why an empty query bounced back onto the previous
+      search term, and why the fix is scoped to a referer that is itself a
+      results page.
+    -->
+    <type name="Magento\CatalogSearch\Controller\Result\Index">
+        <plugin name="spartrak_search_reset_empty_search"
+                type="Spartrak\Search\Plugin\Controller\Result\ResetEmptySearch"
+                sortOrder="10"/>
+    </type>
 </config>

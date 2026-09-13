@@ -15,6 +15,7 @@ use Magento\Catalog\Model\ResourceModel\Category\CollectionFactory as CategoryCo
 use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory;
 use Magento\CatalogInventory\Helper\Stock as StockHelper;
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
 use Magento\Store\Model\ScopeInterface;
 use Psr\Log\LoggerInterface;
 
@@ -99,7 +100,8 @@ class CategoryProductProvider
         private readonly ProductStatus $productStatus,
         private readonly StockHelper $stockHelper,
         private readonly ScopeConfigInterface $scopeConfig,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly EventManagerInterface $eventManager
     ) {
     }
 
@@ -185,6 +187,31 @@ class CategoryProductProvider
             if ($withMediaGallery) {
                 $this->loadMediaGallery($collection);
             }
+
+            // THE REVIEW-SUMMARY JOIN. The shared card draws a rating row, and
+            // Magento appends rating_summary/reviews_count to a listing
+            // collection through the `catalog_block_product_list_collection`
+            // event that Magento_Review observes — but ONLY ListProduct
+            // dispatches it (vendor/magento/module-catalog/Block/Product/
+            // ListProduct.php:514). The PLP and the search grid go through that
+            // block and Spartrak_Catalog's RelatedRail dispatches the event
+            // itself; a homepage rail reaches the very same card through this
+            // provider, so without this every rail card painted an empty star
+            // row and no rating figures no matter how a product was reviewed.
+            //
+            // Dispatching the same event is the native mechanism, not a
+            // workaround: it is one JOIN on a collection that is about to be
+            // loaded anyway — no extra query and no N+1 — and any other module
+            // observing that event decorates these rails exactly as it
+            // decorates the PLP.
+            //
+            // It must run BEFORE the collection is walked, because the observer
+            // joins the summary columns into the SELECT; getItems() below is
+            // what triggers the load.
+            $this->eventManager->dispatch(
+                'catalog_block_product_list_collection',
+                ['collection' => $collection]
+            );
 
             return $this->memo[$key] = array_values($collection->getItems());
         } catch (\Exception $exception) {
