@@ -33,11 +33,11 @@ use Magento\MediaStorage\Model\File\Uploader;
 class Upload extends CoreUpload
 {
     /**
-     * @var RawFactory
-     */
-    private $resultRawFactory;
-
-    /**
+     * $resultRawFactory is NOT redeclared here: the core controller declares it
+     * protected and its constructor assigns it, so this class inherits both.
+     * The three below are private in core, which leaves them invisible to a
+     * subclass - hence the local copies.
+     *
      * @var AdapterFactory
      */
     private $adapterFactory;
@@ -74,7 +74,6 @@ class Upload extends CoreUpload
         array $allowedMimeTypes = []
     ) {
         parent::__construct($context, $resultRawFactory, $adapterFactory, $filesystem, $productMediaConfig);
-        $this->resultRawFactory = $resultRawFactory;
         $this->adapterFactory = $adapterFactory;
         $this->filesystem = $filesystem;
         $this->productMediaConfig = $productMediaConfig;
