@@ -54,3 +54,7 @@
 "Ready for collection at the branch","Ready for collection at the branch"
 "Your order is with the driver","Your order is with the driver"
 "Collected","Collected"
+"Please enter a valid email address (Ex: johndoe@domain.com).","Please enter a valid email address (Ex: johndoe@domain.com)."
+"The password is incorrect. Verify the password and try again.","The password is incorrect. Verify the password and try again."
+"Your session has expired. Please sign in and try again.","Your session has expired. Please sign in and try again."
+"The account is locked. Please wait and try again or contact customer support.","The account is locked. Please wait and try again or contact customer support."

@@ -1,0 +1,15 @@
+<?php
+/**
+ * Spartrak Homepage — one dashboard section, mounted on another page.
+ *
+ * Deliberately a single line. Everything that decides WHICH section, WHETHER
+ * it renders and WHAT template draws it belongs to Block\SectionByCode; the
+ * section's own markup belongs to that section's template, which a theme can
+ * override on its own. A wrapper element here would be a third place styling
+ * could come from for no rendered gain — the host page's stylesheet already
+ * owns the band this sits in.
+ *
+ * @var \Spartrak\Homepage\Block\SectionByCode $block
+ */
+?>
+<?= /* @noEscape */ $block->renderSection() ?>

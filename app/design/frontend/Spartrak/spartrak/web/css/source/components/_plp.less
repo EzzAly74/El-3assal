@@ -273,16 +273,15 @@
   margin-block-start: 48px;
 }
 
-/* Empty state — native Magento "message info empty", no Figma frame. */
-.spartrak-plp__empty {
-  padding: 32px 16px;
-  border-radius: var(--radius-10);
-  background: var(--color-bg-surface-subtle);
-  color: var(--color-text-secondary);
-  font-family: var(--font-arabic);
-  font-size: var(--text-16);
-  text-align: center;
-}
+/*
+   Empty state — REMOVED. This styled the grey box list.phtml used to render
+   when a category or a filter set matched nothing ("no Figma frame", as the
+   note here said). That surface now renders the shared empty-state component
+   instead — components/_empty-state.less, `--nothing-found` — so this rule had
+   no markup left to match, and keeping it would also have fought the panel:
+   both selectors are one class, so its padding and grey `background` would
+   have been decided by stylesheet order rather than by intent.
+   */
 
 /* -------------------------------------------------------------------
    4. Toolbar — Figma 569:13635
@@ -418,19 +417,57 @@
 /* Sort control (569:13641 / :13642 / :13643): h40, px20, same border and
    shadow, square corners; chevron 16px at 6px from the text. DOM is
    [text, chevron] so the chevron lands at the inline-end edge (the left
-   under RTL). Label and <select> sit inline inside one span so the space
-   between "Sort:" and the current value is a real text space, as it is in
-   Figma's single text node. */
+   under RTL). "Sort:" and the current value sit inline inside one span so the
+   space between them is a real text space, as it is in Figma's single text
+   node.
+
+   THE BOX BELOW IS UNCHANGED FROM THE <select> VERSION — every value here
+   already matched Figma 510:7206 and still does. Only the element changed:
+   .spartrak-sorter is now the <details>, and .spartrak-sorter__toggle is the
+   <summary> that carries the 40px box. */
 .spartrak-sorter {
-  display: inline-flex;
+  position: relative;
+  display: inline-block;
+}
+
+.spartrak-sorter__toggle {
+  display: flex;
   align-items: center;
+  /* Figma 510:7212 puts the chevron 6px after the label. That is the DESKTOP
+     case, where the control is only as wide as its text. Below the collapse
+     breakpoint the sort control becomes a 50%-wide flex item paired with the
+     filter button, and then there is free space to distribute: space-between
+     sends the label to the inline-start and the chevron to the inline-end,
+     which is what the mobile design shows and how every other field on the
+     site behaves at full width. With no free space (desktop) it is inert and
+     the 6px gap governs, so one rule serves both. */
+  justify-content: space-between;
   gap: 6px;
+  box-sizing: border-box;
+  /* Fills .spartrak-toolbar__sort, which is shrink-to-fit on desktop and a
+     50% flex item on mobile — so this is 100% of two different widths. */
+  width: 100%;
   height: 40px;
   padding-inline: 20px;
   border: 1px solid var(--color-border-default);
   border-radius: 0;
   background: var(--color-bg-surface);
   box-shadow: var(--shadow-input);
+  cursor: pointer;
+  /* The UA draws a disclosure triangle on <summary>. `list-style` removes it
+     in Firefox and modern Chrome; the ::-webkit- pseudo covers Safari and
+     older Chrome, which ignore list-style here. Figma draws one chevron, at
+     the inline-end, and this file supplies it. */
+  list-style: none;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
 }
 
 .spartrak-sorter__text {
@@ -438,38 +475,15 @@
   white-space: nowrap;
 }
 
+/* Figma "Label/Large": arabic medium 14/1.3. */
 .spartrak-sorter__label,
-.spartrak-sorter__select {
+.spartrak-sorter__current {
   color: var(--color-text-primary);
   font-family: var(--font-arabic);
   font-size: var(--text-14);
   font-weight: 500;
   line-height: 1.3;
   vertical-align: middle;
-}
-
-.spartrak-sorter__label {
-  margin: 0;
-  cursor: pointer;
-}
-
-/* The native [data-role=sorter] control, chrome removed. Keeping the real
-   <select> is what keeps productListToolbarForm — and therefore sorting —
-   working untouched, and it gives keyboard and screen-reader support for
-   free that a custom dropdown would have to re-implement. */
-.spartrak-sorter__select {
-  appearance: none;
-  -webkit-appearance: none;
-  width: auto;
-  height: auto;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: none;
-  box-shadow: none;
-  cursor: pointer;
 }
 
 .spartrak-sorter__chevron {
@@ -480,6 +494,99 @@
   background-repeat: no-repeat;
   background-position: center;
   background-size: 16px 16px;
+}
+
+/* The open panel flips the chevron, so the control reads as a disclosure
+   rather than a button that happens to have an arrow.
+
+   ROTATED, not swapped for an "up" asset: this theme ships chevron-up-20.svg
+   but no 16px twin, and drawing one would be inventing a visual asset Figma
+   has not exported (CLAUDE.md section 3). Rotating the real 16px export is the
+   same glyph, exact at any DPI, and costs no second request. */
+.spartrak-sorter[open] .spartrak-sorter__chevron {
+  transform: rotate(180deg);
+}
+
+/* ---- The option list -----------------------------------------------
+   NO FIGMA NODE. The design draws this control CLOSED only — confirmed by
+   sweeping all 47 overlay frames in the file; there is no expanded sort
+   panel, and no Dropdown/Menu/Popover component in the file or any connected
+   library.
+
+   So the chrome is taken from the popover language Figma DOES establish
+   elsewhere, rather than invented: the brands mega-menu panel (817:22303) and
+   the search-suggestions panel (864:8878) are both flat white, SQUARE, 1px
+   border/default, and carry NO shadow. That is deliberately not the same
+   chrome as .spartrak-header__account-menu, which rounds to 12px and adds an
+   elevation — that panel predates this survey and has no Figma origin.
+
+   Square with a 1px border is also what makes the open state read as one
+   object with the 40px toggle above it: same border, same width, edges
+   continuous. A radius or a drop shadow would detach them. */
+.spartrak-sorter__panel {
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(
+    100% - 1px
+  ); /* overlaps the toggle's own border, so the seam is 1px, not 2 */
+  z-index: 30;
+  box-sizing: border-box;
+  min-width: 100%;
+  margin: 0;
+  padding: 4px 0;
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
+  list-style: none;
+  white-space: nowrap;
+}
+
+.spartrak-sorter__item {
+  /* Porto's `ul > li { margin-bottom: .05rem }` adds a sub-pixel to every list
+     row — the same finding pinned in _category-top.less and the homepage
+     rails. */
+  margin: 0;
+}
+
+/* Row metrics follow the option rows Figma specifies for the filter sidebar
+   (505:5143): Label/Large 14/1.3, and bg/field for the marked row. */
+.spartrak-sorter__option {
+  display: block;
+  padding: 10px 20px;
+  color: var(--color-text-primary);
+  font-family: var(--font-arabic);
+  font-size: var(--text-14);
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: start;
+  text-decoration: none;
+
+  /* Listed explicitly for the same reason the mega nav and the account menu
+     list it — Porto colours :visited links globally. */
+  &:visited {
+    color: var(--color-text-primary);
+  }
+
+  &:hover,
+  &:focus-visible {
+    background: var(--color-bg-field);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: -2px;
+  }
+}
+
+/* The row the shopper is already sorted by. Colour alone would be the only
+   signal, so it also carries the field background — Figma's own "this row is
+   the selected one" treatment. */
+.spartrak-sorter__option--current {
+  background: var(--color-bg-field);
+  color: var(--color-text-brand);
+
+  &:visited {
+    color: var(--color-text-brand);
+  }
 }
 
 /* Porto's mobile filter toggle — below the collapse breakpoint only. */
@@ -648,10 +755,41 @@
   content: none;
 }
 
+/* THE CHEVRON HUNG OUTSIDE THE PANEL, AND THAT IS WHY IT READ AS "TOO FAR
+   OVER" RATHER THAN AS BAD ALIGNMENT.
+
+   Porto positions this span out of flow, in the RTL twin of its layered-nav
+   module LESS (spartrak_rtl/Magento_LayeredNavigation/.../_module.less):
+
+       .toggle { position: absolute; left: -7px; top: 50%; margin-top: -.9em; }
+
+   The rules here sized the span but never took it back into flow, so
+   `justify-content: space-between` on the header above had nothing to place —
+   the chevron was pinned 7px OUTSIDE a panel that carries only 8px of padding,
+   i.e. one pixel from the sidebar's edge, at a vertical offset of its own.
+
+   `position: static` is the whole fix: it hands the span back to the flex row,
+   which then puts it at the inline-end and centres it against the title. The
+   inset/margin resets are not cosmetic — a statically positioned box ignores
+   `left`, but `margin-top: -.9em` still applies and would pull it off-centre.
+
+   Overriding here rather than editing that RTL module file keeps every
+   layered-nav rule in the one Spartrak file that already owns them, and only
+   this file's ID-scoped selectors can reach a Porto rule that specific
+   without an !important (CLAUDE.md section 9). */
 #layered-filter-block .filter-options-title .toggle {
+  position: static;
+  inset: auto;
   flex: none;
-  width: 20px;
-  height: 20px;
+  /* The GLYPH stays at Figma's 20px; the BOX grows to a 32px pointer target
+     (WCAG 2.2 target size), which is the other half of "so small". Centred
+     background, so the extra 6px a side is padding, not a bigger arrow. */
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  /* Cancels the -6px of slack the wider box would otherwise add at the very
+     edge, so the arrow still lines up with the panel's 8px inset. */
+  margin-inline-end: -6px;
   background-image: url("../images/icons/chevron-down-20.svg");
   background-repeat: no-repeat;
   background-position: center;
@@ -792,11 +930,13 @@
 
 /* The pagination's own focus ring left this group when the component moved;
    it is declared in components/_pagination.less now. */
+/* .spartrak-sorter__select was in this group until the sort control stopped
+   being a <select>; its ring now lives on .spartrak-sorter__toggle beside the
+   rest of that component. */
 #layered-filter-block .filter-options-content .item > input:focus-visible,
 #layered-filter-block .filter-options-content .item > a:focus-visible,
 #layered-filter-block .filter-options-title:focus-visible,
-.spartrak-chip:focus-visible,
-.spartrak-sorter__select:focus-visible {
+.spartrak-chip:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
 }
@@ -1089,10 +1229,19 @@
 }
 
 /* --- Swatch-based filters (e.g. Brand) ----------------------------- */
-/* NO FIGMA REFERENCE: every filter group in Figma's sidebar is collapsed,
-   so no option styling exists for an image-swatch filter. These are laid
-   out to the same language as the rest of the sidebar — bordered tiles on
-   bg/surface — and flagged for a Figma pass. */
+/* A DELIBERATE DIVERGENCE FROM FIGMA, NOT A GAP.
+   Figma 488:12197 expands the price group only, and every OTHER group it
+   draws — including brands — is a text row: a 16px radio at the inline-start,
+   the name, and a count pill at the inline-end. This storefront shows brand
+   logos instead, and that was confirmed as the intended design on 2026-09-06
+   ("keep the brand filters with the images, not like the Figma"), so the
+   earlier "flagged for a Figma pass" note is resolved: there is nothing to
+   reconcile.
+
+   What that costs us is a component with no design source, so the tiles stay
+   in the sidebar's own language — bordered tiles on bg/surface, its 8px gap,
+   its radius token — and invent nothing beyond a size. Three 72px tiles plus
+   two 8px gaps is 232px, inside the 280px column. */
 #layered-filter-block .swatch-attribute-options {
   display: flex;
   flex-wrap: wrap;
@@ -1107,19 +1256,50 @@
 }
 
 #layered-filter-block .swatch-option.image {
-  width: 56px;
-  height: 40px;
+  box-sizing: border-box;
+  width: 72px;
+  height: 52px;
   margin: 0;
-  border: 1px solid var(--color-border-default);
+  /* 2px in EVERY state, so going from rest to hover/selected repaints a
+     colour and never changes the box. At 1px the selected state had to find
+     its extra weight somewhere, and the only place left was the outline. */
+  border: 2px solid var(--color-border-default);
   border-radius: var(--radius-4);
   background-color: var(--color-bg-surface);
   background-size: contain !important;
 }
 
+/* THE RED BORDER WAS NEVER A LOSING SPECIFICITY FIGHT — IT WAS AN
+   UNCONTESTED PROPERTY.
+
+   Magento/blank's Magento_Swatches/_module.less paints these two states with
+   `outline`, not `border`:
+
+       @active__color:                            #ff5501;
+       @swatch-option__selected__outline:         2px solid @active__color;
+       @img-color-swatch-option__hover__outline:  2px solid darken(@active__color, 12%);
+
+   The rule above only ever set `border-color`. A declaration cannot override a
+   different property no matter how specific it is, so the blue applied to a
+   border nobody could see while core's orange/red outline sat on top of it —
+   which is exactly why this looked correct in the stylesheet and wrong on the
+   page. (Porto's swatches.css deletes those outlines, but it shadows only the
+   standalone css/swatches.css, not the blank theme's compiled module LESS.)
+
+   So the ring is expressed once, as a border, and core's outline is switched
+   off rather than repainted — repainting it blue would stack a 2px outline on
+   a 2px border and draw a 4px double ring.
+
+   `outline: none` is safe HERE and nowhere near a focus regression: this is
+   the swatch <div>, which is not focusable. The keyboard ring lives on the
+   ancestor <a> (section 5 of this file, --color-border-focus) and is what the
+   third selector below forwards. */
 #layered-filter-block .swatch-option.image:hover,
+#layered-filter-block .swatch-option.image.selected,
 #layered-filter-block
   .swatch-option-link-layered:focus-visible
   .swatch-option.image {
+  outline: none;
   border-color: var(--color-action-primary);
 }
 
@@ -1142,6 +1322,64 @@
 #layered-filter-block .filter-actions {
   margin-block-end: 24px;
 }
+
+/* THE "TINY CHECKBOX" IN THE APPLIED-FILTERS ROW IS NOT A CHECKBOX.
+   It is state.phtml's `a.action.remove`, and the small empty square is a
+   glyph from a font that no longer exists:
+
+       .action.remove  →  :extend(.abs-remove-button-for-blocks)
+                       →  .lib-icon-font(@icon-remove, 12px, text-hide: true)
+                       →  @icon-remove: '\f819'  in  @icons__font-name: 'porto-icons'
+
+   ...and the @font-face for porto-icons was deleted outright in this theme's
+   performance pass (foundations/_icons.less — 63KB of icon font retired in
+   favour of masked SVGs). components/_porto-icon-retirement.less re-drew the
+   five marks that pass knew about; this one was missed, so the browser has
+   been rendering tofu for '\f819' at 12px ever since.
+
+   Two consequences, and the report describes both: the mark is tiny (12px)
+   and it is jammed against the edge (Porto absolutely positions it at
+   `left: 0; top: 3px`, out of the row entirely).
+
+   Fixed the same way that retirement pass fixed the other five — a real
+   masked SVG, an asset this theme already ships and already uses this way in
+   _category-top.less — and put back in flow so the row lays it out. */
+#layered-filter-block .filter-current .item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-block: 4px;
+}
+
+#layered-filter-block .filter-current .item .action.remove {
+  position: static;
+  inset: auto;
+  margin: 0;
+  /* 24px box, 16px mark: a comfortable pointer target without the ✕ growing
+     louder than the filter name it removes. The mixin sizes the box AND the
+     mask together, so mask-size is restated below to separate the two. */
+  .spartrak-icon("close.svg"; 24px; var(--color-icon-muted));
+  -webkit-mask-size: 16px 16px;
+  mask-size: 16px 16px;
+
+  /* Retire the dead codepoint. `content: none` rather than `display: none`,
+     for the same reason the group-header pseudo-elements above use it: the
+     latter would leave the generated glyph in the accessibility tree. */
+  &::before,
+  &::after {
+    content: none;
+  }
+
+  &:hover,
+  &:focus-visible {
+    background-color: var(--color-action-primary);
+  }
+}
+
+/* The inner <span>Remove This Item</span> stays in the accessibility tree —
+   Magento's icon-font mixin hid it with .lib-text-hide() (font: 0/0 a), which
+   is a VISUAL hide, not display:none. It is the control's only accessible
+   name, so nothing here may promote it to display:none. */
 
 #layered-filter-block .filter-actions .filter-clear {
   display: inline-block;

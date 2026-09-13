@@ -41,8 +41,9 @@
 // untouchable and is left at its natural specificity.
 //
 // The exceptions are the selectors that also name MAGENTO's classes
-// (.action.towishlist, .old-price, .special-price, .price, .price-label),
-// because Porto styles those too and can tie. Those — and only those — are
+// (.old-price, .special-price, .price, .price-label) or a BARE ELEMENT that
+// Porto and core both style (`button`, which is what the wishlist toggle is),
+// because those can tie. Those — and only those — are
 // scoped through an extra `.spartrak-card` to put them one class ahead. This
 // is the same targeted technique the OTP field and the account menu already
 // use in this theme, not a blanket specificity war.
@@ -167,14 +168,34 @@
 // ---------------------------------------------------------------------------
 // Wishlist heart (Figma 718:25231 / 718:25608)
 // ---------------------------------------------------------------------------
-// 40px white circle, shadow 0 1px 2px rgba(0,0,0,.1), 20px heart. Restyles
-// Magento's own native `.action.towishlist` anchor, so the ajax behaviour comes
-// free from Magento_Wishlist's JS and this component adds none.
+// 40px white circle, shadow 0 1px 2px rgba(0,0,0,.1), 20px heart.
 //
-// The heart is a background-image, not a `.spartrak-icon()` mask: the asset
-// already carries the exact stroke colour the design calls for
-// (#1A144F = --color-icon-ink) and is never re-tinted here, so a mask would
-// buy nothing and cost the extra background-color declaration.
+// TWO STATES, AND THE GLYPH IS ON A ::before IN BOTH.
+//
+//   aria-pressed="false"   heart.svg        — stroke #1A144F, no fill
+//   aria-pressed="true"    heart-filled.svg — fill AND stroke red.500
+//                                             (#d54033), plus the design's
+//                                             red drop-shadow
+//
+// The pressed state is driven entirely off `aria-pressed`, which
+// Spartrak_Wishlist/js/wishlist-toggle sets from the `wishlist` customer-data
+// section. So the attribute that tells assistive tech what the control's
+// state is IS the attribute that paints it — there is no parallel `is-active`
+// class that could drift out of step with it, and nothing to keep in sync.
+//
+// WHY THE GLYPH MOVED TO A PSEUDO-ELEMENT. It used to be a second layer of the
+// button's own `background` shorthand, alongside the white disc. The active
+// state needs `filter: drop-shadow(...)`, and `filter` applies to the WHOLE
+// element — so on the button it would have cast a red halo off the 40px white
+// circle rather than off the heart. A 20px ::before is the layer the shadow
+// belongs on, and it costs no DOM node.
+//
+// BOTH GLYPHS ARE background-image AND NOT A `.spartrak-icon()` MASK: each
+// carries the exact colour the design binds (#1A144F for
+// action/favorite-inactive, #D54033 for action/favorite), so a mask would buy
+// nothing and cost an extra background-color declaration. It also means
+// heart-filled.svg is fetched ONLY when a page actually has a saved product
+// on it — an unmatched `[aria-pressed="true"]` rule requests nothing.
 .spartrak-card__wishlist {
     position: static;
     inset: auto;
@@ -182,19 +203,81 @@
 }
 
 // EXTRA `.spartrak-card` — see the specificity note in this file's header.
-// `.action.towishlist` is Magento's own class and Porto styles it.
-.spartrak-card .spartrak-card__wishlist .action.towishlist {
+// Porto styles bare `button`, and core styles `button:focus, button:active` at
+// (0,1,1); the state block below answers that.
+.spartrak-card .spartrak-card__wishlist .spartrak-card__wishlist-toggle {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 40px;
     height: 40px;
+    padding: 0;
+    border: 0;
     border-radius: var(--radius-pill);
-    background: var(--color-bg-surface) url('../images/icons/heart.svg') no-repeat center / 20px 20px;
+    background: var(--color-bg-surface);
     box-shadow: 0 1px 2px rgba(0, 0, 0, .1);
+    cursor: pointer;
+
+    &::before {
+        content: '';
+        width: 20px;
+        height: 20px;
+        background: url('../images/icons/heart.svg') no-repeat center / 20px 20px;
+        // Only the two properties that actually differ between the states, so
+        // the transition cannot touch layout. `filter` and `background-image`
+        // are both composited/paint-only here.
+        transition: filter .18s ease;
+    }
+
+    // Core's `button:focus, button:active { background: #e2e2e2; border: 1px
+    // solid #e4e3e5 }` is (0,1,1) and outranks the reset above at (0,1,0) —
+    // which on a 40px white disc means a grey plate and a hairline ring the
+    // moment the heart is pressed, i.e. exactly when a shopper is looking at
+    // it. Restated at (0,4,0). Same finding as the toast close control and the
+    // empty state's action; recorded in full in components/_empty-state.less.
+    &:focus,
+    &:active {
+        border: 0;
+        background: var(--color-bg-surface);
+    }
+
+    // Figma's saved state: the same heart path, filled and stroked in
+    // action/favorite, casting its own colour rather than a neutral shadow.
+    &[aria-pressed="true"]::before {
+        background-image: url('../images/icons/heart-filled.svg');
+        filter: drop-shadow(0.5px 1px 2px var(--primitive-alpha-danger-30));
+    }
+
+    // The press is in flight. A pulse on the glyph and nothing else: the
+    // project loader is a page-level overlay and blacking out the viewport for
+    // one round trip of a 40px control would be far worse than no feedback at
+    // all (CLAUDE.md section 10 — one loader, used where a page is loading).
+    // opacity only, so it cannot reflow or repaint the card.
+    &[aria-busy="true"] {
+        cursor: progress;
+
+        &::before {
+            animation: spartrak-heart-pulse .7s ease-in-out infinite;
+        }
+    }
 }
 
-.spartrak-card .spartrak-card__wishlist .action.towishlist > span,
+@keyframes spartrak-heart-pulse {
+    50% {
+        opacity: .45;
+    }
+}
+
+// The heart is the one control on the card whose meaning is carried by colour
+// alone, so a shopper who has asked for less motion still gets the state —
+// they just do not get the pulse or the fade (CLAUDE.md section 15).
+@media (prefers-reduced-motion: reduce) {
+    .spartrak-card .spartrak-card__wishlist .spartrak-card__wishlist-toggle::before {
+        transition: none;
+        animation: none;
+    }
+}
+
 .spartrak-card__add-to-cart > span {
     position: absolute;
     width: 1px;
@@ -207,7 +290,7 @@
     border: 0;
 }
 
-.spartrak-card .spartrak-card__wishlist .action.towishlist:focus-visible,
+.spartrak-card .spartrak-card__wishlist .spartrak-card__wishlist-toggle:focus-visible,
 .spartrak-card__add-to-cart:focus-visible,
 .spartrak-card__name:focus-visible {
     outline: 2px solid var(--color-border-focus);

@@ -169,7 +169,14 @@ $columns = [
             ['label' => __('Overhaul kit'), 'url' => $href('overhaul-kit')],
             ['label' => __('Pumps'), 'url' => $href('pumps')],
             ['label' => __('Filters'), 'url' => $href('filters')],
-            ['label' => __('All brands'), 'url' => $href('brands')],
+            // The one entry in this column that is no longer a `_direct`
+            // url-key guess. It has a real route now — Spartrak_Brand, route
+            // id `spartrak_brand`, front name `brands` — so the link NAMES
+            // the route instead of spelling its URL, and renaming the front
+            // name later moves this link with it rather than silently
+            // breaking it. Resolving by route id also means this stops being
+            // one of the targets the note above asks someone to verify.
+            ['label' => __('All brands'), 'url' => $block->getUrl('spartrak_brand')],
         ],
     ],
 ];

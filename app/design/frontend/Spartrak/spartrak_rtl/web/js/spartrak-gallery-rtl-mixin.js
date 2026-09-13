@@ -65,8 +65,22 @@
  * matched its videos to gallery frames BY ARRAY INDEX
  * (fotorama-add-video-events.js:484,546) while this mixin reversed the array
  * underneath it — so on the Arabic store its videos attached to the wrong
- * frames. Spartrak_ProductVideo, which replaces that frontend, matches by
- * identity instead and is immune to the reversal by construction.
+ * frames. `js/spartrak-pdp-video-mixin`, which replaces that frontend (the
+ * block is removed in Magento_Catalog/layout/catalog_product_view.xml), reads
+ * the video off the frame Fotorama says is ACTIVE instead of keeping a second
+ * array aligned with it — so it has no index to get wrong and is immune to the
+ * reversal by construction.
+ *
+ * THAT IS A CONSTRAINT ON ANY FUTURE CHANGE, not just a note. Restoring
+ * Magento's own storefront video player would reintroduce the defect on the
+ * Arabic store, because nothing here reverses `videoData` and nothing there
+ * matches by anything but position.
+ *
+ * Both mixins are registered on `mage/gallery/gallery` — that one in the
+ * parent theme, this one here. RequireJS merges `config.mixins` down the theme
+ * chain rather than replacing it, so both apply, and their order does not
+ * matter: this one rewrites the data before the widget reads it, that one only
+ * ever reads whatever frame is showing.
  */
 define([], function () {
     'use strict';

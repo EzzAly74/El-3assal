@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  THE ALL BRANDS PAGE'S OWN STYLESHEET
+  ===========================================================================
+  Two components, one request, and nothing this page cannot show.
+
+  css/spartrak-brands.less compiles components/_brand-grid.less (the grid,
+  this page only) and components/_cascade-finder.less (the "بتدور علي ايه؟"
+  finder, shared with the homepage). That is the whole page.
+
+  WHAT IT DELIBERATELY DOES NOT DO: load css/spartrak-home.css. That bundle is
+  ~3,000 lines of banner, category-tile reveal stage, video showcase, brand
+  rail and split promo, and this route renders none of them. Reaching for it
+  because it happens to contain the finder's rules would put a page's worth of
+  dead CSS on a render-blocking request — which is why the finder was
+  extracted into its own partial instead. Same reasoning, and the same
+  measurement, as the split recorded in Magento_Cms/layout/cms_index_index.xml.
+
+  THE HANDLE. `spartrak_brand_index_index` is the route's own handle, the same
+  one Spartrak_Brand mounts its blocks on
+  (app/code/Spartrak/Brand/view/frontend/layout/spartrak_brand_index_index.xml).
+  Markup and the CSS that styles it are declared on one handle and cannot
+  drift apart.
+
+  WHY THE <css> IS HERE AND THE BLOCKS ARE IN THE MODULE. The module owns page
+  STRUCTURE — what renders and in what order is application behaviour, and
+  both Spartrak themes inherit it. The theme owns page PRESENTATION. Same
+  split as Spartrak_InstaPay's transfer page.
+
+  This file adds nothing else.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <css src="css/spartrak-brands.css"/>
+    </head>
+</page>

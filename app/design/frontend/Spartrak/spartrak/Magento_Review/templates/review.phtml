@@ -78,7 +78,21 @@ if (!$reviews instanceof \Spartrak\Review\ViewModel\ProductReviews || !$reviews-
     return;
 }
 ?>
-<section class="spartrak-reviews">
+<?php /*
+  THE REVIEW COUNT IN THE PRODUCT-INFO COLUMN OPENS THIS TAB.
+
+  Magento's rating summary up the page links to `#reviews`, and an inactive tab
+  panel is `display: none` — so that link scrolled nowhere. The widget below
+  activates the tab and then scrolls, which is the part of core's
+  Magento_Review/js/process-reviews worth keeping; the AJAX review list that
+  module exists for stays dropped, for the reason at the top of this file.
+
+  Initialised HERE rather than on the summary itself: the summary is core's
+  helper/summary.phtml, which this theme does not override, and this panel is
+  the thing that has to exist for the behaviour to mean anything. The widget
+  binds one delegated listener on `document`.
+*/ ?>
+<section class="spartrak-reviews" data-mage-init='{"spartrakReviewsTabLink": {}}'>
     <h2 class="spartrak-reviews__title"><?= $escaper->escapeHtml(__('All ratings')) ?></h2>
 
     <div class="spartrak-reviews__overview">

@@ -68,6 +68,18 @@
   --primitive-alpha-success-20: #04922833;
   --primitive-alpha-danger-20: #d5403333;
 
+  // FIGMA WISHLIST PASS (2026-09-08). The active heart on the product card
+  // carries `drop-shadow(0.5px 1px 2px rgba(213, 64, 51, 0.30))` — the same
+  // red.500 as the fill, at 30%, i.e. the glyph casting its OWN colour rather
+  // than a neutral shadow. 0x4D is 30% of 255.
+  //
+  // Added on demand, per this section's rule, and as ALPHA rather than a
+  // flattened value for the same reason the 20% pair above is: the heart sits
+  // on a white 40px disc on the vertical card and on the poster's own artwork
+  // in the showcase rail, so a flattened shadow colour would be wrong on one
+  // of them.
+  --primitive-alpha-danger-30: #d540334d;
+
   // FIGMA HEADER PASS (2026-08-25). Read off the header frames' own
   // variable bindings via get_variable_defs on node 595:14465 (desktop,
   // 1440) and 724:25796 (mobile, 440) — not guessed.

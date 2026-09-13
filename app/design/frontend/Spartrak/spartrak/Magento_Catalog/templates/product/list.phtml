@@ -102,8 +102,54 @@ $gridColumns = isset($_category_grid_config['columns']) && $_category_grid_confi
 $toolbarBlock = $block->getChildBlock('toolbar');
 ?>
 <?php if (!$_productCollection->count()) : ?>
-    <div class="message info empty spartrak-plp__empty">
-        <div><?= $block->escapeHtml(__('We can\'t find products matching the selection.')) ?></div>
+    <?php /*
+        NOTHING MATCHED — the shared Spartrak empty state.
+
+        This was Magento's `.message.info.empty` box: a yellow strip reading
+        "لا توجد منتجات مطابقة لاختيارك." with nothing to do next. It now renders
+        the same panel the search page's no-results state does — illustration,
+        title, one sentence, one way out — from components/_empty-state.less's
+        `--nothing-found` variant (Figma 1368:39180). One panel for both
+        surfaces, because it is the same situation stated about a different
+        collection.
+
+        THE HEADING IS A <strong>, NOT AN <h1>, and that is the one difference
+        from the search page's copy of this markup: a category page already has
+        an <h1> — the hero title, see components/_category-top.less — so a
+        second one here would be a duplicate landmark. The search page has no
+        other heading, which is why its version is an h1.
+
+        `spartrak-plp__empty` IS GONE from this element, not merely unstyled: it
+        carried its own padding and grey background at one-class specificity, so
+        alongside the panel the winner would have been decided by stylesheet
+        order. Its rule is deleted from _plp.less rather than left to lose a
+        cascade race.
+
+        The words are this template's own. Core's phrase is kept verbatim as the
+        title — already translated in this theme's ar_EG.csv, and it says the
+        true thing, that the SELECTION matched nothing, which is the part a
+        shopper who has applied filters needs to read. The sentence beneath it
+        is the actionable half.
+    */ ?>
+    <div class="spartrak-empty-state spartrak-empty-state--nothing-found">
+        <span class="spartrak-empty-state__art spartrak-empty-state__art--nothing-found" aria-hidden="true"></span>
+
+        <div class="spartrak-empty-state__message">
+            <div class="spartrak-empty-state__copy">
+                <strong class="spartrak-empty-state__title">
+                    <?= $block->escapeHtml(__('We can\'t find products matching the selection.')) ?>
+                </strong>
+
+                <p class="spartrak-empty-state__text">
+                    <?= $block->escapeHtml(__('Try adjusting or removing some of your filters.')) ?>
+                </p>
+            </div>
+
+            <a class="spartrak-empty-state__action spartrak-empty-state__action--primary"
+               href="<?= $block->escapeUrl($block->getBaseUrl()) ?>">
+                <?= $block->escapeHtml(__('Go to homepage')) ?>
+            </a>
+        </div>
     </div>
 <?php else : ?>
     <div class="spartrak-plp__toolbar"><?= $block->getToolbarHtml() ?></div>
@@ -150,7 +196,20 @@ $toolbarBlock = $block->getChildBlock('toolbar');
           wishlist now carry; `spartrak-plp__pagination` is only this page's
           48px of space above it.
         */ ?>
-        <div class="spartrak-plp__pagination spartrak-pagination">
+        <?php /*
+          `data-spartrak-nav-loader` OPTS THE PAGER INTO THE PROJECT LOADER.
+          Paging reloads the page with a different slice of the same grid, so a
+          shopper IS waiting on the result - the same case as sorting and
+          filtering (see this theme's product/list/toolbar.phtml and
+          Mageplaza_LayeredNavigation::layer/filter.phtml, the other two
+          opt-ins). js/spartrak-nav-pending.js records why the default is off.
+
+          ON THIS WRAPPER, and it has to be: the pager markup itself comes from
+          core's Magento_Theme::html/pager.phtml, which is vendor and not ours
+          to fork for one attribute. This div is the theme's own and holds the
+          whole control, so scoping here needs no core change.
+        */ ?>
+        <div class="spartrak-plp__pagination spartrak-pagination" data-spartrak-nav-loader>
             <?= /* @noEscape */ $toolbarBlock->getPagerHtml() ?>
         </div>
     <?php endif; ?>

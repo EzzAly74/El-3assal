@@ -140,3 +140,7 @@
 "This is already the phone number on your account.","This is already the phone number on your account."
 "Another account already uses this phone number.","Another account already uses this phone number."
 "Your phone number has been updated.","Your phone number has been updated."
+"Please enter a password with at most %1 characters.","Please enter a password with at most %1 characters."
+"The password needs at least %1 characters. Create a new password and try again.","The password needs at least %1 characters. Create a new password and try again."
+"The password can't begin or end with a space. Verify the password and try again.","The password can't begin or end with a space. Verify the password and try again."
+"Minimum of different classes of characters in password is %1. Classes of characters: Lower Case, Upper Case, Digits, Special Characters.","Minimum of different classes of characters in password is %1. Classes of characters: Lower Case, Upper Case, Digits, Special Characters."

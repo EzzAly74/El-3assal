@@ -65,33 +65,64 @@ try {
     $discountPercent = 0;
 }
 
-// Wishlist heart (Figma 526:23306) — the FIRST of the three round controls
-// stacked over the gallery, above share and fullscreen.
-//
-// Magento's own ajax add-to-wishlist block, so its behaviour (the data-post
-// payload, the guest redirect, the sidebar refresh) comes free.
-//
-// setTemplate() IS REQUIRED and was the bug that shipped this empty: the block
-// class carries no default $_template. Magento assigns it in layout XML
-// (vendor/magento/module-wishlist/view/frontend/layout/catalog_product_view.xml),
-// and a block created ad-hoc never sees that, so toHtml() returned ''. The
-// heart simply did not render — verified on the live storefront, where the
-// overlay had only two buttons.
-//
-// This is a SECOND instance, not the page's own: Porto's config.phtml moves
-// the original `.product-addto-links` into the cart row at runtime, and that
-// copy is hidden in _pdp.less. Rendering our own here rather than trying to
-// relocate Porto's keeps the design's placement independent of a jQuery
-// snippet running after paint.
+/*
+ * Wishlist heart (Figma 526:23306) — the FIRST of the three round controls
+ * stacked over the gallery, above share and fullscreen.
+ *
+ * ===========================================================================
+ * THE SAME TOGGLE THE SHARED PRODUCT CARD USES
+ * ===========================================================================
+ * This was Magento's own add-to-wishlist block, whose anchor carries a
+ * `data-post` payload — so pressing it submitted a form and landed the shopper
+ * on the wish list page, off the product they were reading. It now emits the
+ * SAME contract the card does:
+ *
+ *     <button data-spartrak-wishlist="<id>" aria-pressed="false">
+ *
+ * driven by the same delegated component (Spartrak_Wishlist/js/wishlist-toggle),
+ * through the same endpoint (Spartrak\Wishlist\Controller\Ajax\Toggle), against
+ * the same customer-data section. One heart, two surfaces, no second
+ * implementation — which is also what stops this heart and the ones on the
+ * related-products rail below it showing different states for the same
+ * product, since both are repainted from one source.
+ *
+ * ===========================================================================
+ * WHICH OF THE OLD NOTES STILL APPLIES
+ * ===========================================================================
+ * The `setTemplate()` note is gone with the block it described (that class
+ * carries no default $_template, so an ad-hoc instance rendered empty — a
+ * failure mode that no longer exists here).
+ *
+ * STILL TRUE: this is a SECOND control, not the page's own. Porto's
+ * config.phtml moves the original `.product-addto-links` into the cart row at
+ * runtime and _pdp.less hides that copy. Rendering here rather than relocating
+ * Porto's keeps the design's placement independent of a jQuery snippet that
+ * runs after paint.
+ *
+ * `aria-pressed="false"` is rendered for everyone: the PDP is full-page cached
+ * too, so the real state has to arrive as private content. See
+ * Spartrak\Wishlist\Plugin\CustomerData\AddProductIds.
+ *
+ * NO <span>. The other two controls in this overlay carry a visually-hidden
+ * span for their accessible name; this one uses `aria-label`, because the label
+ * has to CHANGE with the state (to "Remove from Wish List") and the toggle
+ * component swaps an attribute rather than a text node — the same reason the
+ * card does it that way.
+ */
 $wishlistHtml = '';
-try {
-    $wishlistHtml = $block->getLayout()
-        ->createBlock(\Magento\Wishlist\Block\Catalog\Product\ProductList\Item\AddTo\Wishlist::class)
-        ->setTemplate('Magento_Wishlist::catalog/product/list/addto/wishlist.phtml')
-        ->setProduct($product)
-        ->toHtml();
-} catch (\Throwable $e) {
-    $wishlistHtml = '';
+$wishlistProductId = (int) $product->getId();
+
+if ($wishlistProductId > 0) {
+    $addLabel = $block->escapeHtmlAttr(__('Add to Wish List'));
+
+    $wishlistHtml = sprintf(
+        '<button type="button" class="spartrak-pdp__wishlist-toggle"'
+        . ' data-spartrak-wishlist="%d" aria-pressed="false"'
+        . ' aria-label="%s" title="%s"></button>',
+        $wishlistProductId,
+        $addLabel,
+        $addLabel
+    );
 }
 ?>
 <div class="spartrak-pdp__media-overlay">

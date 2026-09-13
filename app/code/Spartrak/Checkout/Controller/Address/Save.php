@@ -190,6 +190,7 @@ class Save implements HttpPostActionInterface
         $extracted = $addressForm->extractData($this->request);
         $values = $addressForm->compactData($extracted);
 
+        $this->resolveCountry($values, $existing);
         $this->assertRegionChosen($values, $existing);
         $this->updateRegionData($values);
         $this->fillCityFromGovernorate($values);
@@ -247,6 +248,104 @@ class Save implements HttpPostActionInterface
         }
 
         return $this->addressMapper->toFlatArray($existing);
+    }
+
+    /**
+     * Put the store's country on the address, because the form cannot.
+     *
+     * ===========================================================================
+     * THE 400 THIS FIXES
+     * ===========================================================================
+     * A save of a perfectly ordinary address came back
+     *
+     *     "postcode" is required. Enter and try again.
+     *     "countryId" is required. Enter and try again.
+     *
+     * from a form that draws neither field, with `country_id=` (empty) in the
+     * POST. Both messages are the SAME fault: with no country there is nothing
+     * to match against general/country/optional_zip_countries, so Egypt's
+     * postcode exemption cannot apply either. Fix the country and both go.
+     *
+     * ===========================================================================
+     * WHY THE HIDDEN FIELD DID NOT CARRY IT
+     * ===========================================================================
+     * Spartrak\Checkout\Plugin\Checkout\AddressFormLayout hides `country_id` and
+     * seeds it - `default` AND `value` - from general/country/default, on the
+     * stated reasoning that a hidden field is "still submitted". It is submitted;
+     * what it is not is guaranteed to still hold the seeded value, because
+     * `country_id` is a Magento_Ui/js/form/element/select and that component
+     * validates its own value against its option list on init:
+     *
+     *     normalizeData: function () {
+     *         var value = this._super(), option;
+     *         if (value !== '') {
+     *             option = this.getOption(value);
+     *             return option && option.value;      // undefined if absent
+     *         }
+     *         ...
+     *
+     * So the seed survives only if BOTH hold: the configured country is present
+     * in `dictionaries.country_id` - which is the store's ALLOWED countries
+     * (Checkout\Block\Checkout\DirectoryDataProcessor, via
+     * Country\Collection::loadByStore), not every country in the directory - and
+     * the checkout provider is not already holding an empty string for
+     * shippingAddress.country_id, which outranks `default` in
+     * abstract::getInitialValue and which Magento_Checkout/js/checkout-data
+     * persists to localStorage across visits once it has seen one.
+     *
+     * Neither condition is something this endpoint can assert, and neither is
+     * visible to a shopper staring at a form with no country field.
+     *
+     * ===========================================================================
+     * SO THE SERVER OWNS IT, AS IT ALREADY OWNS THE CITY
+     * ===========================================================================
+     * This is not a fallback for a flaky field - it is the same rule
+     * fillCityFromGovernorate() below already states, applied to the other value
+     * the design chose not to collect: when the form deliberately does not ask a
+     * question, the answer belongs on the server, before validation, not in a
+     * hidden input that has to survive a round trip through a component built for
+     * a field the shopper can see.
+     *
+     * Precedence is deliberate. A POSTED country wins, so the endpoint stays
+     * correct for any caller that does collect one (the admin, the API, a future
+     * multi-country storefront). Then the address's OWN stored country, so an
+     * edit can never relocate a saved address. Only then the configuration.
+     *
+     * If all three are empty the address is left as it is and the repository
+     * rejects it exactly as before - but the reason is written to the log naming
+     * the setting at fault, because a shopper cannot fix an empty
+     * general/country/default and the message they get does not name it.
+     *
+     * @param array<string, mixed> $values
+     * @param array<string, mixed> $existing
+     */
+    private function resolveCountry(array &$values, array $existing): void
+    {
+        if (trim((string) ($values['country_id'] ?? '')) !== '') {
+            return;
+        }
+
+        $stored = trim((string) ($existing['country_id'] ?? ''));
+
+        if ($stored !== '') {
+            $values['country_id'] = $stored;
+
+            return;
+        }
+
+        $configured = trim((string) $this->directoryHelper->getDefaultCountry());
+
+        if ($configured === '') {
+            $this->logger->warning(
+                'Spartrak: a checkout address was submitted with no country and general/country/default '
+                . 'is empty for this store view, so the address cannot be validated. Set Stores > '
+                . 'Configuration > General > Country Options > Default Country.'
+            );
+
+            return;
+        }
+
+        $values['country_id'] = $configured;
     }
 
     /**

@@ -1,0 +1,63 @@
+<?php
+/**
+ * Spartrak — the global loader, pre-rendered for NAVIGATION.
+ *
+ * ===========================================================================
+ * IT IS MAGENTO'S OWN OVERLAY SHAPE, ON PURPOSE
+ * ===========================================================================
+ * `.loading-mask > .loader` is exactly what lib/web/mage/loader.js builds, and
+ * therefore exactly what components/_loader.less already draws the Spartrak
+ * ring inside — the scrim and the fixed positioning come from core's
+ * _loaders.less, the ring from this theme's `.loader::before`. So this adds no
+ * styling, no second spinner and no second visual language. It is the project
+ * loader (CLAUDE.md section 10), raised by a trigger Magento does not have one
+ * for: a full page reload.
+ *
+ * WHY IT IS PRE-RENDERED RATHER THAN BUILT BY THE WIDGET, and why the class
+ * on <html> is what shows it, is in js/spartrak-nav-pending.js — the short
+ * version is that the widget's template contains `<img src="">`, which a
+ * browser resolves to a second request for the current page.
+ *
+ * ===========================================================================
+ * WHAT IS AND IS NOT IN THE MARKUP
+ * ===========================================================================
+ * NO <img>. The widget emits one and components/_loader.less hides it; a
+ * hidden image is still fetched, and that residual is recorded at the top of
+ * that file. Since this instance is authored rather than generated, the honest
+ * thing is simply not to emit it — the ring is a CSS pseudo-element and needs
+ * no asset.
+ *
+ * THE <p> STAYS, and it is the reason this template exists at all rather than
+ * a bare div. It is the only thing that tells a screen-reader user the page is
+ * busy. `role="status"` — which core's own loader markup does NOT carry — makes
+ * it a polite live region, so revealing it announces; without that it would be
+ * text nobody hears (CLAUDE.md section 15). It is visually hidden by
+ * components/_loader.less's `.loader > p` rule, the same as everywhere else.
+ *
+ * `aria-hidden` is deliberately absent: the overlay is inert while
+ * `display: none` and must be announceable the moment it is not.
+ *
+ * ===========================================================================
+ * COST
+ * ===========================================================================
+ * ~180 bytes of markup and one ~1.5KB module, mounted only on the routes that
+ * need it (see the layout files that include this block) rather than
+ * site-wide. No request, no image, no widget. The overlay is `display: none`
+ * until the class lands, so it costs nothing to paint and cannot affect LCP.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+?>
+<div class="loading-mask spartrak-nav-loader" data-role="loader">
+    <div class="loader">
+        <p role="status"><?= $escaper->escapeHtml(__('Please wait...')) ?></p>
+    </div>
+</div>
+<script type="text/x-magento-init">
+    {
+        "*": {
+            "spartrakNavPending": {}
+        }
+    }
+</script>

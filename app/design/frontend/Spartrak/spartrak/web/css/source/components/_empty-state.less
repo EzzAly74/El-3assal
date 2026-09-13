@@ -24,14 +24,14 @@
 //                         "primary" is only what the Figma layer is called.
 
 .spartrak-empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    padding: 46px 16px;
-    background-color: var(--color-bg-surface);
-    text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 46px 16px;
+  background-color: var(--color-bg-surface);
+  text-align: center;
 }
 
 // The illustration is decorative — the title beside it says everything it
@@ -46,134 +46,166 @@
 // surface. See "THE ILLUSTRATION IS NAMED BY THE SURFACE" at the foot of this
 // file for why there is no default.
 .spartrak-empty-state__art {
-    flex: 0 0 auto;
-    width: 176px;
-    height: 176px;
-    max-width: 100%;
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: contain;
+  flex: 0 0 auto;
+  width: 176px;
+  height: 176px;
+  max-width: 100%;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
 }
 
 .spartrak-empty-state__copy {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
 }
 
 .spartrak-empty-state__title {
-    margin: 0;
-    color: var(--color-text-primary);
-    font-family: var(--font-arabic);
-    font-size: var(--text-18);
-    font-weight: 700;
-    line-height: 1.3;
+  margin: 0;
+  color: var(--color-text-primary);
+  font-family: var(--font-arabic);
+  font-size: var(--text-18);
+  font-weight: 700;
+  line-height: 1.3;
 }
 
 .spartrak-empty-state__text,
 .spartrak-empty-state__note {
-    // Figma holds this line to 290px so it breaks into two balanced lines
-    // rather than one long one. `max-width` rather than `width` so a longer
-    // translation is free to be narrower on a small screen instead of
-    // overflowing.
-    max-width: 290px;
-    margin: 0;
-    color: var(--color-text-muted);
-    font-family: var(--font-arabic);
-    font-size: var(--text-16);
-    font-weight: 400;
-    line-height: 1.5;
+  // Figma holds this line to 290px so it breaks into two balanced lines
+  // rather than one long one. `max-width` rather than `width` so a longer
+  // translation is free to be narrower on a small screen instead of
+  // overflowing.
+  max-width: 290px;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-arabic);
+  font-size: var(--text-16);
+  font-weight: 400;
+  line-height: 1.5;
 }
 
 // The merchant's own configured message, when they have set one. Quieter than
 // the line above it: that one explains the state, this one is an aside.
 .spartrak-empty-state__note {
-    font-size: var(--text-14);
+  font-size: var(--text-14);
 }
 
 // Figma 724:43551. A <button> here and an <a> on surfaces where the way out is
 // a destination — both take this class, so the reset covers the two.
 .spartrak-empty-state__action {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    height: 40px;
-    margin: 0;
-    padding-inline: 20px;
-    border: 0;
-    border-radius: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  margin: 0;
+  padding-inline: 20px;
+  border: 0;
+  border-radius: 0;
+  background-color: var(--color-bg-field);
+  color: var(--color-text-primary);
+  font-family: var(--font-arabic);
+  font-size: var(--text-14);
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  // ===================================================================
+  // THE STATE BLOCK ALSO OWNS THE FILL AND THE BORDER — A MEASURED BUG
+  // ===================================================================
+  // Two global rules outrank this component on (0,1,1), and BOTH have to be
+  // answered here rather than in the base rule above, which is only (0,1,0):
+  //
+  //   a:hover              Porto, `color: #044776; text-decoration: underline`
+  //   button:focus,
+  //   button:active        core, `background: #e2e2e2; border: 1px solid #e4e3e5`
+  //
+  // The colour half was already handled. The BACKGROUND and BORDER half was
+  // not, and it is why the signed-out dialog's primary button rendered as a
+  // grey box with a hairline border instead of the navy fill: `<dialog>`'s
+  // showModal() FOCUSES the first control in the panel, so that button is
+  // `:focus` from the instant it appears and never leaves the state.
+  //
+  // It went unseen until now because every previous caller of this component
+  // is an `<a>` — the cart's, the wishlist's, the 404's — and `button:focus`
+  // does not match an anchor. The signed-out dialog is the first `<button>`,
+  // and the first that is auto-focused.
+  //
+  // Restated at (0,2,0), which beats both.
+  &:hover,
+  &:focus,
+  &:active,
+  &:visited {
     background-color: var(--color-bg-field);
+    border: 0;
     color: var(--color-text-primary);
-    font-family: var(--font-arabic);
-    font-size: var(--text-14);
-    font-weight: 500;
-    line-height: 1.3;
-    text-align: center;
     text-decoration: none;
-    cursor: pointer;
-    transition: background-color .15s ease;
+  }
 
-    // ===================================================================
-    // THE STATE BLOCK ALSO OWNS THE FILL AND THE BORDER — A MEASURED BUG
-    // ===================================================================
-    // Two global rules outrank this component on (0,1,1), and BOTH have to be
-    // answered here rather than in the base rule above, which is only (0,1,0):
-    //
-    //   a:hover              Porto, `color: #044776; text-decoration: underline`
-    //   button:focus,
-    //   button:active        core, `background: #e2e2e2; border: 1px solid #e4e3e5`
-    //
-    // The colour half was already handled. The BACKGROUND and BORDER half was
-    // not, and it is why the signed-out dialog's primary button rendered as a
-    // grey box with a hairline border instead of the navy fill: `<dialog>`'s
-    // showModal() FOCUSES the first control in the panel, so that button is
-    // `:focus` from the instant it appears and never leaves the state.
-    //
-    // It went unseen until now because every previous caller of this component
-    // is an `<a>` — the cart's, the wishlist's, the 404's — and `button:focus`
-    // does not match an anchor. The signed-out dialog is the first `<button>`,
-    // and the first that is auto-focused.
-    //
-    // Restated at (0,2,0), which beats both.
-    &:hover,
-    &:focus,
-    &:active,
-    &:visited {
-        background-color: var(--color-bg-field);
-        border: 0;
-        color: var(--color-text-primary);
-        text-decoration: none;
-    }
+  // AFTER the block above, so hovering a focused control still shows the
+  // hover fill rather than the resting one — same specificity, later wins.
+  &:hover {
+    background-color: var(--color-bg-surface-subtle);
+  }
 
-    // AFTER the block above, so hovering a focused control still shows the
-    // hover fill rather than the resting one — same specificity, later wins.
-    &:hover {
-        background-color: var(--color-bg-surface-subtle);
-    }
+  // NO :focus-visible RULE HERE, DELIBERATELY. Magento_Theme's own
+  // _extend.less declares one baseline for every focusable element —
+  // `a, button, input, select, textarea, summary, [tabindex]` at
+  // `2px solid var(--color-border-focus)`, offset 2 — and this control was
+  // restating it verbatim: same width, same offset, and
+  // --color-action-primary and --color-border-focus are the same navy.
+  //
+  // A duplicate at higher specificity is not free. It put a third rule into
+  // the cascade for one property, so the DevTools view of a focused control
+  // showed two struck-out outline declarations above the winning one, and
+  // any future change to the focus treatment would have had to be made here
+  // as well or silently not apply. One baseline, one place (CLAUDE.md §9).
+}
 
-    // NO :focus-visible RULE HERE, DELIBERATELY. Magento_Theme's own
-    // _extend.less declares one baseline for every focusable element —
-    // `a, button, input, select, textarea, summary, [tabindex]` at
-    // `2px solid var(--color-border-focus)`, offset 2 — and this control was
-    // restating it verbatim: same width, same offset, and
-    // --color-action-primary and --color-border-focus are the same navy.
-    //
-    // A duplicate at higher specificity is not free. It put a third rule into
-    // the cascade for one property, so the DevTools view of a focused control
-    // showed two struck-out outline declarations above the winning one, and
-    // any future change to the focus treatment would have had to be made here
-    // as well or silently not apply. One baseline, one place (CLAUDE.md §9).
+// ---------------------------------------------------------------------------
+// TWO WAYS OUT, SIDE BY SIDE
+// ---------------------------------------------------------------------------
+// Every empty state in the design has ONE way out, and that one takes
+// `__action` directly in `__copy`'s column — nothing below changes that.
+//
+// A CONFIRMATION has two, and they are not a list: they are a choice, so they
+// read as a pair on one line. Added for the logout confirmation
+// (Magento_Theme/templates/html/logout-confirm-dialog.phtml), which is the
+// same panel/illustration/title/sentence block as the signed-out dialog with a
+// question in place of a statement.
+//
+// `flex-wrap` and `min-width: 0` on the children, not fixed widths: the two
+// labels are translated, and "البقاء مسجلاً" and "Stay signed in" are very
+// different lengths. Where both fit they sit together; where they do not they
+// stack, which is the honest fallback for a pair of 40px controls in a narrow
+// panel rather than two clipped labels.
+//
+// The DESTRUCTIVE choice is second in DOM order, so the safe one is what a
+// keyboard lands on first and what `<dialog>`'s showModal() autofocuses.
+.spartrak-empty-state__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
 
+  > .spartrak-empty-state__action {
+    min-width: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .spartrak-empty-state__action {
-        transition: none;
-    }
+  .spartrak-empty-state__action {
+    transition: none;
+  }
 }
 
 // ===========================================================================
@@ -195,14 +227,14 @@
 // and `.spartrak-address-empty` used to be a byte-for-byte copy of them
 // (CLAUDE.md section 9).
 .spartrak-empty-state--panel {
-    padding: 12px 12px 26px;
-    background-color: var(--color-bg-surface-subtle);
+  padding: 12px 12px 26px;
+  background-color: var(--color-bg-surface-subtle);
 }
 
 // 557:4898 only. The checkout's address book gives the illustration more room
 // than the wishlist does; the wishlist keeps the base 16.
 .spartrak-empty-state--spaced {
-    gap: 26px;
+  gap: 26px;
 }
 
 // ===========================================================================
@@ -216,18 +248,18 @@
 // Each file is the exact 176-square export of its own Figma node — no shared
 // asset, no recolouring, no reuse of a near-match (CLAUDE.md section 3).
 .spartrak-empty-state__art--cart {
-    // 724:43484 — the cart and the minicart drawer.
-    background-image: url('../images/illustrations/cart-empty.svg');
+  // 724:43484 — the cart and the minicart drawer.
+  background-image: url("../images/illustrations/cart-empty.svg");
 }
 
 .spartrak-empty-state__art--wishlist {
-    // 1179:21986.
-    background-image: url('../images/illustrations/wishlist-empty.svg');
+  // 1179:21986.
+  background-image: url("../images/illustrations/wishlist-empty.svg");
 }
 
 .spartrak-empty-state__art--address {
-    // 721:29400 — the delivery van, on both address surfaces.
-    background-image: url('../images/illustrations/checkout-no-address.svg');
+  // 721:29400 — the delivery van, on both address surfaces.
+  background-image: url("../images/illustrations/checkout-no-address.svg");
 }
 
 // ===========================================================================
@@ -240,35 +272,213 @@
 // `min-width` and not `width`: Figma's 120 is a floor for a short label, and a
 // longer translation has to be allowed to grow rather than clip.
 .spartrak-empty-state__action--primary {
-    min-width: 120px;
+  min-width: 120px;
+  background-color: var(--color-action-primary);
+  color: var(--color-action-primary-text);
+
+  // Same specificity argument as the base control's own state block, and the
+  // same two global rules — see it for the full note. The navy fill has to be
+  // restated for `:focus` and `:active` or core's `button:focus` (0,1,1)
+  // paints this control grey the moment a dialog auto-focuses it.
+  &:hover,
+  &:focus,
+  &:active,
+  &:visited {
     background-color: var(--color-action-primary);
     color: var(--color-action-primary-text);
+  }
 
-    // Same specificity argument as the base control's own state block, and the
-    // same two global rules — see it for the full note. The navy fill has to be
-    // restated for `:focus` and `:active` or core's `button:focus` (0,1,1)
-    // paints this control grey the moment a dialog auto-focuses it.
-    &:hover,
-    &:focus,
-    &:active,
-    &:visited {
-        background-color: var(--color-action-primary);
-        color: var(--color-action-primary-text);
-    }
-
-    &:hover {
-        background-color: var(--color-action-primary-hover);
-    }
+  &:hover {
+    background-color: var(--color-action-primary-hover);
+  }
 }
 
 .spartrak-empty-state__art--noroute {
-    // 1280:22195 — the 404 page.
-    background-image: url('../images/illustrations/noroute.svg');
+  // 1280:22195 — the 404 page.
+  background-image: url("../images/illustrations/noroute.svg");
 }
 
 .spartrak-empty-state__art--signed-out {
-    // 1280:27624 — the signed-out dialog.
-    background-image: url('../images/illustrations/signed-out.svg');
+  // 1280:27624 — the signed-out dialog.
+  background-image: url("../images/illustrations/signed-out.svg");
+}
+
+.spartrak-empty-state__art--nothing-found {
+  // 1368:41236 — "Security and Privacy / telescope, view, search, find,
+  // discover, explore", the 190-square export on the no-results search page.
+  background-image: url("../images/illustrations/search-no-results.svg");
+}
+
+// ===========================================================================
+// THE "NOTHING FOUND" VARIANT — 1368:39180 ("نتائج البحث. لا يوجد بحث")
+// ===========================================================================
+// The fifth caller of this component, and the one the file's own opening note
+// predicted ("a search with no results"). It is markup plus this block, which
+// is what that note was claiming.
+//
+// TWO SURFACES SHARE IT, which is why it is not called `--search`:
+//
+//   Magento_CatalogSearch::result.phtml    a search that matched nothing
+//   Magento_Catalog::product/list.phtml    a category or a filter set that
+//                                          matched nothing
+//
+// Figma draws the first. The second had no frame and was rendering Magento's
+// yellow `.message.info` box; it takes the same panel because it is the same
+// situation stated about a different collection, and one panel for both is
+// what makes this a component rather than two lookalikes (§9). Only the words
+// differ, and each template owns its own.
+//
+// It needs a variant rather than `--panel --lg` because Figma states its own
+// numbers for four of the six values, read node by node off 1368:41143 and
+// its children:
+//
+//   panel      1368:39394  bg/surface, pt 26 / pb 48 / px 48, and a
+//                          0 3px 4px rgba(0,0,0,0.05) drop shadow
+//   stack      1368:41143  gap 32          (base 16, --lg 16)
+//   art        1368:41236  190 square      (base 176, --lg 240)
+//   message    1368:41146  gap 24 between the copy and the button
+//   copy       1368:41147  gap 8           SAME as the base, not restated
+//   title      1368:41148  Price/Large — arabic bold, size/2xl 24px, lh 1.3,
+//                          text/primary. 24px is what `--lg` already sets, so
+//                          this variant does not restate it either.
+//   text       1368:41149  Body/Base 16px lh 1.5, text/SECONDARY #555463,
+//                          242 wide, centred   (base: text/muted, 290 wide)
+//   action     1368:41326  action/primary #063196 with white Label/Large, h40,
+//                          px20, min-width 120 — exactly
+//                          `__action--primary`, reused unchanged
+//
+// TWO GAPS, NOT ONE, and that is why `__message` exists as an element. The
+// base component is one column with a single gap, so the art, the copy and the
+// button are all 16 apart. This design puts 32 between the art and the words
+// and 24 between the words and the button, which one gap cannot express. The
+// wrapper is the smallest way to say it — no `nth-child` arithmetic, and it
+// degrades to a plain block for the four existing callers, which do not emit
+// it.
+//
+// THE BUTTON'S SQUARE CORNERS ARE FIGMA'S. 1368:41326 carries no corner radius
+// and neither does the shared `__action` (`border-radius: 0`), so nothing is
+// restated here. Worth naming because every other button in this design system
+// is a pill and a reviewer would reasonably expect one.
+.spartrak-empty-state--nothing-found {
+  gap: 32px;
+  // Figma's asymmetric padding: the illustration sits closer to the top of
+  // the panel than the button does to the bottom.
+  // 48px is the page gutter every frame in this design uses, taken from
+  // foundations/_page-metrics.less rather than written again - the same
+  // variable, and for the same reason, as the 404 panel below.
+  padding: 26px @plp-gutter 48px;
+  box-shadow: 0 3px 4px rgba(0, 0, 0, 0.05);
+}
+
+.spartrak-empty-state--nothing-found .spartrak-empty-state__art {
+  width: 190px;
+  height: 190px;
+}
+
+.spartrak-empty-state--nothing-found .spartrak-empty-state__title {
+  font-size: var(--text-24);
+}
+
+.spartrak-empty-state--nothing-found .spartrak-empty-state__text {
+  // 242px, and the token colour that resolves to Figma's #555463 — one step
+  // darker than the base component's text/muted.
+  width: 242px;
+  max-width: 100%;
+  color: var(--color-text-secondary);
+}
+
+// The two-gap wrapper. Only this variant emits it.
+.spartrak-empty-state__message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+}
+
+// ---------------------------------------------------------------------------
+// A NOTE MAGENTO MIGHT ADD, AND WHERE IT GOES
+// ---------------------------------------------------------------------------
+// Core's no-results branch can carry real information beside the generic
+// sentence — "Minimum Search query length is 3", or "your search query can't
+// be longer than 128, so we shortened your query". Figma draws no slot for
+// those, and dropping them would be dropping the only text on the page that
+// tells a shopper what to do differently.
+//
+// They render as further paragraphs in the copy column, at the same 8px gap
+// the design already uses between the title and the sentence, in the muted
+// colour so the Figma sentence stays the primary line. See the template.
+// It reuses `__note`, WHICH ALREADY EXISTS in this file - the quieter aside
+// under the main sentence, declared beside `__text` above and already consumed
+// by the minicart's empty drawer. A second declaration of that class was
+// written here first and it was a real regression, not a tidiness point: it
+// set `font-size: var(--text-14)` where the existing rule sets --text-16, and
+// being later in the file it would have won for the minicart as well. There is
+// one note element in this component and it is styled once.
+
+@media (max-width: @breakpoint-header-collapse) {
+  // The 48px desktop gutter is the page measure; on a phone the panel is
+  // already inside the page's own 16px gutter, so it uses the component's
+  // base inline padding instead of doubling up.
+  .spartrak-empty-state--nothing-found {
+    padding-inline: 16px;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CORE'S PAGE HEADING, ON THIS PAGE ONLY
+// ---------------------------------------------------------------------------
+// Magento prints its own <h1> above the search results. MEASURED on the live
+// storefront at /ar/catalogsearch/result/?q=محرك212:
+//
+//     <div class="page-title-wrapper">
+//       <h1 class="page-title"><span class="base">نتائج البحث عن: 'محرك212'</span></h1>
+//
+// Figma 1368:39180 draws no heading band — the breadcrumb, then the panel — and
+// the panel's own title (1368:41148) already quotes the query back. So the page
+// was saying the same thing twice, in two phrasings, one of them undesigned.
+//
+// WHY THIS IS CSS AND NOT A BLOCK REMOVAL, WHICH WAS TRIED FIRST
+// `<referenceBlock name="page.main.title" remove="true"/>` cannot be used: it
+// applies to the HANDLE, so it would also strip the heading from a search that
+// DID find something, and that page has no other h1 — a results page with no
+// document outline at all (§15).
+//
+// The condition is "this search found nothing", which a handle cannot express,
+// so the next attempt was an observer on `layout_generate_blocks_after` calling
+// Result::getResultCount() and unsetting the block. THAT WAS REVERTED, and the
+// reason is worth recording because it is not obvious:
+//
+//   getResultCount() -> _getProductCollection() -> ListProduct::
+//   getLoadedProductCollection(), which LOADS and memoises the collection. At
+//   that event the layered-nav filters have been applied (Navigation::
+//   _prepareLayout runs during block generation) but the TOOLBAR has not —
+//   Navigation::_beforeToHtml() calls configureToolbarBlock(), at render time,
+//   and that is what sets the collection's sort order, page size and current
+//   page. Forcing the load early would have fixed the collection before those
+//   were applied, so sorting and pagination on a search that DOES return
+//   results could silently break. Core's own result.phtml carries a comment
+//   about exactly this ordering ("These changes need to valid applying filters
+//   and configuration before search process is started").
+//
+// Presentation is all this needs, and `:has()` can see the one thing that
+// matters: whether the page rendered the empty state. No block is disturbed, no
+// collection is loaded early, and nothing in Magento's search pipeline is
+// touched.
+//
+// `display: none` and not a clip, so the duplicate heading leaves the
+// accessibility tree too — the page then has exactly one h1 for a screen
+// reader, the one in the panel. On a browser without `:has()` both headings
+// show: the older phrasing above the designed one, which is the graceful end of
+// this trade rather than a broken page.
+// `.catalogsearch-result-index` as well as `:has()`, so this is the SEARCH
+// page's heading and nothing else. The category surface shares the panel but
+// not this rule: its own layout already removes `page.main.title`
+// (Magento_Catalog/layout/catalog_category_view.xml) and its <h1> is the
+// category hero, which must stay.
+body.catalogsearch-result-index:has(.spartrak-empty-state--nothing-found)
+  .page-title-wrapper {
+  display: none;
 }
 
 // ===========================================================================
@@ -296,13 +506,13 @@
 // instead of a smaller one. A square that shrinks keeps `background-size:
 // contain` drawing the artwork at its own proportions at every width.
 .spartrak-empty-state--lg .spartrak-empty-state__art {
-    width: 240px;
-    height: auto;
-    aspect-ratio: 1;
+  width: 240px;
+  height: auto;
+  aspect-ratio: 1;
 }
 
 .spartrak-empty-state--lg .spartrak-empty-state__title {
-    font-size: var(--text-24);
+  font-size: var(--text-24);
 }
 
 // ===========================================================================
@@ -328,15 +538,15 @@
 // laptop height, and inventing a viewport fraction instead would be a magic
 // value (CLAUDE.md §9).
 .spartrak-noroute {
-    .page-main {
-        padding-inline: @plp-gutter;
-        padding-block: 48px;
-        // Magento centres .page-main at 1140. The design is full bleed.
-        max-inline-size: none;
+  .page-main {
+    padding-inline: @plp-gutter;
+    padding-block: 48px;
+    // Magento centres .page-main at 1140. The design is full bleed.
+    max-inline-size: none;
 
-        @media (max-width: @breakpoint-header-collapse) {
-            padding-inline: @plp-gutter-mobile;
-            padding-block: 16px;
-        }
+    @media (max-width: @breakpoint-header-collapse) {
+      padding-inline: @plp-gutter-mobile;
+      padding-block: 16px;
     }
+  }
 }

@@ -101,6 +101,35 @@ $hasTitle = $block->getTitle() !== '';
                     <?php endif; ?>
                     <img class="spartrak-home-tiles__visual"
                          data-visual-index="<?= (int) $index ?>"
+                         <?php /*
+                           THE FIRST VISUAL SHIPS ACTIVE — NEW2B-5634.
+
+                           Without this the stage loaded with NO artwork at all.
+                           The comment above says the stage is "server-rendered
+                           with the FIRST category's name so the stage is
+                           correct before JS", and the NAME was; the artwork
+                           was not, because `data-active` is what
+                           _homepage-sections.less reveals a visual with and
+                           nothing emitted it.
+
+                           JS could not recover it either: js/spartrak-home-
+                           tiles.js opens with activeIndex = 0 and _activate()
+                           returns early when the index it is given equals the
+                           one it already holds, so the very first card is the
+                           one index the widget can never activate. Measured on
+                           the live homepage before this change — five cards,
+                           three visuals, and `[data-visual-index][data-active]`
+                           matched nothing until the rail was scrolled.
+
+                           `$index === 0` and not "the first one rendered": the
+                           attribute means "this is the visual for the active
+                           card", the stage declares `data-active-index="0"`
+                           just above, and the loop SKIPS categories with no
+                           image. So when the first category is one of those,
+                           nothing is marked and the stage correctly shows no
+                           artwork rather than another category's.
+                         */ ?>
+                         <?php if ($index === 0) : ?>data-active<?php endif; ?>
                          src="<?= $block->escapeUrl($visual['url']) ?>"
                          <?php /*
                            `w` descriptors, not 1x/2x: this box is 788x535 on
@@ -121,13 +150,35 @@ $hasTitle = $block->getTitle() !== '';
                          <?php endif; ?>
                          alt=""
                          <?php /*
-                           Only the first visual is eager: it is the one
-                           painted on load. The rest are lazy AND
-                           off-screen-by-opacity, so the browser fetches them
-                           as the shopper approaches the section rather than
-                           competing with the page's real LCP.
+                           EVERY visual is lazy, including the first — and the
+                           reason is the phone, not the desktop.
+
+                           Figma's mobile frame (647:57295) has no product
+                           artwork on the stage at all, so
+                           components/_homepage-sections.less hides
+                           `.spartrak-home-tiles__visuals` below 768px. A
+                           `display: none` <img> with a `src` is STILL FETCHED
+                           — so `eager` here meant every phone downloading a
+                           788x535 photograph it will never see, on the page
+                           whose weight matters most (CLAUDE.md sections 4 and
+                           11). `lazy` is what closes that: a lazy image inside
+                           a `display: none` subtree can never approach the
+                           viewport, so the browser never requests it.
+
+                           It costs the desktop nothing measurable. This
+                           section sits below the hero, and the hero banner is
+                           the page's LCP element (see section/banner.phtml) —
+                           so the first visual was never the image the metric
+                           was waiting on. A lazy image that IS near the
+                           viewport is still fetched at normal priority; the
+                           only difference is that it is discovered at layout
+                           rather than by the preload scanner, which is the
+                           correct trade for something below the fold.
+
+                           The rest were already lazy and are also
+                           off-screen-by-opacity, so nothing changes for them.
                          */ ?>
-                         loading="<?= $index === 0 ? 'eager' : 'lazy' ?>"
+                         loading="lazy"
                          decoding="async">
                 <?php endforeach; ?>
             </div>

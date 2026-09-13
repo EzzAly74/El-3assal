@@ -1,0 +1,96 @@
+// ===========================================================================
+// Spartrak — motion + drag affordance for the shared section rails
+// ===========================================================================
+// These two blocks were the foot of components/_homepage-sections.less, and
+// they moved to components/_section-rail.less with the rest of the shared rail
+// when the component bundle was split per page type. THAT BROKE THEM, and this
+// file is the fix — recorded rather than quietly corrected, because the
+// mechanism catches out anything that suppresses a property globally.
+//
+// WHAT WENT WRONG
+// A media query adds NO specificity. `@media (prefers-reduced-motion: reduce)
+// { .spartrak-home-tiles__card { transition: none } }` and
+// `.spartrak-home-tiles__card { transition: ... }` are both (0,1,0), so the one
+// that wins is simply the one declared LAST. At the foot of the file, the
+// suppression was last and won. Moved into _section-rail.less — which
+// _homepage-sections.less imports at its TOP, for the shared metrics — it
+// became the FIRST thing emitted, and every component that declares its own
+// transition afterwards silently re-enabled it.
+//
+// MEASURED in the compiled homepage bundle before this file existed: five
+// components re-declared `transition` after the suppression block —
+// .spartrak-home-banner__arrow, .spartrak-home-banner__dot,
+// .spartrak-home-tiles__card, .spartrak-home-tiles__visual and
+// .spartrak-home-showcase__control — plus nine `cursor` declarations after the
+// drag block. So a shopper who has asked their OS for reduced motion would
+// have got the animations anyway: a straight CLAUDE.md section 15 regression,
+// invisible to any check that only asks whether the rules still exist.
+//
+// THE FIX IS POSITIONAL, SO IT IS ENFORCED BY THE IMPORT SITE
+// Both blocks are declaration-order-dependent by nature, so this file must be
+// the LAST thing every bundle that uses the rails emits:
+//
+//     _homepage-sections.less  imports it as its final line, and the homepage
+//                              bundle imports nothing after that file
+//     spartrak-pdp.less        imports it after _pdp.less and _reviews.less
+//
+// LESS imports a path once per compilation, at its first import point, so the
+// homepage bundle emits it exactly once, at the bottom, even though the file is
+// named in both places.
+//
+// If a new bundle ever picks up _section-rail.less, it MUST name this file too,
+// and name it last. That is the whole contract of this file.
+
+// ===========================================================================
+// REDUCED MOTION
+// ===========================================================================
+// One block for the whole file. The reveal still HAPPENS — the correct visual
+// is still shown — it just arrives instantly instead of sliding.
+@media (prefers-reduced-motion: reduce) {
+  .spartrak-home-section__nav-button,
+  .spartrak-home-banner__arrow,
+  .spartrak-home-banner__dot,
+  .spartrak-home-tiles__card,
+  .spartrak-home-tiles__visual,
+  .spartrak-home-tiles__name,
+  .spartrak-home-progress__bar,
+  .spartrak-home-showcase__control {
+    transition: none;
+  }
+
+  .spartrak-home-tiles__visual {
+    transform: none;
+  }
+
+  .spartrak-home-banner__track,
+  .spartrak-home-rail__track,
+  .spartrak-home-tiles__rail,
+  .spartrak-home-showcase__track {
+    scroll-behavior: auto;
+  }
+}
+
+// ===========================================================================
+// DRAG AFFORDANCE
+// ===========================================================================
+// The rails are click-and-draggable with a mouse (js/spartrak-drag-scroll.js
+// adds the one gesture the browser does not provide natively). The cursor is
+// what tells a shopper that before they try it.
+//
+// THE DECLARATIONS MOVED to foundations/_drag-affordance.less (2026-09-10),
+// when the header's mega-nav category row took the same gesture. That row is in
+// the GLOBAL bundle and these rails are in the home/PDP ones, so one component
+// file cannot serve both — and the cursor treatment for one gesture must not be
+// free to drift between two surfaces. The mixin is the only form that is
+// single-sourced and still emits nothing where it is not called; it carries the
+// `pointer: fine` gate and the `is-dragging` state with it.
+@import (reference) "../foundations/_drag-affordance.less";
+
+.spartrak-home-banner__track,
+.spartrak-home-rail__track,
+.spartrak-home-tiles__rail,
+.spartrak-home-brands__rail,
+.spartrak-home-showcase__track,
+.spartrak-home-split__track {
+  .spartrak-drag-affordance();
+}

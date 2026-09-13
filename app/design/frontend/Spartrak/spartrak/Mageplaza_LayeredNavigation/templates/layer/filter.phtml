@@ -236,7 +236,7 @@ $appliedKey = trim($appliedRange);
          * chart is not drawn with invented bars.
          */
         ?>
-        <form class="spartrak-price-inputs" id="<?= $block->escapeHtmlAttr($formId) ?>" action="#" method="get">
+        <form class="spartrak-price-inputs" data-spartrak-nav-loader id="<?= $block->escapeHtmlAttr($formId) ?>" action="#" method="get">
                 <?php /*
                   PLAIN DECIMALS, NOT FORMATTED CURRENCY.
                   These fields used to be seeded through the price helper, so
@@ -774,7 +774,7 @@ $rangeUrl = static function (
 $rangesHidden = $refLow === null || $refHigh === null;
 ?>
 <?php if ($priceRanges !== []) : ?>
-    <ol class="items spartrak-price-ranges" data-price-ranges <?= $rangesHidden ? 'hidden' : '' ?>>
+    <ol class="items spartrak-price-ranges" data-spartrak-nav-loader data-price-ranges <?= $rangesHidden ? 'hidden' : '' ?>>
         <?php foreach ($priceRanges as $index => $range) : ?>
             <?php
             $isEmptyShell = $range['to'] === '';
@@ -814,7 +814,13 @@ $rangesHidden = $refLow === null || $refHigh === null;
  */
 ?>
 <?php if (!$isSlider && $filterItems !== []) : ?>
-    <ol class="items">
+    <?php /*
+      `data-spartrak-nav-loader` on the LIST, not on each link: every filter
+      option inside it reloads the page with the grid refined, which is exactly
+      what the project loader is for. Opt-in — js/spartrak-nav-pending.js
+      records why the default is off and which other templates apply it.
+    */ ?>
+    <ol class="items" data-spartrak-nav-loader>
         <?php foreach ($filterItems as $filterItem) : ?>
             <?php
             /*

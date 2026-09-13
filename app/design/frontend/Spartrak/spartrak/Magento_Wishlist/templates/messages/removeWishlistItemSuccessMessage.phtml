@@ -1,0 +1,29 @@
+<?php
+/**
+ * Spartrak — the removed-from-wish-list toast.
+ *
+ * TITLE AND BODY, NO ACTION — deliberately, and it is not the design
+ * degrading. Figma's action slot exists to offer the shopper the next step,
+ * and the next step after taking something OFF a list is nothing: linking them
+ * to the list they just removed it from is an invitation to look at an absence.
+ * The add message (addProductSuccessMessage.phtml, same directory) is the one
+ * with somewhere useful to go.
+ *
+ * The stock template this replaces is a bare sentence with no structure, so
+ * it rendered as the title alone on the toast shell — see the FONTS and
+ * TITLE/BODY notes in components/_toast.less. That was not wrong, it was
+ * simply less than the component can show, and the missing half is the one
+ * word of reassurance below.
+ *
+ * Markup is constrained to spans by Magento's own JS escaper on the
+ * customer-data path; the full reasoning, and why overriding a complex-message
+ * template is the platform's own extension point here, is in
+ * addProductSuccessMessage.phtml.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+$productName = (string) $block->getData('product_name');
+?>
+<span class="spartrak-toast__text"><span class="spartrak-toast__title"><?= $escaper->escapeHtml(__('%1 removed from your wish list', $productName)) ?></span><span class="spartrak-toast__body"><?= $escaper->escapeHtml(__('You can save it again at any time.')) ?></span></span>

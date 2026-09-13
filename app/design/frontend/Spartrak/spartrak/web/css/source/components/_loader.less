@@ -116,6 +116,41 @@
   }
 }
 
+//  Shape 1b — the NAVIGATION instance ---------------------------------------
+//  ===========================================================================
+//  THE SAME OVERLAY, PRE-RENDERED, SHOWN BY A CLASS ON <html>
+//  ===========================================================================
+//  Magento_Theme/templates/html/nav-loader.phtml authors one `.loading-mask >
+//  .loader` up front instead of waiting for `mage.loader` to build one, so the
+//  project loader can be raised for the one loading state the platform has no
+//  event for: a FULL PAGE RELOAD. Every control on the category page is a link
+//  — the sort disclosure, the filters, the pager, the tiles — so nothing there
+//  ever fires processStart and the page used to change with no acknowledgement
+//  at all. See js/spartrak-nav-pending.js.
+//
+//  It inherits the whole of shape 1 above: same selector, same scrim from
+//  core's _loaders.less, same ring, same hidden <p>. These two declarations
+//  are the ONLY thing this instance needs, because a generated overlay is
+//  inserted at the moment it is wanted while an authored one is in the
+//  document from the first paint and has to start hidden.
+//
+//  `display` and not `opacity`/`visibility`: a hidden overlay must cost
+//  nothing to paint and must not be in the accessibility tree, and its <p> is
+//  a live region — announcing "please wait" the moment `display` changes is
+//  precisely the behaviour wanted, and is what a `visibility` toggle would
+//  give up.
+//
+//  The flag sits on <html> rather than on <body> so it is set as early as
+//  possible in the document and cannot be affected by anything a component
+//  does to the body's class list.
+.spartrak-nav-loader {
+  display: none;
+}
+
+.spartrak-navigating .spartrak-nav-loader {
+  display: block;
+}
+
 //  Shape 2 — .lib-loader()'s ::before ---------------------------------------
 //  Core already gives this ::before `content:''`, `position:absolute`,
 //  `inset:0`, `margin:auto` and a 160x160 box. Only the box and the ring are

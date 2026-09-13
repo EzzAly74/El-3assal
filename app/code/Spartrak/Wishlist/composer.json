@@ -1,6 +1,6 @@
 {
   "name": "spartrak/module-wishlist",
-  "description": "Wishlist support for the Spartrak storefront: a numeric item count on the wishlist customer-data section, so the header badge renders the numeral Figma draws instead of Magento's translated \"N items\" phrase, and the view model behind the wishlist page's product rows (Figma 817:18852) - the image role to draw and whether the product can still be bought.",
+  "description": "Wishlist support for the Spartrak storefront. (1) An AJAX toggle - Controller/Ajax/Toggle plus Model/WishlistToggle - so the product card's heart adds or removes a product in place instead of posting and navigating to the wish list page. (2) Two additions to the `wishlist` customer-data section: a numeric item count, so the header badge renders the numeral Figma draws instead of Magento's translated \"N items\" phrase, and the full set of saved product ids, so every card's heart can paint its own filled/empty state without baking private data into a full-page-cached page. (3) The view model behind the wishlist page's product rows (Figma 817:18852) - the image role to draw and whether the product can still be bought.",
   "type": "magento2-module",
   "license": "proprietary",
   "require": {

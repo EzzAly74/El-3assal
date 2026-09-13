@@ -1,0 +1,59 @@
+// Spartrak All Brands page — entry point.
+//
+// Compiled as its own stylesheet and enqueued ONLY on the
+// `spartrak_brand_index_index` handle (see
+// Spartrak_Brand/layout/spartrak_brand_index_index.xml in this theme), rather
+// than being folded into spartrak-components.css.
+//
+// This is the same decision and the same mechanism as spartrak-home.less,
+// spartrak-plp.less, spartrak-cart.less, spartrak-checkout.less,
+// spartrak-account.less and spartrak-pdp-video.less. It is not a new pattern;
+// it is that pattern applied to a new page.
+//
+// WHY THIS PAGE DOES NOT SIMPLY LOAD spartrak-home.css
+// ===========================================================================
+// It renders two things the homepage also renders — a brand tile and the
+// "بتدور علي ايه؟" finder — and spartrak-home.css is ~3,000 lines of banner,
+// category tiles, reveal stage, video showcase, rail and split promo that
+// this page cannot show. Carrying all of it on a render-blocking request to
+// style two components is the LCP regression CLAUDE.md section 4 treats as a
+// blocker.
+//
+// So the finder was EXTRACTED (components/_cascade-finder.less: one component,
+// one rule set, two bundles) and the grid is this page's own
+// (components/_brand-grid.less, which records why the tile is not shared).
+//
+// WHAT IS DELIBERATELY NOT IMPORTED
+// ===========================================================================
+// components/_section-rail.less. The finder's template carries
+// `.spartrak-home-section` alongside its own class, but that rule is
+// `position: relative; width: 100%; min-width: 0` and this page needs none of
+// the three — verified, see the note in _cascade-finder.less. Importing the
+// rail component for a class that would change nothing would undo most of the
+// saving above.
+//
+// THE THREE FOUNDATIONS BELOW EMIT NOTHING — MEASURED, not assumed: compiled
+// on their own, _breakpoints, _page-metrics and _icons each produce 0 bytes.
+// They are variables and mixins only, so importing them into several bundles
+// duplicates no output.
+//
+//   _breakpoints    @breakpoint-header-collapse, the one media query here
+//   _page-metrics   @home-gutter / @home-gutter-mobile, which BOTH components
+//                   below measure their bands with — so the grid and the
+//                   finder card share one edge at every width
+//   _icons          .spartrak-icon(), called by the finder's CTA arrow
+//
+// _a11y IS NOT IMPORTED, even though grid.phtml uses its
+// `.spartrak-visually-hidden` class for the page's hidden <h1>. Unlike the
+// three above it DOES emit (192 bytes, measured), and it is already in
+// css/spartrak-components.css, which default_head_blocks.xml loads on every
+// page — so importing it here would ship the same rule twice to the same
+// document. _spinner is left out for the same reason plus a second one:
+// nothing on this page uses it at all.
+
+@import "source/foundations/_breakpoints.less";
+@import "source/foundations/_page-metrics.less";
+@import "source/foundations/_icons.less";
+
+@import "source/components/_brand-grid.less";
+@import "source/components/_cascade-finder.less";

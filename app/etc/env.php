@@ -85,5 +85,14 @@ return [
     ],
     'install' => [
         'date' => 'Fri, 21 Aug 2026 15:45:11 +0000'
+    ],
+    'system' => [
+        'default' => [
+            'dev' => [
+                'js' => [
+                    'enable_js_bundling' => '0'
+                ]
+            ]
+        ]
     ]
 ];

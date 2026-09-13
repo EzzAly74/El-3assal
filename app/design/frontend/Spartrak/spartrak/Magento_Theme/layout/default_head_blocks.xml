@@ -92,6 +92,48 @@
   This does NOT touch the Spartrak loader: components/_loader.less owns that,
   it is pure CSS on Spartrak markup, and it shares no class or keyframe name
   with this file.
+
+  ===========================================================================
+  FOURTH PASS, 2026-09-09 — TWO RENDER-BLOCKING STYLESHEETS FROM CORE
+  ===========================================================================
+  Every removal above was a Porto asset. These two are MAGENTO'S OWN, added to
+  every storefront page by core layout, and they are render-blocking - which is
+  what makes 1.9KB worth a pass of its own. Lighthouse (mobile, Slow 4G) lists
+  both in "Render-blocking requests":
+
+      mage/calendar.css                 1,362B   150ms blocking
+      jquery/uppy/dist/uppy-custom.css    512B   450ms blocking
+
+  uppy-custom.css IS REMOVED OUTRIGHT. Magento_Catalog adds it in
+  view/BASE/layout/default.xml, so it lands on the storefront as well as the
+  admin - but Uppy is the ADMIN product-form uploader. Verified by grepping
+  every vendor/magento/*/view/frontend template and script for "uppy": zero
+  matches, and zero in this theme or any Spartrak module. It is an admin asset
+  leaking onto every shopper's critical path, so no page needs it back.
+
+  mage/calendar.css IS REMOVED AND RE-ADDED WHERE IT IS EARNED. Magento_Theme
+  adds it globally (default_head_blocks.xml:11). Its only storefront consumer
+  is Magento_Customer's widget/dob.phtml - the date-of-birth field - which
+  requires `jquery-ui-modules/datepicker` and passes a `calendarConfig`, so it
+  genuinely needs the picker's stylesheet. That template is reached from the
+  customer form on two handles, and this theme re-declares the stylesheet on
+  exactly those:
+
+      Magento_Customer/layout/customer_account_create.xml
+      Magento_Customer/layout/customer_account_edit.xml
+
+  So the datepicker keeps its styling, and the ~99% of sessions that never open
+  an account form stop paying for it. Nothing else on this storefront renders a
+  datepicker: grepping the theme and every Spartrak module for
+  "calendar|datepicker" returns nothing at all.
+
+  WHAT THIS DOES NOT CLAIM. The dominant render-blocking cost on this page is
+  css/styles-m.min.css - 66.7KB, 1,800ms, and 65.5KB of it unused on the
+  homepage per Lighthouse's own coverage. That is Magento blank plus Porto plus
+  every module's CSS in one file, and it is NOT addressed here: removing it
+  would take Porto's fallback with it (CLAUDE.md section 2), and splitting it
+  is a critical-CSS project rather than a layout edit. Recorded so the next
+  pass starts from the real number instead of rediscovering it.
 -->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <head>
@@ -104,6 +146,38 @@
         <remove src="Smartwave_Dailydeals::css/style.css"/>
         <remove src="icon-fonts/css/porto-icons-codes.css"/>
         <remove src="icon-fonts/css/animation.css"/>
+
+        <!-- Fourth pass: core's own render-blocking pair. See the header. -->
+        <remove src="mage/calendar.css"/>
+        <remove src="jquery/uppy/dist/uppy-custom.css"/>
+
+        <!--
+          VIEWPORT: restore pinch-zoom (accessibility, WCAG 1.4.4).
+
+          Smartwave/porto's own Magento_Theme/layout/default_head_blocks.xml
+          overrides Magento core's viewport with
+          `maximum-scale=1.0, user-scalable=no`, which blocks pinch-zoom
+          entirely. That is a hard WCAG 1.4.4 failure — it is the single
+          `meta-viewport` item costing 10 weighted points in the Lighthouse
+          accessibility category, and it is actively hostile to low-vision
+          users on a parts catalogue where part numbers and fitment tables
+          are the whole point of the page.
+
+          Declared HERE rather than by editing Porto (CLAUDE.md section 2:
+          never modify Porto). Magento's page config keys <meta> by NAME, and
+          this theme's layout merges after its parent's, so this declaration
+          replaces Porto's rather than adding a second tag — verified by the
+          rendered <head> carrying exactly one viewport meta.
+
+          Core's value is reinstated verbatim (see
+          vendor/magento/module-theme/view/frontend/layout/default_head_blocks.xml)
+          rather than invented: width=device-width keeps the layout responsive,
+          initial-scale=1 keeps the default zoom, and omitting maximum-scale /
+          user-scalable lets the user zoom. Nothing about the rendered
+          breakpoints changes — `maximum-scale` and `user-scalable` constrain
+          only user gestures, not layout.
+        -->
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
 
         <css src="css/spartrak-foundations.css"/>
         <css src="css/spartrak-components.css"/>

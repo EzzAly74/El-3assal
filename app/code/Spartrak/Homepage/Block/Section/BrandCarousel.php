@@ -78,19 +78,13 @@ class BrandCarousel extends AbstractSection
      * The brand's first character, for the plate shown when an option has no
      * swatch image uploaded yet.
      *
-     * An honest empty state — never a broken <img>, and never a brand silently
-     * dropped from the rail because its logo is missing.
+     * Delegated rather than implemented: the /brands landing grid draws the
+     * same fallback plate, and BrandNavigation — which is the class that can
+     * return `logo => null` in the first place — is the one place both read.
+     * Kept as a method here so brand-carousel.phtml is untouched.
      */
     public function getInitial(string $label): string
     {
-        $label = trim($label);
-
-        if ($label === '') {
-            return '';
-        }
-
-        // mb-aware: an Arabic brand name's first character is multi-byte, and
-        // substr() would emit half a codepoint.
-        return mb_substr($label, 0, 1);
+        return $this->brandNavigation->getInitial($label);
     }
 }

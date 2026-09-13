@@ -192,19 +192,68 @@ try {
     $priceHtml = '';
 }
 
-// Wishlist heart (Figma 718:25231). Reuses Magento's own native ajax
-// add-to-wishlist block/template — the exact one every Luma listing card
-// uses — so the [data-action="add-to-wishlist"] behaviour comes free from
-// Magento_Wishlist's own JS and this template adds none.
+/*
+ * Wishlist heart (Figma 718:25231 inactive / the filled red state the brief
+ * specified for "already saved").
+ *
+ * ===========================================================================
+ * WHY THIS IS NO LONGER MAGENTO'S NATIVE add-to-wishlist BLOCK
+ * ===========================================================================
+ * It was, and the native block emits an ANCHOR carrying `data-post` — which
+ * mage/dataPost turns into a form submission. That is the whole of why
+ * pressing the heart navigated to the wish list page: it was doing exactly
+ * what a posting link does. It also cannot express the second half of what
+ * this control now is:
+ *
+ *   - it is a TOGGLE, so it needs `aria-pressed`, which an <a> cannot carry
+ *     meaningfully and which core's template does not emit;
+ *   - remove is addressed by wishlist_item_id, which the native block has no
+ *     way to know for a product that is already saved;
+ *   - the state has to arrive as private content, because this markup is
+ *     full-page cached (see Spartrak\Wishlist\Plugin\CustomerData\
+ *     AddProductIds).
+ *
+ * So the PRESENTATION is Spartrak's — a real <button> that acts rather than a
+ * link that navigates — while every bit of wish-list BUSINESS LOGIC stays in
+ * Magento's model layer, reached through Spartrak\Wishlist\Model\
+ * WishlistToggle. That is CLAUDE.md section 2's ownership split applied
+ * literally, not a reimplementation of the feature.
+ *
+ * ===========================================================================
+ * AND WHY A sprintf AND NOT A SUB-TEMPLATE
+ * ===========================================================================
+ * The two card variants below both need this markup and it must not be
+ * written twice. The alternatives were a per-card block instantiation
+ * (`createBlock(...)->setTemplate(...)->toHtml()`) — which is what the code
+ * this replaces did, and which costs a block, a template resolution and a
+ * render for every card in a twenty-card grid — or duplicating eight lines of
+ * markup. One escaped sprintf is cheaper than the first and safer than the
+ * second, and it is presentation glue, not logic.
+ *
+ * `aria-pressed="false"` is rendered for EVERYONE on purpose. It is the
+ * cacheable answer; js/wishlist-toggle.js turns it true from customer-data.
+ * Baking the real state here would put one shopper's wish list into the cache
+ * entry served to every other.
+ *
+ * The label ships in the HTML rather than being left to the JS because an
+ * icon-only button with no accessible name is broken until the script lands
+ * (CLAUDE.md section 15). The JS swaps it for "Remove from Wish List" on the
+ * hearts it fills.
+ */
 $wishlistHtml = '';
-try {
-    $wishlistHtml = $block->getLayout()
-        ->createBlock(\Magento\Wishlist\Block\Catalog\Product\ProductList\Item\AddTo\Wishlist::class)
-        ->setTemplate('Magento_Wishlist::catalog/product/list/addto/wishlist.phtml')
-        ->setProduct($product)
-        ->toHtml();
-} catch (\Exception $e) {
-    $wishlistHtml = '';
+$wishlistProductId = (int) $product->getId();
+
+if ($wishlistProductId > 0) {
+    $addLabel = $block->escapeHtmlAttr(__('Add to Wish List'));
+
+    $wishlistHtml = sprintf(
+        '<button type="button" class="spartrak-card__wishlist-toggle"'
+        . ' data-spartrak-wishlist="%d" aria-pressed="false"'
+        . ' aria-label="%s" title="%s"></button>',
+        $wishlistProductId,
+        $addLabel,
+        $addLabel
+    );
 }
 
 
@@ -220,7 +269,23 @@ try {
       in Figma, and the whole card is a link to the product.
     */ ?>
     <div class="spartrak-card spartrak-card--horizontal">
-        <div class="spartrak-card__content">
+        <div class="spartrak-card__media">
+            <a class="spartrak-card__image-link"
+               href="<?= $block->escapeUrl($product->getProductUrl()) ?>"
+               tabindex="-1"
+               aria-hidden="true">
+                <img
+                    class="spartrak-card__image"
+                    src="<?= $block->escapeUrl($image->getUrl()) ?>"
+                    alt=""
+                    width="<?= $block->escapeHtmlAttr($image->getWidth()) ?>"
+                    height="<?= $block->escapeHtmlAttr($image->getHeight()) ?>"
+                    loading="<?= $aboveFold ? 'eager' : 'lazy' ?>"
+                    decoding="async"
+                />
+            </a>
+        </div>
+         <div class="spartrak-card__content">
             <?php if (trim($wishlistHtml)) : ?>
                 <div class="spartrak-card__wishlist"><?= /* @noEscape */ $wishlistHtml ?></div>
             <?php endif; ?>
@@ -245,30 +310,16 @@ try {
                 <div class="spartrak-card__price"><?= /* @noEscape */ $priceHtml ?></div>
             </div>
         </div>
-        <div class="spartrak-card__media">
-            <a class="spartrak-card__image-link"
-               href="<?= $block->escapeUrl($product->getProductUrl()) ?>"
-               tabindex="-1"
-               aria-hidden="true">
-                <img
-                    class="spartrak-card__image"
-                    src="<?= $block->escapeUrl($image->getUrl()) ?>"
-                    alt=""
-                    width="<?= $block->escapeHtmlAttr($image->getWidth()) ?>"
-                    height="<?= $block->escapeHtmlAttr($image->getHeight()) ?>"
-                    loading="<?= $aboveFold ? 'eager' : 'lazy' ?>"
-                    decoding="async"
-                />
-            </a>
-        </div>
     </div>
 <?php else : ?>
 <div class="spartrak-card">
     <div class="spartrak-card__media">
         <!--
-          The wishlist button is a real <a> — it CANNOT nest inside the
-          image's own <a>. Media is a plain <div>; the image link and the
-          overlay row are siblings stacked by CSS. The image link is
+          The wishlist button is an interactive control — it CANNOT nest
+          inside the image's own <a> (a <button> inside an <a> is invalid
+          HTML and the browser's own parser will move it). Media is a plain
+          <div>; the image link and the overlay row are siblings stacked by
+          CSS. The image link is
           aria-hidden/untabbable because the product name below is the
           accessible link to the same URL — one target, not two.
         -->

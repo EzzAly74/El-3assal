@@ -1,0 +1,48 @@
+// Spartrak product detail page — entry point.
+//
+// Compiled as its own stylesheet and enqueued ONLY on catalog_product_view
+// (see Magento_Catalog/layout/catalog_product_view.xml), rather than being folded
+// into spartrak-components.css.
+//
+// WHY IT IS SPLIT OUT: spartrak-components.css is render-blocking on EVERY
+// page, and it was carrying 2,265 lines of CSS that match nothing outside
+// a product page. Lighthouse measured that bundle at 21.8KB over the wire with
+// 16.1KB of it UNUSED on the homepage - 76 per cent - and it is one of only
+// three stylesheets left in the critical path. Carrying one page's CSS to
+// every other page taxes their LCP to style something they can never show.
+//
+// This is the same decision and the same mechanism as spartrak-cart.less,
+// spartrak-checkout.less, spartrak-account.less and spartrak-pdp-video.less.
+// It is not a new pattern; it is that pattern applied to the files that were
+// still global.
+//
+// THE FOUNDATIONS BELOW EMIT NOTHING. _breakpoints, _page-metrics, _icons and
+// _a11y are variables and mixins only - verified, zero emitting rules - so
+// importing them into several bundles duplicates no output. _spinner is NOT
+// imported here precisely because it DOES emit (two keyframes and two rules)
+// and none of the components in this bundle use it; it stays single-sourced
+// in spartrak-components.less.
+//
+// _reviews TRAVELS WITH IT: the review list and its summary render inside
+// the product page and nowhere else on this storefront, so the two are one
+// page's CSS and belong in one request. This bundle is separate from
+// spartrak-pdp-video.less, which stays its own file because it styles a
+// player only SOME products have - see that file's note.
+
+@import "source/foundations/_breakpoints.less";
+@import "source/foundations/_page-metrics.less";
+@import "source/foundations/_icons.less";
+@import "source/foundations/_a11y.less";
+
+// The section shell, the horizontal rail and the scroll-progress bar that
+// Spartrak_Catalog::product/related-rail.phtml is built from. Shared with the
+// homepage, which is why it is its own file - see its header.
+@import "source/components/_section-rail.less";
+@import "source/components/_pdp.less";
+@import "source/components/_reviews.less";
+
+// Motion suppression and the rail drag cursor. LAST, deliberately: a media
+// query adds no specificity, so these only override the transitions and
+// cursors declared above by being declared after them. Nothing may be
+// imported after this line - see components/_section-rail-motion.less.
+@import "source/components/_section-rail-motion.less";

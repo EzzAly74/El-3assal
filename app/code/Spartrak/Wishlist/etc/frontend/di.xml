@@ -1,13 +1,30 @@
 <?xml version="1.0"?>
 <!--
-  Adds a NUMERIC item count to the `wishlist` customer-data section. Frontend
-  scope only: the section is a storefront concern and nothing in the admin
-  reads it, so the plugin is not loaded on admin requests.
+  Two additions to the `wishlist` customer-data section. Frontend scope only:
+  the section is a storefront concern and nothing in the admin reads it, so
+  neither plugin is loaded on admin requests.
+
+    spartrak_wishlist_numeric_count   a NUMBER beside core's translated
+                                      "N items" phrase, so the header badge can
+                                      render the numeral Figma draws.
+
+    spartrak_wishlist_product_ids     WHICH products are on the list, so every
+                                      product card's heart can paint its own
+                                      state without baking private data into a
+                                      full-page-cached page.
+
+  Both are `afterGetSectionData` on the same section and are deliberately
+  separate classes: they answer different questions and one could be removed
+  without touching the other. The cost is one extra plugin in a chain that runs
+  once per customer-data fetch.
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
     <type name="Magento\Wishlist\CustomerData\Wishlist">
         <plugin name="spartrak_wishlist_numeric_count"
                 type="Spartrak\Wishlist\Plugin\CustomerData\AddNumericCount"
                 sortOrder="10"/>
+        <plugin name="spartrak_wishlist_product_ids"
+                type="Spartrak\Wishlist\Plugin\CustomerData\AddProductIds"
+                sortOrder="20"/>
     </type>
 </config>

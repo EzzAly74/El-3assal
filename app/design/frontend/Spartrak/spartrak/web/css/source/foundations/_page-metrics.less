@@ -54,3 +54,37 @@
 // the same reasoning _breakpoints.less records for @breakpoint-header-collapse.
 @plp-gutter-tablet: 20px;
 @plp-gutter-mobile: 15px;
+
+// ===========================================================================
+// THE CONTENT-BAND GUTTER USED BY THE FULL-WIDTH LANDING BANDS
+// ===========================================================================
+// MOVED HERE from components/_section-rail.less when a THIRD file came to
+// depend on it — components/_cascade-finder.less and
+// components/_brand-grid.less, both of which compile into a bundle that must
+// not import the rail. That is the exact situation this file's header
+// describes: two files in components/ that must agree on a number, with no
+// declaration order between them that a stale var/view_preprocessed entry
+// cannot get half-right. One declaration site removes the failure class.
+//
+// THE HOMEPAGE CONTENT MEASURE IS A GUTTER, NOT A CAP.
+//
+// Figma's 1440 frame puts every section header and rail at x=48 with a
+// matching 48 on the far side (verified across "New arrivals header" 704:26756,
+// "Categories header" 704:27331, "Flash Deals Header" 704:27437 and
+// "Footer Links Column" 704:28065 — all x=48, w=1344). So the design states
+// one number: the gutter is 48. It says nothing about a maximum, because 1440
+// is the only frame drawn.
+//
+// This used to read `min(100% - 96px, 1344px)`, which reproduced Figma exactly
+// at 1440 and diverged everywhere above it: MEASURED on a 1890px window the
+// sections sat in a 1344px column with 273px of blank either side, where the
+// design's own language is a 48px edge. The cap was inferred, not designed.
+//
+// `calc(100% - (gutter * 2))` resolves to 1344 on a 1440 viewport — pixel
+// identical to Figma — and holds the same 48px edge at every other width.
+//
+// It is a SEPARATE number from @plp-gutter above even though both are 48px
+// today: that one is the product-listing band's, read off different frames,
+// and collapsing them would make one design change silently move the other.
+@home-gutter: 48px;
+@home-gutter-mobile: 16px;

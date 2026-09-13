@@ -34,200 +34,252 @@
  * navigation applies it). Brand alone falls back to the same URL the header's
  * brand tiles use, handed over by the template. Nothing is synthesised.
  */
-define(['jquery', 'jquery-ui-modules/widget'], function ($) {
-    'use strict';
+define(["jquery", "jquery-ui-modules/widget"], function ($) {
+  "use strict";
 
-    $.widget('mage.spartrakCascadeSearch', {
-        options: {
-            optionsUrl: '',
-            brandUrls: {}
-        },
+  $.widget("mage.spartrakCascadeSearch", {
+    options: {
+      optionsUrl: "",
+      brandUrls: {},
+    },
 
-        _create: function () {
-            this.form = this.element.find('[data-finder-form]').first();
+    _create: function () {
+      this.form = this.element.find("[data-finder-form]").first();
 
-            if (!this.form.length) {
-                return;
-            }
+      if (!this.form.length) {
+        return;
+      }
 
-            this.cache = {};
-            this.request = null;
+      this.cache = {};
+      this.request = null;
+      this.cta = this.form.find("[data-finder-submit]");
 
-            this._on({
-                'change [data-finder-level]': this._onLevelChange,
-                'submit [data-finder-form]': this._onSubmit
-            });
-        },
-
-        _select: function (level) {
-            return this.form.find('[data-finder-level="' + level + '"]');
-        },
-
-        _field: function (level) {
-            return this.form.find('[data-finder-field="' + level + '"]');
-        },
-
-        _onLevelChange: function (event) {
-            var select = $(event.currentTarget);
-            var level = parseInt(select.attr('data-finder-level'), 10) || 0;
-            var value = select.val();
-
-            // Everything below this level is now meaningless.
-            this._resetFrom(level + 1);
-
-            if (!value) {
-                return;
-            }
-
-            this._loadChildren(value, level + 1);
-        },
-
-        /**
-         * Empties, disables and hides every level from `level` downwards.
+      this._on({
+        "change [data-finder-level]": this._onLevelChange,
+        "submit [data-finder-form]": this._onSubmit,
+        /*
+         * NEW2B-5654. The BRAND select carries `data-finder-brand`, not
+         * `data-finder-level`, so the map above has never seen it — it
+         * is not part of the cascade and changing it loads nothing.
+         * The CTA gate does care about it, because a brand on its own
+         * is a valid search (see _onSubmit's brandUrls branch), so it
+         * gets its own binding rather than being folded into the
+         * cascade handler it has no other business in.
          */
-        _resetFrom: function (level) {
-            for (var i = level; i <= 3; i++) {
-                var select = this._select(i);
+        "change [data-finder-brand]": this._syncCta,
+      });
 
-                if (!select.length) {
-                    continue;
-                }
+      // The markup ships the button disabled, which is correct for an
+      // empty form. This re-reads the real state on init so a form
+      // restored by the browser's back/forward cache — where the selects
+      // come back with their values and no `change` fires — does not
+      // strand a filled form behind a dead button.
+      this._syncCta();
+    },
 
-                // Keep the placeholder option, drop everything after it.
-                select.find('option').slice(1).remove();
-                select.val('');
-                select.prop('disabled', true);
-                this._field(i).attr('hidden', 'hidden');
-            }
-        },
+    /**
+     * ONE FIELD IS ENOUGH — NEW2B-5654.
+     *
+     * The requirement is "any field", and that is exactly what _onSubmit
+     * can act on: a category url, or a brand with a url of its own, or
+     * both. So the gate asks the same question the submit does — is there
+     * anything at all to navigate to — rather than counting fields.
+     *
+     * Levels 2 and 3 are `disabled` until their parent is chosen, and a
+     * disabled select's val() is still read here; that is harmless because
+     * a disabled level is also always empty (_resetFrom clears before it
+     * disables).
+     */
+    _syncCta: function () {
+      if (!this.cta.length) {
+        return;
+      }
 
-        _loadChildren: function (parentId, level) {
-            var select = this._select(level);
+      var hasBrand = !!this.form.find("[data-finder-brand]").val(),
+        hasCategory = !!this._deepestSelected();
 
-            if (!select.length || !this.options.optionsUrl) {
-                return;
-            }
+      this.cta.prop("disabled", !(hasBrand || hasCategory));
+    },
 
-            if (this.cache[parentId]) {
-                this._fill(level, this.cache[parentId]);
+    _select: function (level) {
+      return this.form.find('[data-finder-level="' + level + '"]');
+    },
 
-                return;
-            }
+    _field: function (level) {
+      return this.form.find('[data-finder-field="' + level + '"]');
+    },
 
-            if (this.request) {
-                this.request.abort();
-            }
+    _onLevelChange: function (event) {
+      var select = $(event.currentTarget);
+      var level = parseInt(select.attr("data-finder-level"), 10) || 0;
+      var value = select.val();
 
-            var self = this;
+      // Everything below this level is now meaningless.
+      this._resetFrom(level + 1);
 
-            this.request = $.ajax({
-                url: this.options.optionsUrl,
-                data: { parent: parentId },
-                type: 'GET',
-                dataType: 'json'
-            }).done(function (response) {
-                var options = response && response.options ? response.options : [];
+      // NEW2B-5654. Before the early return below, because CLEARING a
+      // level is exactly the case that can take the last value out of the
+      // form and has to put the button back to disabled.
+      this._syncCta();
 
-                self.cache[parentId] = options;
-                self._fill(level, options);
-            }).fail(function (jqXhr, status) {
-                if (status === 'abort') {
-                    return;
-                }
+      if (!value) {
+        return;
+      }
 
-                // A failed lookup leaves the finder usable at the levels that
-                // did resolve rather than blocking the whole form.
-                self._resetFrom(level);
-            }).always(function () {
-                self.request = null;
-            });
-        },
+      this._loadChildren(value, level + 1);
+    },
 
-        _fill: function (level, options) {
-            var select = this._select(level);
-            var field = this._field(level);
+    /**
+     * Empties, disables and hides every level from `level` downwards.
+     */
+    _resetFrom: function (level) {
+      for (var i = level; i <= 3; i++) {
+        var select = this._select(i);
 
-            if (!options.length) {
-                // Nothing below this point — the chosen category is a leaf.
-                // Leaving the field hidden is the correct outcome, not an
-                // error: the shopper has already picked something specific
-                // enough to search on.
-                return;
-            }
-
-            var fragment = document.createDocumentFragment();
-
-            options.forEach(function (option) {
-                var el = document.createElement('option');
-
-                el.value = option.value;
-                el.textContent = option.label;
-
-                if (option.url) {
-                    el.setAttribute('data-url', option.url);
-                }
-
-                fragment.appendChild(el);
-            });
-
-            // One append, not one per option — the select is touched once.
-            select[0].appendChild(fragment);
-            select.prop('disabled', false);
-            field.removeAttr('hidden');
-        },
-
-        /**
-         * The deepest level that actually has a selection.
-         */
-        _deepestSelected: function () {
-            for (var i = 3; i >= 1; i--) {
-                var select = this._select(i);
-
-                if (select.length && select.val()) {
-                    return select.find('option:selected');
-                }
-            }
-
-            return null;
-        },
-
-        _onSubmit: function (event) {
-            event.preventDefault();
-
-            var selected = this._deepestSelected();
-            var brand = this.form.find('[data-finder-brand]').val();
-            var destination = '';
-
-            if (selected && selected.attr('data-url')) {
-                destination = selected.attr('data-url');
-
-                if (brand) {
-                    destination += (destination.indexOf('?') === -1 ? '?' : '&')
-                        + 'brand=' + encodeURIComponent(brand);
-                }
-            } else if (brand && this.options.brandUrls[brand]) {
-                // No category chosen: go exactly where the header's tile for
-                // this brand goes.
-                destination = this.options.brandUrls[brand];
-            }
-
-            if (!destination) {
-                // Nothing chosen at all — put the shopper in the first control
-                // rather than navigating somewhere arbitrary.
-                this.form.find('select').filter(':enabled').first().trigger('focus');
-
-                return;
-            }
-
-            window.location.assign(destination);
-        },
-
-        _destroy: function () {
-            if (this.request) {
-                this.request.abort();
-            }
+        if (!select.length) {
+          continue;
         }
-    });
 
-    return $.mage.spartrakCascadeSearch;
+        // Keep the placeholder option, drop everything after it.
+        select.find("option").slice(1).remove();
+        select.val("");
+        select.prop("disabled", true);
+        this._field(i).attr("hidden", "hidden");
+      }
+    },
+
+    _loadChildren: function (parentId, level) {
+      var select = this._select(level);
+
+      if (!select.length || !this.options.optionsUrl) {
+        return;
+      }
+
+      if (this.cache[parentId]) {
+        this._fill(level, this.cache[parentId]);
+
+        return;
+      }
+
+      if (this.request) {
+        this.request.abort();
+      }
+
+      var self = this;
+
+      this.request = $.ajax({
+        url: this.options.optionsUrl,
+        data: { parent: parentId },
+        type: "GET",
+        dataType: "json",
+      })
+        .done(function (response) {
+          var options = response && response.options ? response.options : [];
+
+          self.cache[parentId] = options;
+          self._fill(level, options);
+        })
+        .fail(function (jqXhr, status) {
+          if (status === "abort") {
+            return;
+          }
+
+          // A failed lookup leaves the finder usable at the levels that
+          // did resolve rather than blocking the whole form.
+          self._resetFrom(level);
+        })
+        .always(function () {
+          self.request = null;
+        });
+    },
+
+    _fill: function (level, options) {
+      var select = this._select(level);
+      var field = this._field(level);
+
+      if (!options.length) {
+        // Nothing below this point — the chosen category is a leaf.
+        // Leaving the field hidden is the correct outcome, not an
+        // error: the shopper has already picked something specific
+        // enough to search on.
+        return;
+      }
+
+      var fragment = document.createDocumentFragment();
+
+      options.forEach(function (option) {
+        var el = document.createElement("option");
+
+        el.value = option.value;
+        el.textContent = option.label;
+
+        if (option.url) {
+          el.setAttribute("data-url", option.url);
+        }
+
+        fragment.appendChild(el);
+      });
+
+      // One append, not one per option — the select is touched once.
+      select[0].appendChild(fragment);
+      select.prop("disabled", false);
+      field.removeAttr("hidden");
+    },
+
+    /**
+     * The deepest level that actually has a selection.
+     */
+    _deepestSelected: function () {
+      for (var i = 3; i >= 1; i--) {
+        var select = this._select(i);
+
+        if (select.length && select.val()) {
+          return select.find("option:selected");
+        }
+      }
+
+      return null;
+    },
+
+    _onSubmit: function (event) {
+      event.preventDefault();
+
+      var selected = this._deepestSelected();
+      var brand = this.form.find("[data-finder-brand]").val();
+      var destination = "";
+
+      if (selected && selected.attr("data-url")) {
+        destination = selected.attr("data-url");
+
+        if (brand) {
+          destination +=
+            (destination.indexOf("?") === -1 ? "?" : "&") +
+            "brand=" +
+            encodeURIComponent(brand);
+        }
+      } else if (brand && this.options.brandUrls[brand]) {
+        // No category chosen: go exactly where the header's tile for
+        // this brand goes.
+        destination = this.options.brandUrls[brand];
+      }
+
+      if (!destination) {
+        // Nothing chosen at all — put the shopper in the first control
+        // rather than navigating somewhere arbitrary.
+        this.form.find("select").filter(":enabled").first().trigger("focus");
+
+        return;
+      }
+
+      window.location.assign(destination);
+    },
+
+    _destroy: function () {
+      if (this.request) {
+        this.request.abort();
+      }
+    },
+  });
+
+  return $.mage.spartrakCascadeSearch;
 });

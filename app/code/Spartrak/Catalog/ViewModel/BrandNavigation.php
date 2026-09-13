@@ -165,6 +165,32 @@ class BrandNavigation implements ArgumentInterface
     }
 
     /**
+     * The brand's first character, for the plate shown when an option has no
+     * swatch image uploaded yet.
+     *
+     * An honest empty state — never a broken <img>, and never a brand silently
+     * dropped from a rail or a grid because its logo is missing.
+     *
+     * It lives HERE, beside the logo lookup that can return null, rather than
+     * on any one block: three surfaces now render the fallback plate (the
+     * homepage rail, the /brands grid, and the header pane's own initial), and
+     * a second copy of this is how one of them ends up mb-unaware.
+     *
+     * mb-aware on purpose: an Arabic brand name's first character is
+     * multi-byte, and substr() would emit half a codepoint.
+     */
+    public function getInitial(string $label): string
+    {
+        $label = trim($label);
+
+        if ($label === '') {
+            return '';
+        }
+
+        return mb_substr($label, 0, 1);
+    }
+
+    /**
      * @return array<int, array{label: string, value: string, logo: ?string, url: string}>
      */
     private function build(): array

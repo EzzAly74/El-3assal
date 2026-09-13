@@ -11,6 +11,25 @@
         <plugin name="spartrak_split_account_full_name"
                 type="Spartrak\CustomerAccount\Plugin\Customer\SplitFullName"
                 sortOrder="10"/>
+
+        <!--
+          NEW2B-5613. A successful email change signs the shopper out and sends
+          them to customer/account/login, which is not a page here — sign-in is
+          a modal, so that GET is bounced to the referring account page, which
+          needs the session they no longer have, which redirects to login.
+          A LOOP, confirmed in production as ERR_TOO_MANY_REDIRECTS.
+
+          The email is not the sign-in identifier on this storefront (phone
+          is), so the logout is protecting nothing. The plugin re-establishes
+          ONLY the session that made the authenticated request; its header
+          carries the trace and the four security properties it deliberately
+          leaves in place.
+
+          After SplitFullName, which only rewrites the posted name.
+        -->
+        <plugin name="spartrak_keep_session_after_email_change"
+                type="Spartrak\CustomerAccount\Plugin\Customer\KeepSessionAfterEmailChange"
+                sortOrder="20"/>
     </type>
 
     <!--

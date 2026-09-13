@@ -88,6 +88,17 @@ both this route and search render, so neither layout file needs to know the
 module name. Do not add it back here.
 -->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <!--
+          The category/search stylesheet: components/_plp.less and
+          components/_category-top.less, which were part of the render-blocking
+          css/spartrak-components.css on every route and match nothing outside
+          these two handles. Splitting them out took the global bundle from
+          42,404 to 17,328 gzipped bytes; this page pays 18,000 of that back and
+          every other route pays none of it. See web/css/spartrak-plp.less.
+        -->
+        <css src="css/spartrak-plp.css"/>
+    </head>
     <body>
         <referenceContainer name="columns.top">
             <!--
@@ -164,6 +175,32 @@ module name. Do not add it back here.
                        as="quick_search"
                        template="Spartrak_Catalog::category/quick-search.phtml"/>
             </block>
+        </referenceContainer>
+
+        <!--
+          THE PROJECT LOADER, RAISED FOR A FULL PAGE RELOAD.
+
+          Every control on this page navigates: the sort disclosure, the filter
+          chips, the pager and the category tiles are all links (see
+          Magento_Catalog/templates/product/list/toolbar.phtml for why the
+          sorter is not a <select>), and infinite scroll is deliberately off.
+          Magento raises a loader for AJAX and there is none here, so tapping a
+          filter changed the page with no acknowledgement at all until the new
+          document painted.
+
+          This is the SAME loader, not a second one (CLAUDE.md section 10) — the
+          template renders core's own `.loading-mask > .loader` shape, which
+          components/_loader.less already draws the Spartrak ring inside, and
+          js/spartrak-nav-pending.js only toggles a class on <html>.
+
+          Mounted per route rather than in default.xml: it is one line to add
+          to any other page that wants it, and pages with nothing to wait on
+          ship neither the markup nor the module.
+        -->
+        <referenceContainer name="before.body.end">
+            <block class="Magento\Framework\View\Element\Template"
+                   name="spartrak.nav_loader"
+                   template="Magento_Theme::html/nav-loader.phtml"/>
         </referenceContainer>
 
         <referenceBlock name="page.main.title" remove="true"/>

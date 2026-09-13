@@ -71,6 +71,7 @@ define(["jquery", "Magento_Ui/js/modal/modal", "mage/translate"], function (
 
     passwordSubmit: "[data-spartrak-password-submit]",
     currentPassword: "[data-spartrak-dialog-current-password]",
+    reveal: "[data-password-toggle]",
   };
 
   return function (config, element) {
@@ -280,16 +281,61 @@ define(["jquery", "Magento_Ui/js/modal/modal", "mage/translate"], function (
       $form.get(0).submit();
     }
 
+    /**
+     * Checks the password BEFORE the card is submitted, and keeps the dialog
+     * open when it is wrong.
+     *
+     * This used to call submitCard() straight away. The dialog therefore closed
+     * and posted the whole card without knowing whether the password was
+     * right, and a wrong one produced a full page load, core's refusal, and a
+     * freshly rendered form with the shopper's typing gone — reported as "once
+     * i click save popup dismissed even if i enter wrong password".
+     *
+     * Nothing about the SAVE moved here. core's EditPost still authenticates
+     * the password itself; this only decides whether it is worth sending. See
+     * Controller\Account\VerifyPassword on why it grants nothing.
+     */
     function submitPassword() {
-      var current = String($host.find(SEL.currentPassword).val() || "");
+      var $field = $host.find(SEL.currentPassword),
+        $button = $host.find(SEL.passwordSubmit),
+        current = String($field.val() || "");
 
       if (current === "") {
         fail($t("Please enter your current password."));
+        $field.trigger("focus");
 
         return;
       }
 
-      submitCard();
+      // A second press while the first answer is in flight would verify twice
+      // and, on success, submit the card twice.
+      if ($button.prop("disabled")) {
+        return;
+      }
+
+      $button.prop("disabled", true);
+
+      post(config.verifyPassword, { current_password: current })
+        .done(function (response) {
+          if (response && response.valid) {
+            // Left disabled on purpose: submitCard() is about to navigate, and
+            // re-enabling would offer a control that cannot be used again.
+            submitCard();
+
+            return;
+          }
+
+          $button.prop("disabled", false);
+          fail((response || {}).message);
+          // Cleared rather than left standing, so the next attempt starts from
+          // an empty box instead of one the shopper has to correct blind.
+          $field.val("").trigger("focus");
+        })
+        .fail(function (xhr) {
+          $button.prop("disabled", false);
+          fail((xhr.responseJSON || {}).message);
+          $field.trigger("focus");
+        });
     }
 
     /* ------------------------------------------------------------------
@@ -301,7 +347,42 @@ define(["jquery", "Magento_Ui/js/modal/modal", "mage/translate"], function (
      * anything is saved, and the email needs a password. Neither fires when
      * the shopper only touched their name, so the common save is untouched.
      */
+    /**
+     * Would the card save if it were posted right now?
+     *
+     * Asked of jQuery Validate's own instance rather than through
+     * `$form.validation('isValid')`, because the widget method throws if the
+     * widget has not initialised yet and BOTH it and this file are wired from
+     * the same x-magento-init block, whose init order is not guaranteed. No
+     * validator yet means nothing has objected, which is the same answer the
+     * widget would give.
+     */
+    function cardIsValid() {
+      var validator = $form.data("validator");
+
+      return !validator || validator.form();
+    }
+
     $form.on("submit.spartrakAccount", function (event) {
+      /*
+       * NOTHING IS CONFIRMED FOR A CARD THAT CANNOT BE SAVED.
+       *
+       * This gate used to open a confirm step purely on "did the value
+       * change", so typing a malformed address and pressing save drew the
+       * password dialog ON TOP OF the email field's own validation error — the
+       * shopper was asked to authorise a change that was going to be refused
+       * either way, and the error was hidden behind the dialog while they did
+       * it. Reported with a screenshot: "if i enter non valid email password
+       * popup also show".
+       *
+       * The submit itself is already stopped by Magento's validation widget,
+       * which has marked the offending field by the time this returns; all this
+       * does is decline to stack a dialog over it.
+       */
+      if (!cardIsValid()) {
+        return;
+      }
+
       if (phoneChanged()) {
         event.preventDefault();
         openOtp();
@@ -332,6 +413,37 @@ define(["jquery", "Magento_Ui/js/modal/modal", "mage/translate"], function (
 
     $host.on("click", SEL.otpSubmit, submitCode);
     $host.on("click", SEL.passwordSubmit, submitPassword);
+
+    /*
+     * Figma's eye reveal, the same one every password field in the login modal
+     * has. One glyph exists in the design for both states, so the shown/hidden
+     * distinction is carried by aria-pressed and aria-label — inventing a
+     * second "hidden" variant is the asset guess CLAUDE.md section 3 forbids.
+     *
+     * Bound here rather than shared with spartrak-auth.js for the same reason
+     * the OTP digit behaviour below already is: that file is in the THEME and
+     * this is a MODULE, so reusing it would make a module depend on a theme
+     * asset and invert the ownership direction in section 2.
+     */
+    $host.on("click", SEL.reveal, function (event) {
+      var $button = $(this),
+        $input = $button.siblings("input"),
+        nowVisible = $input.attr("type") === "password";
+
+      event.preventDefault();
+
+      $input.attr("type", nowVisible ? "text" : "password");
+      $button
+        .attr("aria-pressed", nowVisible ? "true" : "false")
+        .attr(
+          "aria-label",
+          nowVisible ? $t("Hide password") : $t("Show password"),
+        );
+
+      // The click moved focus to the button; hand it back so the caret stays
+      // where the shopper was typing.
+      $input.trigger("focus");
+    });
     $host.on("click", SEL.cancel, function (event) {
       event.preventDefault();
       closeDialog();

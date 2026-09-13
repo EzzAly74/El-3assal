@@ -79,10 +79,13 @@ define([], function () {
 
     /**
      * @param {Object} config
-     *        `id`          the token that names this dialog, both in its
-     *                      triggers' `data-spartrak-dialog-open` and in the
-     *                      `#dialog=` fragment the observers redirect to.
-     *        `autoDismiss` optional, milliseconds. See _startAutoDismiss.
+     *        `id`              the token that names this dialog, both in its
+     *                          triggers' `data-spartrak-dialog-open` and in
+     *                          the `#dialog=` fragment the observers redirect
+     *                          to.
+     *        `autoDismiss`     optional, milliseconds. See _startAutoDismiss.
+     *        `triggerSelector` optional. An ADDITIONAL selector whose matches
+     *                          also open this dialog. See below.
      * @param {HTMLElement} element - the <dialog>
      * @return {void}
      */
@@ -90,6 +93,27 @@ define([], function () {
         var dialog = element,
             id = config && config.id,
             autoDismiss = config && config.autoDismiss,
+            /**
+             * ===============================================================
+             * CLAIMING TRIGGERS THIS THEME DOES NOT OWN THE MARKUP OF
+             * ===============================================================
+             * `data-spartrak-dialog-open` is the normal contract and stays the
+             * normal contract: a Spartrak template puts the attribute on its
+             * own control. Two dialogs use nothing else.
+             *
+             * The logout confirmation cannot. A "sign out" link is rendered in
+             * at least four places, and only two of them are Spartrak
+             * templates — the others are Magento's own account-sidebar
+             * delegate and Porto's `.authorization-link`. Adding the attribute
+             * to those would mean forking a core template and a Porto one to
+             * add a data attribute, which CLAUDE.md section 2 rules out
+             * ("never customize Porto merely because it happens to exist").
+             *
+             * So a dialog may name a selector instead, and the ONE listener
+             * below matches either. It is one extra `closest()` call per
+             * document click on the pages that pass the option.
+             */
+            triggerSelector = config && config.triggerSelector,
             openTrigger,
             timer = null,
             // The control that opened the dialog, so focus can be handed back
@@ -102,6 +126,10 @@ define([], function () {
         }
 
         openTrigger = '[data-spartrak-dialog-open="' + id + '"]';
+
+        if (triggerSelector) {
+            openTrigger += ',' + triggerSelector;
+        }
 
         /**
          * ===================================================================
@@ -201,9 +229,26 @@ define([], function () {
                 return;
             }
 
-            // The triggers are real <a href="/contact/"> links so that they
-            // still work with this file absent. Opening the dialog instead of
-            // following them is the enhancement.
+            /**
+             * A control INSIDE this dialog is never one of its own triggers.
+             *
+             * Not defensive tidying — it is what makes `triggerSelector`
+             * usable at all. The logout confirmation's own "sign out" button
+             * is a real link to the logout URL, so it MATCHES the selector
+             * that opens the dialog; without this guard the click would be
+             * prevented, the dialog would re-show itself, and the one control
+             * that is supposed to complete the action would be the one that
+             * cannot.
+             */
+            if (dialog.contains(trigger)) {
+                return;
+            }
+
+            // The triggers are real links — to /contact/, to the logout route
+            // — so that they still work with this file absent. Opening the
+            // dialog instead of following them is the enhancement, which is
+            // also why a confirmation built this way can never LOCK a shopper
+            // out of signing out.
             event.preventDefault();
             opener = trigger;
             show();

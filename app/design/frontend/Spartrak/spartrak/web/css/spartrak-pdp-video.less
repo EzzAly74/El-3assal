@@ -13,12 +13,14 @@
 // making the same trade.
 //
 // A NOTE ON THE HONEST COST: this is one extra render-blocking request on
-// every PDP, including PDPs with no video. It is ~2KB uncompiled and under a
-// kilobyte over the wire, against ~11KB of JavaScript in four requests that
-// this module removes from the same page (see the module's frontend layout).
-// Making the stylesheet itself conditional on the product having a video would
-// need a layout processor reading product data, which is a lot of machinery to
-// save a fraction of what has already been given back.
+// every PDP, including PDPs with no video. It is under a kilobyte over the
+// wire, against the four requests and ~37KB of parsed JavaScript that keeping
+// `product.info.media.video` removed saves on the same page — Magento's own
+// storefront player, its load-player dependency and the whole Vimeo SDK. See
+// js/spartrak-pdp-video-mixin.js. Making the stylesheet itself conditional on
+// the product having a video would need a layout processor reading product
+// data, which is a lot of machinery to save a fraction of what has already
+// been given back.
 //
 // LOAD ORDER: linked AFTER spartrak-components.css, so on the PDP its rules
 // are the later word on equal specificity — which is what lets this component

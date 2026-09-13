@@ -134,6 +134,23 @@
             <block class="Magento\Framework\View\Element\Template"
                    name="spartrak.signed_out_dialog"
                    template="Magento_Theme::html/signed-out-dialog.phtml"/>
+            <!--
+              The sign-out CONFIRMATION, project-wide. Beside the signed-out
+              panel on purpose: they are the question and the answer to the
+              same event, they share the frame, the illustration and the JS
+              module, and a sign-out control exists in the header on every
+              page — so gating this on a route would leave some of those
+              controls unconfirmed.
+
+              Rendered for guests too, exactly like its neighbour, and for the
+              same reason: this markup is inside the full-page cache, so making
+              it conditional on being signed in would fork a second cache entry
+              of every page in the store to save ~700 bytes. It has no trigger
+              to intercept for a signed-out visitor, so it simply never opens.
+            -->
+            <block class="Magento\Framework\View\Element\Template"
+                   name="spartrak.logout_confirm_dialog"
+                   template="Magento_Theme::html/logout-confirm-dialog.phtml"/>
         </referenceContainer>
 
         <!-- NOTE: <remove name="..."/> is head-asset syntax only; body blocks

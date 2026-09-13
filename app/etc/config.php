@@ -1,63 +1,13 @@
 <?php
 return [
-    /**
-     * =========================================================================
-     * SHARED CONFIGURATION, DEPLOYED WITH THE CODE
-     * =========================================================================
-     * Magento's own mechanism for configuration that is part of the build
-     * rather than part of the catalogue (`bin/magento config:set --lock-config`
-     * writes here). Values in this section OVERRIDE `core_config_data` and the
-     * matching admin field renders read-only, which is the point: a flag that
-     * decides whether the storefront ships 6 MB of render-blocking JavaScript
-     * is a deployment decision, not something to be rediscovered in an admin
-     * dropdown after the next regression.
-     *
-     * -------------------------------------------------------------------------
-     * dev/js/enable_js_bundling = 0  -- MEASURED, NOT ASSUMED
-     * -------------------------------------------------------------------------
-     * `Magento\RequireJs\Block\Html\Head\Config::_prepareLayout()` line 102:
-     * when this flag is on it inserts EVERY `js/bundle/bundle*.js` file, plus
-     * `mage/requirejs/static.js`, into the page's head asset collection. With
-     * `dev/js/merge_files` also on, all of them are then concatenated into one
-     * `_cache/merged/*.min.js` — and a merged head script carries no `defer`
-     * and no `async`, so it blocks the first paint completely.
-     *
-     * What that produced on the Arabic homepage, measured on the live site:
-     *
-     *   ONE <script> in <head>, 6,179,419 bytes raw / 1,290,387 brotli,
-     *   holding 1,357 inlined files (1,047 .js + 310 Knockout .html templates)
-     *   serialised as JSON strings.
-     *
-     * The homepage was therefore downloading, parsing and executing the entire
-     * checkout stack before it could paint anything: Magento_Checkout (153
-     * files), PayPal_Braintree (119), Magento_PaymentServicesPaypal (75),
-     * Magento_Paypal (35), Magento_Tax (23), Magento_SalesRule (17),
-     * Magento_InventoryInStorePickupFrontend (19), Magento_Vault,
-     * Magento_GiftMessage, Magento_CheckoutAgreements — none of which a
-     * homepage ever calls. Plus Mageplaza_Search's `algoliaBundle` 4.5.0
-     * (540 KB on its own), fancyBox 2.1.5, @vimeo/player, jQuery UI and
-     * Keith Wood's countdown.
-     *
-     * Lighthouse attributed 6,256 ms of render-blocking time and 4,344 ms of
-     * main-thread script evaluation to that single file, against FCP 9.5 s and
-     * LCP 14.6 s. It is also what delayed everything downstream: the three
-     * `thmanyah-sans` woff2 faces and all seventeen CSS-referenced icons did
-     * not start until 2,595 ms, immediately after that script finished at
-     * 2,559 ms, because the main thread was busy the whole time.
-     *
-     * Turning it off does not remove a feature. RequireJS still loads every one
-     * of those modules — on demand, on the page that actually asks for one, in
-     * parallel, over HTTP/2, each with its own year-long cache entry. Bundling
-     * is Adobe-deprecated for exactly this reason
-     * (`Magento\Framework\View\Asset\Bundle\Manager` is marked @deprecated),
-     * and `dev/js/merge_files` is deliberately left ON so the change measured
-     * here is attributable to bundling alone.
-     */
     'system' => [
         'default' => [
             'dev' => [
                 'js' => [
                     'enable_js_bundling' => 0
+                ],
+                'css' => [
+                    'merge_css_files' => 0
                 ]
             ]
         ]
@@ -439,20 +389,20 @@ return [
         'Smartwave_Porto' => 1,
         'Smartwave_Socialfeeds' => 1,
         'Spartrak_Catalog' => 1,
-        'Spartrak_CustomerAuth' => 1,
-        'Spartrak_CustomerAddress' => 1,
         'Spartrak_Locale' => 1,
+        'Spartrak_CustomerAuth' => 1,
+        'Spartrak_Contact' => 1,
+        'Spartrak_CustomerAddress' => 1,
         'Spartrak_PickupLocation' => 1,
-        'Spartrak_Homepage' => 1,
         'Spartrak_Checkout' => 1,
+        'Spartrak_Homepage' => 1,
+        'Spartrak_InstaPay' => 1,
+        'Spartrak_Brand' => 1,
         'Spartrak_Payment' => 1,
         'Spartrak_Shipping' => 1,
-        'Spartrak_InstaPay' => 1,
+        'Spartrak_Review' => 1,
         'Spartrak_Search' => 1,
         'Spartrak_CustomerAccount' => 1,
-        'Spartrak_Wishlist' => 1,
-        'Spartrak_Review' => 1,
-        'Spartrak_Contact' => 1,
-        'Spartrak_ProductVideo' => 1
+        'Spartrak_Wishlist' => 1
     ]
 ];

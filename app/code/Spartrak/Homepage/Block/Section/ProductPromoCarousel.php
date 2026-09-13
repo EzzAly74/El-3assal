@@ -7,13 +7,6 @@ declare(strict_types=1);
 
 namespace Spartrak\Homepage\Block\Section;
 
-use Magento\Catalog\Helper\Image as ImageHelper;
-use Magento\Framework\View\Element\Template\Context;
-use Spartrak\Homepage\Model\LocaleContext;
-use Spartrak\Homepage\Model\Product\CategoryProductProvider;
-use Spartrak\Homepage\ViewModel\CategoryUrl;
-use Spartrak\ProductVideo\Model\Video\DescriptorBuilder;
-
 /**
  * The split product section (Figma 595:15329) — a rail beside a promo panel.
  *
@@ -44,40 +37,21 @@ class ProductPromoCarousel extends ProductCarousel
     /** The desktop cap, and therefore what `src` points at. */
     private const PROMO_DEFAULT_WIDTH = 604;
 
-    /**
-     * Restates the parent's signature verbatim, and has to.
+    /*
+     * NO CONSTRUCTOR, DELIBERATELY.
      *
-     * This constructor exists only to widen `$categoryUrl` from the parent's
-     * `protected readonly` promotion into something this class can also use -
-     * it adds no dependency of its own. That makes it pure overhead the day
-     * someone changes the parent, because the arguments are forwarded
-     * POSITIONALLY: inserting a parameter in ProductCarousel and not here
-     * silently feeds this class's `$data` array into whatever the new argument
-     * is, and `setup:di:compile` reports it as an incompatible argument type.
+     * This class used to restate the parent's signature verbatim and forward
+     * it, purely to widen `$categoryUrl` for its own use. The parent promotes
+     * that property as `protected readonly`, so inheritance already provides
+     * it — the constructor added no dependency and bought nothing.
      *
-     * Which is exactly what happened when $videoDescriptors was added. Keep the
-     * two in step, or delete this constructor entirely - PHP would then inherit
-     * the parent's and the problem could not recur.
+     * What it did buy was a trap: the arguments were forwarded POSITIONALLY,
+     * so adding a parameter to ProductCarousel and not here silently fed this
+     * class's `$data` array into the new argument, and `setup:di:compile`
+     * reported an incompatible argument type. That happened twice — once when
+     * $videoDescriptors was added, and again when it was removed. Inheriting
+     * the parent's constructor is what makes it unable to happen a third time.
      */
-    public function __construct(
-        Context $context,
-        LocaleContext $localeContext,
-        CategoryProductProvider $productProvider,
-        CategoryUrl $categoryUrl,
-        ImageHelper $imageHelper,
-        DescriptorBuilder $videoDescriptors,
-        array $data = []
-    ) {
-        parent::__construct(
-            $context,
-            $localeContext,
-            $productProvider,
-            $categoryUrl,
-            $imageHelper,
-            $videoDescriptors,
-            $data
-        );
-    }
 
     /**
      * Figma 595:15333 keeps the prev/next buttons in the rail's own header on

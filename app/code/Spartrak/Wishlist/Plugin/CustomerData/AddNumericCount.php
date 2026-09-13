@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Spartrak\Wishlist\Plugin\CustomerData;
 
 use Magento\Wishlist\CustomerData\Wishlist as WishlistSection;
-use Magento\Wishlist\Helper\Data as WishlistHelper;
+use Spartrak\Wishlist\Model\SavedProductIds;
 
 /**
  * Puts a plain NUMBER in the wishlist customer-data section.
@@ -37,16 +37,25 @@ use Magento\Wishlist\Helper\Data as WishlistHelper;
  * locale.
  *
  * ===========================================================================
- * WHY THE SAME HELPER CORE USES
+ * WHY NOT Helper\Data::getItemCount(), WHICH IS WHAT THIS USED TO READ
  * ===========================================================================
- * getItemCount() is what core's own createCounter() is counting, so this cannot
- * disagree with the phrase beside it. The helper memoises per request, so the
- * second call costs no query.
+ * Because it stops at 3. That was reported as "the counter does not exceed 3
+ * however many items I add", and it is a state leak in core rather than a
+ * stale cache: getItems() puts setPageSize(3) on the wish-list collection that
+ * Helper\Data MEMOISES, calculate() then counts that same collection with
+ * count() - the Countable method, which loads rows and so respects the limit -
+ * and writes the 3 into the customer session, where getItemCount() serves it
+ * from then on. Model\SavedProductIds carries the full walk-through.
+ *
+ * So the count comes from there now: one indexed read of wishlist_item, which
+ * no page size can reach. It is also the SAME source AddProductIds paints the
+ * hearts from, so the numeral and the filled hearts are one fact counted two
+ * ways and cannot drift apart.
  */
 class AddNumericCount
 {
     public function __construct(
-        private readonly WishlistHelper $wishlistHelper
+        private readonly SavedProductIds $savedProductIds
     ) {
     }
 
@@ -56,7 +65,7 @@ class AddNumericCount
      */
     public function afterGetSectionData(WishlistSection $subject, array $result): array
     {
-        $result['count'] = (int) $this->wishlistHelper->getItemCount();
+        $result['count'] = $this->savedProductIds->getCount();
 
         return $result;
     }

@@ -1,0 +1,35 @@
+// ===========================================================================
+// Spartrak — the drag affordance for a horizontal scroll container
+// ===========================================================================
+// MIXIN ONLY. This file emits NOTHING on its own, so it is safe to import into
+// more than one bundle (the same contract as _breakpoints, _page-metrics,
+// _icons and _a11y — see web/css/spartrak-components.less for why that matters
+// after the per-page bundle split).
+//
+// WHY IT IS SHARED
+// js/spartrak-drag-scroll.js adds click-and-drag to a scroll container and
+// toggles `is-dragging` on it. Two components use it — the homepage/PDP rails
+// and the header's mega-nav category row — and they live in DIFFERENT bundles:
+// the rails in spartrak-home.css / spartrak-pdp.css, the mega nav in the global
+// spartrak-components.css. So the declarations cannot sit in one component file
+// and be reached from the other, and writing them twice would let the cursor
+// treatment drift between two surfaces that are the same gesture. A mixin is
+// the one form that is single-sourced and still costs zero bytes where it is
+// not called.
+//
+// WHY `pointer: fine`
+// A touch device has no cursor and already scrolls natively, and this keeps the
+// grab cursor off hybrid devices being used by finger. Same gate the rails used
+// before this file existed.
+.spartrak-drag-affordance() {
+    @media (pointer: fine) {
+        cursor: grab;
+
+        &.is-dragging {
+            cursor: grabbing;
+            // Stops the browser turning a drag into a text selection halfway
+            // through the gesture.
+            user-select: none;
+        }
+    }
+}

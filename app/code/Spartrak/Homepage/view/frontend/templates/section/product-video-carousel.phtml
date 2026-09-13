@@ -26,11 +26,15 @@
  * ===========================================================================
  * TWO HONEST GAPS, NOT PAPERED OVER
  * ===========================================================================
- *  1. TIMECODE. Figma shows "00:00 / 05.40". Magento's media gallery stores
- *     no duration for an external video, and the real one is not knowable
- *     without calling the provider's API at render time. Rather than print a
- *     fabricated runtime, the elapsed side is rendered live by the player
- *     once a video is playing, and the slot stays empty before then.
+ *  1. TIMECODE. Figma shows "00:00 / 05.40". NOT RENDERED, and it cannot
+ *     honestly be: Magento's media gallery stores no duration for an external
+ *     video, and neither the total nor the elapsed time is readable from a
+ *     cross-origin iframe without loading that provider's player API — the
+ *     third-party weight this whole section is built to keep off the homepage.
+ *     An earlier version emitted an empty `<p data-video-time>` and claimed
+ *     the player would fill it; nothing ever did, so it was dead DOM on every
+ *     card. Printing a fabricated runtime instead was never an option, so the
+ *     slot is gone rather than empty.
  *  2. HANDLE. Figma shows "@العسال لقطع غيار الجرارات والمحركات". That is the
  *     video's own title in Magento's gallery (`video_title`) when the admin
  *     set one; there is no separate channel-handle field to invent, and no
@@ -84,29 +88,75 @@ if ($hasAnyVideo) {
             ?>
             <li class="spartrak-home-showcase__item" data-carousel-slide>
                 <?php /*
-                  ONE ATTRIBUTE, NOT A URL. The card used to carry
-                  `data-video-url` and the widget guessed the provider from it,
-                  which is why anything that was not YouTube or Vimeo silently
-                  did nothing. It now carries the descriptor the server already
-                  resolved - source type, provider id or file URL, and the
-                  playback flags - so the widget CHOOSES a player instead of
-                  parsing a string to guess one.
+                  THE URL AS MAGENTO STORED IT, and nothing derived from it.
 
-                  A provider video's `id` is a validated id and never a URL; the
-                  embed address is composed in JS from a hardcoded prefix. See
-                  Spartrak\ProductVideo\Model\Video\SourceNormalizer.
+                  A product video is an `external-video` media-gallery entry, so
+                  `video_url` is the whole of what Magento knows. Which provider
+                  it belongs to, and what its id is, is answered by
+                  js/spartrak-video-source - the ONE place on the storefront
+                  that turns a URL into a provider id, shared with the PDP
+                  gallery mixin so the two surfaces cannot disagree. Resolving
+                  it here as well would be the same logic in two layers.
+
+                  The security boundary is in that module: the id is matched
+                  against a strict character class and the embed address is
+                  composed from a hardcoded prefix, so no merchant-supplied
+                  string reaches an iframe `src`. A URL it does not recognise
+                  gets no play button rather than a broken one.
                 */ ?>
                 <div class="spartrak-home-showcase__media"
                     <?php if ($video) : ?>
-                        data-video="<?= $block->escapeHtmlAttr(json_encode($video)) ?>"
+                        data-video-url="<?= $block->escapeUrl($video['url']) ?>"
+                        data-video-title="<?= $block->escapeHtmlAttr($video['title']) ?>"
                     <?php endif; ?>>
 
+                    <?php /*
+                      THE VIDEO'S POSTER, not the product photograph - this
+                      frame IS the video (it carries the play, mute and caption
+                      controls), and the product's own image is on the card
+                      below. See Block\Section\ProductCarousel::getMediaImage().
+
+                      The alt follows the subject: the video's admin title when
+                      it has one, because that is what this image now depicts.
+                      A product with no video falls back to its own image and
+                      its own name, which is what the frame is showing then.
+
+                      NO width / height. This <img> is `position: absolute;
+                      inset: 0; width: 100%; height: 100%`, so intrinsic
+                      attributes on it are inert - the space is reserved by
+                      .spartrak-home-showcase__media's `aspect-ratio: 533/692`,
+                      which is exact and is what actually prevents the layout
+                      shift. They used to be emitted as the image PRESET's
+                      650x650, which for an unpadded 16:9 poster is not the
+                      file's size at all.
+                    */ ?>
                     <?php if ($media) : ?>
                         <img class="spartrak-home-showcase__poster"
                              src="<?= $block->escapeUrl($media['url']) ?>"
-                             alt="<?= $block->escapeHtmlAttr($product->getName()) ?>"
-                             width="<?= (int) $media['width'] ?>"
-                             height="<?= (int) $media['height'] ?>"
+                             <?php /*
+                               The frame is 533px on desktop and ~204px on a
+                               phone, so `sizes` says exactly that and lets the
+                               browser pick from the WebP set the resizer
+                               derived (Block\Section\ProductCarousel::
+                               getMediaImage, which records why the preset's PNG
+                               could not ship as-is). `w` descriptors and not
+                               1x/2x: the box changes SIZE between breakpoints,
+                               not just density, so DPR alone cannot choose.
+
+                               Emitted only when there IS a set - a resizer that
+                               could not write its cache returns '' and the
+                               preset's own URL stays in `src`, which still
+                               renders.
+                             */ ?>
+                             <?php if ($media['srcset'] !== '') : ?>
+                             srcset="<?= $block->escapeHtmlAttr($media['srcset']) ?>"
+                             sizes="(max-width: 767px) 204px, 533px"
+                             <?php endif; ?>
+                             alt="<?= $block->escapeHtmlAttr(
+                                 $video && $video['title'] !== ''
+                                     ? $video['title']
+                                     : $product->getName()
+                             ) ?>"
                              loading="lazy"
                              decoding="async">
                     <?php endif; ?>
@@ -138,7 +188,6 @@ if ($hasAnyVideo) {
                         </div>
 
                         <div class="spartrak-home-showcase__meta">
-                            <p class="spartrak-home-showcase__time" data-video-time dir="ltr"></p>
                             <?php if ($video['title'] !== '') : ?>
                                 <p class="spartrak-home-showcase__handle">
                                     <?= $block->escapeHtml($video['title']) ?>

@@ -1,0 +1,191 @@
+<?php
+/**
+ * Spartrak — the search results page, and its empty state.
+ *
+ * FIGMA SSOT: 1368:39180 ("نتائج البحث. لا يوجد بحث"), empty-state container
+ * 1368:41143.
+ *
+ * ===========================================================================
+ * WHY THIS TEMPLATE IS OVERRIDDEN AT ALL
+ * ===========================================================================
+ * Core's result.phtml is one if/else: results, or a `.message.notice` box
+ * reading "Your search returned no results." That box is what this storefront
+ * rendered, where Figma draws the shared empty state.
+ *
+ * There is no narrower extension point. The no-results branch is inline in
+ * this template rather than a block, so layout XML cannot replace it, and the
+ * design needs different MARKUP, not different words, so translation cannot
+ * either. A theme override of a 42-line core template is the smallest correct
+ * change — a theme file, not a `vendor/` edit (CLAUDE.md §2).
+ *
+ * ===========================================================================
+ * (a) THE RESULTS BRANCH IS CORE'S, AND NOTHING RUNS BEFORE IT
+ * ===========================================================================
+ * Everything from `if ($block->getResultCount())` to the `else` is core's
+ * byte-for-byte, and the only statement above it is core's own `$productList`
+ * assignment — deliberately, after the first version of this file took the
+ * whole page down.
+ *
+ * WHAT HAPPENED, recorded because the failure mode is invisible: this template
+ * read the search term from a layout argument,
+ *
+ *     <argument name="search_helper" xsi:type="object">Magento\Search\Helper\Data</argument>
+ *
+ * and hoisted four assignments above the branch to use it. Deployed, the whole
+ * `content` container rendered EMPTY — no product grid on a search that HAD
+ * hits, no breadcrumb, no page title — because
+ * Magento\Framework\View\Layout::renderNonCachedElement() catches \Exception,
+ * logs it and returns an empty string for that element, and a container whose
+ * child throws loses ALL of its own output. One bad statement in this file
+ * silently blanked the search page, with a 200 and no visible error.
+ *
+ * `Magento\Search\Helper\Data` was the cause: NO core layout in the codebase
+ * passes a Helper as an `xsi:type="object"` block argument (verified by grep
+ * across vendor/), and Layout\Argument\Interpreter\DataObject validates what
+ * it instantiates against an expected class. The argument is gone and this
+ * file now takes on no dependency at all.
+ *
+ * The lesson is kept in the structure: the empty branch is the only thing this
+ * override owns, so nothing it needs is computed until that branch is taken. A
+ * search that finds products cannot be affected by this file.
+ *
+ * ===========================================================================
+ * (b) THE SEARCH TERM, AND ESCAPING — CLAUDE.md §17
+ * ===========================================================================
+ * Read from the request and escaped HERE with `$escaper->escapeHtml()`, so the
+ * escaping is visible at the point of output rather than trusted from
+ * somewhere upstream.
+ *
+ * `is_array` guarded: `?q[]=x` makes getParam() return an array, and an
+ * unguarded array echoes as the string "Array". Core's own helper carries the
+ * identical guard (Search\Helper\Data::getQueryText()), which is where this is
+ * taken from.
+ *
+ * Trimmed to 128 characters — Magento's own `catalog/search/max_query_length`
+ * default — so a pathological query cannot stretch the heading. When the term
+ * was longer, core's note message already says it was shortened, and that
+ * message is rendered below (see (c)).
+ *
+ * ===========================================================================
+ * (c) MAGENTO'S OWN MESSAGES ARE KEPT
+ * ===========================================================================
+ * Figma draws one sentence. Core's branch can carry two things that say
+ * something the design's sentence does not:
+ *
+ *   getNoResultText()   "Minimum Search query length is 3" when the query was
+ *                       too short — Block\Result::getNoResultText(). Also the
+ *                       merchant's own configured no-result text.
+ *   getNoteMessages()   "Your search query can't be longer than 128, so we
+ *                       shortened your query" — Search\Helper\Data::checkNotes.
+ *
+ * Dropping them would leave a shopper whose query was too short reading "check
+ * the spelling" and retyping the same two characters. They render as `__note`
+ * paragraphs — this component's existing quieter aside, already used by the
+ * minicart's empty drawer — beneath the design's sentence.
+ *
+ * `getAdditionalHtml()` is core's child-block slot; on this install it is the
+ * search-terms-log block, which renders nothing visible. Kept regardless.
+ *
+ * ===========================================================================
+ * PERFORMANCE / LCP
+ * ===========================================================================
+ * The LCP element is the 190px illustration, the only asset this state adds.
+ * It is a CSS background on an aria-hidden span — the same mechanism as the
+ * component's other callers — so its URL comes from LESS at compile time out
+ * of a stylesheet the page already blocks on, not from a template at render
+ * time. Not lazy-loaded: it is above the fold at every viewport, and its box
+ * is reserved by the component's explicit 190x190, so it cannot shift layout.
+ *
+ * Inlining the SVG would add 78KB to an uncacheable HTML document on every
+ * no-results view; as a file it is fetched once and cached for every empty
+ * state the store shows (§13).
+ *
+ * @var \Magento\CatalogSearch\Block\Result $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+$productList = $block->getProductListHtml();
+?>
+<?php if ($block->getResultCount()) : ?>
+    <?= /* @noEscape */ $block->getChildHtml('tagged_product_list_rss_link') ?>
+<div class="search results">
+    <?php if ($messages = $block->getNoteMessages()) : ?>
+    <div class="message notice">
+        <div>
+            <?php foreach ($messages as $message) : ?>
+                <?= /* @noEscape */ $message ?><br />
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php endif; ?>
+    <?= /* @noEscape */ $productList ?>
+</div>
+<?php else : ?>
+<?php
+// See (b). Below the branch, so a search WITH results never runs any of it.
+$queryText = $block->getRequest()->getParam('q');
+$queryText = ($queryText === null || is_array($queryText)) ? '' : trim((string) $queryText);
+
+if ($queryText !== '' && mb_strlen($queryText) > 128) {
+    $queryText = mb_substr($queryText, 0, 128);
+}
+
+$noResultText = (string) $block->getNoResultText();
+$noteMessages = $block->getNoteMessages();
+?>
+<div class="search results spartrak-empty-state spartrak-empty-state--nothing-found">
+    <span class="spartrak-empty-state__art spartrak-empty-state__art--nothing-found" aria-hidden="true"></span>
+
+    <div class="spartrak-empty-state__message">
+        <div class="spartrak-empty-state__copy">
+            <?php /*
+                An <h1>, not the <strong> the component's other callers use. On
+                those surfaces the page already has a heading above the empty
+                state; here this sentence IS the page's heading.
+
+                Core prints one too — `page.main.title`, reading
+                "نتائج البحث عن: 'x'" — which Figma does not draw on this frame.
+                It is hidden by components/_empty-state.less with
+                `body.catalogsearch-result-index:has(.spartrak-empty-state--nothing-found)`, so it goes only on a
+                page that rendered THIS state and a search that found something
+                keeps its heading. That file records why the block is not
+                removed server-side instead: doing so means asking the result
+                block for its count during layout, which loads the product
+                collection before the toolbar has set its sort order and page
+                size.
+
+                `display: none` takes core's heading out of the accessibility
+                tree as well, so this h1 is the page's only heading for a
+                screen reader rather than the second of two.
+            */ ?>
+            <h1 class="spartrak-empty-state__title">
+                <?php if ($queryText !== '') : ?>
+                    <?= $escaper->escapeHtml(__('No results for')) ?>
+                    &ldquo;<?= $escaper->escapeHtml($queryText) ?>&rdquo;
+                <?php else : ?>
+                    <?= $escaper->escapeHtml(__('No results found')) ?>
+                <?php endif; ?>
+            </h1>
+
+            <p class="spartrak-empty-state__text">
+                <?= $escaper->escapeHtml(__('Please check the spelling and try again.')) ?>
+            </p>
+
+            <?php // See (c): what core would have said, kept. ?>
+            <?php if ($noResultText !== '') : ?>
+                <p class="spartrak-empty-state__note"><?= $escaper->escapeHtml($noResultText) ?></p>
+            <?php endif; ?>
+
+            <?php foreach ($noteMessages as $noteMessage) : ?>
+                <p class="spartrak-empty-state__note"><?= $escaper->escapeHtml($noteMessage) ?></p>
+            <?php endforeach; ?>
+        </div>
+
+        <a class="spartrak-empty-state__action spartrak-empty-state__action--primary"
+           href="<?= $escaper->escapeUrl($block->getBaseUrl()) ?>">
+            <?= $escaper->escapeHtml(__('Go to homepage')) ?>
+        </a>
+    </div>
+</div>
+<?= /* @noEscape */ $block->getAdditionalHtml() ?>
+<?php endif; ?>

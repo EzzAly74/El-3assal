@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  THE ALL BRANDS PAGE — Figma 1368:37277 ("كل الماركات")
+  ===========================================================================
+  Two blocks in `content`, in Figma's order: the brand grid, then the finder.
+  Full site chrome above and below (navbar, breadcrumb bar, footer), which is
+  what the frame draws.
+
+  WHY `1column`
+  ===========================================================================
+  Figma gives the grid the full 1344 measure with no sidebar. `1column` is
+  Magento's own handle for that; declaring a custom root would be a second
+  page skeleton to maintain for the same result.
+
+  WHY page.main.title IS REMOVED
+  ===========================================================================
+  Magento renders <h1 class="page-title"> from the page config title, and the
+  Figma frame draws NO visible heading — the breadcrumb is the only text
+  above the grid. Rather than hide core's h1 with CSS (a rule that then has to
+  keep matching core's markup), the block is removed and grid.phtml emits its
+  own visually-hidden <h1>. That keeps the document with exactly one h1 for
+  screen readers and search engines, and keeps the page pixel-identical to
+  Figma — CLAUDE.md section 15 is a correctness requirement, and satisfying it
+  invisibly contradicts nothing in section 3.
+
+  WHY THE STYLESHEET IS NOT DECLARED HERE
+  ===========================================================================
+  The module owns page STRUCTURE; the theme owns page PRESENTATION. The
+  <css> node for this handle lives in the Spartrak theme, at
+  Spartrak_Brand/layout/spartrak_brand_index_index.xml — the same split
+  Spartrak_InstaPay's transfer page already uses.
+
+  `cacheable` is left at its default (true): every brand tile and every finder
+  option is identical for every visitor, so the whole page belongs in the
+  full-page cache. Invalidation is by tag — SectionByCode publishes the
+  finder section's identity.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      layout="1column"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="page.main.title" remove="true"/>
+
+        <referenceContainer name="content">
+            <!--
+              THE GRID (Figma 1368:38026).
+
+              A plain Template block with a view model argument, not a bespoke
+              Block class: it has no behaviour of its own to hold. Everything
+              it renders comes from BrandNavigation, which already caches its
+              resolved list per store, so this page adds no query the header
+              has not already warmed.
+            -->
+            <block class="Magento\Framework\View\Element\Template"
+                   name="spartrak.brands.grid"
+                   template="Spartrak_Brand::grid.phtml">
+                <arguments>
+                    <argument name="brand_navigation" xsi:type="object">
+                        Spartrak\Catalog\ViewModel\BrandNavigation
+                    </argument>
+                </arguments>
+            </block>
+
+            <!--
+              THE FINDER (Figma 1368:38111) — "بتدور علي ايه؟".
+
+              The SAME section that renders on the homepage, mounted by its
+              dashboard code. Not a copy of it: same block, same template,
+              same admin row, same options, same AJAX endpoint, same JS
+              widget. Disabling it in Content > Homepage Sections removes it
+              from both pages at once.
+
+              `home_finder` is the code seeded by Spartrak_Homepage's
+              AddBrandAndFinderSections data patch. The column is UNIQUE and
+              is described in db_schema.xml as the "stable identifier used by
+              layout/tests" — which is exactly this use. A section_id would
+              differ between databases and mount the wrong row.
+            -->
+            <block class="Spartrak\Homepage\Block\SectionByCode"
+                   name="spartrak.brands.finder"
+                   template="Spartrak_Homepage::section-by-code.phtml"
+                   after="spartrak.brands.grid">
+                <arguments>
+                    <argument name="section_code" xsi:type="string">home_finder</argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+    </body>
+</page>

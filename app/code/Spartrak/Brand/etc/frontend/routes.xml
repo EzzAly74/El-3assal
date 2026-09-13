@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<!--
+  One read-only frontend route: the All Brands landing page.
+
+  ===========================================================================
+  WHY frontName IS `brands` AND NOT `spartrak-brand`
+  ===========================================================================
+  Every other Spartrak route is namespaced, because every other one is a
+  machine endpoint (search-suggest, spartrak-wishlist, spartrak-homepage/ajax)
+  that no shopper ever reads. This one is a PAGE, its URL is in the footer of
+  every page on the site, and that footer already points at `/brands`:
+
+      Smartwave_Porto/templates/html/footer.phtml — __('All brands')
+
+  So `brands` is not a new decision, it is the decision the footer already
+  made and has been linking to a 404 ever since. Naming the route anything
+  else would mean either a dead link or a redirect, both for a URL nobody has
+  a reason to change.
+
+  The route ID stays namespaced (`spartrak_brand`), so layout handles and
+  controller paths keep the house prefix even though the URL does not. Route
+  id and frontName differing is deliberate here, and the distinction is the
+  one Spartrak_Search's routes.xml records as having cost a release once.
+
+  ===========================================================================
+  IT CANNOT COLLIDE WITH CATALOG OR CMS
+  ===========================================================================
+  Magento's UrlRewrite router runs BEFORE the standard router, so a CMS page
+  or category that owned the `brands` url key would win. Verified at build
+  time that no Spartrak route declares this frontName; verifying that no such
+  CMS page or category exists is an admin check, and it is listed in the
+  module README.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:App/etc/routes.xsd">
+    <router id="standard">
+        <route id="spartrak_brand" frontName="brands">
+            <module name="Spartrak_Brand"/>
+        </route>
+    </router>
+</config>

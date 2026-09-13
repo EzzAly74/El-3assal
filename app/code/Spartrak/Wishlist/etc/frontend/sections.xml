@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  THIS FILE IS WHY THE HEADER BADGE AND THE TOAST UPDATE IN REAL TIME
+  ===========================================================================
+  Magento_Customer/js/customer-data listens on `ajaxComplete`, asks
+  section-config which sections the request's URL affects, and re-fetches just
+  those. So the two things that have to change after a heart is pressed are
+  declared here rather than pushed by hand from the toggle's own JavaScript:
+
+    wishlist   carries `count` (Plugin/CustomerData/AddNumericCount) and
+               `product_ids` (Plugin/CustomerData/AddProductIds). Re-fetching
+               it updates the header's numeral AND repaints every heart on the
+               page from one source of truth - including the SECOND card for
+               the same product, which a hand-rolled DOM update would miss.
+
+    messages   Magento\Theme\CustomerData\Messages drains the session's
+               messages and hands them to Magento_Theme/js/view/messages,
+               which is what renders them into `.page.messages` - the toast.
+               Declared EXPLICITLY and not left to core: the message cookie
+               path (Magento\Theme\Controller\Result\MessagePlugin) bails out
+               on `instanceof Json`, so a JSON response carries no messages of
+               its own and this section is the only route a toast has after an
+               AJAX POST.
+
+  Nothing about either is invented for this feature - it is Magento's own
+  private-content pipeline, which is also why none of it can be full-page
+  cached by mistake.
+
+  ===========================================================================
+  THE ACTION NAME IS THE frontName, NOT THE ROUTE ID
+  ===========================================================================
+  This said `spartrak_wishlist/ajax/toggle` - with an UNDERSCORE - and that one
+  character is why the header badge never updated in real time. It was reported
+  as "the counter does not change until I remove an item", and the reason the
+  toast worked while the numeral did not is right here.
+
+  Magento matches these names against the request's URL PATH, and the path is
+  built from the frontName. etc/frontend/routes.xml declares
+
+      <route id="spartrak_wishlist" frontName="spartrak-wishlist">
+
+  so the id and the path differ, and the URL the toggle actually posts to is
+  .../ar/spartrak-wishlist/ajax/toggle/. Section-config never matched it.
+
+  MEASURED on the live storefront, through Magento's own resolver:
+
+      getAffectedSections('.../ar/spartrak-wishlist/ajax/toggle/')
+          -> ['messages']                 the URL that is really requested
+      getAffectedSections('.../ar/spartrak_wishlist/ajax/toggle/')
+          -> ['wishlist', 'messages']     the URL nothing ever requests
+
+  `messages` still came back for the real URL because it is configured for
+  every action, which is exactly what made this hard to see: the toast appeared
+  on every press, so the private-content pipeline looked like it was working.
+  Only the section unique to this action was being dropped.
+
+  Core never trips over this because every Magento_Wishlist route has a
+  frontName identical to its id (`wishlist/index/add` and so on), so the
+  distinction is invisible there and easy to carry over wrongly.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Customer:etc/sections.xsd">
+    <action name="spartrak-wishlist/ajax/toggle">
+        <section name="wishlist"/>
+        <section name="messages"/>
+    </action>
+</config>

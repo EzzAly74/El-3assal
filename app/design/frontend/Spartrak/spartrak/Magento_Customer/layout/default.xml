@@ -1,0 +1,81 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  MAGENTO'S OWN SIGN-IN POPUP IS REMOVED. SPARTRAK ALREADY REPLACED IT.
+  ===========================================================================
+  Magento_Customer's default.xml mounts `authentication-popup` into the
+  `content` container of EVERY frontend page - a Knockout component rendering
+  the "Checkout using your account / Checkout as a new customer" box.
+
+  Nothing on this storefront shows it. Spartrak has its own auth modal
+  (Magento_Theme/layout/default.xml -> `spartrak.auth_modal`, template
+  html/login-modal.phtml, widget web/js/spartrak-auth.js), it is mounted on
+  every page by the same default handle, and web/js/spartrak-auth-popup-mixin.js
+  wraps `Magento_Customer/js/model/authentication-popup::showModal` so that the
+  minicart, the cart page and Magento_Checkout's own sign-in link all open the
+  SPARTRAK modal instead. Core's popup was reachable only through that mixin's
+  fallback branch, which cannot fire while the Spartrak modal is on the page.
+
+  So it was rendering, and booting, purely to be ignored.
+
+  ===========================================================================
+  WHAT IT COSTS TO KEEP - MEASURED, NOT ESTIMATED
+  ===========================================================================
+  The block is cheap; its JavaScript is not. Magento_Customer/js/view/
+  authentication-popup declares:
+
+      'Magento_Ui/js/form/form'   -> which itself requires 'mage/validation'
+      'mage/validation'           -> 'jquery/validate', 'jquery/metadata',
+                                     'Magento_Ui/js/lib/validation/rules'
+      'Magento_Ui/js/lib/validation/rules' -> 'moment'
+
+  Read off the homepage's own Lighthouse script treemap (decoded bytes, and
+  the share of each file Chrome reported as never executed):
+
+      moment.min.js                  58,912 B   74% unused
+      mage/validation.min.js         42,412 B   71% unused
+      jquery/jquery.validate.min.js  32,881 B   89% unused
+      Magento_Ui .../validation/rules ~26,819 B
+      jquery/jquery.metadata.min.js   1,542 B   78% unused
+      Magento_Ui/js/form/form.min.js  4,131 B   66% unused
+      + action/login, modal/alert, Security/js/escaper, the three captcha
+        components other modules attach to this block, its messages child,
+        and one XHR for authentication-popup.html
+      =============================================================
+      roughly 170KB decoded and ~15 requests, on every page
+
+  Spartrak's own modal asks for none of it: spartrak-auth.js declares jquery,
+  mage/translate, Magento_Customer/js/customer-data, mage/cookies and
+  jquery/ui-modules/widget, and its forms carry `novalidate` and validate
+  themselves. That is the whole reason this removal is possible.
+
+  NOT CLAIMED: the jQuery UI dialog tree (dialog, draggable, resizable,
+  position, effects, jquery-color - about 145KB) does NOT go away. It arrives
+  through Magento_Ui/js/modal/modal, which Magento_Ui/js/modal/confirm still
+  needs for the minicart's remove-item confirmation. Same reasoning as the note
+  in Magento_Ui/web/js/lib/knockout/bindings/bootstrap.js.
+
+  ===========================================================================
+  WHAT ELSE POINTED AT THIS BLOCK
+  ===========================================================================
+  Five other layouts add CHILDREN to it - Magento_Captcha, Magento_Checkout,
+  Magento_Persistent (remember_me), Magento_ReCaptchaCustomer and
+  Smartwave_Dailydeals. They go with it, which is correct: they were decorating
+  a popup that never opened. Magento skips a <referenceBlock> whose target has
+  been removed rather than failing, so nothing here needs a matching edit.
+
+  Removing the popup does NOT remove a sign-in route. Checkout's own
+  `Magento_Checkout/js/view/authentication` sign-in link calls showModal() and
+  therefore lands on the Spartrak modal via the mixin, and guests never reach
+  checkout at all - Spartrak\Checkout\Plugin\PromptLoginForGuest redirects them
+  to the cart with #auth=login first.
+
+  The mixin's fallback branch was updated in the same change: with core's markup
+  gone, "no Spartrak modal here" now navigates to customer/account/login instead
+  of calling a popup that has no DOM. See spartrak-auth-popup-mixin.js.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="authentication-popup" remove="true"/>
+    </body>
+</page>

@@ -1,0 +1,259 @@
+// ===========================================================================
+// Spartrak — the cascading finder, "بتدور علي ايه؟" (Figma 595:15843)
+// ===========================================================================
+// EXTRACTED FROM components/_homepage-sections.less when the All Brands page
+// (Figma 1368:37277) mounted the same section. Not a new component and not a
+// rewrite: every rule below is the rule that was already live, moved
+// verbatim, because it turned out to have TWO consumers.
+//
+// WHY IT HAD TO MOVE
+// ---------------------------------------------------------------------------
+// The finder is ONE dashboard section, rendered on both pages by one block and
+// one template (Spartrak_Homepage::section/cascade-search.phtml, mounted on
+// /brands through Block\SectionByCode). Its CSS lived inside a 3,160-line
+// homepage stylesheet that is enqueued only on cms_index_index. The two ways
+// of leaving it there were both wrong:
+//
+//   load spartrak-home.css on /brands   ~87% of it matches nothing on that
+//                                       page, on a render-blocking request —
+//                                       a straight LCP regression (section 4);
+//   copy the rules into the brands      one component, two stylesheets, free
+//   bundle                              to drift apart (section 9).
+//
+// This is the same decision, for the same reason, that produced
+// components/_section-rail.less.
+//
+// THE CLASS NAMES KEEP THEIR `spartrak-home-` PREFIX, deliberately — the same
+// call _section-rail.less made and for the same reasons. Renaming them would
+// touch the template, this file and the homepage bundle for zero rendered
+// difference, and every Figma node referenced below is a homepage frame,
+// which is genuinely where the component was designed. The prefix records
+// where the pattern came from; this file records that it is no longer only
+// there.
+//
+// TWO GROUP RULES WERE SPLIT to get here — the mobile `max-width` it shared
+// with `.spartrak-home-brands__rail-wrap`, and the reduced-motion rule it
+// shared with the brand rail's plate and nav. _section-rail.less argues
+// against splitting group rules, and that argument holds when both halves end
+// up in the same stylesheet. These two do not: the brand rail is homepage-only
+// and this component is not, so keeping them whole would have meant shipping
+// the rail's selectors to a page that has no rail. Each half carries the
+// original comment.
+//
+// DEPENDS ON `@home-gutter` / `@home-gutter-mobile` from
+// foundations/_page-metrics.less, which every entry point imports ahead of
+// components/. They used to be declared in components/_section-rail.less and
+// were moved for exactly this file — see the note at the top of _page-metrics.
+//
+// DOES NOT DEPEND on `.spartrak-home-section`, the shell class the finder's
+// template also carries. VERIFIED, not assumed: that rule is
+// `position: relative; width: 100%; min-width: 0`, and the finder has no
+// absolutely positioned descendant, is a block-level child of `content`
+// (100% already), and is not a flex item anywhere. So the brands bundle does
+// not import components/_section-rail.less for it — the class simply matches
+// nothing there, and the page saves the whole rail component.
+
+.spartrak-home-finder {
+  display: flex;
+  justify-content: center;
+  margin-top: 44px;
+}
+
+// Figma 595:15844 — 1px border/default, radius 16, pt 12 / px 16 / pb 32,
+// gap 12, plus a shadow this theme has not needed before.
+.spartrak-home-finder__card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: ~"calc(100% - (@{home-gutter} * 2))";
+  padding: 12px 16px 32px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-16);
+  background-color: var(--color-bg-surface);
+  // Figma effect on this node: DROP_SHADOW #0D0A21 at 6%, offset (0,4),
+  // radius 16. Deliberately NOT --shadow-container (0 3px 8px black 5%) —
+  // this one is deeper and tinted with the ink primitive rather than pure
+  // black, which is what lifts the card off the band it floats over.
+  box-shadow: 0 4px 16px rgba(13, 10, 33, 0.06);
+}
+
+// Figma 595:15845 — gap 6.
+.spartrak-home-finder__head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+// Figma 595:15846 — Price/Large: 24px bold, line-height 1.3.
+.spartrak-home-finder__title {
+  margin: 0;
+  font-size: var(--text-24);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-text-primary);
+}
+
+// Figma 595:15847 — Body/Small: 14px regular, line-height 1.5, text/muted.
+.spartrak-home-finder__subtitle {
+  margin: 0;
+  font-size: var(--text-14);
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+// Figma 595:15940 / 595:15941 — two rows of two, gap 12 both ways.
+// A two-column GRID rather than two flex rows: it collapses to one column on a
+// phone with a single line, and a field that is absent (no brands configured,
+// say) does not leave a hole in its row.
+.spartrak-home-finder__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+// Figma 595:15921 — column, gap 6.
+.spartrak-home-finder__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+// Figma 595:15922 — 14px medium with a danger-red required asterisk. The
+// asterisk is GENERATED, not typed into the label text, so it never ends up
+// inside a translation string or read aloud as part of the field name.
+.spartrak-home-finder__label {
+  font-size: var(--text-14);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--color-text-primary);
+
+  &::after {
+    content: " *";
+    color: var(--color-feedback-danger);
+  }
+}
+
+// Figma 595:15923 — h48, 1px border/default, shadow/input, padding-inline
+// 16 (text side) / 12 (chevron side), 16px chevron.
+//
+// A NATIVE <select>, restyled — see the template for why that matters.
+// `appearance: none` removes the platform's own arrow so there are not two.
+.spartrak-home-finder__select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 48px;
+  padding-inline: 16px 12px;
+  border: 1px solid var(--color-border-default);
+  border-radius: 0;
+  background-color: var(--color-bg-surface);
+  box-shadow: var(--shadow-input);
+
+  font-size: var(--text-16);
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+
+  // Resolved relative to the COMPILED stylesheet, which sits at css/*.css in
+  // both bundles — so `../images/` reaches web/images either way and this
+  // needed no change when the file moved.
+  background-image: url("../images/icons/chevron-down-16.svg");
+  background-repeat: no-repeat;
+  // `background-position` has no logical form, so the chevron's side is the
+  // one place in this file that needs a direction rule. RTL is the default
+  // here because Arabic is this storefront's primary locale.
+  background-position: left 12px center;
+  background-size: 16px 16px;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    color: var(--color-text-disabled);
+    cursor: default;
+  }
+}
+
+[dir="ltr"] .spartrak-home-finder__select {
+  background-position: right 12px center;
+}
+
+// Figma 595:15851 — action/primary, radius 12, py 16, gap 8, 20px arrow, and
+// an 18px medium label on action/primary-text.
+.spartrak-home-finder__cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding-block: 16px;
+  border: 0;
+  border-radius: var(--radius-12);
+  background-color: var(--color-action-primary);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: var(--color-action-primary-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
+}
+
+.spartrak-home-finder__cta-arrow {
+  .spartrak-icon("arrow-next.svg"; 20px; var(--color-action-primary-text));
+}
+
+// ===========================================================================
+// THE ASSET POINTS RIGHT, SO IT IS THE RTL STORE THAT FLIPS IT
+// ===========================================================================
+// icons/arrow-next.svg draws its head at x=12.667 of a 16-wide box - it points
+// PHYSICALLY RIGHT. A "continue" arrow follows the reading direction, so it is
+// correct as exported in the English store and has to be mirrored in the
+// Arabic one.
+//
+// This said `[dir='ltr']`, which is the exact opposite: the Arabic store, which
+// is the one a shopper actually sees, pointed its arrow backwards into the text
+// it was meant to lead away from, and the English store pointed its arrow the
+// wrong way too. `.spartrak-home-section__view-all-arrow` already had it right,
+// which is what made the two disagree on the same page.
+[dir="rtl"] .spartrak-home-finder__cta-arrow {
+  transform: scaleX(-1);
+}
+
+.spartrak-home-finder__cta-label {
+  font-size: var(--text-18);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--color-action-primary-text);
+}
+
+@media (max-width: @breakpoint-header-collapse) {
+  .spartrak-home-finder__card {
+    max-width: ~"calc(100% - (@{home-gutter-mobile} * 2))";
+  }
+
+  // Four dropdowns side by side do not fit a phone; one column, same gap.
+  .spartrak-home-finder__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spartrak-home-finder__cta {
+    transition: none;
+  }
+}

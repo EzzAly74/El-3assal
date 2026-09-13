@@ -10,6 +10,14 @@
                      theirs so `content` exists to reference.
       Magento_Catalog / Magento_CatalogInventory — the product sections
                      read catalogue collections and stock status.
+      Magento_ProductVideo — the showcase rail reads `media_type` and
+                     `video_url` off each media-gallery entry. Those columns
+                     are not Catalog's: they are joined into
+                     Gallery::createBatchBaseSelect() by that module's
+                     Model\Plugin\ExternalVideoResourceBackend. Disable it and
+                     the video section silently degrades to plain product
+                     cards, so this is a real requirement rather than an
+                     ordering preference.
       Spartrak_Catalog — supplies the shared Card - Product template that
                      every product section renders through.
       Spartrak_Locale — owns Model\StoreLanguage, which this module's
@@ -18,16 +26,10 @@
     -->
     <module name="Spartrak_Homepage">
         <sequence>
-            <!--
-              ProductVideo: Block\Section\ProductCarousel type-hints
-              Spartrak\ProductVideo\Model\Video\DescriptorBuilder to resolve a
-              product's gallery video, so DI has to be able to construct that
-              class. A hard requirement, not an ordering preference.
-            -->
-            <module name="Spartrak_ProductVideo"/>
             <module name="Magento_Cms"/>
             <module name="Magento_Catalog"/>
             <module name="Magento_CatalogInventory"/>
+            <module name="Magento_ProductVideo"/>
             <module name="Spartrak_Catalog"/>
             <module name="Spartrak_Locale"/>
         </sequence>

@@ -46,8 +46,11 @@
  *   class="... showcart"       dropdownDialog's `triggerTarget` is ".showcart"
  *                              — renaming it stops the minicart opening.
  *   data-bind="scope:
- *     'minicart_content'"      binds the trigger to the minicart knockout
- *                              component so the counter updates live.
+ *     'minicart_counter'"      binds the trigger's badge to a knockout
+ *                              component so the count updates live. The NAME
+ *                              is the one thing here that changed (core says
+ *                              'minicart_content'); the semantics did not —
+ *                              see THE DEFERRED DRAWER below.
  *   .counter.qty + .empty      core CSS/JS keys on these; the `empty` class is
  *                              knockout-driven from summary_count.
  *   blockLoader: isLoading     the minicart's busy state — now rendered as the
@@ -61,15 +64,55 @@
  * also pulled in `Magento_Checkout/js/catalog-add-to-cart-mixin`, i.e. extra
  * JS on every page for a layout this design does not use.
  *
+ * ===========================================================================
+ * THE DEFERRED DRAWER
+ * ===========================================================================
+ * The minicart owned the largest block of JavaScript left on the storefront's
+ * critical path: 26 modules and 146,734 bytes reachable from it and from
+ * nothing else on the page, over three serial waterfall layers, almost all of
+ * it the jQuery UI dialog tree behind `mage/dropdown`. The measurement — a
+ * real define-time dependency graph built from the deployed .min.js files,
+ * minus the closure of every other init root on the page — is written out in
+ * web/js/spartrak-minicart-defer.js.
+ *
+ * None of it is needed until a shopper touches the cart, so this template now
+ * splits the minicart into two:
+ *
+ *   EAGER    the badge — `minicart_counter`, ~1 KB, so the count is correct
+ *            the moment the page paints.
+ *   DEFERRED the drawer — its jsLayout as inert application/json, and its
+ *            dropdownDialog config as a plain attribute, both read by
+ *            spartrakMinicartDefer on the first mouseenter / focusin /
+ *            touchstart / click on the trigger.
+ *
+ * Two things had to move for that to actually work, because the drawer had two
+ * INDEPENDENT eager requirers: the x-magento-init at the foot of this file,
+ * and `data-mage-init="dropdownDialog"` on the drawer itself, which
+ * mage/apply/main resolves on its own. Deferring either alone changes nothing.
+ *
+ * This is the same finding Spartrak/Checkout's checkout_index_index.xml made
+ * for checkout, generalised: what was a page-specific swap there is now the
+ * storefront's default, and that layout file keeps only its drawer guard.
+ *
+ * NOT CLAIMED: this does not remove Knockout. Three other x-magento-init
+ * blocks boot Magento_Ui/js/core/app independently — wishlist, messages and
+ * storage-manager — so knockout.min.js (164,810 B) stays. The 146,734 already
+ * excludes everything those three reach.
+ *
  * @var \Magento\Checkout\Block\Cart\Sidebar $block
  * @var \Magento\Framework\View\Helper\SecureHtmlRenderer $secureRenderer
  */
 ?>
-<div data-block="minicart" class="minicart-wrapper spartrak-minicart">
+<div data-block="minicart" class="minicart-wrapper spartrak-minicart"
+     <?php /* Holds the drawer's Knockout boot and its dropdownDialog until the
+              shopper first touches the cart icon. See
+              web/js/spartrak-minicart-defer.js. */ ?>
+     data-mage-init='{"spartrakMinicartDefer":{}}'>
     <a
         class="action showcart"
         href="<?= $block->escapeUrl($block->getShoppingCartUrl()) ?>"
-        data-bind="scope: 'minicart_content'"
+        <?php /* The BADGE's scope, not the drawer's — see the docblock. */ ?>
+        data-bind="scope: 'minicart_counter'"
     >
         <?php /* Node 693:45421. The glyph is masked from the real Figma SVG in
                  _utility-header.less (.spartrak-header__icon--cart), not an
@@ -122,7 +165,16 @@
 
                Everything else here is unchanged core configuration.
              */ ?>
-             data-mage-init='{"dropdownDialog":{
+             <?php /*
+               NOT data-mage-init. mage/apply/main resolves that attribute on
+               DOM ready, which would re-fetch mage/dropdown — and with it the
+               whole jQuery UI dialog tree — on every page even though the
+               component is now deferred. Under a plain attribute the same JSON
+               is inert until spartrakMinicartDefer reads it and hands it to
+               $.dropdownDialog() on first interaction. Byte-for-byte the
+               configuration core would have applied; only the timing changed.
+             */ ?>
+             data-spartrak-dropdown='{
                 "appendTo":"[data-block=minicart]",
                 "triggerTarget":".showcart",
                 "timeout": "2000",
@@ -131,7 +183,7 @@
                 "triggerClass":"active",
                 "parentClass":"active",
                 "bodyClass":"spartrak-minicart-open",
-                "buttons":[]}}'>
+                "buttons":[]}'>
             <?php /*
               The Knockout scope root, and — since it sits between the fixed
               panel and the drawer — the element that has to carry the panel's
@@ -146,13 +198,67 @@
                 <!-- ko template: getTemplate() --><!-- /ko -->
             </div>
         </div>
+
+        <?php /*
+          THE DEFERRED BOOT PAYLOAD.
+
+          Core emitted this same jsLayout inside a `text/x-magento-init`, which
+          mage/apply/scripts resolves on DOM ready — and because
+          Magento_Checkout/js/view/minicart declares `sidebar` and
+          `mage/dropdown` at DEFINE time, that one line pulled 26 modules and
+          146,734 bytes onto every page's critical path.
+
+          `application/json` is inert: nothing reads it until
+          spartrakMinicartDefer hands it to Magento_Ui/js/core/app on the
+          shopper's first cart interaction. The payload is byte-for-byte what
+          core built, so every module that injects into the minicart tree from
+          its own layout (Magento_Tax, Magento_Msrp, PayPal_Braintree, gift
+          cards, reward points) still arrives exactly as intended — later.
+
+          It sits INSIDE the drawer's guard deliberately: where the drawer is
+          suppressed there is nothing to boot, and emitting a payload nothing
+          reads would be document weight for nothing.
+
+          ESCAPING: getJsLayout() serialises through json_encode with default
+          flags, which escapes `/` as `\/`, so no `</script>` can terminate
+          this block early. Same exposure core's own x-magento-init had.
+        */ ?>
+        <script type="application/json" data-spartrak-minicart-layout><?= /* @noEscape */ $block->getJsLayout() ?></script>
     <?php endif; ?>
 
     <?= /* @noEscape */ $secureRenderer->renderTag('script', [], 'window.checkout = ' . /* @noEscape */ $block->getSerializedConfig(), false); ?>
+
+    <?php /*
+      THE EAGER BOOT — the badge, and nothing else.
+
+      `minicart_counter` is Spartrak_Checkout/js/view/minicart-counter: ~1 KB,
+      whose dependencies (uiComponent, ko, customer-data) are already on the
+      page for the three OTHER core/app boots this storefront runs
+      (Magento_Wishlist/js/view/wishlist, Magento_Theme/js/view/messages,
+      Magento_Catalog/js/storage-manager). So the count is right on first paint
+      at no measurable cost, while the drawer's component waits in the inert
+      payload above.
+
+      The component is named here rather than in layout for the same reason
+      core names Magento_Ui/js/block-loader here — it is this template's own
+      wiring. The one page that used to need a different arrangement (checkout,
+      via Spartrak/Checkout/.../checkout_index_index.xml) now needs none.
+
+      Magento_Ui/js/block-loader STAYS EAGER: the badge binds
+      `blockLoader: isLoading` and this module registers that binding. At 1,753
+      bytes it is the one member of the minicart's dependency closure worth
+      keeping on the critical path.
+    */ ?>
     <script type="text/x-magento-init">
     {
         "[data-block='minicart']": {
-            "Magento_Ui/js/core/app": <?= /* @noEscape */ $block->getJsLayout() ?>
+            "Magento_Ui/js/core/app": {
+                "components": {
+                    "minicart_counter": {
+                        "component": "Spartrak_Checkout/js/view/minicart-counter"
+                    }
+                }
+            }
         },
         "*": {
             "Magento_Ui/js/block-loader": "<?= $block->escapeJs(

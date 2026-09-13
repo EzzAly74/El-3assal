@@ -126,3 +126,8 @@
 "This is already the phone number on your account.","هذا هو رقم الهاتف المسجل بحسابك بالفعل."
 "Another account already uses this phone number.","هذا الرقم مستخدم بحساب آخر."
 "Your phone number has been updated.","تم تحديث رقم هاتفك."
+"Please enter a password with at most %1 characters.","يجب ألا تزيد كلمة المرور عن %1 حرف."
+"The password needs at least %1 characters. Create a new password and try again.","يجب أن تحتوي كلمة المرور على %1 حرف على الأقل. اختر كلمة مرور جديدة وحاول مرة أخرى."
+"The password can't begin or end with a space. Verify the password and try again.","لا يمكن أن تبدأ كلمة المرور أو تنتهي بمسافة. تأكد من كلمة المرور وحاول مرة أخرى."
+"Minimum of different classes of characters in password is %1. Classes of characters: Lower Case, Upper Case, Digits, Special Characters.","يجب أن تحتوي كلمة المرور على %1 من أنواع الحروف المختلفة. الأنواع هي: حروف صغيرة، حروف كبيرة، أرقام، رموز خاصة."
+

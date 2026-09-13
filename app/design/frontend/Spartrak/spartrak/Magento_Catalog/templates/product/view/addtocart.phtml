@@ -1,0 +1,339 @@
+<?php
+/**
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+
+/**
+ * ===========================================================================
+ * SPARTRAK — WHY THIS FILE IS A COPY OF PORTO'S
+ * ===========================================================================
+ * The ONLY change against
+ * app/design/frontend/Smartwave/porto/Magento_Catalog/templates/product/view/
+ * addtocart.phtml is the quantity field: Porto renders <input type="number">
+ * plus its own +/- stepper, and Figma (526:23400, value 705:30188 beside
+ * chevron 705:30491) draws a dropdown. Everything else below — the Smartwave
+ * daily-deal countdown, the redirect-to-cart branch, the validation bootstrap
+ * — is Porto's, byte for byte, because CLAUDE.md §2 keeps Porto's behaviour
+ * wherever Figma does not override it.
+ *
+ * The field is inline markup in the middle of that template, so there is no
+ * way to replace it without owning the file. Taking the copy is the cost of
+ * the change; the alternative — rewriting the control in JavaScript after
+ * Porto's input has already painted — would add script to the PDP's critical
+ * path, shift layout, and break with scripting off (CLAUDE.md §4, §9).
+ *
+ * Both blocks that use this template (product.info.addtocart and
+ * product.info.addtocart.additional) pick it up through theme fallback, so
+ * the two never disagree.
+ */
+
+// phpcs:disable
+
+/** @var $block \Magento\Catalog\Block\Product\View */
+/** @var \Magento\Framework\Escaper $escaper */
+?>
+<?php $_product = $block->getProduct(); ?>
+<?php $buttonTitle = __('Add to Cart'); ?>
+<?php $dailydealhelper=$this->helper('Smartwave\Dailydeals\Helper\Data'); ?>
+<?php if ($_product->isSaleable()): ?>
+<div class="box-tocart">
+    <?php if($block->getRequest()->getParam('dailydealproduct') || $dailydealhelper->isDealProduct($_product->getId())) : ?>
+       <?php $productSku=$_product->getSku(); ?>
+    <input type="text" id="todate" value="<?php echo $dailydealhelper->getDailydealToDate($productSku); ?>" style="display:none;" >
+    <input type="text" style="display: none;" id="fromdate" value="<?php echo $dailydealhelper->getDailydealFromDate($productSku); ?>">
+    <p id="countdown"></p>
+    <div class="sw-dailydeal-wrapper">
+      <div class="sw-dailydeal">
+        <?php if($block->getRequest()->getParam('dailydealproduct')) :?>
+            <p id="expired"></p>
+        <?php endif; ?>
+        <div class="countdowncontainer" style="display:none;">
+            <span class="dailydeal-label">
+                <?= $escaper->escapeHtml(__('Offer Ends In:')); ?>
+            </span>
+            <span class="number-wrapper">
+                <div class="line"></div>
+                <span class="number day"><p id="countdown_days"></p></span>
+                <div class="caption"><?= $escaper->escapeHtml(__('Days')); ?></div>
+            </span>
+
+            <span class="number-wrapper">
+                <div class="line"></div>
+                <span class="number hour"><p id="countdown_hours"></p></span>
+                <div class="caption"><?= $escaper->escapeHtml(__('Hours')); ?></div>
+            </span>
+
+            <span class="number-wrapper">
+                <div class="line"></div>
+                <span class="number min"><p id="countdown_minutes"></p></span>
+                <div class="caption"><?= $escaper->escapeHtml(__('Minutes')); ?></div>
+            </span>
+
+            <span class="number-wrapper">
+                <div class="line"></div>
+                <span class="number sec"><p id="countdown_seconds"></p></span>
+                <div class="caption"><?= $escaper->escapeHtml(__('Seconds')); ?></div>
+            </span>
+        </div>
+      </div>
+    </div>
+    <?php endif; ?>
+    <div class="fieldset">
+        <?php if ($block->shouldRenderQuantity()): ?>
+        <?php
+        /**
+         * ===================================================================
+         * THE QUANTITY IS A NATIVE <select>, AND THE LIST IS NOT HARDCODED
+         * ===================================================================
+         * Figma draws a dropdown, and this project already answered the same
+         * question twice the same way: the cart page and the cart drawer both
+         * post their quantity from a native <select> (see the theme's
+         * Magento_Checkout/templates/cart/item/default.phtml and
+         * Spartrak\Checkout\ViewModel\CartQtyOptions). The PDP was the last
+         * surface still disagreeing — it faked the control by painting a
+         * chevron onto a number input.
+         *
+         * A native select is also the cheaper control: no stepper markup, no
+         * Porto stepper handlers, no keystroke validation round trip, and the
+         * browser's own picker on mobile instead of a numeric keypad.
+         *
+         * ------------------------------------------------------------------
+         * WHERE EACH NUMBER COMES FROM
+         * ------------------------------------------------------------------
+         * HOW LONG the list is, is presentation, and it is declared in this
+         * theme's Magento_Catalog/layout/catalog_product_view.xml — the same
+         * place and the same way the cart drawer declares `maxQtyOptions`.
+         * The `?: 10` below is a floor, not the setting, so a handle that
+         * forgets the argument degrades to the drawer's behaviour.
+         *
+         * WHAT THE MERCHANT ALLOWS comes from the dashboard, through core's
+         * own getQuantityValidators(): `maxAllowed` is Advanced Inventory's
+         * Maximum Qty Allowed in Shopping Cart (cataloginventory/item_options/
+         * max_sale_qty) and `qtyIncrements` is Qty Increments. Reading them
+         * here means lowering a product's maximum in Admin shortens this
+         * dropdown with no code change (CLAUDE.md §7), and it costs nothing:
+         * the block's own getProductDefaultQty() already loads that stock item
+         * on this page, so both reads hit the same registry entry.
+         *
+         * The dropdown is a UI limit, never the enforcement. Core validates
+         * the posted quantity against the same configuration server-side on
+         * add to cart, which is what actually stops a hand-made request.
+         *
+         * ------------------------------------------------------------------
+         * A PRE-SET QUANTITY IS NEVER DROPPED FROM THE LIST
+         * ------------------------------------------------------------------
+         * getProductDefaultQty() returns min_sale_qty normally, but on
+         * "Edit item" from the cart it returns the quantity that line already
+         * holds. If that is 24 and the list stops at 10, rendering the control
+         * as-is would silently show the first option and the next submit would
+         * rewrite the shopper's quantity to a number they never chose. So the
+         * value is always present, even when it is above the offered length —
+         * the same guarantee CartQtyOptions::getFor() makes for the cart.
+         */
+        $qtyRules = $block->getQuantityValidators()['validate-item-quantity'] ?? [];
+
+        $step = (int) ($qtyRules['qtyIncrements'] ?? 0);
+        $step = $step > 0 ? $step : 1;
+
+        $minQty = (int) $block->getMinimalQty($_product);
+        $minQty = $minQty > 0 ? $minQty : 1;
+
+        // The first value that satisfies min_sale_qty AND qty_increments at
+        // once: with increments of 3 and a minimum of 4, that is 6, not 4.
+        $first = $step > 1 ? (int) (ceil($minQty / $step) * $step) : $minQty;
+
+        $maxOptions = (int) $block->getData('max_qty_options');
+        $maxOptions = $maxOptions > 0 ? $maxOptions : 10;
+        $maxAllowed = (int) ($qtyRules['maxAllowed'] ?? 0);
+
+        $qtyOptions = [];
+        for ($i = 0; $i < $maxOptions; $i++) {
+            $value = $first + $i * $step;
+            if ($maxAllowed > 0 && $value > $maxAllowed) {
+                break;
+            }
+            $qtyOptions[] = $value;
+        }
+
+        $selectedQty = (int) round((float) $block->getProductDefaultQty());
+
+        // A pre-set quantity is only worth carrying over if the store would
+        // actually accept it. getProductDefaultQty() returns min_sale_qty, and
+        // min_sale_qty does NOT have to sit on the increment grid — with
+        // increments of 3 it hands back 1, which every submit would reject. So
+        // anything below the first offered value, or off the grid, snaps to
+        // that first value instead of being offered as a dead choice. A real
+        // cart-edit quantity (24 with no increments) passes both tests and is
+        // kept.
+        if ($selectedQty < $first || ($step > 1 && $selectedQty % $step !== 0)) {
+            $selectedQty = $first;
+        }
+
+        if (!in_array($selectedQty, $qtyOptions, true)) {
+            $qtyOptions[] = $selectedQty;
+            sort($qtyOptions);
+        }
+        ?>
+        <div class="field qty">
+            <label class="label" for="qty"><span><?= $escaper->escapeHtml(__('Qty')) ?>:</span></label>
+            <div class="control">
+                <select name="qty"
+                        id="qty"
+                        title="<?= $escaper->escapeHtmlAttr(__('Qty')) ?>"
+                        class="input-text qty"
+                        data-validate="<?= $escaper->escapeHtmlAttr(json_encode($block->getQuantityValidators())) ?>">
+                    <?php foreach ($qtyOptions as $qtyOption): ?>
+                        <option value="<?= $escaper->escapeHtmlAttr($qtyOption) ?>"<?= $qtyOption === $selectedQty ? ' selected="selected"' : '' ?>><?= $escaper->escapeHtml($qtyOption) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </div>
+        <?php endif; ?>
+        <div class="actions">
+            <button type="submit"
+                    title="<?= $escaper->escapeHtmlAttr($buttonTitle) ?>"
+                    class="action primary tocart"
+                    id="product-addtocart-button">
+                <span><?= $escaper->escapeHtml($buttonTitle) ?></span>
+            </button>
+            <?php echo $block->getChildHtml('', true) ?>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+<?php if ($block->isRedirectToCartEnabled()) : ?>
+<script type="text/x-magento-init">
+    {
+        "#product_addtocart_form": {
+            "Magento_Catalog/product/view/validation": {
+                "radioCheckboxClosest": ".nested"
+            }
+        }
+    }
+</script>
+<?php else : ?>
+<script>
+    require([
+        'jquery',
+        'mage/mage',
+        'Magento_Catalog/product/view/validation',
+        'Magento_Catalog/js/catalog-add-to-cart'
+    ], function ($) {
+        'use strict';
+
+        $('#product_addtocart_form').mage('validation', {
+            radioCheckboxClosest: '.nested',
+            submitHandler: function (form) {
+                var widget = $(form).catalogAddToCart({
+                    bindSubmit: false
+                });
+
+                widget.catalogAddToCart('submitForm', $(form));
+
+                return false;
+            }
+        });
+    });
+</script>
+<?php endif; ?>
+<script type="text/javascript">
+require([
+    'jquery'
+], function ($) {
+    var app = {
+        isAppleDevice: function() {
+          if (navigator.userAgent.match(/(iPhone|iPod|iPad|Safari)/) != null) {
+            return true;
+          }
+          return false;
+        }
+    }
+    // Timer for LEFT time for Dailydeal product
+    var _second = 1000;
+    var _minute = _second * 60;
+    var _hour = _minute * 60;
+    var _day = _hour * 24;
+    var timer;
+
+    function showRemaining(currentdate) {
+      var cid='countdown';
+      var startdateid='fromdate';
+      var id='todate';
+      var daysid='countdown_days';
+      var hoursid='countdown_hours';
+      var minutesid='countdown_minutes';
+      var secondsid='countdown_seconds';
+
+      var enddate = new Date($('#'+id).val());
+      var dealstartdate=new Date($('#'+startdateid).val());
+      if (app.isAppleDevice() && $('#'+id).val() && $('#'+startdateid).val()) {
+        var edate = $('#'+id).val();
+        var edateParts = edate.substring(0,10).split('-');
+        var etimePart = edate.substr(11);
+        enddate = edateParts[1] + '/' + edateParts[2] + '/' + edateParts[0] + ' ' + etimePart;
+        enddate = new Date(enddate).getTime();
+
+        var sdate = $('#'+startdateid).val();
+        var sdateParts = sdate.substring(0,10).split('-');
+        var stimePart = sdate.substr(11);
+        dealstartdate = sdateParts[1] + '/' + sdateParts[2] + '/' + sdateParts[0] + ' ' + stimePart;
+        dealstartdate = new Date(dealstartdate).getTime();
+      }
+      // Get Current Date from magentodatetime
+
+      var currentdate=new Date(currentdate).getTime();
+      //Get Difference between Two dates
+      var distance = enddate - currentdate;
+      if (distance < 0) {
+        $('#expired').html("<div class='offermessage' >EXPIRED!</div>");
+      } else if(dealstartdate > currentdate) {
+        $('.countdowncontainer').hide();
+        var msg="<div class='offermessage' > Coming Soon..<br>Deal Start at:<br>"+$('#'+startdateid).val()+"</div>";
+        $('#expired').html(msg);
+      } else {
+        var days = Math.floor(distance / _day);
+        var hours = Math.floor((distance % _day) / _hour);
+        var minutes = Math.floor((distance % _hour) / _minute);
+        var seconds = Math.floor((distance % _minute) / _second);
+        if(hours < 10)
+            hours = "0" + hours;
+        if(minutes < 10)
+            minutes = "0" + minutes;
+        if(seconds < 10)
+            seconds = "0" + seconds;
+        $('.countdowncontainer').show();
+        $('#'+daysid).html(days);
+        $('#'+hoursid).html(hours);
+        $('#'+minutesid).html(minutes);
+        $('#'+secondsid).html(seconds);
+      }
+    }
+
+    //Set date as magentodatetime
+    var date = new Date('<?php echo $dailydealhelper->getcurrentDate() ?>');
+    if (app.isAppleDevice()) {
+      var mdate = '<?php echo $dailydealhelper->getcurrentDate() ?>';
+      var dateParts = mdate.substring(0,10).split('-');
+      var timePart = mdate.substr(11);
+      date = dateParts[1] + '/' + dateParts[2] + '/' + dateParts[0] + ' ' + timePart;
+      date = new Date(date);
+    }
+    var day   = date.getDate();
+    var month = date.getMonth();
+    var year  = date.getFullYear();
+    var hours = date.getHours();
+    var minutes = "0" + date.getMinutes();
+    var seconds = "0" + date.getSeconds();
+
+    var fulldate = year+'/'+(month+1)+'/'+day+' '+hours + ':' + minutes.substr(minutes.length-2) + ':' + seconds.substr(seconds.length-2);
+    // Set Interval
+    timer = setInterval(function()
+    {
+        date.setSeconds(date.getSeconds() + 1);
+        var month=date.getMonth();
+        var currentdatetime=date.getFullYear()+"/"+(month+1)+"/"+date.getDate()+" "+date.getHours()+":"+date.getMinutes()+":"+date.getSeconds();
+        showRemaining(currentdatetime);
+    }, 1000);
+});
+</script>

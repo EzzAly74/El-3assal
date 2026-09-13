@@ -1,0 +1,50 @@
+// ===========================================================================
+// Spartrak — the storefront's ground colour
+// ===========================================================================
+// One rule, on `.page-wrapper`, so every route sits on the same surface.
+//
+// WHERE IT CAME FROM
+// This was `background: var(--bg-surface-subtle, #f9f9f9)` on `.spartrak-home`
+// in components/_homepage-sections.less — i.e. the ground was a property of
+// the HOMEPAGE's section stack, so it stopped at that element's box and no
+// other page had it. Moved here on request, and `.page-wrapper` is the right
+// element for it: it is Magento's own outermost storefront wrapper (see
+// Magento_Theme::html/container.phtml), it exists on every page including the
+// ones this theme does not otherwise touch, and it sits INSIDE <body>, so it
+// cannot fight Porto's body rules or a page that paints its own ground.
+//
+// THE TOKEN WAS BROKEN, AND IS FIXED HERE
+// The old declaration named `--bg-surface-subtle`. That custom property is
+// declared NOWHERE in this codebase — grep returns exactly one hit, the
+// declaration that consumed it — so the homepage had been painted by the
+// hardcoded `#f9f9f9` fallback the whole time, and a theme change to the
+// surface colour would silently not have propagated. The real token is
+// `--color-bg-surface-subtle` (foundations/_semantic.less:74 ->
+// --primitive-surface-subtle -> #f9f9f9), so the rendered colour is byte
+// identical and the value now actually tracks the design system, which is what
+// CLAUDE.md section 10 requires of a colour that a token already exists for.
+//
+// The fallback is kept for the same reason the rest of the codebase keeps
+// theirs: it is what renders if the foundations stylesheet is ever late or
+// absent, and an unpainted wrapper is a white flash rather than a wrong grey.
+//
+// WHY A FILE OF ITS OWN
+// It has to be in the GLOBAL bundle — every page needs it — and the global
+// bundle's other members are all components with markup of their own.
+// _porto-chrome.less was the near miss: that file is explicitly a verbatim
+// port of Porto's admin CSS blob, with "values are byte-equivalent to what the
+// blob already rendered" as its contract, and this is a new Spartrak decision
+// rather than something Porto used to do. Putting it there would have made the
+// port's provenance untrue.
+//
+// PERFORMANCE: one selector, one declaration, no new request — it joins a
+// stylesheet the page already blocks on. It paints no earlier and no later
+// than the wrapper itself, so there is no LCP or CLS consequence either way.
+//
+// CONSEQUENCE, RECORDED: pages whose content does not paint its own background
+// now show this grey where they previously showed the browser's white — that
+// is the point of the change, and it is what makes the storefront one surface
+// instead of one grey page among white ones.
+.page-wrapper {
+  background: var(--color-bg-surface-subtle, #f9f9f9);
+}

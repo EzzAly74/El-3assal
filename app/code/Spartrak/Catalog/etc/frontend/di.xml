@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<!--
+  FRONTEND scope, not global. The full page cache only serves storefront
+  requests, and the identifier this plugin adjusts is never consulted in the
+  admin or in a CLI run, so declaring it globally would load the class into
+  areas that cannot use it.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <!--
+      NEW2B-5650. Mageplaza_AjaxLayer answers one category URL with JSON for a
+      script and HTML for a browser, and core's page-cache identifier keys on
+      [isSecure, uriString, varyString] with no request headers — so the two
+      responses compete for a single entry and the AJAX filter reliably
+      receives an HTML page when it removes a filter.
+
+      Bound to the INTERFACE, not to Magento\Framework\App\PageCache\Identifier:
+      the framework resolves IdentifierInterface for the lookup and the save
+      alike, and any project or extension that supplies its own implementation
+      must be re-keyed the same way or the bug simply returns under a different
+      class name.
+
+      The plugin returns core's identifier untouched for every non-XHR request,
+      so ordinary page requests key exactly as before, warm entries stay warm
+      and no shopper-facing timing changes. Its header carries the measurements
+      and why the cache key was the right lever rather than a URL parameter.
+    -->
+    <type name="Magento\Framework\App\PageCache\IdentifierInterface">
+        <plugin name="spartrak_separate_xhr_page_cache_entries"
+                type="Spartrak\Catalog\Plugin\PageCache\SeparateXhrCacheEntries"/>
+    </type>
+</config>

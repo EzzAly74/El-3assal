@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!--
+  Registered in etc/frontend/ rather than etc/, deliberately.
+
+  Magento\Theme\Block\Html\Breadcrumbs is a storefront block, and the crumb
+  being suppressed only ever exists on the storefront's search results page.
+  Scoping the interceptor to the frontend area keeps it out of the admin and
+  the REST/GraphQL areas entirely, so nothing else pays to have it generated
+  or evaluated.
+
+  See the plugin class for why this is an interceptor at all rather than
+  layout XML, and why it must be `around`.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Magento\Theme\Block\Html\Breadcrumbs">
+        <plugin name="spartrak_search_remove_search_crumb"
+                type="Spartrak\Search\Plugin\Block\Html\RemoveSearchCrumb"
+                sortOrder="10"/>
+    </type>
+</config>

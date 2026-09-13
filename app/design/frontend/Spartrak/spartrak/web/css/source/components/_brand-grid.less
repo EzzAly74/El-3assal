@@ -1,0 +1,182 @@
+// ===========================================================================
+// Spartrak — All Brands grid (Figma 1368:37430, list 1368:38026)
+// ===========================================================================
+// The /brands landing page's own band. Compiled only into
+// web/css/spartrak-brands.less, so no other route pays for it.
+//
+// ===========================================================================
+// WHY THE TILE IS DECLARED HERE AND NOT SHARED WITH THE HOMEPAGE RAIL
+// ===========================================================================
+// Figma draws the same tile on both pages — 134.779px plate on
+// bg/surface-subtle, 9.189px gap, Body/Base Medium name on text/muted — and
+// the obvious move was to extract it once, the way _cascade-finder.less and
+// _section-rail.less were extracted. It was tried and rejected, and the reason
+// is worth recording so nobody re-does it.
+//
+// `.spartrak-home-brands__plate` is not one rule. It is a base rule plus TWO
+// mobile overrides in _homepage-sections.less, at two different breakpoints —
+// 93px inside the mobile-homepage block and 104px inside the
+// header-collapse block — because a tile in a HORIZONTAL SCROLLING RAIL has to
+// shrink to signal "this scrolls", and the two frames disagree about how much.
+// A tile in a WRAPPING GRID has the opposite requirement: it does not need to
+// hint at more content off-screen, it needs to tile evenly. Sharing the class
+// would have imported that rail-specific sizing here by accident, and the
+// coupling is invisible — nothing fails, the grid just quietly re-flows when
+// somebody tunes the rail.
+//
+// So these are two components that share a visual SPEC, not a rule set, and
+// the spec is already single-sourced: every value below is a design token, and
+// the two geometry numbers are Figma's own with the node id beside them. That
+// is the duplication CLAUDE.md section 9 permits — presentation expressed
+// through shared tokens — as against the duplicated LOGIC it rules out. The
+// brand LIST, the logos, the URLs and the initial-letter fallback are all
+// genuinely shared, and they are shared in one place: Spartrak_Catalog's
+// BrandNavigation.
+//
+// DEPENDS ON `@home-gutter` / `@home-gutter-mobile` from
+// foundations/_page-metrics.less, deliberately rather than on @plp-gutter:
+// the finder card below this grid measures itself with those, and the two
+// bands have to line up on the same page. They are the same 48px on desktop;
+// on mobile they are 16px against @plp-gutter-mobile's 15px, and a one-pixel
+// disagreement between two stacked bands is exactly the kind of thing that
+// reads as sloppy without ever looking broken.
+
+.spartrak-brand-grid {
+  background-color: var(--color-bg-surface);
+  // Figma 1368:37430 — px 48, py 32.
+  padding-block: 32px;
+  padding-inline: @home-gutter;
+}
+
+// Figma 1368:38026 — wrap, gap 16 on both axes.
+//
+// 9 x 134.779 + 8 x 16 = 1341px inside Figma's own 1344 measure, so the frame's
+// nine-per-row and its tenth tile wrapping to a second row both fall out of
+// the wrap rather than out of a hardcoded column count. Above 1440 the row
+// simply takes more tiles, which is the same behaviour @home-gutter gives
+// every other band on the site.
+//
+// NO `justify-content`. The default is the INLINE start, which puts the last,
+// partly-filled row at the right in Arabic and at the left in English —
+// matching Figma's own drawing, in one declaration less than either direction
+// would need spelling out.
+.spartrak-brand-grid__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// Width pinned to the plate so a two-word brand name ("ماسي فيرجسون",
+// "نيو هولاند") wraps inside its own tile instead of widening it and pushing
+// the row's rhythm out. Arabic brand names break at spaces, so no
+// `overflow-wrap` override is needed.
+//
+// `margin: 0` is not redundant: Porto sets `ul > li { margin-bottom: .05rem }`
+// globally — the same finding every rail in _homepage-sections.less pins.
+.spartrak-brand-grid__item {
+  flex: 0 0 auto;
+  width: 134.779px;
+  margin: 0;
+}
+
+// Figma 1368:38027 — column, gap 9.189, centred. The fraction is Figma's own
+// and is kept rather than rounded, for the same reason the plate's is.
+.spartrak-brand-grid__link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9.189px;
+  text-decoration: none;
+
+  &:visited {
+    color: inherit;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
+}
+
+// Figma 1368:38028 — a 134.779px square on bg/surface-subtle. The fraction is
+// Figma's own: across nine tiles a 0.2px rounding error would accumulate to a
+// visible ~2px drift against the 1344 measure.
+.spartrak-brand-grid__plate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 134.779px;
+  height: 134.779px;
+  background-color: var(--color-bg-surface-subtle);
+  overflow: hidden;
+  transition: background-color 0.15s ease;
+}
+
+.spartrak-brand-grid__link:hover .spartrak-brand-grid__plate {
+  background-color: var(--color-bg-field);
+}
+
+// object-fit: contain — a brand mark must never be cropped or stretched to
+// fill the plate, and the marks Figma shows have wildly different aspect
+// ratios (a wide FIAT wordmark beside a square John Deere).
+.spartrak-brand-grid__logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+// Shown when an option has no swatch uploaded yet — see grid.phtml.
+.spartrak-brand-grid__initial {
+  font-size: var(--text-32);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-text-disabled);
+}
+
+// Figma 1368:38029 — Body/Base Medium 16px/1.5 on text/muted.
+.spartrak-brand-grid__name {
+  font-size: var(--text-16);
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+@media (max-width: @breakpoint-header-collapse) {
+  .spartrak-brand-grid {
+    padding-inline: @home-gutter-mobile;
+  }
+
+  // 93px, and 14px for the name, are NOT invented for this page: they are the
+  // mobile brand tile Figma already draws at 647:57280, which
+  // _homepage-sections.less reads for the mobile rail. Reused here because it
+  // is the same tile at the same viewport, and because a 134.779px plate
+  // tiles two-per-row on a 375px screen with 57px of dead space at the end —
+  // 93px tiles three, evenly.
+  .spartrak-brand-grid__item,
+  .spartrak-brand-grid__plate {
+    width: 93px;
+  }
+
+  .spartrak-brand-grid__plate {
+    height: 93px;
+  }
+
+  .spartrak-brand-grid__initial {
+    font-size: var(--text-24);
+  }
+
+  .spartrak-brand-grid__name {
+    font-size: var(--text-14);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spartrak-brand-grid__plate {
+    transition: none;
+  }
+}

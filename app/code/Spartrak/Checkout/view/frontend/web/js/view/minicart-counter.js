@@ -50,47 +50,66 @@
  * the badge stays live — it still updates on the invalidation events declared
  * in Spartrak_InstaPay's sections.xml.
  *
- * Scoped to checkout only, in Spartrak/Checkout/view/frontend/layout/
- * checkout_index_index.xml. Every other page keeps the full drawer. Reverting
- * is deleting that referenceBlock and the one guard in minicart.phtml.
+ * ===========================================================================
+ * NOW THE BADGE'S COMPONENT EVERYWHERE (2026-09-09)
+ * ===========================================================================
+ * This was written for checkout, where the drawer is suppressed outright. The
+ * same measurement repeated on the homepage — a real define-time dependency
+ * graph built from the deployed .min.js files, minus the closure of every
+ * other init root on the page — found 26 modules and 146,734 bytes reachable
+ * from the minicart and from nothing else. So the drawer's boot is now
+ * DEFERRED to the shopper's first cart interaction on every page, and this
+ * component carries the badge in the meantime, under the scope name
+ * `minicart_counter`. It is booted by the theme's
+ * Magento_Checkout::cart/minicart.phtml; see web/js/spartrak-minicart-defer.js
+ * for the graph and for what that change explicitly does not claim.
+ *
+ * Booting it eagerly costs nothing measurable: uiComponent, ko and
+ * customer-data are already on the page for the three core/app boots the
+ * storefront runs regardless (Magento_Wishlist/js/view/wishlist,
+ * Magento_Theme/js/view/messages, Magento_Catalog/js/storage-manager).
+ *
+ * Reverting is deleting the deferral module, restoring the single
+ * x-magento-init in that template, and putting the checkout-only jsLayout
+ * override back into checkout_index_index.xml.
  */
-define([
-    'uiComponent',
-    'ko',
-    'Magento_Customer/js/customer-data'
-], function (Component, ko, customerData) {
-    'use strict';
+define(["uiComponent", "ko", "Magento_Customer/js/customer-data"], function (
+  Component,
+  ko,
+  customerData,
+) {
+  "use strict";
 
-    return Component.extend({
-        /**
-         * Core declares this on the prototype too, so the loader binding in the
-         * badge has something to read whether or not a section refresh is in
-         * flight.
-         */
-        isLoading: ko.observable(false),
+  return Component.extend({
+    /**
+     * Core declares this on the prototype too, so the loader binding in the
+     * badge has something to read whether or not a section refresh is in
+     * flight.
+     */
+    isLoading: ko.observable(false),
 
-        /**
-         * @returns {Object} this
-         */
-        initialize: function () {
-            this._super();
+    /**
+     * @returns {Object} this
+     */
+    initialize: function () {
+      this._super();
 
-            this.cart = customerData.get('cart');
+      this.cart = customerData.get("cart");
 
-            return this;
-        },
+      return this;
+    },
 
-        /**
-         * One value out of the `cart` customer-data section, matching the
-         * signature the shared template binds against.
-         *
-         * @param {String} name
-         * @returns {*}
-         */
-        getCartParam: function (name) {
-            var cart = this.cart();
+    /**
+     * One value out of the `cart` customer-data section, matching the
+     * signature the shared template binds against.
+     *
+     * @param {String} name
+     * @returns {*}
+     */
+    getCartParam: function (name) {
+      var cart = this.cart();
 
-            return cart ? cart[name] : undefined;
-        }
-    });
+      return cart ? cart[name] : undefined;
+    },
+  });
 });

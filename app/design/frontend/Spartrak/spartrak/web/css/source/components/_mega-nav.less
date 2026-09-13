@@ -63,6 +63,22 @@
 // .spartrak-mega-nav__flyout--category at the bottom of the flyout section.
 @mega-nav-block-padding: 16px;
 
+// The card's inline padding, from the same Figma `padding: 16px 24px`. NAMED
+// for the same reason as the block value above: the row's edge-fade overlay
+// (.spartrak-mega-nav::after) has to start exactly where the list's inline-end
+// edge is, and an absolutely positioned child resolves its insets against the
+// card's PADDING box — which is OUTSIDE this padding. MEASURED at a 1100px
+// window: `inset-inline-end: 0` put the overlay at x=41 while the list's edge
+// was at x=65, i.e. 24px adrift; `inset-inline-end: @mega-nav-inline-padding`
+// puts it at 65 to the pixel. Two rules have to agree about one number, so the
+// number has a name.
+@mega-nav-inline-padding: 24px;
+
+// The grab cursor for the scrolling row. Mixin-only file, emits nothing until
+// called — see foundations/_drag-affordance.less for why this is shared with
+// the homepage/PDP rails rather than written twice.
+@import (reference) "../foundations/_drag-affordance.less";
+
 .spartrak-mega-nav {
   // Width is hug-content and the card is centred by the header's own
   // `align-items: center` (see _utility-header.less), so this must not
@@ -72,7 +88,7 @@
   justify-content: center;
   gap: 28px;
   box-sizing: border-box;
-  padding: @mega-nav-block-padding 24px;
+  padding: @mega-nav-block-padding @mega-nav-inline-padding;
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-default);
   // Both bottom corners carry the same radius, so a physical shorthand is
@@ -111,6 +127,68 @@
   max-width: ~"min(100% - 80px, @{mega-nav-content-width})";
 }
 
+// ---------------------------------------------------------------------------
+// THE ROW'S EDGE FADE — AN OVERLAY, AND NOT THE RAILS' MASK
+// ---------------------------------------------------------------------------
+// The same 80px dissolve the homepage rails carry (Figma 704:27790 and its
+// siblings: a linear gradient from transparent to the surface colour over the
+// scrolling end of a rail), and the visual result is identical. The MECHANISM
+// had to differ, and the reason is measurable rather than stylistic.
+//
+// components/_section-rail.less masks the scroller itself — `mask-image` on the
+// track — chosen there because it adds no DOM. That cannot be reused here: the
+// category flyouts are DOM DESCENDANTS of this row's `<li>`s, and a mask is
+// applied to an element together with everything painted inside it. The panels
+// escape the row's `overflow` clip (see .spartrak-mega-nav__item for how, and
+// why), but nothing lets them escape a mask.
+//
+// MEASURED on the live storefront, hit-testing the centre of an open category
+// panel, at one point 40px below its top edge:
+//
+//     no mask on the list    -> .spartrak-mega-nav__flyout-group-header   (the panel)
+//     mask on the list       -> .spartrak-home                           (the page behind it)
+//
+// The panel was still laid out — a non-zero rect — but painted nowhere and
+// hit-testable nowhere: masking the row silently deleted every flyout. A row
+// link under the mask stayed clickable, which is exactly what would have made
+// this ship unnoticed.
+//
+// So the gradient is painted OVER the row instead of masking it. It costs no DOM
+// either, because it is a pseudo-element on a box that already exists and is
+// already `position: relative`.
+//
+//   inset-block: 0            the card's padding box, so the fade spans the full
+//                             card height rather than only the 34px list
+//   inset-inline-end          insetting by the card's own inline padding is what
+//                             lands it on the LIST's edge — see the note on
+//                             @mega-nav-inline-padding for the measurement
+//   z-index: 1                above the row, far below the flyout's 30
+//   pointer-events: none      a category under the fade stays clickable
+//   border-end-end-radius     the card's bottom corners are rounded and it has
+//                             no `overflow: hidden` to clip with (it cannot have
+//                             one — the flyouts would be clipped away), so the
+//                             overlay rounds its own corner or paints a square
+//                             one outside the card's edge
+//
+// The gradient direction cannot be logical — CSS gradients take physical ones —
+// so `to left` is the RTL case and the single `[dir="ltr"]` rule below mirrors
+// it, the same pairing the rails use.
+.spartrak-mega-nav::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: @mega-nav-inline-padding;
+  z-index: 1;
+  width: 80px;
+  border-end-end-radius: var(--radius-12);
+  pointer-events: none;
+  background: linear-gradient(to left, transparent, var(--color-bg-surface));
+}
+
+[dir="ltr"] .spartrak-mega-nav::after {
+  background: linear-gradient(to right, transparent, var(--color-bg-surface));
+}
+
 // The CTA is a fixed-size cluster: it must never be the thing that squashes or
 // scrolls when the row runs out of room, so it neither grows nor shrinks and
 // the list absorbs every width change.
@@ -135,10 +213,26 @@
 // and the taller CTA, which is not expressible in CSS.
 //
 // The scrollbar is hidden because the card is 66px tall and a native horizontal
-// scrollbar inside it reads as a rendering fault; the row being visibly cut at
-// the edge is the affordance. Hiding the bar does NOT remove access —
-// wheel/trackpad, touch drag and keyboard all still scroll it, and tabbing to
-// an off-screen link scrolls it into view natively.
+// scrollbar inside it reads as a rendering fault. Hiding the bar does NOT remove
+// access — wheel/trackpad, touch drag and keyboard all still scroll it, and
+// tabbing to an off-screen link scrolls it into view natively.
+//
+// "THE ROW BEING VISIBLY CUT AT THE EDGE IS THE AFFORDANCE" is what this note
+// used to claim, and it was not true in practice: reported as "it is difficult
+// for a user to realise the mega menu is x-scrollable". A hard cut at the card's
+// edge reads as the row ENDING there, not as continuing. Two affordances replace
+// it, both borrowed from the homepage rails so the gesture vocabulary is the
+// same everywhere:
+//
+//   the grab cursor   .spartrak-drag-affordance() below, plus click-and-drag
+//                     from js/spartrak-drag-scroll.js — the row can now be
+//                     pulled with a held mouse, which is what a shopper tries
+//   the edge fade     .spartrak-mega-nav::after — content dissolving into the
+//                     surface reads as "there is more", where a hard cut does not
+//
+// MEASURED at a 1100px window before either: the list was 756px wide over
+// 1358px of content — 602px of it unreachable without a gesture nothing on
+// screen suggested.
 .spartrak-mega-nav__list {
   display: flex;
   align-self: stretch;
@@ -154,6 +248,11 @@
   list-style: none;
   margin: 0;
   padding: 0;
+
+  // Grab cursor + `grabbing` while held, pointer devices only. The class this
+  // keys off (`is-dragging`) is toggled by js/spartrak-drag-scroll.js, the same
+  // module the homepage rails use.
+  .spartrak-drag-affordance();
 
   &::-webkit-scrollbar {
     width: 0;
@@ -284,8 +383,39 @@
 // can be evaluated on ONE ancestor that contains both — see the flyout
 // section below for why that is the fix for the hover dead-zone bug, not
 // just a markup convenience.
+// `position: static`, NOT `relative` (2026-09-10). Same fix, same reasoning and
+// same shape as .spartrak-mega-nav__item below — and here it repairs a measured
+// page-level horizontal scroll.
+//
+// THE BUG. The browse panel is `width: 1104px` with a safety net that used to
+// read `max-width: calc(100vw - 32px)`. That net cannot work from here: with
+// this wrapper `relative`, the panel is measured from the CTA, which sits an
+// unknown distance inside the viewport (the page gutter, plus the card's
+// border and padding), and `100vw` additionally counts the vertical scrollbar.
+// So the clamp allowed a panel wider than the space actually left beside it.
+//
+// MEASURED on the live storefront at a 1100px window, RTL:
+//
+//     max-width resolved to      1068px
+//     space from the anchor       1020px
+//     panel rect                  left -48  ->  right 1020
+//     documentElement.scrollWidth 1133 against a 1100 viewport
+//                                 = 33px of page-level horizontal scroll
+//
+// Leaving this wrapper static hands the panel's containing block up to
+// .spartrak-mega-nav, whose own max-width already keeps it inside the viewport
+// at every width — so `width: min(1104px, 100%)` is a clamp against a box that
+// is known to fit, with no viewport unit and no scrollbar to account for.
+// Re-measured with the fix: panel 41 -> 1044 (exactly the card's padding box)
+// and scrollWidth back to 1085, i.e. no overflow.
+//
+// The 1440 design is unaffected: the card's padding box is 1358 there, so
+// `min()` still resolves to Figma's 1104.
+//
+// The vertical consequence is handled, not accepted — see the flyout's own
+// `top` and its hover bridge below.
 .spartrak-mega-nav__browse {
-  position: relative;
+  position: static;
   display: flex;
   align-items: center;
 }
@@ -371,24 +501,92 @@
   display: flex;
 }
 
+// ---------------------------------------------------------------------------
+// A DRAG IS NOT A BROWSE
+// ---------------------------------------------------------------------------
+// Dragging the row means sweeping the pointer across category items with the
+// button held, so `:hover` fires on every item it crosses and the rule above
+// would flash a 540px panel open under the moving cursor — and, because the
+// panel is a DOM child of the item, the pointer then lands ON the panel and it
+// stays open, covering the row mid-gesture.
+//
+// `is-dragging` is toggled on the list by js/spartrak-drag-scroll.js for the
+// duration of the gesture only, so this is the state "a real drag is in
+// progress", not a guess from pointer position.
+//
+// SPECIFICITY, deliberately and not by accident: the rule above is (0,3,0) —
+// two classes and a pseudo-class — so a (0,3,0) selector here would be a tie
+// decided by source order, which is exactly the kind of fragile cascade §9
+// rules out. Naming the full path is (0,5,0) and wins outright, with no
+// `!important` and nothing to re-check if these rules are ever reordered.
+//
+// The scrim is suppressed in the same breath, in the widget rather than here,
+// because it is a sibling of the row and not a descendant — see
+// js/spartrak-mega-nav.js note (3).
+.spartrak-mega-nav__list.is-dragging
+  .spartrak-mega-nav__item--has-flyout:hover
+  > .spartrak-mega-nav__flyout {
+  display: none;
+}
+
 .spartrak-mega-nav__flyout {
   display: none;
   position: absolute;
-  // Anchored to .spartrak-mega-nav__browse (the CTA), which Figma also
-  // places hard against the nav card's inline-start — so this ends up
-  // close to Figma's own near-edge placement without needing its
-  // item-specific centring offset (see the QA-fix note above for why that
-  // offset doesn't generalise). `max-width` is the safety net so the fixed
-  // 1104px panel never overflows a narrower viewport than the 1440 design.
+  // BOTH panels are now measured from the card (.spartrak-mega-nav), which is
+  // the only positioned ancestor either of them has — the category items and
+  // the browse wrapper are both `position: static`, each for a documented
+  // reason. Figma places the browse panel hard against the card's inline-start,
+  // so `inset-inline-start: 0` against the card's padding box IS that placement.
   inset-inline-start: 0;
-  top: 100%;
   z-index: 30;
-  width: 1104px;
-  max-width: calc(100vw - 32px);
+  // Figma's 1104, clamped to the card. NOT `calc(100vw - 32px)`, which this was
+  // and which produced 33px of page-level horizontal scroll at a 1100px window
+  // — see the measurement on .spartrak-mega-nav__browse. The card's own
+  // max-width already guarantees it fits the viewport, so clamping to the card
+  // needs no viewport unit and does not have to reason about the scrollbar.
+  width: ~"min(1104px, 100%)";
   height: 540px;
   overflow: hidden;
   background: var(--color-bg-surface);
   box-shadow: 0 8px 12px rgba(0, 0, 0, 0.05);
+
+  // ----------------------------------------------------------------------
+  // THE HOVER BRIDGE — SHARED BY BOTH PANELS (moved here 2026-09-10)
+  // ----------------------------------------------------------------------
+  // It lived on .spartrak-mega-nav__flyout--category, because only that panel
+  // was measured from the card. Now that the browse panel is too, both sit at
+  // the card's outer edge — one card block-padding BELOW the trigger they
+  // belong to — and both need the bridge. One declaration for one geometry,
+  // rather than the same three lines in two rules.
+  //
+  // Without it the dead zone this component already fought once comes back
+  // (see the QA note above the flyout triggers): the pointer leaves the
+  // trigger, crosses padding that is neither trigger nor panel, `:hover`
+  // drops, and the panel closes before it can be reached.
+  //
+  // A transparent block-start BORDER rather than a pseudo-element, because the
+  // category panel carries `overflow-y: auto` and would clip a pseudo drawn
+  // outside its own box — a border is part of the element's box and is both
+  // painted and hit-tested normally. It works as a bridge because `:hover`
+  // propagates up the DOM, not the box tree: the panel is a DOM child of its
+  // trigger, so the pointer resting on this transparent strip keeps the
+  // trigger hovered.
+  //
+  // Pulling `top` up by exactly the same amount keeps the panel's PADDING box
+  // where `top: 100%` alone would have put its border box, so the visible
+  // panel still starts on the card's bottom edge to the pixel — verified live
+  // for the category panel when this was introduced, and re-verified for the
+  // browse panel after the move.
+  //
+  // The height must be EXACTLY @mega-nav-block-padding. Taller and the bridge
+  // — which spans the full panel width — would reach up into the item row and
+  // swallow hover on neighbouring categories.
+  //
+  // `background-clip: padding-box` stops the panel's white fill painting out
+  // through the transparent border and overlapping the card above it.
+  top: calc(100% - @mega-nav-block-padding);
+  border-block-start: @mega-nav-block-padding solid transparent;
+  background-clip: padding-box;
 }
 
 // A category's own flyout (no L1 tab column, no brand pane — the category IS
@@ -416,33 +614,8 @@
   max-height: 540px;
   overflow-y: auto;
 
-  // ----------------------------------------------------------------------
-  // THE HOVER BRIDGE (2026-08-27).
-  // ----------------------------------------------------------------------
-  // Since .spartrak-mega-nav__item went `static`, this panel is measured from
-  // the CARD, so `top: 100%` lands it at the card's outer edge — one card
-  // block-padding BELOW the item it belongs to. That reopens the dead zone
-  // this component already fought once (see the QA note above the flyout
-  // triggers): the pointer leaves the item, crosses padding that is not the
-  // item, `:hover` drops, and the panel closes before it can be reached.
-  //
-  // The bridge is a transparent block-start border rather than a pseudo
-  // element, because the panel carries `overflow-y: auto` and would clip a
-  // pseudo drawn outside its own box — a border is part of the element's box
-  // and is both painted and hit-tested normally. Pulling `top` up by the same
-  // amount keeps the panel's PADDING box exactly where it was, so nothing
-  // moves visually: verified live, the panel body still starts on the card's
-  // bottom edge to the pixel.
-  //
-  // The height must be EXACTLY @mega-nav-block-padding. Taller and the bridge
-  // — which spans the full 560px panel width — would reach up into the item
-  // row and swallow hover on neighbouring categories.
-  //
-  // `background-clip: padding-box` stops the panel's white fill painting out
-  // through the transparent border and overlapping the card above it.
-  top: calc(100% - @mega-nav-block-padding);
-  border-block-start: @mega-nav-block-padding solid transparent;
-  background-clip: padding-box;
+  // The bridge, `top` and `background-clip` that used to be restated here are
+  // in the base rule now — both panels share the same geometry. See it.
 }
 
 // Node 704:26443 "Categoreis". RTL child order (see topmenu.phtml) puts this

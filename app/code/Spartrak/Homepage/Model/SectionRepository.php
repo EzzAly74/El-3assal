@@ -11,6 +11,7 @@ use Magento\Framework\Exception\CouldNotDeleteException;
 use Magento\Framework\Exception\CouldNotSaveException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Spartrak\Homepage\Model\ResourceModel\Section as SectionResource;
+use Spartrak\Homepage\Model\ResourceModel\Section\CollectionFactory as SectionCollectionFactory;
 
 /**
  * Persistence service for homepage sections.
@@ -38,8 +39,51 @@ class SectionRepository
 {
     public function __construct(
         private readonly SectionResource $resource,
-        private readonly SectionFactory $sectionFactory
+        private readonly SectionFactory $sectionFactory,
+        private readonly SectionCollectionFactory $collectionFactory
     ) {
+    }
+
+    /**
+     * One ENABLED section by its dashboard `code`, or null.
+     *
+     * ---------------------------------------------------------------------
+     * WHY THIS EXISTS, AND WHY IT IS THE ONE STOREFRONT READ THAT COMES HERE
+     * ---------------------------------------------------------------------
+     * The class note above says the storefront does not come through this
+     * repository, because the HOMEPAGE reads every section at once and doing
+     * that entity-by-entity would be the N+1 the brief rules out.
+     *
+     * This is the other shape of the same problem and it inverts the answer:
+     * a page that is not the homepage (the /brands landing page is the first)
+     * needs exactly ONE section — the finder — and loading all of them
+     * through SectionList to throw the rest away would be the waste, not the
+     * saving. One indexed lookup on a UNIQUE column is the cheaper read here.
+     *
+     * Returns NULL rather than throwing. A section that is missing or
+     * disabled is a NORMAL state the caller renders nothing for — the same
+     * reasoning Spartrak\PickupLocation\Api\ConsignmentRepositoryInterface
+     * records for getByOrderId(). An exception would turn "the admin turned
+     * this section off" into a 500.
+     */
+    public function getByCode(string $code): ?Section
+    {
+        $code = trim($code);
+
+        if ($code === '') {
+            return null;
+        }
+
+        $collection = $this->collectionFactory->create();
+        $collection->addCodeFilter($code);
+
+        // getFirstItem() never returns null — an empty collection hands back a
+        // fresh, id-less model — so `getId()` is what actually distinguishes
+        // "found" from "not found" here.
+        /** @var Section $section */
+        $section = $collection->getFirstItem();
+
+        return $section->getId() ? $section : null;
     }
 
     /**

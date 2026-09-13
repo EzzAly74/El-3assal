@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<!--
+  Boots the wishlist heart on every storefront page.
+
+  IN default.xml AND NOT PER PAGE TYPE, considered: the shared product card
+  renders in a lot of places - the homepage rails, the category grid, search
+  results, the brand pages, the PDP's related/upsell rails, the cart's
+  cross-sells, the account's recently-viewed - so an allowlist of layout
+  handles would be a list that silently misses the next surface someone adds a
+  card to, and a heart that does nothing is worse than a heart that costs 1.4KB
+  on the handful of pages with no cards at all.
+
+  What it costs on such a page is ONE inline <script type="text/x-magento-init">
+  of about 200 bytes. The module behind it is fetched asynchronously by
+  RequireJS after the document has parsed, so it is never in the critical
+  rendering path and cannot touch LCP (CLAUDE.md section 12); and
+  js/wishlist-toggle.js does nothing but attach two delegated listeners when it
+  finds no hearts.
+
+  `before.body.end` for the same reason: nothing here needs to run before the
+  page has painted.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="before.body.end">
+            <block name="spartrak.wishlist.toggle.init"
+                   class="Magento\Framework\View\Element\Template"
+                   template="Spartrak_Wishlist::toggle-init.phtml"/>
+        </referenceContainer>
+    </body>
+</page>

@@ -46,33 +46,63 @@
  * allowlist. See Spartrak\CustomerAuth\ViewModel\PostLoginDestinations for why
  * that is a security boundary rather than a convenience.
  */
-define([
-    'jquery',
-    'mage/utils/wrapper'
-], function ($, wrapper) {
-    'use strict';
+define(["jquery", "mage/url", "mage/utils/wrapper"], function (
+  $,
+  url,
+  wrapper,
+) {
+  "use strict";
 
-    return function (authenticationPopup) {
-        authenticationPopup.showModal = wrapper.wrapSuper(
-            authenticationPopup.showModal,
-            function () {
-                var $modal = $('.spartrak-auth');
+  return function (authenticationPopup) {
+    authenticationPopup.showModal = wrapper.wrapSuper(
+      authenticationPopup.showModal,
+      function () {
+        var $modal = $(".spartrak-auth");
 
-                // `instance` is jQuery UI's own registry lookup: it returns
-                // undefined when the widget has not been created on the
-                // element, which is the honest test for "is the Spartrak modal
-                // actually usable right now".
-                if ($modal.length && $modal.spartrakAuth('instance')) {
-                    $modal.spartrakAuth('open', 'login', 'checkout');
+        // `instance` is jQuery UI's own registry lookup: it returns
+        // undefined when the widget has not been created on the
+        // element, which is the honest test for "is the Spartrak modal
+        // actually usable right now".
+        if ($modal.length && $modal.spartrakAuth("instance")) {
+          $modal.spartrakAuth("open", "login", "checkout");
 
-                    return;
-                }
+          return;
+        }
 
-                // No Spartrak modal on this page - let Magento ask.
-                this._super();
-            }
-        );
+        /*
+         * ===============================================================
+         * THE FALLBACK IS A PAGE, NOT A POPUP, AND HAS TO BE
+         * ===============================================================
+         * This used to call `this._super()`, which opens Magento's own
+         * authentication popup. That popup no longer exists: the theme
+         * removes its block in Magento_Customer/layout/default.xml,
+         * because it was rendering on every page only to be ignored and
+         * dragging ~170KB of validation JavaScript in with it (the file
+         * carries the measurements).
+         *
+         * `_super()` would therefore reach for `#authenticationPopup`,
+         * find nothing, and fail SILENTLY - the shopper clicks "sign in"
+         * and the page just sits there. A dead end is worse than a
+         * redirect, so this branch now navigates to the account login
+         * page, which is always present and needs no JavaScript.
+         *
+         * It should stay unreachable in practice: the Spartrak modal is
+         * mounted by Magento_Theme's default handle, so it is on every
+         * frontend page. This exists for the case where it is not -
+         * a page that strips the header, or a widget that has not
+         * finished initialising when the shopper clicks.
+         *
+         * NO `next` PARAMETER. Where the shopper goes after signing in
+         * is decided server-side against an allowlist
+         * (Spartrak\CustomerAuth\ViewModel\PostLoginDestinations); the
+         * modal passes a KEY for that reason, and appending a
+         * destination to this URL from the browser would be exactly the
+         * open-redirect the allowlist exists to prevent.
+         */
+        window.location.href = url.build("customer/account/login");
+      },
+    );
 
-        return authenticationPopup;
-    };
+    return authenticationPopup;
+  };
 });

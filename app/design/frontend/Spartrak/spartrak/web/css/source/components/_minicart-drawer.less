@@ -1119,10 +1119,48 @@ body.spartrak-minicart-open {
   }
 }
 
+//  THE TRIGGER'S BUSY STATE ---------------------------------------------------
+//
+//  The drawer's Knockout boot and its dropdownDialog are both held until the
+//  shopper first touches the cart icon — 26 modules and 146,734 bytes off
+//  every page's critical path, measured in web/js/spartrak-minicart-defer.js.
+//  Warming starts on hover/focus/touchstart, which in a real interaction lands
+//  before the click, so most opens are instant. A COLD click still has a short
+//  wait, and this is the whole of what is shown during it.
+//
+//  Three deliberate choices:
+//
+//  1. It reuses `spartrak-spin-pulse`, which foundations/_spinner.less already
+//     emits for its own reduced-motion state. Section 10 of CLAUDE.md wants
+//     ONE busy primitive for the project, and this is it — not a second
+//     implementation, not a skeleton, and not a rotating ring, which on a 40px
+//     icon button would end up smaller than the glyph it covered.
+//  2. It animates OPACITY only, which the compositor owns: no layout, no
+//     repaint, nothing on the main thread while it runs.
+//  3. It is an attribute state with no markup behind it, so it adds no DOM
+//     nodes and no document bytes to any page. A server-rendered skeleton
+//     would have put both on every page in the store to serve a state that
+//     only ever appears after a click.
+//
+//  The selector is deliberately NOT scoped to .spartrak-header__cart: the
+//  minicart renders in the mobile drawer too, and the trigger behaves the same
+//  wherever it is. Its appearance still belongs to
+//  components/_utility-header.less; this is only the state.
+[data-block="minicart"][data-spartrak-minicart-busy] .action.showcart {
+  animation: spartrak-spin-pulse 1.4s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .minicart-wrapper.spartrak-minicart .block-minicart,
   .minicart-wrapper.spartrak-minicart.active::before {
     animation: none;
+  }
+
+  //  Still an observable "working" signal, just not a moving one — the same
+  //  reasoning foundations/_spinner.less applies to the ring.
+  [data-block="minicart"][data-spartrak-minicart-busy] .action.showcart {
+    animation: none;
+    opacity: 0.6;
   }
 
   .spartrak-minicart-drawer__close,

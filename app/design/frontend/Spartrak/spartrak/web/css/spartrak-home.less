@@ -1,0 +1,37 @@
+// Spartrak homepage sections — entry point.
+//
+// Compiled as its own stylesheet and enqueued ONLY on cms_index_index
+// (see Magento_Cms/layout/cms_index_index.xml), rather than being folded
+// into spartrak-components.css.
+//
+// WHY IT IS SPLIT OUT: spartrak-components.css is render-blocking on EVERY
+// page, and it was carrying 3,160 lines of CSS that match nothing outside
+// the homepage. Lighthouse measured that bundle at 21.8KB over the wire with
+// 16.1KB of it UNUSED on the homepage - 76 per cent - and it is one of only
+// three stylesheets left in the critical path. Carrying one page's CSS to
+// every other page taxes their LCP to style something they can never show.
+//
+// This is the same decision and the same mechanism as spartrak-cart.less,
+// spartrak-checkout.less, spartrak-account.less and spartrak-pdp-video.less.
+// It is not a new pattern; it is that pattern applied to the files that were
+// still global.
+//
+// THE FOUNDATIONS BELOW EMIT NOTHING. _breakpoints, _page-metrics, _icons and
+// _a11y are variables and mixins only - verified, zero emitting rules - so
+// importing them into several bundles duplicates no output. _spinner is NOT
+// imported here precisely because it DOES emit (two keyframes and two rules)
+// and none of the components in this bundle use it; it stays single-sourced
+// in spartrak-components.less.
+//
+// SAFE TO SCOPE TO ONE HANDLE: Spartrak_Homepage renders its sections from
+// view/frontend/layout/cms_index_index.xml - a layout handle, not a CMS
+// widget a merchant can drop onto an arbitrary page - so `.spartrak-home-*`
+// markup cannot appear anywhere else.
+
+@import "source/foundations/_breakpoints.less";
+@import "source/foundations/_page-metrics.less";
+@import "source/foundations/_icons.less";
+@import "source/foundations/_a11y.less";
+
+@import "source/components/_homepage-sections.less";
+@import "source/components/_cascade-finder.less";

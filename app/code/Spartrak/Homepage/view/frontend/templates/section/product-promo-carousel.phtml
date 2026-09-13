@@ -114,8 +114,8 @@ $ctaUrl = $block->getViewAllUrl();
 
                 <?php if ($ctaUrl !== '') : ?>
                     <a class="spartrak-home-split__cta" href="<?= $block->escapeUrl($ctaUrl) ?>">
-                        <span class="spartrak-home-split__cta-arrow" aria-hidden="true"></span>
                         <span><?= $block->escapeHtml(__('View all')) ?></span>
+                        <span class="spartrak-home-split__cta-arrow" aria-hidden="true"></span>
                     </a>
                 <?php endif; ?>
             </aside>

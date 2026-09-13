@@ -61,14 +61,48 @@
 // `font/family/arabic`. The Arabic face is used for all three, or the toast
 // would be the one component on the site rendering Arabic in a Latin fallback.
 
-// Figma's frame: 16 + 50 icon + 16 + 296 content + 24 + 16 close + 16 = 434.
-@toast-width: 434px;
-@toast-pad: 16px;
-// The disc, and the two gaps the design uses inside one row (16 between the
-// icon and the copy, 24 between the copy and the close).
-@toast-icon-size: 50px;
-@toast-gap: 16px;
-@toast-close-gap: 24px;
+// ===========================================================================
+// THE MODULE — ONE STEP DOWN FROM FIGMA'S, AND WHY
+// ===========================================================================
+// DELIBERATE DIVERGENCE FROM FIGMA, RECORDED RATHER THAN HIDDEN (CLAUDE.md
+// section 3). Figma's frame is 16 + 50 icon + 16 + 296 content + 24 + 16 close
+// + 16 = 434, with the title at 16/600. Asked for explicitly on 2026-09-08:
+// the live toasts read as oversized, and the reported case shows why.
+//
+// WHAT THE DESIGN FILE COULD NOT SEE. Figma's alert is drawn holding a short
+// authored phrase. Every real message on this storefront interpolates
+// MERCHANT DATA — and this catalogue's product names are long
+// ("غطاء تاكية 1106 DIESEL HOUSE"). At 16/600 in a 296px column that is three
+// wrapped lines of title-weight type, which is a toast the size of a dialog
+// hanging over the header. The design was not wrong; it was specified against
+// content this catalogue does not have.
+//
+// SO THE WHOLE COMPONENT STEPS DOWN, NOT JUST THE FONT. Shrinking the type
+// inside a box sized for larger type gives a small message adrift in a slab —
+// worse than either. Every measurement below moves together, keeping Figma's
+// PROPORTIONS exactly: the disc is still ~2.9x the title's size, the pad is
+// still ~1.75x the row gap, and the close control still sits one step further
+// out than the copy.
+//
+//                    Figma   here
+//   frame              434    380
+//   pad                 16     14
+//   icon disc           50     40
+//   row gap             16     12
+//   copy -> close       24     16
+//   title            16/600  14/600
+//   body             14/400  12/400
+//
+// The structure Figma DOES state is untouched: no radius, no border, the 6px
+// accent bar at the reading start, the tinted disc, the three text parts, both
+// variants' colours. Only the scale moves.
+@toast-width: 380px;
+@toast-pad: 14px;
+// The disc, and the two gaps the design uses inside one row (12 between the
+// icon and the copy, 16 between the copy and the close).
+@toast-icon-size: 40px;
+@toast-gap: 12px;
+@toast-close-gap: 16px;
 
 .page.messages {
     position: fixed;
@@ -178,9 +212,71 @@
         flex-direction: column;
         // Figma 1286:29517 — 6 between the copy block and the action.
         gap: 6px;
-        font-size: var(--text-16);
+        // 14/600, one step down from Figma's 16/600 — see the module note at
+        // the top of this file for why the whole component steps down.
+        //
+        // This declaration is doing two jobs, which is why it is not just a
+        // number: it is the TITLE's type for a structured message, and it is
+        // the WHOLE type for a plain-string one (every message except
+        // add-to-cart and the two wish-list ones). So it is the single value
+        // that decides how big a page message looks anywhere on this
+        // storefront.
+        font-size: var(--text-14);
         font-weight: 600;
-        line-height: 1.5;
+        // 1.45 rather than 1.5: at 14px a tighter leading is what keeps a
+        // two-line merchant product name reading as ONE title instead of as
+        // two stacked lines.
+        line-height: 1.45;
+        // Long unbroken tokens in message text — a SKU, a URL in a validation
+        // error — would otherwise push the column past `min-width: 0` and
+        // overflow the toast. Nothing in the design breaks; this only takes
+        // effect where the content would have.
+        overflow-wrap: anywhere;
+    }
+
+    // ======================================================================
+    // A PLAIN-STRING MESSAGE IS A TITLE, SO IT IS CLAMPED LIKE ONE
+    // ======================================================================
+    // Asked for on 2026-09-08: every toast title on one line, success and
+    // error alike, the way the add-to-cart toast already reads.
+    //
+    // `.spartrak-toast__title` has carried this clamp since the toast pass,
+    // but it only exists on the three STRUCTURED messages (add-to-cart and the
+    // two wish-list ones). Every other message on the storefront is a single
+    // string that core drops straight into this `div`, with no element of its
+    // own to clamp — which is why those were the ones still wrapping to three
+    // lines. This is the same four-declaration idiom, applied to the div that
+    // IS the title in that case.
+    //
+    // WHY `:not(:has(...))` AND NOT A CLASS. The two shapes are told apart by
+    // what core emitted, and this theme does not control that markup — there
+    // is no hook to add a class to. `:has()` asks the only question available:
+    // "did a structured renderer put its text block in here?" If yes, the
+    // column stays the flex stack the structure needs and the clamp lives on
+    // `__title` where it already is.
+    //
+    // AND IT DEGRADES THE SAFE WAY ROUND. In a browser without `:has()` the
+    // whole selector is invalid and this rule is dropped, so a structured
+    // message keeps its flex column and merely loses the clamp. Written the
+    // other way about — clamping by default and restoring `flex` under
+    // `:has()` — the same browser would collapse the body and action of every
+    // structured toast into a hidden single line.
+    //
+    // THE TRADE-OFF, STATED. A long ERROR is now visually truncated. The full
+    // string stays in the DOM, so assistive tech still receives all of it
+    // (CLAUDE.md section 15) and nothing is lost to a screen reader — but a
+    // sighted shopper sees the first line and an ellipsis. That is the
+    // instruction, and it is recorded here so it reads as a decision rather
+    // than an oversight: if a validation error ever needs to be read in full
+    // on this surface, this is the rule to relax, and relaxing it for
+    // `.message-error` alone is a one-selector change.
+    > div:not(:has(.spartrak-toast__text)) {
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     // Core's own inline links inside a message body (the stock add-to-cart
@@ -263,10 +359,18 @@
     text-overflow: ellipsis;
 }
 
-// Body/Small/Regular — 14/400, lh 1.5, neutral/1000.
+// Figma's Body/Small/Regular is 14/400; 12/400 here, one step down with the
+// rest of the component (see the module note at the top of this file).
+//
+// It also drops to text/secondary. At 14/400 under a 16/600 title the weight
+// alone separated the two lines; at 12/400 under a 14/600 one it needs the
+// tone as well, or the supporting line reads as a second title. Both values
+// are already in this theme — no new token, and the pair still clears WCAG AA
+// on both variants' grounds (CLAUDE.md section 15).
 .spartrak-toast__body {
     display: block;
-    font-size: var(--text-14);
+    color: var(--color-text-secondary);
+    font-size: var(--text-12);
     font-weight: 400;
     line-height: 1.5;
 }
@@ -274,14 +378,25 @@
 // Label/Base on action/primary — 12/500, lh 1.3, in a 32px-tall control
 // (1286:29541). `align-self: flex-start` so the hit area is the label's width
 // and not the whole column's.
+//
+// KEPT AT 12 while the two lines above it stepped down, so it is now the same
+// SIZE as the body copy — which is why it goes to 600 and why it keeps the
+// navy. Weight and colour are what say "this is a control" once size no longer
+// does; and 12 is already the floor of this theme's ramp, so stepping it down
+// with the rest was not available.
+//
+// `block-size: 28px` rather than Figma's 32: the control has to stay in
+// proportion to the 14px title above it, and 28 is still a comfortable target
+// for a text link that sits inside a toast a shopper can also dismiss by
+// clicking anywhere on it.
 .spartrak-toast__action {
     align-self: flex-start;
     display: inline-flex;
     align-items: center;
-    block-size: 32px;
+    block-size: 28px;
     color: var(--color-action-primary);
     font-size: var(--text-12);
-    font-weight: 500;
+    font-weight: 600;
     line-height: 1.3;
     text-decoration: none;
 
@@ -327,8 +442,10 @@
         content: '';
         background-color: var(--color-bg-success-halo);
         background-image: url('../images/icons/feedback-success.svg');
-        // Figma 1286:29516 — 18px inside the 50px disc.
-        background-size: 18px 18px;
+        // Figma 1286:29516 draws 18px inside a 50px disc. The disc is 40 here
+        // (see the module note), so the glyph follows it down to keep the same
+        // proportion rather than filling more of a smaller circle.
+        background-size: 16px 16px;
     }
 }
 
@@ -344,8 +461,11 @@
         content: '';
         background-color: var(--color-bg-danger-halo);
         background-image: url('../images/icons/feedback-error.svg');
-        // Figma 1286:29592 — 22px, four larger than the success glyph.
-        background-size: 22px 22px;
+        // Figma 1286:29592 draws 22px against the success variant's 18 — the
+        // error mark is deliberately the louder of the two. Scaled with the
+        // disc like its counterpart, and the relationship is preserved: still
+        // the larger glyph, at the smaller module.
+        background-size: 18px 18px;
     }
 }
 
@@ -406,18 +526,20 @@
         inline-size: auto;
     }
 
-    // Figma has no phone frame for this component. The 50px disc plus its 16px
-    // gap is 66px of a 351px-wide toast — a fifth of the line — before the
-    // copy starts, and the copy is the message. The disc is reduced rather
-    // than dropped so the type of the message is still readable at a glance;
-    // the glyph inside it keeps its own size, which is the design's.
+    // Figma has no phone frame for this component. The disc plus its gap is
+    // the run of the line that happens BEFORE the copy starts, and the copy is
+    // the message — so on a phone it gives up one more step. Reduced rather
+    // than dropped: the glyph is what identifies a success from an error at a
+    // glance, before any of the text is read.
+    //
+    // (Desktop is now 40; this was 40 back when desktop was Figma's 50.)
     .page.messages .message::after {
-        inline-size: 40px;
-        block-size: 40px;
+        inline-size: 36px;
+        block-size: 36px;
     }
 
     .page.messages .message {
-        gap: 12px;
+        gap: 10px;
     }
 }
 

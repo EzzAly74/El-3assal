@@ -1,0 +1,55 @@
+<?php
+/**
+ * Spartrak — boots the wishlist heart, once per page.
+ *
+ * ===========================================================================
+ * WHY THE PAGE AND NOT THE CARD
+ * ===========================================================================
+ * js/wishlist-toggle.js is deliberately ONE delegated component for the whole
+ * document (see its header). Emitting the init from the card template would
+ * emit it once per card - thirty copies of this JSON on a homepage rail, all
+ * initialising the same module, all discarded by its own `started` guard.
+ *
+ * ===========================================================================
+ * WHY THESE THREE VALUES AND NOT DATA ATTRIBUTES
+ * ===========================================================================
+ * The endpoint, the two labels and the sign-in fallback are the same on every
+ * card on the page. Printed here they are paid for once; printed on the button
+ * they would be paid for per card, and the labels are translated strings, so
+ * on an Arabic store that is multi-byte text repeated forty times in the HTML
+ * of the page whose LCP matters most (CLAUDE.md sections 4 and 13).
+ *
+ * ===========================================================================
+ * NOTHING HERE IS CUSTOMER-SPECIFIC
+ * ===========================================================================
+ * Which products are saved is NOT in this payload and must never be - it is
+ * private content and arrives on the `wishlist` customer-data section. Every
+ * value below is per-store-view, which is the granularity the full-page cache
+ * already keys on, so this block is safely cacheable.
+ *
+ * `signInUrl` is the native login route on purpose: Spartrak_CustomerAuth's
+ * observer intercepts it and 302s back with `#auth=login`, which opens the
+ * modal. So even the fallback path lands on the Spartrak dialog rather than on
+ * Magento's own login page.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+$config = [
+    'toggleUrl' => $block->getUrl('spartrak_wishlist/ajax/toggle'),
+    'signInUrl' => $block->getUrl('customer/account/login'),
+    'labelAdd' => (string) __('Add to Wish List'),
+    'labelRemove' => (string) __('Remove from Wish List'),
+];
+?>
+<script type="text/x-magento-init">
+{
+    "*": {
+        "Spartrak_Wishlist/js/wishlist-toggle": <?= /* @noEscape */ json_encode(
+            $config,
+            JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+        ) ?>
+    }
+}
+</script>

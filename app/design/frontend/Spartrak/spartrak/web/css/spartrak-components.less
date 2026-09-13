@@ -35,6 +35,7 @@
 // Porto chrome that is still load-bearing, migrated out of the DB-stored
 // porto_settings/custom_settings/custom_style blob. Imported FIRST so it can
 // never outrank a Spartrak component on equal specificity.
+@import "source/components/_page-ground.less";
 @import "source/components/_porto-chrome.less";
 
 // Retirement of the porto-icons font: re-draws the only glyphs measured as
@@ -75,30 +76,25 @@
 // claims core's `.modal-popup` classes.
 @import "source/components/_dialog.less";
 @import "source/components/_footer.less";
-@import "source/components/_homepage-sections.less";
 @import "source/components/_product-card.less";
 // Pagination — the shared control, not a PLP part. Imported BEFORE _plp.less
 // so that file stays the later word on the spacing it still owns around it.
 // Also imported by spartrak-account.less, which is the whole point: the order
 // list and the wishlist page the same Magento pager markup.
 @import "source/components/_pagination.less";
-@import "source/components/_plp.less";
 // The two bands above the PLP's product area (hero + "تسوق بالمنتجات" rail).
 // Kept directly after _plp.less because the two describe one page: this file
 // applies the negative of the page gutter that one applies, so a reader
 // changing either should see the other immediately. Both take the number from
 // foundations/_page-metrics.less above, not from each other.
-@import "source/components/_category-top.less";
 // The PDP. Imported after _product-card and _plp because it shares their
 // vocabulary (the rating mask, the discount pill) and, where it needs to
 // differ — 22px stars against the card's 20px — must be the later word.
-@import "source/components/_pdp.less";
 // The PDP reviews panel and the rating dialog. AFTER _pdp.less, which owns the
 // tab row and the tab panel this component renders inside — so where the two
 // touch (the panel's own padding at each width) this file is the later word.
 // It shares _pdp.less's rating vocabulary and adds no colour or type step of
 // its own that is not already a token.
-@import "source/components/_reviews.less";
 // The cart drawer. Imported after the header component that styles its trigger,
 // and grouped here with the other components that claim CORE Magento classes
 // (.block-minicart, .ui-dialog) rather than Spartrak ones.

@@ -159,9 +159,26 @@ $config = [
             <?php endif; ?>
         </div>
 
-        <button type="submit" class="spartrak-home-finder__cta">
-            <span class="spartrak-home-finder__cta-arrow" aria-hidden="true"></span>
+        <?php /*
+          SHIPPED DISABLED — NEW2B-5654, "enable the button only when the user
+          adds a value in any field".
+
+          The default belongs in the MARKUP, not in the widget's _create: this
+          section is inside a full-page-cache entry, so a button that ships
+          enabled and is disabled a moment later by script is a button every
+          shopper sees in the wrong state first, and one they can press in the
+          gap. Rendering the true initial state — an empty form cannot be
+          submitted — costs nothing and has no flash.
+
+          It also costs nothing when script never arrives. The form has no
+          `action`: js/spartrak-cascade-search's _onSubmit is the only thing
+          that has ever navigated it (it preventDefaults and assigns
+          location), so with no JS this control was already inert and now says
+          so instead of pretending otherwise.
+        */ ?>
+        <button type="submit" class="spartrak-home-finder__cta" data-finder-submit disabled>
             <span class="spartrak-home-finder__cta-label"><?= $block->escapeHtml(__('Show results')) ?></span>
+            <span class="spartrak-home-finder__cta-arrow" aria-hidden="true"></span>
         </button>
     </form>
 </section>

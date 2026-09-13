@@ -102,7 +102,7 @@ $boxHeightMobile = 220;
                      good on any deliberate interaction — see
                      js/spartrak-home-carousel.js::_setupAutoplay, including its
                      note on what this does and does not owe WCAG 2.2.2. */ ?>
-            data-mage-init='{"spartrakHomeCarousel":{"mode":"banner","autoplay":5000}}'
+            data-mage-init='{"spartrakHomeCarousel":{"mode":"banner","autoplay":3000}}'
             role="group"
             aria-roledescription="<?= $block->escapeHtmlAttr(__('Carousel')) ?>"
         <?php endif; ?>>
@@ -113,10 +113,44 @@ $boxHeightMobile = 220;
                 $loading = $block->getImageLoading((int) $index);
                 $hasLink = $banner['url'] !== '';
                 $tag = $hasLink ? 'a' : 'div';
+
+                /*
+                 * ACCESSIBLE NAME FOR A LINKED BANNER.
+                 *
+                 * A hero slide is a single <a> wrapping a single decorative
+                 * <img>, so the link's only possible name is the image's alt
+                 * text — and Lighthouse reports this exact link as having
+                 * none ("Element is in tab order and does not have accessible
+                 * text"), a WCAG 2.4.4 / 4.1.2 failure.
+                 *
+                 * The alt text IS admin-managed (banner title_ar / title_en,
+                 * per CLAUDE.md section 6's alt-text requirement, resolved by
+                 * BannerResolver::getTitle with locale fallback) — it is
+                 * simply empty in the database for the banners currently
+                 * live, which is why the rendered markup carries alt="".
+                 *
+                 * So: use the admin value whenever there is one, and fall back
+                 * to a translated positional label rather than shipping a
+                 * nameless link. The fallback is deliberately generic because
+                 * inventing marketing copy here would put content in the theme
+                 * — the fix for a *meaningful* name is to fill the banner's
+                 * Title field in Admin, not to hardcode a string.
+                 *
+                 * The name goes on the LINK, not the image, and the image is
+                 * then explicitly decorative — otherwise a screen reader
+                 * announces the same words twice for one control.
+                 */
+                $bannerAlt = $banner['alt'];
+                $linkLabel = $bannerAlt !== ''
+                    ? $bannerAlt
+                    : (string) __('Promotional banner %1', (int) $index + 1);
                 ?>
                 <<?= /* @noEscape */ $tag ?> class="spartrak-home-banner__slide"
                     data-carousel-slide
-                    <?php if ($hasLink) : ?>href="<?= $block->escapeUrl($banner['url']) ?>"<?php endif; ?>
+                    <?php if ($hasLink) : ?>
+                        href="<?= $block->escapeUrl($banner['url']) ?>"
+                        aria-label="<?= $block->escapeHtmlAttr($linkLabel) ?>"
+                    <?php endif; ?>
                     <?php if ($isCarousel && $index > 0) : ?>aria-hidden="true"<?php endif; ?>>
                     <picture class="spartrak-home-banner__picture">
                         <?php if ($banner['mobile_url'] !== $banner['desktop_url']) : ?>
@@ -154,7 +188,11 @@ $boxHeightMobile = 220;
                              srcset="<?= $block->escapeHtmlAttr($banner['desktop_srcset']) ?>"
                              sizes="(max-width: 1440px) 100vw, 1440px"
                              <?php endif; ?>
-                             alt="<?= $block->escapeHtmlAttr($banner['alt']) ?>"
+                             <?php /* Decorative when the wrapping <a> already
+                                carries the name (see the block comment above);
+                                the admin alt otherwise, so an unlinked banner
+                                still describes itself. */ ?>
+                             alt="<?= $hasLink ? '' : $block->escapeHtmlAttr($bannerAlt) ?>"
                              width="<?= (int) $boxWidth ?>"
                              height="<?= (int) $boxHeight ?>"
                              loading="<?= $block->escapeHtmlAttr($loading['loading']) ?>"

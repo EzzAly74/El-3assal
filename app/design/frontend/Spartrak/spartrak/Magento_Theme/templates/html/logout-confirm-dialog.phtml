@@ -1,0 +1,127 @@
+<?php
+/**
+ * Spartrak — the "sign out?" confirmation.
+ *
+ * ===========================================================================
+ * WHY IT EXISTS
+ * ===========================================================================
+ * Signing out is one click away in the header chip, in the mobile drawer, in
+ * the account sidebar and in Porto's own authorization link — and on a phone
+ * those controls sit next to the ones a shopper actually meant to press. It
+ * is also not free to undo: coming back means the phone number, the password
+ * and, on a shared device, doing it again. So it gets a confirmation, in
+ * Arabic and English, asked for on 2026-09-08.
+ *
+ * ===========================================================================
+ * NOT A NEW COMPONENT — THE SIGNED-OUT PANEL WITH A QUESTION IN IT
+ * ===========================================================================
+ * This is the same shared frame + shared empty-state block that
+ * html/signed-out-dialog.phtml uses (components/_dialog.less and
+ * components/_empty-state.less own both), with three differences and no new
+ * design language:
+ *
+ *   - the title asks instead of announcing;
+ *   - there are TWO ways out instead of one, so `__copy`'s single-action
+ *     column becomes `__actions`, a pair (see _empty-state.less);
+ *   - NO `autoDismiss`. That option is explicitly only for a panel that
+ *     announces something already done — see js/spartrak-dialog.js. A dialog
+ *     that asks a question must never answer it by timing out.
+ *
+ * The illustration is the signed-out artwork, unchanged. It depicts exactly
+ * what is about to happen, and inventing a second one for the question form of
+ * the same event would be authoring an asset Figma does not contain (CLAUDE.md
+ * section 3).
+ *
+ * ===========================================================================
+ * HOW IT INTERCEPTS EVERY SIGN-OUT CONTROL WITH NO TEMPLATE FORKS
+ * ===========================================================================
+ * `triggerSelector` claims every anchor pointing at the logout route,
+ * wherever it was rendered — the two Spartrak templates, Magento's account
+ * sidebar delegate and Porto's `.authorization-link` alike. The alternative
+ * was forking a core template and a Porto template just to add a data
+ * attribute, which CLAUDE.md section 2 rules out.
+ *
+ * `:not([href*="logoutSuccess"])` is not paranoia: the logout SUCCESS route
+ * contains the logout route as a substring, so without it the confirmation
+ * would also intercept a link to the post-logout page.
+ *
+ * ===========================================================================
+ * IT CANNOT LOCK ANYONE OUT
+ * ===========================================================================
+ * Every trigger it intercepts is a REAL link to the real logout URL, and so is
+ * the confirm button below. With this file's JS absent — or the dialog element
+ * missing, or the module failing to load — nothing is prevented and the first
+ * click signs the shopper out exactly as it did before. That is the whole
+ * reason the confirm control is an <a href> and not a <button> with a script
+ * behind it.
+ *
+ * ===========================================================================
+ * COST
+ * ===========================================================================
+ * Rendered on every page for everyone, INCLUDING guests — and that is the
+ * cheap answer, not the lazy one. This markup is inside the full-page cache,
+ * so gating it on "is signed in" would fork a second cache entry of every page
+ * in the store to save ~700 bytes, and a hole-punched block would cost a
+ * request. A guest simply has no logout link for it to intercept, so it never
+ * opens. Same decision, same reasoning, as html/signed-out-dialog.phtml
+ * beside it.
+ *
+ * No extra request and no extra JS module — it shares the one the contact and
+ * signed-out dialogs already use. The illustration is a CSS background inside
+ * a subtree that is `display: none` until the dialog opens, so the file is not
+ * fetched on a page where nobody signs out.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+$titleId = 'spartrak-logout-confirm-title';
+$logoutUrl = $block->getUrl('customer/account/logout');
+?>
+<dialog id="spartrak-logout-confirm-dialog"
+        class="spartrak-dialog"
+        aria-labelledby="<?= $escaper->escapeHtmlAttr($titleId) ?>"
+        data-mage-init='<?= $escaper->escapeHtmlAttr(json_encode([
+            'spartrakDialog' => [
+                'id' => 'logout-confirm',
+                'triggerSelector' =>
+                    'a[href*="customer/account/logout"]:not([href*="logoutSuccess"])',
+            ],
+        ])) ?>'>
+    <div class="spartrak-dialog__panel">
+        <div class="spartrak-dialog__frame">
+            <div class="spartrak-empty-state spartrak-empty-state--panel spartrak-empty-state--lg">
+                <span class="spartrak-empty-state__art spartrak-empty-state__art--signed-out" aria-hidden="true"></span>
+
+                <div class="spartrak-empty-state__copy">
+                    <strong class="spartrak-empty-state__title" id="<?= $escaper->escapeHtmlAttr($titleId) ?>">
+                        <?= $escaper->escapeHtml(__('Sign out of your account?')) ?>
+                    </strong>
+
+                    <p class="spartrak-empty-state__text">
+                        <?= $escaper->escapeHtml(__('You can sign back in at any time with your phone number.')) ?>
+                    </p>
+
+                    <?php /*
+                      SAFE CHOICE FIRST, in DOM order — so it is what
+                      showModal() autofocuses and what a keyboard reaches
+                      first. A confirmation whose destructive button is
+                      pre-focused answers itself on the next Enter press.
+                    */ ?>
+                    <div class="spartrak-empty-state__actions">
+                        <button type="button"
+                                class="spartrak-empty-state__action"
+                                data-spartrak-dialog-close>
+                            <?= $escaper->escapeHtml(__('Stay signed in')) ?>
+                        </button>
+
+                        <a class="spartrak-empty-state__action spartrak-empty-state__action--primary"
+                           href="<?= $escaper->escapeUrl($logoutUrl) ?>">
+                            <?= $escaper->escapeHtml(__('Sign out')) ?>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</dialog>

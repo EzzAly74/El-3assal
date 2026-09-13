@@ -340,12 +340,44 @@ $codeLength = $authConfig !== null ? $authConfig->getCodeLength() : 4;
             <label class="spartrak-account-field__label" for="spartrak-dialog-current-password">
                 <?= $escaper->escapeHtml(__('Current password')) ?>
             </label>
-            <div class="spartrak-account-field__band">
+            <?php /*
+              THE EYE IS FIGMA'S, AND IT IS THE ONE ALREADY IN THE THEME.
+
+              images/icons/password-eye.svg is the exported asset the login
+              modal's password fields use (Magento_Theme::html/login-modal.phtml
+              renders the same markup), so this field reads as the same control
+              rather than a second treatment of it — and no new asset is
+              introduced, which section 3 would have made a blocker.
+
+              One glyph exists in the design for BOTH states. The shown/hidden
+              distinction is therefore carried by aria-pressed and aria-label,
+              with the stylesheet dimming the pressed-false state; inventing a
+              crossed-out variant to fill the gap is exactly the asset guess
+              section 3 forbids.
+
+              The button is a SIBLING of the input on purpose: js/account-edit
+              finds the field with `siblings('input')`, and the order here puts
+              the tab stop on the field first and its own control second.
+            */ ?>
+            <div class="spartrak-account-field__band spartrak-account-field__band--password">
                 <input type="password"
                        id="spartrak-dialog-current-password"
                        class="spartrak-account-field__input"
                        autocomplete="current-password"
                        data-spartrak-dialog-current-password>
+                <button type="button"
+                        class="spartrak-account-field__reveal"
+                        data-password-toggle
+                        aria-pressed="false"
+                        aria-label="<?= $escaper->escapeHtmlAttr(__('Show password')) ?>">
+                    <img src="<?= $escaper->escapeUrl(
+                        $block->getViewFileUrl('images/icons/password-eye.svg')
+                    ) ?>"
+                         width="20"
+                         height="20"
+                         alt=""
+                         aria-hidden="true">
+                </button>
             </div>
         </div>
 
@@ -365,7 +397,7 @@ $codeLength = $authConfig !== null ? $authConfig->getCodeLength() : 4;
 <script type="text/x-magento-init">
     {
         "#form-validate": {
-            "validation": {}
+            "spartrakFormValidation": {}
         },
         "[data-spartrak-account-dialog]": {
             "Spartrak_CustomerAccount/js/account-edit": {
@@ -378,6 +410,16 @@ $codeLength = $authConfig !== null ? $authConfig->getCodeLength() : 4;
                 )) ?>",
                 "phoneCommit": "<?= $escaper->escapeJs($escaper->escapeUrl(
                     $block->getUrl('spartrak_auth/account/phoneChange', ['_secure' => true])
+                )) ?>",
+                <?php /*
+                  Checked before the card is posted, so a wrong password keeps
+                  the dialog open with an inline error instead of costing a full
+                  page load and the shopper's typing. It authorises nothing —
+                  core's editPost still authenticates on the real submit. See
+                  Spartrak\CustomerAccount\Controller\Account\VerifyPassword.
+                */ ?>
+                "verifyPassword": "<?= $escaper->escapeJs($escaper->escapeUrl(
+                    $block->getUrl('spartrak_account/account/verifyPassword', ['_secure' => true])
                 )) ?>",
                 "purpose": "<?= $escaper->escapeJs($authConfig?->getPhoneChangePurpose() ?? '') ?>",
                 "codeLength": <?= (int) $codeLength ?>,

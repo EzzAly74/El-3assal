@@ -176,10 +176,19 @@
     float: none;
     margin: 0;
     // Figma draws the rail as tall as the section, not as tall as its own
-    // five rows (562:11000 is 831 beside a 583 card), which is what puts
-    // تسجيل الخروج at the bottom edge. `align-items: start` above keeps
-    // the CARD from stretching; the rail opts back in so the logout row's
-    // `margin-block-start: auto` has a height to push against.
+    // five rows (562:11000 is 831 beside a 583 card). `align-items: start`
+    // above keeps the CARD from stretching; the rail's own container opts
+    // back in here.
+    //
+    // WHAT THIS IS FOR NOW. It used to give the rail a height to fill, and
+    // the logout row's `margin-block-start: auto` a height to push against —
+    // which is precisely what put تسجيل الخروج hundreds of pixels below the
+    // fold on a tall order history (see `.spartrak-account-nav`'s own note).
+    // The rail is content-height and STICKY now, and a sticky box travels
+    // only as far as its containing block is tall. So this declaration still
+    // does the same thing to the same element for the same measurement — it
+    // is just that the height it hands down is now the rail's SCROLL RANGE
+    // rather than the rail's size.
     align-self: stretch;
   }
 
@@ -192,16 +201,16 @@
   // Magento's own copy of that layout has no such element, so the rail is one
   // level deeper here than the markup would suggest.
   //
-  // That wrapper is what broke the rail's height: `.sidebar-main` is stretched
-  // to the row by `align-self` above, but the wrapper between it and
-  // `.spartrak-account-nav` is auto-height, and a percentage height resolved
-  // against an auto-height parent is auto. So the nav's `block-size: 100%`
-  // silently became "as tall as its own rows" and تسجيل الخروج stopped sitting
-  // at the bottom edge Figma 562:11021 draws it on.
+  // That wrapper breaks the height chain: `.sidebar-main` is stretched to the
+  // row by `align-self` above, but the wrapper between it and
+  // `.spartrak-account-nav` is auto-height — and an auto-height parent is
+  // exactly what a sticky child has no room to travel inside. (Historically
+  // the same break is what made the nav's old `block-size: 100%` silently
+  // resolve to "as tall as its own rows".)
   //
-  // Passing the height through is enough, and is preferred over
-  // `display: contents` on the wrapper: same layout result, without removing
-  // an element from the accessibility tree to get it.
+  // So the height is passed through. Preferred over `display: contents` on the
+  // wrapper: same layout result, without removing an element from the
+  // accessibility tree to get it.
   .sidebar-main > .sidebar-content {
     block-size: 100%;
   }
@@ -325,10 +334,40 @@
   display: flex;
   flex-direction: column;
   gap: @account-gutter;
-  // The rail fills the height its container was stretched to (see
-  // `.sidebar-main` above); without it the box hugs its five rows and the
-  // logout row has nothing to be pushed to the bottom of.
-  block-size: 100%;
+  // ---------------------------------------------------------------------
+  // CONTENT HEIGHT, AND STICKY ON DESKTOP — NOT STRETCHED TO THE CONTENT
+  // ---------------------------------------------------------------------
+  // This was `block-size: 100%`, which made the rail as tall as the CONTENT
+  // COLUMN beside it, with the logout row's `margin-block-start: auto`
+  // pushing تسجيل الخروج to the rail's bottom edge. That is what Figma draws
+  // (562:11000 is an 831 rail beside a 583 card), and it is correct for the
+  // ONE page the design was drawn against.
+  //
+  // It does not survive real content. The column beside the rail is order
+  // history, the address book, a wishlist grid — pages whose height is
+  // whatever the customer's data makes it. `100%` of an unbounded column is
+  // an unbounded rail, so on a tall page the sign-out row was hundreds or
+  // thousands of pixels below the fold: reported as having to scroll a long
+  // way down a phone or tablet to find it, which is exactly what the rule
+  // does.
+  //
+  // So the rail is now as tall as its own rows, and on desktop it STICKS
+  // (see the media block after this rule). The sign-out row is then on
+  // screen at every scroll depth instead of at one particular one.
+  //
+  // KNOWN, DELIBERATE DIVERGENCE FROM FIGMA (CLAUDE.md section 3): the rail
+  // no longer reaches the bottom of the section, so the sign-out row sits
+  // directly under مفضلاتي rather than on the rail's bottom edge. The
+  // alternative was a hardcoded rail height, which would be Figma's number
+  // for one page's content applied to every page's. Reachability of the
+  // control wins; the divergence is recorded rather than hidden.
+  //
+  // `__list`'s `flex: 1 1 auto` and the logout row's `margin-block-start:
+  // auto` are LEFT IN PLACE and are inert at this height. They are what
+  // still positions the row correctly on any surface that does give the rail
+  // a height, and removing them would make this rule the only thing holding
+  // that behaviour.
+  block-size: auto;
   padding: 12px;
   border: 1px solid var(--color-border-default);
   background-color: var(--color-bg-surface);
@@ -550,6 +589,73 @@
     }
 
     &__label {
+      flex: 0 0 auto;
+    }
+  }
+}
+
+// ===========================================================================
+// THE RAIL FOLLOWS THE SCROLL (desktop and up)
+// ===========================================================================
+// The other half of the fix recorded on `block-size` above: with the rail no
+// longer stretched to the content column, it sticks instead, so every row —
+// including تسجيل الخروج — is on screen at any scroll depth on an order
+// history or address book that runs for several screens.
+//
+// `position: sticky` AND NOT A SCROLL LISTENER. It runs on the compositor,
+// costs zero JavaScript, does not leave flow (so nothing below it moves when
+// it engages and there is no placeholder height to maintain), and it is
+// already the mechanism this theme uses for the mobile header — see
+// components/_utility-header.less for the full argument (CLAUDE.md sections 4
+// and 13).
+//
+// WHY IT HAS ROOM TO TRAVEL, which is the part sticky usually fails on: the
+// grid item it lives in is still stretched to the row (`.sidebar-main`'s
+// `align-self: stretch`) and Porto's `div.sidebar-content` wrapper still
+// passes that height through (`block-size: 100%`). Both rules are further up
+// this file and are what a sticky child needs — a containing block TALLER
+// than itself. Neither is there for this any more than sticky is there for
+// them; they now serve each other, and the comments on both say so.
+//
+// DESKTOP ONLY. Below 768px the rail is a horizontally scrolling tab strip
+// across the full width, above the content (689:19897) — sticking that to the
+// top of the viewport would park it over the page a shopper is reading.
+//
+// NOTHING ABOVE IT TO CLEAR. The sticky header in this theme is mobile-only,
+// so `@{account-gutter}` from the viewport top is the whole offset.
+//
+// `@breakpoint-header-collapse + 1px` and not `@screen__m`: the two are the
+// same 768 today, but this is the range that ABUTS the tab-strip block above
+// by construction rather than by two variables happening to agree — and it is
+// the idiom the rest of this theme's components already use for the pair (see
+// components/_cart.less). It also keeps this bundle free of a Magento lib
+// variable it does not otherwise import.
+@media (min-width: (@breakpoint-header-collapse + 1px)) {
+  .spartrak-account-nav {
+    position: sticky;
+    inset-block-start: @account-gutter;
+
+    // Capped to the viewport, and the rail itself scrolls if a future rail
+    // has more rows than fit. Without the cap a tall rail's last rows would
+    // be unreachable — the same defect as before, one step further along.
+    //
+    // `vh` first and `dvh` second: on a mobile browser with collapsing
+    // chrome `vh` is the LARGE viewport, so it over-measures and the bottom
+    // rows sit under the toolbar. `dvh` is the live one; the `vh` line is
+    // the fallback for a browser that does not know it and is simply
+    // overwritten where it does.
+    max-block-size: ~"calc(100vh - (@{account-gutter} * 2))";
+    max-block-size: ~"calc(100dvh - (@{account-gutter} * 2))";
+    overflow-y: auto;
+    // A rail scrolled to its end must not then start scrolling the page
+    // underneath it.
+    overscroll-behavior: contain;
+
+    // `flex: 1 1 auto` (the base rule) would let the list SHRINK inside the
+    // capped box and clip its own rows. Inside a max-height, the list is
+    // what overflows and the rail is what scrolls — so it is pinned to its
+    // content height here and nowhere else.
+    &__list {
       flex: 0 0 auto;
     }
   }
@@ -989,6 +1095,103 @@
     line-height: 1.5;
     color: var(--color-text-muted);
     text-align: start;
+  }
+
+  // ---------------------------------------------------------------------
+  // THE PASSWORD BAND'S EYE REVEAL
+  // ---------------------------------------------------------------------
+  // Mirrors `.spartrak-auth__reveal` (components/_login-modal.less) rather
+  // than restating it differently: same exported asset, same 20px box, same
+  // aria-pressed dimming — so the account card's confirm dialog and the
+  // login modal read as ONE control. Figma supplies a single eye glyph for
+  // both states, which is why the shown/hidden difference is opacity plus
+  // aria-pressed and not a second icon.
+  //
+  // NO `outline: 0`, deliberately, here or in the mirrored rule: the UA focus
+  // ring is what makes this keyboard-reachable control visible when focused
+  // (CLAUDE.md section 15), and nothing in the design replaces it.
+  &__band--password {
+    gap: 12px;
+    // The input's own inline padding covers the reading edge; this is the
+    // matching inset on the side the eye sits on, in both directions.
+    padding-inline-end: 12px;
+  }
+
+  &__reveal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    inline-size: 20px;
+    block-size: 20px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    cursor: pointer;
+
+    img {
+      inline-size: 20px;
+      block-size: 20px;
+    }
+
+    &[aria-pressed="false"] img {
+      opacity: 0.6;
+    }
+
+    &:hover,
+    &:focus {
+      background: none;
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // VALIDATION ERRORS
+  // ---------------------------------------------------------------------
+  // Reported on the account card as red English text sitting INSIDE the
+  // input band next to the value. Two things were wrong and only one of
+  // them was styling:
+  //
+  //   WHERE. core's mage/validation inserts the message as the input's next
+  //   sibling, which put it inside `__band` — a 48px flex row with
+  //   `overflow: hidden` — so it became a flex item competing with the
+  //   value and was clipped. Fixed in js/spartrak-form-validation, which
+  //   appends it to `.spartrak-account-field` instead. That is why this
+  //   rule is scoped to the FIELD and not to the band: as a column flex
+  //   child it lands under the band on the component's own 6px gap, in
+  //   flow, reserving its own height so an error cannot shift the layout.
+  //
+  //   HOW IT LOOKS. Unstyled, so it inherited whatever core's reset gave
+  //   it.
+  //
+  // The treatment is the one components/_checkout.less already defines for
+  // `.field-error, div.mage-error` — same tokens, same 16px warning glyph,
+  // same pairing — because a field error should look identical wherever the
+  // shopper meets one. Copied rather than shared only because the two
+  // components scope their fields differently; the values come from tokens,
+  // so neither can drift on colour or type.
+  //
+  // `div.mage-error` is qualified by its element for the same reason the
+  // input rules above are qualified by the band: core's reset reaches this
+  // node at (0,1,1) and a bare class would lose.
+  .field-error,
+  div.mage-error {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-family: var(--font-arabic);
+    font-size: var(--text-14);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-feedback-danger);
+    text-align: start;
+
+    &::before {
+      content: "";
+      flex: 0 0 auto;
+      .spartrak-icon("error-warning-line.svg"; 16px; var(--color-feedback-danger));
+    }
   }
 }
 

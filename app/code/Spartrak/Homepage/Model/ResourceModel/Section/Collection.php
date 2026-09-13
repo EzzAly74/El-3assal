@@ -36,4 +36,26 @@ class Collection extends AbstractCollection
 
         return $this;
     }
+
+    /**
+     * One enabled section, by its dashboard `code`.
+     *
+     * `code` carries a UNIQUE constraint (see db_schema.xml), so this is a
+     * single-row lookup by design rather than a filter that happens to match
+     * one row today.
+     *
+     * The `is_active` half is deliberately part of the filter and not left to
+     * the caller: a page that mounts a section by code is asking for something
+     * to RENDER, and a disabled row must resolve to "nothing" at the same
+     * place for every caller — otherwise disabling a section in the dashboard
+     * would silently keep working on whichever page forgot the check.
+     */
+    public function addCodeFilter(string $code): self
+    {
+        $this->addFieldToFilter('code', $code);
+        $this->addFieldToFilter('is_active', 1);
+        $this->setPageSize(1);
+
+        return $this;
+    }
 }

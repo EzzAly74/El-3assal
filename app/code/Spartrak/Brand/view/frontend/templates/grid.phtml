@@ -1,0 +1,130 @@
+<?php
+/**
+ * Spartrak Brand — the All Brands grid (Figma 1368:37430 / list 1368:38026).
+ *
+ * Figma measurements applied verbatim (node ids inline):
+ *   band   1368:37430  bg/surface, px 48, py 32
+ *   list   1368:38026  wrap, gap 16 both axes
+ *   item   1368:38027  column, gap 9.189, centred
+ *   plate  1368:38028  134.779px square, bg/surface-subtle
+ *   name   1368:38029  Body/Base Medium 16px/1.5, text/muted
+ *
+ * These are the SAME numbers the homepage brand rail draws (695:46268-70) —
+ * the designer used one component in both places. The rules are not shared
+ * between the two stylesheets, and that is a decision rather than an
+ * oversight: see components/_brand-grid.less, which records why.
+ *
+ * ===========================================================================
+ * EVERY BRAND HERE IS ADMIN-MANAGED. NOTHING IS HARDCODED.
+ * ===========================================================================
+ * The list, its order, the logos and each tile's destination all come from
+ * Spartrak_Catalog's BrandNavigation — the same class the header's brand
+ * pane, the mobile drawer and the homepage rail read. A brand added,
+ * renamed, reordered or re-badged in Stores > Attributes > brand changes all
+ * four surfaces together, and a tile here lands exactly where the header's
+ * tile for the same brand lands.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Spartrak\Catalog\ViewModel\BrandNavigation|null $brandNavigation
+ */
+
+/**
+ * How many tiles load eagerly.
+ *
+ * Nine is one full desktop row: 9 x 134.779 + 8 x 16 = 1341px inside Figma's
+ * 1344 measure. That row is the page's largest above-the-fold paint, so it
+ * must not be lazy — CLAUDE.md section 11 rules out lazy-loading the LCP
+ * element. Everything after it is below the fold on every viewport this
+ * theme supports and lazy-loads.
+ *
+ * No `fetchpriority="high"` on any of them and no preload: the LCP here is a
+ * ROW of small marks, not one dominant image, and priority spent on nine
+ * things is priority spent on nothing (same section).
+ */
+$eagerCount = 9;
+
+$brandNavigation = $block->getData('brand_navigation');
+$brands = $brandNavigation && $brandNavigation->hasBrands() ? $brandNavigation->getBrands() : [];
+?>
+<section class="spartrak-brand-grid">
+    <?php /*
+      The page's only <h1>. Figma draws no visible heading on this frame — the
+      breadcrumb is the only text above the grid — and core's `page.main.title`
+      is removed in this route's layout for that reason. A document still owes
+      screen readers and search engines one heading that names it (CLAUDE.md
+      section 15), so it is rendered and hidden rather than dropped. The class
+      is the design system's own single definition of the idiom, from
+      foundations/_a11y.less.
+    */ ?>
+    <h1 class="spartrak-visually-hidden"><?= $block->escapeHtml(__('All brands')) ?></h1>
+
+    <?php if ($brands) : ?>
+        <ul class="spartrak-brand-grid__list">
+            <?php foreach ($brands as $index => $brand) : ?>
+                <li class="spartrak-brand-grid__item">
+                    <a class="spartrak-brand-grid__link" href="<?= $block->escapeUrl($brand['url']) ?>">
+                        <span class="spartrak-brand-grid__plate">
+                            <?php if (!empty($brand['logo'])) : ?>
+                                <?php /*
+                                  ADMIN-MANAGED. The src is the per-option visual
+                                  swatch image an admin uploaded against the
+                                  `brand` attribute, served by Magento from
+                                  pub/media/attribute/swatch. No filename
+                                  convention and no artwork lives in code.
+
+                                  width/height reserve the box before the file
+                                  arrives, so the grid never reflows (CLS); the
+                                  rendered size is the plate's, set in CSS, and
+                                  `object-fit: contain` there keeps a wide
+                                  wordmark and a square badge both uncropped.
+
+                                  alt carries the brand name because the link
+                                  has no other text inside the plate — the name
+                                  below is a sibling, and a screen reader
+                                  reading "link, graphic" would name nothing.
+                                */ ?>
+                                <img class="spartrak-brand-grid__logo"
+                                     src="<?= $block->escapeUrl($brand['logo']) ?>"
+                                     alt="<?= $block->escapeHtmlAttr($brand['label']) ?>"
+                                     width="135"
+                                     height="135"
+                                     loading="<?= $index < $eagerCount ? 'eager' : 'lazy' ?>"
+                                     decoding="async">
+                            <?php else : ?>
+                                <?php /*
+                                  No swatch uploaded for this option yet. The
+                                  initial keeps the tile legible and the grid
+                                  complete — never a broken <img>, and never a
+                                  brand silently dropped from the page because
+                                  its logo is missing. aria-hidden because the
+                                  name below already says it.
+                                */ ?>
+                                <span class="spartrak-brand-grid__initial" aria-hidden="true">
+                                    <?= $block->escapeHtml($brandNavigation->getInitial($brand['label'])) ?>
+                                </span>
+                            <?php endif; ?>
+                        </span>
+                        <span class="spartrak-brand-grid__name"><?= $block->escapeHtml($brand['label']) ?></span>
+                    </a>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    <?php else : ?>
+        <?php /*
+          No brands configured, or the `brand` attribute has no options yet.
+
+          The design system's own empty state, not a new one — and without its
+          `__art` illustration, because that component names one artwork per
+          surface on purpose and Figma ships none for this page. Inventing an
+          illustration here is exactly what CLAUDE.md section 3 rules out.
+        */ ?>
+        <div class="spartrak-empty-state">
+            <div class="spartrak-empty-state__copy">
+                <p class="spartrak-empty-state__title"><?= $block->escapeHtml(__('No brands yet')) ?></p>
+                <p class="spartrak-empty-state__text">
+                    <?= $block->escapeHtml(__('Brands appear here as soon as they are added to the catalog.')) ?>
+                </p>
+            </div>
+        </div>
+    <?php endif; ?>
+</section>

@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!--
+  One frontend route, POST-only, used by the product card's heart to add or
+  remove a product without leaving the page. See Controller/Ajax/Toggle.php for
+  why Magento's own wishlist/index/add cannot serve that.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:App/etc/routes.xsd">
+    <router id="standard">
+        <route id="spartrak_wishlist" frontName="spartrak-wishlist">
+            <module name="Spartrak_Wishlist"/>
+        </route>
+    </router>
+</config>

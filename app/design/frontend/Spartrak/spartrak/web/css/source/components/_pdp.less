@@ -179,12 +179,13 @@
     // Figma 526:23302: the stage is 816 x 624. aspect-ratio holds that at any
     // width AND reserves the height before Fotorama boots, which is what
     // stops the classic PDP layout shift (CLAUDE.md §12).
-    .gallery-placeholder {
-        aspect-ratio: 816 / 624;
-    }
+    // .gallery-placeholder {
+    //     aspect-ratio: 816 / 624;
+    // }
 
     .fotorama__stage {
         border-radius: 0;
+        height: 500px !important;
     }
 
     // Thumbnails (526:23317) on bg/surface-subtle, active one ringed navy.
@@ -287,7 +288,7 @@
 // from a token instead of from whatever colour Figma happened to bake into
 // the export.
 .spartrak-pdp__media-btn,
-.spartrak-pdp__media-actions .action.towishlist {
+.spartrak-pdp__wishlist-toggle {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -305,15 +306,74 @@
         outline-offset: 2px;
     }
 
+    // Core styles `button:focus, button:active { background: #e2e2e2; border:
+    // 1px solid #e4e3e5 }` at (0,1,1), which outranks the reset above at
+    // (0,1,0) — so a pressed control grew a grey plate and a hairline ring over
+    // the gallery. Restated at (0,2,0). Same finding as the toast close control
+    // and the empty state's action; recorded in full in
+    // components/_empty-state.less.
+    //
+    // It matters more here than it looks: the heart is now a real <button>
+    // rather than the anchor Magento's block emitted, so it matches
+    // `button:focus` where the anchor never did.
+    &:focus,
+    &:active {
+        border: 0;
+        background: var(--color-bg-surface);
+    }
+
     // The accessible name stays in the DOM for assistive tech.
+    //
+    // Not for the heart, which has none — its label is an `aria-label`, because
+    // it CHANGES with the state. See the template.
     > span {
         .spartrak-pdp-visually-hidden();
     }
 }
 
-.spartrak-pdp__media-actions .action.towishlist::before {
+.spartrak-pdp__wishlist-toggle::before {
     content: "";
     .spartrak-icon('heart.svg'; 20px; var(--color-icon-ink));
+    transition: filter .18s ease;
+}
+
+// --- Saved -----------------------------------------------------------------
+// The same state, from the same attribute and the same customer-data section,
+// as the shared card's heart (components/_product-card.less) — so the PDP and
+// the rail beneath it cannot disagree about a product.
+//
+// A MASK HERE, A background-image THERE, deliberately. This file's convention
+// is a mask so the glyph colour comes from a token rather than from whatever
+// Figma baked into the export (see the note above the base rule), and
+// heart-filled.svg is a FILLED path — a mask reads alpha, so masking it gives a
+// solid heart that `background-color` then tints. The card paints the same
+// asset as a background-image because its glyph sits on a layer that already
+// has no fill to tint. Two idioms, one asset, one token, identical render.
+.spartrak-pdp__wishlist-toggle[aria-pressed="true"]::before {
+    -webkit-mask-image: url('../images/icons/heart-filled.svg');
+    mask-image: url('../images/icons/heart-filled.svg');
+    background-color: var(--color-action-favorite);
+    filter: drop-shadow(0.5px 1px 2px var(--primitive-alpha-danger-30));
+}
+
+// The press is in flight. A pulse on the glyph and nothing else — the project
+// loader is a page-level overlay and blacking out the gallery for one round
+// trip of a 48px control would be far worse than no feedback (CLAUDE.md
+// section 10). The keyframes are declared once, in
+// components/_product-card.less.
+.spartrak-pdp__wishlist-toggle[aria-busy="true"] {
+    cursor: progress;
+
+    &::before {
+        animation: spartrak-heart-pulse .7s ease-in-out infinite;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spartrak-pdp__wishlist-toggle::before {
+        transition: none;
+        animation: none;
+    }
 }
 
 .spartrak-pdp__media-btn--share::before {
@@ -349,6 +409,10 @@
     > .product-add-form           { order: 6; }  // بتلف .box-tocart
     > .product.attribute.overview { order: 7; }
     > .spartrak-pdp__options      { order: 9; }
+
+    .reviews-actions .action.add{
+        display: none;
+    }
 
     // NOT IN FIGMA — two Porto additions the design does not have. Hidden
     // rather than ordered out of the way, at the merchant's instruction
@@ -748,16 +812,36 @@
 
     // The chevron sits at the physical RIGHT of the control, which is where
     // Figma draws it (705:30188 "1" then 705:30491 chevron, left to right) —
-    // so it is intentionally NOT a logical inset. It is a background-image
-    // rather than a mask because an <input> cannot carry a ::before and the
-    // control already owns its own background; chevron-down-20-thin.svg is
-    // exported #1A144F, which is Figma's `icon/default` for this glyph, so
-    // the baked colour and the token agree by construction. Porto's own
-    // +/- stepper is hidden: the design has one value and a chevron.
-    .field.qty input#qty {
+    // so it is intentionally NOT a logical inset. It stays a background-image
+    // on the control rather than a masked ::after on the wrapper: the control
+    // already owns its own background, so this is one paint instead of an
+    // extra positioned pseudo-element on every PDP. chevron-down-20-thin.svg
+    // is exported #1A144F, which is Figma's `icon/default` for this glyph, so
+    // the baked colour and the token agree by construction.
+    //
+    // THE ELEMENT IS NOW A <select>, NOT A NUMBER INPUT. Figma draws a value
+    // and a chevron, which is a dropdown; the input was painted to look like
+    // one. This theme's Magento_Catalog/templates/product/view/addtocart.phtml
+    // renders the real control, so three things that used to live here are
+    // gone rather than hidden: Porto's +/- stepper markup, the WebKit
+    // spin-button reset, and `appearance: textfield`. `appearance: none` now
+    // suppresses the browser's own arrow so the Figma one is the only chevron
+    // drawn.
+    .field.qty select#qty {
+        appearance: none;
+        box-sizing: border-box;
         width: 88px;
         height: 48px;
-        padding: 16px 44px 16px 24px;
+        // NO padding-block. Figma's 16 describes an auto-layout frame around a
+        // text node; against a fixed 48px border-box it leaves 14px for a 24px
+        // line and the control grows to fit instead of clipping. A select
+        // centres its own value vertically, so the height is the whole
+        // instruction — the same correction the cart's quantity select already
+        // carries (_cart.less, .spartrak-cart-line__qty-select).
+        padding-block: 0;
+        // PHYSICAL, matching the chevron above.
+        padding-right: 44px;
+        padding-left: 24px;
         border: 1px solid var(--color-border-default);
         border-radius: 0;
         background: var(--color-bg-surface) url('../images/icons/chevron-down-20-thin.svg') no-repeat right 16px center;
@@ -769,19 +853,12 @@
         line-height: 1.5;
         color: var(--color-text-primary);
         text-align: start;
-        appearance: textfield;
-        -moz-appearance: textfield;
+        cursor: pointer;
     }
 
-    .field.qty input#qty::-webkit-outer-spin-button,
-    .field.qty input#qty::-webkit-inner-spin-button {
-        appearance: none;
-        -webkit-appearance: none;
-        margin: 0;
-    }
-
-    .qty-changer {
-        display: none;
+    .field.qty select#qty:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
     }
 
     .actions {
@@ -833,7 +910,6 @@
         display: none;
     }
 }
-
 // ===========================================================================
 // 4. Tabs — Figma 527:13545
 // ===========================================================================
@@ -1174,9 +1250,9 @@
     // --- Media: the mobile stage is 408 x 440, a PORTRAIT box, where the
     // desktop stage is 816 x 624 landscape. Same widget, different reserved
     // height — so the aspect-ratio has to be restated, not inherited.
-    .catalog-product-view .product.media .gallery-placeholder {
-        aspect-ratio: 408 / 440;
-    }
+    // .catalog-product-view .product.media .gallery-placeholder {
+    //     aspect-ratio: 408 / 440;
+    // }
 
     .catalog-product-view .product.media .fotorama__nav-wrap {
         margin-block-start: 12px;
@@ -1198,12 +1274,12 @@
     }
 
     .spartrak-pdp__media-btn,
-    .spartrak-pdp__media-actions .action.towishlist {
+    .spartrak-pdp__wishlist-toggle {
         width: 24px;
         height: 24px;
     }
 
-    .spartrak-pdp__media-actions .action.towishlist::before,
+    .spartrak-pdp__wishlist-toggle::before,
     .spartrak-pdp__media-btn--share::before,
     .spartrak-pdp__media-btn--zoom::before {
         width: 18px;
@@ -1395,4 +1471,31 @@
     .catalog-product-view .product-info-main .box-tocart .action.tocart {
         transition: none;
     }
+}
+
+
+.fotorama__stage__frame .fotorama__img{
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain;
+}
+.reviews-actions:before{
+    display: none !important;
+}
+@media (max-width: 991px) {
+    .catalog-product-view .product-info-main .box-tocart .action.tocart {
+        font-size: var(--text-13) !important;
+    }
+}
+@media (max-width: 768px) {
+    .catalog-product-view .product-info-main .box-tocart .action.tocart {
+        font-size: var(--text-16) !important;
+    }
+}
+.product-info-main .product-reviews-summary .reviews-actions a:not(:last-child):after{
+    display: none;
+}
+html[dir="rtl"] .fotorama__nav--thumbs {
+    display: flex;
+    justify-content: flex-end;
 }

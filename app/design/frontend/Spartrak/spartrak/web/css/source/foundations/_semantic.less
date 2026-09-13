@@ -154,6 +154,22 @@
     --primitive-danger
   ); // Figma: text/price-sale #d54033
 
+  // FIGMA WISHLIST PASS (2026-09-08) — the ACTIVE state of the product card's
+  // heart, i.e. "this product is already on your wish list".
+  //
+  // Figma publishes the pair as `action/favorite` -> {red.500} and
+  // `action/favorite-inactive` -> {support.icon-ink}; the inactive half is
+  // already consumed as --color-icon-default (see the note at the top of this
+  // file, which resolved it to the ink value). This is the other half, and it
+  // had no consumer until the heart gained a filled state.
+  //
+  // red.500 is #d54033 and therefore byte-identical to the danger primitive
+  // this theme already holds — aliased rather than re-declared, and kept as
+  // its OWN NAME for exactly the reason --color-text-price-sale above is: one
+  // says "this went wrong", this one says "you love this". A palette change
+  // that moved error red must not silently restyle every saved-item heart.
+  --color-action-favorite: var(--primitive-danger); // Figma: action/favorite
+
   // FIGMA CHECKOUT PASS (2026-08-31)
 
   // The dark button. Figma calls it action/inverse, and it is the promo

@@ -1,0 +1,41 @@
+// Spartrak product listing (category + search) — entry point.
+//
+// Compiled as its own stylesheet and enqueued ONLY on catalog_category_view and catalogsearch_result_index
+// (see Magento_Catalog/layout/catalog_category_view.xml and
+// Magento_CatalogSearch/layout/catalogsearch_result_index.xml), rather than being folded
+// into spartrak-components.css.
+//
+// WHY IT IS SPLIT OUT: spartrak-components.css is render-blocking on EVERY
+// page, and it was carrying 2,533 lines of CSS that match nothing outside
+// a product listing. Lighthouse measured that bundle at 21.8KB over the wire with
+// 16.1KB of it UNUSED on the homepage - 76 per cent - and it is one of only
+// three stylesheets left in the critical path. Carrying one page's CSS to
+// every other page taxes their LCP to style something they can never show.
+//
+// This is the same decision and the same mechanism as spartrak-cart.less,
+// spartrak-checkout.less, spartrak-account.less and spartrak-pdp-video.less.
+// It is not a new pattern; it is that pattern applied to the files that were
+// still global.
+//
+// THE FOUNDATIONS BELOW EMIT NOTHING. _breakpoints, _page-metrics, _icons and
+// _a11y are variables and mixins only - verified, zero emitting rules - so
+// importing them into several bundles duplicates no output. _spinner is NOT
+// imported here precisely because it DOES emit (two keyframes and two rules)
+// and none of the components in this bundle use it; it stays single-sourced
+// in spartrak-components.less.
+//
+// ONE HONEST IMPURITY: _category-top styles the category hero, which the
+// SEARCH results page does not render, so search carries ~820 lines it
+// cannot use. Kept in one bundle deliberately - the alternative is a second
+// render-blocking request on every category page, and CLAUDE.md section 13
+// ranks fewer requests above smaller assets once the page-scoped bulk is
+// already out of the global bundle. Splitting it further is a one-line
+// change if search traffic ever justifies it.
+
+@import "source/foundations/_breakpoints.less";
+@import "source/foundations/_page-metrics.less";
+@import "source/foundations/_icons.less";
+@import "source/foundations/_a11y.less";
+
+@import "source/components/_plp.less";
+@import "source/components/_category-top.less";

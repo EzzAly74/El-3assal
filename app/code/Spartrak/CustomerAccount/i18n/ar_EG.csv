@@ -54,3 +54,8 @@
 "Ready for collection at the branch","جاهز للاستلام من الفرع"
 "Your order is with the driver","الشحنة مع السائق"
 "Collected","تم الاستلام"
+"Please enter a valid email address (Ex: johndoe@domain.com).","من فضلك أدخل بريدًا إلكترونيًا صحيحًا (مثال: johndoe@domain.com)."
+"The password is incorrect. Verify the password and try again.","كلمة المرور غير صحيحة. تأكد منها وحاول مرة أخرى."
+"Your session has expired. Please sign in and try again.","انتهت الجلسة. من فضلك سجّل الدخول وحاول مرة أخرى."
+"The account is locked. Please wait and try again or contact customer support.","الحساب موقوف مؤقتاً. من فضلك انتظر وحاول مرة أخرى أو تواصل مع خدمة العملاء."
+

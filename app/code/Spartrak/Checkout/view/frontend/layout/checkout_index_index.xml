@@ -57,56 +57,49 @@
           the measured Arabic checkout. The drawer is a second, smaller copy of
           the order summary already on the page.
 
-          Two things are needed to actually stop it loading, because there are
-          two independent requirers:
+          There were two INDEPENDENT eager requirers, and stopping only one
+          changed nothing:
 
-            1. the component swap below, which removes the define-time
-               dependency, and
-            2. the guard in Magento_Checkout::cart/minicart.phtml, which stops
-               the drawer's data-mage-init="dropdownDialog" from rendering.
-               mage/apply/main resolves that attribute at runtime, so leaving
-               the markup in place would re-fetch mage/dropdown even with the
-               component gone. `spartrak_suppress_drawer` below is what that
-               guard reads.
+            1. the minicart's own component, reached through the
+               x-magento-init at the foot of the template, and
+            2. the drawer's data-mage-init="dropdownDialog", which
+               mage/apply/main resolves on DOM ready all by itself — so
+               leaving the markup in place re-fetched mage/dropdown even with
+               the component gone.
 
-          The children are disabled rather than removed so the node names stay
-          visible here: subtotal, promotion and the item renderers only ever
-          paint inside the drawer, and extra_info is where PayPal_Braintree
-          injects its Pay Later banner (already switched off site-wide in this
-          module's default.xml — this disables the whole branch on checkout).
+          `spartrak_suppress_drawer` below is what stops the drawer markup, and
+          therefore (2), from rendering on this page at all. (1) is handled for
+          the whole storefront now — see the note below.
+
+          WHAT USED TO BE HERE, AND WHY IT NO LONGER IS
+          ================================================================
+          This block also carried a jsLayout override that swapped
+          `minicart_content`'s component for Spartrak_Checkout/js/view/
+          minicart-counter and disabled its four children, so the badge had
+          something to bind to once the drawer's component was gone.
+
+          That is now the storefront's DEFAULT, not a checkout special case.
+          The same measurement was repeated on the homepage and came out at 26
+          modules / 146,734 bytes reachable from the minicart and from nothing
+          else on the page, so the theme's Magento_Checkout::cart/minicart.phtml
+          now boots `minicart_counter` for the badge on every page and holds the
+          drawer's whole jsLayout in an inert application/json payload until the
+          shopper touches the cart. See web/js/spartrak-minicart-defer.js.
+
+          So the override became dead weight in two directions: the counter is
+          already wired up globally, and the drawer's children can no longer
+          boot here at all — the template only emits the deferred payload
+          INSIDE the drawer guard, and on this page that guard is false.
+          Keeping it would have left config that reads as load-bearing and is
+          not (CLAUDE.md section 18).
+
+          `spartrak_suppress_drawer` stays, and is now the ONLY thing this page
+          needs: it stops the drawer markup rendering, which stops both the
+          deferred payload and the dropdownDialog attribute from being emitted.
         -->
         <referenceBlock name="minicart">
             <arguments>
                 <argument name="spartrak_suppress_drawer" xsi:type="boolean">true</argument>
-                <argument name="jsLayout" xsi:type="array">
-                    <item name="components" xsi:type="array">
-                        <item name="minicart_content" xsi:type="array">
-                            <item name="component" xsi:type="string">Spartrak_Checkout/js/view/minicart-counter</item>
-                            <item name="children" xsi:type="array">
-                                <item name="subtotal.container" xsi:type="array">
-                                    <item name="config" xsi:type="array">
-                                        <item name="componentDisabled" xsi:type="boolean">true</item>
-                                    </item>
-                                </item>
-                                <item name="extra_info" xsi:type="array">
-                                    <item name="config" xsi:type="array">
-                                        <item name="componentDisabled" xsi:type="boolean">true</item>
-                                    </item>
-                                </item>
-                                <item name="promotion" xsi:type="array">
-                                    <item name="config" xsi:type="array">
-                                        <item name="componentDisabled" xsi:type="boolean">true</item>
-                                    </item>
-                                </item>
-                                <item name="item.renderer" xsi:type="array">
-                                    <item name="config" xsi:type="array">
-                                        <item name="componentDisabled" xsi:type="boolean">true</item>
-                                    </item>
-                                </item>
-                            </item>
-                        </item>
-                    </item>
-                </argument>
             </arguments>
         </referenceBlock>
 

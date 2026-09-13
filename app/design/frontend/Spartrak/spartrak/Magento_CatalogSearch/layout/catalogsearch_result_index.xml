@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<!--
+  Search results share the category page's controls exactly — the same
+  toolbar, the same sort disclosure, the same filter sidebar and the same
+  numbered pager, all of them links — so they share its navigation loader too.
+
+  See Magento_Catalog/layout/catalog_category_view.xml for the full note, and
+  js/spartrak-nav-pending.js for why a class on <html> rather than
+  `processStart`. Nothing here is search-specific; this file exists only
+  because layout handles cannot be shared between two routes without one.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <!--
+          The category/search stylesheet: components/_plp.less and
+          components/_category-top.less, which were part of the render-blocking
+          css/spartrak-components.css on every route and match nothing outside
+          these two handles. Splitting them out took the global bundle from
+          42,404 to 17,328 gzipped bytes; this page pays 18,000 of that back and
+          every other route pays none of it. See web/css/spartrak-plp.less.
+        -->
+        <css src="css/spartrak-plp.css"/>
+    </head>
+    <body>
+        <referenceContainer name="before.body.end">
+            <block class="Magento\Framework\View\Element\Template"
+                   name="spartrak.nav_loader"
+                   template="Magento_Theme::html/nav-loader.phtml"/>
+        </referenceContainer>
+    </body>
+</page>

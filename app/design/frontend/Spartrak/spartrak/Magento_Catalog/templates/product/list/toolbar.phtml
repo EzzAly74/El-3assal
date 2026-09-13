@@ -26,9 +26,12 @@
  *                       with a 16px chevron-down
  *
  * WHAT IS REUSED, NOT REBUILT
- *   - the sort <select> is Magento's own [data-role="sorter"] control, so
- *     productListToolbarForm still binds to it and sorting keeps working
- *     exactly as before — only its chrome is restyled;
+ *   - the sort control WAS Magento's own [data-role="sorter"] <select>, with
+ *     only its chrome restyled. It is now a <details> disclosure of links,
+ *     because a native select's option LIST is drawn by the OS and no amount
+ *     of CSS can theme it — see the comment at the control itself. Sorting is
+ *     plain navigation now, so it no longer depends on the toolbar widget's
+ *     change handler (and works with JavaScript off);
  *   - the pager is Magento's own Html\Pager child block, untouched, just
  *     given its native anchor text so "Previous"/"Next" render as the words
  *     the design shows (a translatable string, not CSS content);
@@ -111,6 +114,32 @@ $availableOrders = (array) $block->getAvailableOrders();
 $currentOrder = (string) $block->getCurrentOrder();
 
 /*
+ * SORT LINKS ARE BUILT WITH getPagerUrl(), NOT getOrderUrl().
+ *
+ * This used to read `$block->getOrderUrl($orderKey, 'desc')`, which looks like
+ * an API call and is not one: Magento\Catalog\Block\Product\ProductList\Toolbar
+ * has no getOrderUrl() in 2.4.8 (checked against the tag — this repo's vendor/
+ * is a skeleton and cannot be read). The call therefore fell through
+ * DataObject::__call to getData('order_url'), which is unset, so it returned
+ * NULL and every quick-sort chip rendered `href=""` — a link back to the
+ * current, unsorted page. Silent, because an empty href still looks like a
+ * working link and still navigates.
+ *
+ * getPagerUrl() (Toolbar.php:421) is the real method. It rebuilds the current
+ * URL with `_current => true`, so it preserves the search term, the active
+ * layered-nav filters and the page size, and overrides only the keys passed
+ * in. The keys come from the toolbar MODEL's constants rather than the literal
+ * strings 'product_list_order'/'product_list_dir', so they cannot drift from
+ * the values the toolbar's own JS config emits.
+ */
+$sortUrl = static function ($orderKey, $direction) use ($block) {
+    return (string) $block->getPagerUrl([
+        \Magento\Catalog\Model\Product\ProductList\Toolbar::ORDER_PARAM_NAME => $orderKey,
+        \Magento\Catalog\Model\Product\ProductList\Toolbar::DIRECTION_PARAM_NAME => $direction,
+    ]);
+};
+
+/*
  * Every chip in the design is rendered. `wired` records whether the toolbar
  * actually knows the sort key behind it, and that single flag is what decides
  * <a> vs inert <span> below — see the header for why the distinction matters.
@@ -136,7 +165,15 @@ foreach ($quickSortMap as $orderKey => $chip) {
  */
 ?>
 <?php if ($collectionSize) : ?>
-    <div class="toolbar toolbar-products spartrak-toolbar" data-mage-init='<?= /* @noEscape */ $block->getWidgetOptionsJson() ?>'>
+    <?php /*
+      `data-spartrak-nav-loader` OPTS THIS SUBTREE INTO THE PROJECT LOADER.
+      Sorting, changing the page size and the active-filter chips are all links
+      that reload the page with the grid rewritten, and a shopper IS waiting on
+      the result — so the overlay is raised for them. It is an opt-in and
+      nothing else on the page carries it; js/spartrak-nav-pending.js records
+      why the default is off and which other template applies it.
+    */ ?>
+    <div class="toolbar toolbar-products spartrak-toolbar" data-spartrak-nav-loader data-mage-init='<?= /* @noEscape */ $block->getWidgetOptionsJson() ?>'>
 
 
         <?php /*
@@ -174,7 +211,7 @@ foreach ($quickSortMap as $orderKey => $chip) {
                     ?>
                     <?php if ($chip['wired']) : ?>
                         <a class="<?= $block->escapeHtmlAttr($chipClass) ?>"
-                           href="<?= $block->escapeUrl($block->getOrderUrl($orderKey, 'desc')) ?>"
+                           href="<?= $block->escapeUrl($sortUrl($orderKey, 'desc')) ?>"
                            <?= $isActive ? 'aria-current="true"' : '' ?>>
                     <?php else : ?>
                         <?php /*
@@ -205,20 +242,67 @@ foreach ($quickSortMap as $orderKey => $chip) {
             </div>
 
             <?php if (count($availableOrders) > 1) : ?>
-                <div class="spartrak-toolbar__sort spartrak-sorter">
-                    <span class="spartrak-sorter__text">
-                        <label class="spartrak-sorter__label" for="sorter"><?= $block->escapeHtml(__('Sort:')) ?></label>
-                        <select id="sorter" data-role="sorter" class="spartrak-sorter__select">
-                            <?php foreach ($availableOrders as $orderKey => $orderLabel) : ?>
-                                <option value="<?= $block->escapeHtmlAttr($orderKey) ?>"
-                                    <?= $currentOrder === (string) $orderKey ? ' selected="selected"' : '' ?>>
+                <?php /*
+                  THE SORT CONTROL IS A DISCLOSURE OF LINKS, NOT A <select>.
+
+                  It used to be `<select data-role="sorter">`, and the box around
+                  it was — and still is — pixel-correct against Figma 510:7206.
+                  What was wrong was the part CSS cannot reach: a native select's
+                  OPTION LIST is drawn by the operating system, so on macOS the
+                  panel came up as a blue-highlighted Aqua popup with none of this
+                  theme's type, colour or spacing. `appearance: none` styles the
+                  closed box only; there has never been a cross-browser way to
+                  style the open list, and the CSS-4 property that will
+                  (`appearance: base-select`) is Chrome-only.
+
+                  So the list becomes markup we own. Each option is a real <a> to
+                  the sorted URL, built by the $sortUrl helper above — which means
+                  SORTING WORKS WITH JAVASCRIPT OFF, and which is also what
+                  uncovered that the chips' hrefs were empty (see that comment).
+                  <details>/<summary> supplies the open/close state, the
+                  keyboard behaviour and the implicit aria-expanded natively, so
+                  the only script involved is the shared light-dismiss helper
+                  (close on outside click / Escape) that the language and currency
+                  switchers already use. No new JS module, no widget.
+
+                  getCurrentDirection() is carried through rather than hardcoding
+                  'desc' as the chips do: the chips ARE a direction ("best
+                  selling" is only meaningful descending), whereas changing the
+                  sort FIELD should not silently flip the order the shopper is
+                  already reading in.
+
+                  Dropping [data-role=sorter] leaves Magento's toolbar widget with
+                  nothing to bind — an empty jQuery set, so a no-op, not an error.
+                  Checked: no Mageplaza module references the sorter either, and
+                  AjaxLayer (which re-templates this page) binds toolbar LINKS,
+                  which is exactly what these now are.
+                */ ?>
+                <?php
+                $currentOrderLabel = $availableOrders[$currentOrder] ?? reset($availableOrders);
+                $currentDirection = (string) $block->getCurrentDirection();
+                ?>
+                <details class="spartrak-toolbar__sort spartrak-sorter"
+                         data-mage-init='{"spartrakDisclosure":{}}'>
+                    <summary class="spartrak-sorter__toggle">
+                        <span class="spartrak-sorter__text">
+                            <span class="spartrak-sorter__label"><?= $block->escapeHtml(__('Sort:')) ?></span>
+                            <span class="spartrak-sorter__current"><?= $block->escapeHtml(__($currentOrderLabel)) ?></span>
+                        </span>
+                        <span class="spartrak-sorter__chevron" aria-hidden="true"></span>
+                    </summary>
+                    <ul class="spartrak-sorter__panel">
+                        <?php foreach ($availableOrders as $orderKey => $orderLabel) : ?>
+                            <?php $isCurrentOrder = $currentOrder === (string) $orderKey; ?>
+                            <li class="spartrak-sorter__item">
+                                <a class="spartrak-sorter__option<?= $isCurrentOrder ? ' spartrak-sorter__option--current' : '' ?>"
+                                   href="<?= $block->escapeUrl($sortUrl($orderKey, $currentDirection)) ?>"
+                                   <?= $isCurrentOrder ? 'aria-current="true"' : '' ?>>
                                     <?= $block->escapeHtml(__($orderLabel)) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </span>
-                    <span class="spartrak-sorter__chevron" aria-hidden="true"></span>
-                </div>
+                                </a>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </details>
             <?php endif; ?>
 
             <?php /*

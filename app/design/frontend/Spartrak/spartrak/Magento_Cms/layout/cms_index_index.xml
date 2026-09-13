@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================================
+  THE HOMEPAGE'S OWN STYLESHEET
+  ===========================================================================
+  components/_homepage-sections.less is 3,000-odd lines that match nothing off
+  this page - the banner, the category-tile reveal stage, the video showcase,
+  the brand rail, the cascade finder and the split promo. It used to be part of
+  css/spartrak-components.css, which is render-blocking on EVERY route, so
+  every category page, product page, cart and checkout downloaded and parsed
+  all of it to use none of it.
+
+  MEASURED, gzipped, on the four bundles this split produced:
+
+      cart / checkout / account   42,404 -> 17,328 B   -25,076
+      product page                43,093 -> 23,365 B   -19,728
+      category and search         42,404 -> 35,330 B    -7,074
+      homepage                    42,404 -> 22,472 B   -19,932
+
+  The homepage is not a regression despite gaining a second stylesheet: what it
+  loses from the global bundle is larger than what this file adds back, because
+  the global bundle was also carrying the PLP's and the PDP's components for it.
+
+  WHY A SEPARATE REQUEST IS THE RIGHT TRADE HERE. Section 13 ranks fewer
+  requests BELOW less CSS, and this is the case that ordering was written for:
+  one extra HTTP/1.1 request against ~20KB of gzipped CSS that no page but this
+  one can use. Both files are static, cacheable, and requested from the same
+  origin in the same <head>, so they are fetched in parallel and neither
+  delays the other's parse.
+
+  THE HANDLE. `cms_index_index` is the home page's route handle, and it is
+  already where Spartrak_Homepage mounts the sections themselves
+  (app/code/Spartrak/Homepage/view/frontend/layout/cms_index_index.xml). So the
+  markup and the CSS that styles it are declared on the same handle and cannot
+  drift apart: a route that renders no home sections requests no home CSS.
+
+  This file adds nothing else. The sections, their blocks and their view models
+  stay in the module where they belong - a theme layout that re-declared them
+  would be a second, weaker copy of that file.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <css src="css/spartrak-home.css"/>
+    </head>
+</page>

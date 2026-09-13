@@ -11,6 +11,12 @@
             <module name="Magento_Search"/>
             <module name="Magento_CatalogSearch"/>
             <module name="Magento_Catalog"/>
+            <!--
+              Magento_Theme owns Html\Block\Breadcrumbs, which this module
+              plugs into to drop the "Search results for" crumb — see
+              Plugin/Block/Html/RemoveSearchCrumb.php.
+            -->
+            <module name="Magento_Theme"/>
         </sequence>
     </module>
 </config>

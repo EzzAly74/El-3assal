@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<!--
+  Sequence, not a hard dependency list: these modules must be LOADED before
+  this one so their DI, layout and template fallbacks are already in place
+  when /brands renders.
+
+  Magento_Catalog   — the brand vocabulary is the `brand` PRODUCT attribute's
+                      option list, resolved through that module's attribute
+                      repository. No brand entity of our own exists, by
+                      design: see this module's README.
+  Magento_Swatches  — the brand LOGOS are the per-option VISUAL SWATCH images
+                      Magento already stores under pub/media/attribute/swatch.
+                      Spartrak_Catalog reads them through this module's own
+                      helpers, so it has to be loadable first. Spartrak_Catalog
+                      declares the same sequence entry for the same reason.
+  Spartrak_Catalog  — owns ViewModel\BrandNavigation, which is the SINGLE
+                      source of brands, logos and brand URLs for the header
+                      pane, the mobile drawer, the homepage rail and this
+                      page. Nothing here re-derives any of it.
+  Spartrak_Homepage — owns the "بتدور علي ايه؟" finder section and
+                      Block\SectionByCode, which this page's layout mounts.
+                      A real class dependency, not an ordering preference.
+  Spartrak_Locale   — owns Model\StoreLanguage, the one resolver that answers
+                      "which locale am I?" for every _ar/_en column the
+                      section this page mounts reads.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/module.xsd">
+    <module name="Spartrak_Brand">
+        <sequence>
+            <module name="Magento_Catalog"/>
+            <module name="Magento_Swatches"/>
+            <module name="Spartrak_Catalog"/>
+            <module name="Spartrak_Homepage"/>
+            <module name="Spartrak_Locale"/>
+        </sequence>
+    </module>
+</config>
