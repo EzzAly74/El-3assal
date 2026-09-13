@@ -38,39 +38,43 @@ define([
     var PROXY_EXTENSION = 'png';
 
     /**
-     * Wrap the widget's own onBeforeFileAdded gate.
+     * Wrap a live Uppy instance's onBeforeFileAdded gate.
      *
-     * @param {Object} options
-     * @return {Object}
+     * @param {Object} uppy
+     * @return {void}
      */
-    function allowAdditionalTypes(options) {
-        var coreHandler = options && options.onBeforeFileAdded;
+    function allowAdditionalTypes(uppy) {
+        var coreHandler = uppy.opts && uppy.opts.onBeforeFileAdded;
 
         if (typeof coreHandler !== 'function') {
-            return options;
+            return;
         }
 
-        options.onBeforeFileAdded = function (currentFile) {
-            var accepted;
+        additionalFileTypes.setUppyOptions(uppy, {
+            /**
+             * @param {Object} currentFile
+             * @return {Object|Boolean}
+             */
+            onBeforeFileAdded: function (currentFile) {
+                var accepted;
 
-            if (!additionalFileTypes.matches(currentFile)) {
-                return coreHandler.apply(this, arguments);
+                if (!additionalFileTypes.matches(currentFile)) {
+                    return coreHandler.apply(this, arguments);
+                }
+
+                accepted = coreHandler.call(this, $.extend({}, currentFile, {
+                    extension: PROXY_EXTENSION
+                }));
+
+                if (!accepted) {
+                    return accepted;
+                }
+
+                return $.extend({}, accepted, {
+                    extension: currentFile.extension
+                });
             }
-
-            accepted = coreHandler.call(this, $.extend({}, currentFile, {
-                extension: PROXY_EXTENSION
-            }));
-
-            if (!accepted) {
-                return accepted;
-            }
-
-            return $.extend({}, accepted, {
-                extension: currentFile.extension
-            });
-        };
-
-        return options;
+        });
     }
 
     return function (mediaUploader) {
@@ -80,7 +84,7 @@ define([
             _create: function () {
                 var widget = this;
 
-                additionalFileTypes.whileDecoratingUppyOptions(allowAdditionalTypes, function () {
+                additionalFileTypes.whileDecoratingUppyInstances(allowAdditionalTypes, function () {
                     widget._super();
                 });
             }

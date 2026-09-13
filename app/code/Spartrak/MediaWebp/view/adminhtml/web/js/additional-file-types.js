@@ -5,22 +5,35 @@
  * core uploader widgets leave open.
  *
  * Magento_Catalog/catalog/base-image-uploader and Magento_Backend/js/media-uploader
- * each build their Uppy instance inside _create(), keep it in a local variable,
- * and hard-code their own file-type gate in the options object they pass to the
- * constructor. Neither exposes a widget option, and neither keeps a handle we
- * could call uppy.setOptions() on afterwards.
+ * each build their Uppy instance inside _create(), hard-code their own
+ * file-type gate in the options they pass it, keep the instance in a local
+ * variable, and expose no widget option. So there is nothing to configure and
+ * no handle to reconfigure afterwards.
  *
- * What they DO both do is call `new Uppy.Uppy(options)` while _create() runs. So
- * the constructor is swapped for exactly that window, the options object is
- * decorated on its way through, and the constructor is put back in a finally
- * block. _create() is synchronous, so nothing outside that window ever sees the
- * wrapper.
+ * The `Uppy` global cannot be wrapped: Magento ships Uppy 4.1 as an esbuild
+ * bundle whose namespace properties are defined with
+ * `Object.defineProperty(ns, name, { get, enumerable: true })` - getter-only AND
+ * non-configurable, so `window.Uppy.Uppy = ...` throws
+ * "Cannot set property Uppy of #<Object> which has only a getter".
+ *
+ * What IS writable is the Uppy class prototype. Both widgets call `uppy.use()`
+ * to install their first plugin immediately after construction, so `use` is
+ * patched for the duration of _create(), handing each new instance to a
+ * decorator before its first plugin is installed, and restored in a finally
+ * block. The decorators then reconfigure the instance through Uppy's own public
+ * setOptions() - no private state is touched.
  *
  * Server-side counterparts: etc/di.xml and etc/adminhtml/di.xml. Core keeps
  * these lists independent of the server's, so they have to be kept in step.
  */
 define([], function () {
     'use strict';
+
+    /**
+     * Marks an instance as already decorated, so a widget that calls use()
+     * several times is only decorated once.
+     */
+    var DECORATED = '__spartrakMediaWebpDecorated';
 
     return {
         /**
@@ -46,31 +59,62 @@ define([], function () {
         },
 
         /**
-         * Run `callback` with every Uppy options object built inside it passed
-         * through `decorate` first.
+         * Reconfigure a live Uppy instance through its public API.
          *
-         * @param {Function} decorate - receives and returns an options object
+         * @param {Object} uppy
+         * @param {Object} options
+         * @return {Boolean} whether the options could be applied
+         */
+        setUppyOptions: function (uppy, options) {
+            if (!uppy || typeof uppy.setOptions !== 'function') {
+                return false;
+            }
+
+            uppy.setOptions(options);
+
+            return true;
+        },
+
+        /**
+         * Run `callback` with every Uppy instance built inside it handed to
+         * `decorate` just before that instance installs its first plugin.
+         *
+         * Degrades to plain `callback()` if the seam is not there - a changed
+         * Uppy build must leave the admin working, not throw.
+         *
+         * @param {Function} decorate - receives the Uppy instance
          * @param {Function} callback
          * @return {*} whatever `callback` returns
          */
-        whileDecoratingUppyOptions: function (decorate, callback) {
-            var namespace = window.Uppy,
-                OriginalUppy;
+        whileDecoratingUppyInstances: function (decorate, callback) {
+            var uppyClass = window.Uppy && window.Uppy.Uppy,
+                prototype = uppyClass && uppyClass.prototype,
+                originalUse;
 
-            if (!namespace || typeof namespace.Uppy !== 'function') {
+            if (!prototype || typeof prototype.use !== 'function') {
                 return callback();
             }
 
-            OriginalUppy = namespace.Uppy;
+            originalUse = prototype.use;
 
-            namespace.Uppy = function (options) {
-                return new OriginalUppy(decorate(options));
-            };
+            try {
+                prototype.use = function () {
+                    if (!this[DECORATED]) {
+                        this[DECORATED] = true;
+                        decorate(this);
+                    }
+
+                    return originalUse.apply(this, arguments);
+                };
+            } catch (e) {
+                // Frozen prototype: leave core behaviour exactly as it was.
+                return callback();
+            }
 
             try {
                 return callback();
             } finally {
-                namespace.Uppy = OriginalUppy;
+                prototype.use = originalUse;
             }
         }
     };

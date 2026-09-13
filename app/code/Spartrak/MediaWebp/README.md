@@ -44,9 +44,23 @@ WebP is rejected in the browser before any server config is read:
 | `Magento_Catalog/catalog/base-image-uploader` | Product form → Images And Videos | Uppy `restrictions.allowedFileTypes` |
 | `Magento_Backend/js/media-uploader` | Media browser → Upload Images (WYSIWYG description, admin media browser) | its own `allowedExt` local, checked in `onBeforeFileAdded` |
 
-Neither exposes a widget option, so both are reached through the one seam they
-share: the options object passed to `new Uppy.Uppy(...)` during `_create()`.
-`js/additional-file-types.js` holds that mechanism and the format list.
+Neither exposes a widget option, and neither keeps the Uppy instance anywhere
+reachable.
+
+The `Uppy` global is **not** a usable seam: Magento ships Uppy 4.1 as an esbuild
+bundle whose namespace properties are defined with
+`Object.defineProperty(ns, name, { get, enumerable: true })` — getter-only and
+non-configurable. Assigning `window.Uppy.Uppy` throws
+*"Cannot set property Uppy of #<Object> which has only a getter"*.
+
+What is writable is the `Uppy` class prototype. Both widgets call `uppy.use()`
+to install their first plugin immediately after constructing the instance, so
+`js/additional-file-types.js` patches `Uppy.prototype.use` for the duration of
+`_create()`, hands each new instance to a decorator before its first plugin is
+installed, and restores `use` in a `finally`. The decorators then reconfigure
+the instance through Uppy's own public `setOptions()` — no private state is
+touched, and if a future Uppy build moves the seam the shim degrades to core
+behaviour instead of throwing.
 
 ## Requirements
 

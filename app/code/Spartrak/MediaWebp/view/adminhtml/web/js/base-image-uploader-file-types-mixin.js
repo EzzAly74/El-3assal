@@ -7,8 +7,8 @@
  * `restrictions.allowedFileTypes`, written inline as
  * ['.gif', '.jpeg', '.jpg', '.png']. Adding to that list is all this mixin does.
  *
- * See Spartrak_MediaWebp/js/additional-file-types for why the Uppy constructor
- * is the seam, and for the server-side counterpart.
+ * See Spartrak_MediaWebp/js/additional-file-types for why the Uppy class
+ * prototype is the seam, and for the server-side counterpart.
  */
 define([
     'jquery',
@@ -18,25 +18,32 @@ define([
     'use strict';
 
     /**
-     * Merge the extra types into an Uppy options object, in place.
+     * Add the extra types to a live Uppy instance's restrictions.
      *
-     * @param {Object} options
-     * @return {Object}
+     * @param {Object} uppy
+     * @return {void}
      */
-    function addFileTypes(options) {
-        var allowed = options && options.restrictions && options.restrictions.allowedFileTypes;
+    function addFileTypes(uppy) {
+        var allowed = uppy.opts && uppy.opts.restrictions && uppy.opts.restrictions.allowedFileTypes,
+            missing;
 
         if (!Array.isArray(allowed)) {
-            return options;
+            return;
         }
 
-        options.restrictions.allowedFileTypes = allowed.concat(
-            additionalFileTypes.fileTypes.filter(function (fileType) {
-                return allowed.indexOf(fileType) === -1;
-            })
-        );
+        missing = additionalFileTypes.fileTypes.filter(function (fileType) {
+            return allowed.indexOf(fileType) === -1;
+        });
 
-        return options;
+        if (!missing.length) {
+            return;
+        }
+
+        additionalFileTypes.setUppyOptions(uppy, {
+            restrictions: {
+                allowedFileTypes: allowed.concat(missing)
+            }
+        });
     }
 
     return function (baseImage) {
@@ -46,7 +53,7 @@ define([
             _create: function () {
                 var widget = this;
 
-                additionalFileTypes.whileDecoratingUppyOptions(addFileTypes, function () {
+                additionalFileTypes.whileDecoratingUppyInstances(addFileTypes, function () {
                     widget._super();
                 });
             }
