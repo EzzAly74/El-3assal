@@ -68,31 +68,4 @@
                 type="Spartrak\Search\Plugin\Controller\Result\ResetEmptySearch"
                 sortOrder="10"/>
     </type>
-
-    <!--
-      "Cancel the filtering" clears the SEARCH TERM as well - the merchant's
-      decision, not Magento's default. See the plugin class for the full note,
-      including why this depends on the ResetEmptySearch plugin above.
-
-      sortOrder="0" is load-bearing. Mageplaza_LayeredNavigation registers an
-      `aroundGetRemoveUrl` on the same class at sortOrder 1 which ignores
-      $proceed() and returns a URL of its own. Magento nests interceptors by
-      sortOrder with the LOWEST outermost, so only a lower number puts this
-      plugin's `after` last in the chain, where it sees the URL Mageplaza
-      actually returned.
-    -->
-    <type name="Magento\Catalog\Model\Layer\Filter\Item">
-        <plugin name="spartrak_search_clear_term_with_filter"
-                type="Spartrak\Search\Plugin\Layer\ClearSearchTermWithFilters"
-                sortOrder="0"/>
-    </type>
-
-    <!--
-      The same gesture, one control up: the "clear all" link. Nothing else plugs
-      this method, so the default sortOrder is fine.
-    -->
-    <type name="Magento\LayeredNavigation\Block\Navigation\State">
-        <plugin name="spartrak_search_clear_term_with_all_filters"
-                type="Spartrak\Search\Plugin\Layer\ClearSearchTermWithFilters"/>
-    </type>
 </config>

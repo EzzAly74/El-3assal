@@ -43,11 +43,13 @@ use Magento\Store\Model\StoreManagerInterface;
  * cached. Nothing is cached; the request is simply bounced.
  *
  * ===========================================================================
- * THE REDIRECT LOOP THIS ALSO FIXES
+ * THE REDIRECT LOOP THIS GUARDS AGAINST
  * ===========================================================================
- * Since Plugin\Layer\ClearSearchTermWithFilters, "إزالة" and "مسح الكل" drop
- * the term as well, so both point at a TERMLESS results URL and land in that
- * else-branch. Mageplaza_AjaxLayer then turns the click into:
+ * A referer-driven redirect on a URL that is also a NAVIGATION TARGET is a
+ * loop waiting to happen, and this storefront hit it. While "إزالة" and
+ * "مسح الكل" were rewritten to drop the term as well, both pointed at a
+ * TERMLESS results URL and landed in that else-branch — and
+ * Mageplaza_AjaxLayer turns such a click into:
  *
  *     window.history.pushState({url: submitUrl}, '', submitUrl);   // FIRST
  *     storage.get(submitUrl)                                       // then XHR
@@ -55,17 +57,28 @@ use Magento\Store\Model\StoreManagerInterface;
  * (app/code/Mageplaza/AjaxLayer/view/frontend/web/js/action/submit-filter.js).
  * pushState runs BEFORE the request and rewrites document.URL, so the XHR that
  * follows carries the termless URL as its OWN Referer. The controller redirects
- * it to the referer — itself — and the browser gives up at the redirect limit:
+ * it to the referer — itself — until the browser gives up:
  *
  *     GET /ar/catalogsearch/result/index/  net::ERR_TOO_MANY_REDIRECTS
  *
  * The extension's .fail() handler answers that with window.location.reload(),
- * which reloads the pushState'd URL and reproduces the same loop as a visible
- * navigation. That is the error page the merchant reported.
+ * which reloads the pushState'd URL and reproduces the loop as a visible
+ * navigation. That was the error page the merchant reported.
  *
- * A referer-driven redirect on a URL that is a NAVIGATION TARGET is a loop
- * waiting to happen, and the one case where the referer is itself a results
- * page is exactly the case this plugin declines to pass on.
+ * THAT REWRITE IS GONE. Removing a facet keeps the search term again, which is
+ * Magento's own model and the only reading with a renderable destination: the
+ * term is the QUERY and facets NARROW it, so cancelling a facet widens the
+ * query rather than abandoning it. Measured on this store, dropping the brand
+ * chip takes "فورد" from one page of results to thirty-eight — the filter
+ * really does lift, which was the complaint the rewrite was meant to answer.
+ * A "clear" that also cleared the query had nowhere to land, and the redirect
+ * it needed in order to land anywhere is what produced the loop above.
+ *
+ * The guard stays, because the loop is still reachable: onpopstate replays a
+ * history entry's URL through this same AJAX path, and sessions that browsed
+ * while the rewrite was live still hold termless entries. The one case where
+ * the referer is itself a results page is exactly the case this plugin
+ * declines to pass on.
  *
  * ===========================================================================
  * WHY TWO TYPES ARE REGISTERED IN di.xml, AND WHY THE HINT IS ActionInterface
